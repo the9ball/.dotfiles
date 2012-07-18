@@ -1,0 +1,24 @@
+[http]
+    sslVerify = false
+[user]
+	name = syasui
+	email = syasui@aiming-inc.com
+[core]
+	editor = vim
+	autocrlf = false
+	eol = lf
+[merge]
+	tool = vimdiff
+[alias]
+	co=checkout
+	ci=commit
+	up=svn rebase
+	st=status -sb
+	mg=merge --squash
+	lg=log --stat --summary
+	mt=mergetool
+	df=diff --ignore-space-at-eol --ignore-space-change
+	rb=rebase --ignore-whitespace --autosquash
+	mt=mergetool
+	pl=pull --rebase
+

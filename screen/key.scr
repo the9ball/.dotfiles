@@ -1,0 +1,22 @@
+# フォーカスの移動
+# PageUp = ^[[5~ PageDown = ^[[6~
+# bindkey ^[[5~ focus up
+# bindkey ^[[6~ focus down
+bindkey ^j focus down
+bindkey ^k focus up
+# bindkey ^h focus left
+# bindkey ^l focus right
+
+# レイアウトの移動
+bindkey ^[[5~ layout prev
+bindkey ^[[6~ layout next
+
+# 大きさの変更
+# bindkey ^; resize +1
+# bindkey ^- resize -1
+
+
+
+# ^-	Enter
+# ^;	Escape
+

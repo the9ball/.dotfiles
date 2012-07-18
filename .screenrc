@@ -1,0 +1,30 @@
+#基幹ウィンドウに基本設定を適用
+source .dotfiles/screen/common.scr
+
+# 0番に0sec毎に日付を更新させる。
+backtick 0 1 1 date +"%Y/%m/%d %H:%M"
+
+## %{=hogehoge} 色の指定 %{=r dd} r:反転 dd:デフォルト
+# %?条件真の場合%:偽の場合%?
+#	条件	%F	フォーカス
+#		%H	hardstatus 有？
+# %-16	右端から16文字の位置
+# %0`	backtick の値(?) 時刻が入る。
+caption always "%{=r dB}%-Lw%40L>%?%F%{=d dR}%:[%? %n%f %t %?%F%{-}%:]%?%+Lw%-16=%0`"
+
+# レイアウトをオートセーブしない
+# layout autosave off
+
+# keybind
+source .dotfiles/screen/key.scr
+
+# 端末を好きなサイズに変更可能
+# ただし、ウィンドウサイズではなく、スクリーン全体のサイズ
+# termcapinfo xterm-256color "WS=\E[8;%d;%dt"
+# 端末の初期サイズ設定
+# ただし、ウィンドウサイズではなく、スクリーン全体のサイズ
+# termcapinfo xterm-256color "li#63:co#100"
+
+# ウィンドウのサイズ指定は resize [n]
+# 垂直分割した場合は横幅で、水平分割した場合は縦幅
+

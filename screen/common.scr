@@ -1,0 +1,47 @@
+# スクロールバッファサイズ
+defscrollback 10000
+# スタートアップメッセージを消す
+startup_message off
+# 端末が落ちたら自動的にデタッチする
+autodetach on
+# 別画面サポート/vimやlessなどに。
+altscreen on
+# 256色表示設定	よくわかりませんでした。
+# term xterm-256color
+#term xterm
+
+# 横幅がおかしくなる現象の修正 よくわかりませんでした。
+termcapinfo  xterm-256color hs@:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l
+
+# 参考：http://shyouhei.tumblr.com/post/313410522/screenrc
+
+# 未検証
+# hardstatus on
+# hardstatus alwayslastline string "%w"
+# "%?%h%:%t (screen #%n on %H)%?"
+
+# 参考：http://subtech.g.hatena.ne.jp/secondlife/20110309/1299648331
+# マウスホイールで履歴
+termcapinfo xterm* ti@:te@
+
+# 参考：http://yskwkzhr.blogspot.com/2011/01/gnu-screen.html
+# defmousetrack on
+# mousetrack on
+
+# 参考：http://did2.blog64.fc2.com/blog-entry-242.html
+# PuTTY上でScreenを使ったら画面が点滅して気になる
+vbell off
+
+# ウィンドウ名の規則を設定
+# .bashrc にも以下の設定が必要
+# OLD_PS1=${PS1}
+# SCREEN_TITLE='\[\ek\e\\\]';
+# PS1="${SCREEN_TITLE}${OLD_PS1}"
+# 何かを実行しているウィンドウにはコマンド名、
+# 何もしていないウィンドウには bash と表示される。
+# ちなみに OLDPS1 = "[\u@\h \W]\$ "
+# '|'の左の"$ "は${PS1}の末尾と合わせる必要があるらしい。
+shelltitle '$ |sh'
+
+# setenv PROMPTO_COMMAND 'echo -ne "\ek$(whoami)\e\\"'
+
