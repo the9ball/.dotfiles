@@ -14,11 +14,12 @@
 	ci=commit
 	up=svn rebase
 	st=status -sb
-	mg=merge --squash
+	mg=merge --no-ff
 	lg=log --stat --summary
 	mt=mergetool
 	df=diff --ignore-space-at-eol --ignore-space-change
 	rb=rebase --ignore-whitespace --autosquash
 	mt=mergetool
 	pl=pull --rebase
+	svncheck=svn dcommit --dry-run
 

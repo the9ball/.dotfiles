@@ -16,7 +16,7 @@ caption always "%{=r dB}%-Lw%40L>%?%F%{=d dR}%:[%? %n%f %t %?%F%{-}%:]%?%+Lw%-16
 # layout autosave off
 
 # keybind
-source .dotfiles/screen/key.scr
+source $HOME/.dotfiles/screen/key.scr
 
 # 端末を好きなサイズに変更可能
 # ただし、ウィンドウサイズではなく、スクリーン全体のサイズ
