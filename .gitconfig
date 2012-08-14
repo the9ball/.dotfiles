@@ -1,8 +1,8 @@
 [http]
     sslVerify = false
 [user]
-	name = syasui
-	email = syasui@aiming-inc.com
+	name = Shaula
+	email = the9ball@gmail.com
 [core]
 	editor = vim
 	autocrlf = false
