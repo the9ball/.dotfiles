@@ -23,3 +23,5 @@
 	pl=pull --rebase
 	svncheck=svn dcommit --dry-run
 
+[color]
+	ui = auto
