@@ -21,6 +21,7 @@ export PS1="${SCREEN_TITLE}${OLD_PS1}"
 alias la='ls -al'
 alias vi='vim'
 alias :vi='vim'
+alias :e='vim'
 
 # ccache 用の設定
 export CCACHE_PREFIX="distcc"
