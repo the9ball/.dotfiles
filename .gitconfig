@@ -22,6 +22,6 @@
 	mt=mergetool
 	pl=pull --rebase
 	svncheck=svn dcommit --dry-run
-
+	cp=cherry-pick
 [color]
 	ui = auto
