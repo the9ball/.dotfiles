@@ -15,7 +15,7 @@
 	up=svn rebase
 	st=status -sb
 	mg=merge --no-ff
-	lg=log --stat --summary
+	lg=log --stat --summary --decorate
 	mt=mergetool
 	df=diff --ignore-space-at-eol --ignore-space-change
 	rb=rebase --ignore-whitespace --autosquash
@@ -23,5 +23,6 @@
 	pl=pull --rebase
 	svncheck=svn dcommit --dry-run
 	cp=cherry-pick
+	hist=log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short --decorate
 [color]
 	ui = auto
