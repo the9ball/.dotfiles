@@ -9,6 +9,8 @@ altscreen on
 # 256色表示設定	よくわかりませんでした。
 # term xterm-256color
 #term xterm
+# vim + screen での画面崩れの原因になるらしい。
+term xterm-256color
 
 # 横幅がおかしくなる現象の修正 よくわかりませんでした。
 termcapinfo  xterm-256color hs@:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l
@@ -25,8 +27,8 @@ termcapinfo  xterm-256color hs@:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l
 termcapinfo xterm* ti@:te@
 
 # 参考：http://yskwkzhr.blogspot.com/2011/01/gnu-screen.html
-# defmousetrack on
-# mousetrack on
+#defmousetrack on
+#mousetrack on
 
 # 参考：http://did2.blog64.fc2.com/blog-entry-242.html
 # PuTTY上でScreenを使ったら画面が点滅して気になる
