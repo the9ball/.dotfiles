@@ -10,19 +10,35 @@
 [merge]
 	tool = vimdiff
 [alias]
-	co=checkout
-	ci=commit
-	up=svn rebase
-	st=status -sb
-	mg=merge --no-ff
-	lg=log --stat --summary --decorate
-	mt=mergetool
-	df=diff --ignore-space-at-eol --ignore-space-change
-	rb=rebase --ignore-whitespace --autosquash
-	mt=mergetool
-	pl=pull --rebase
-	svncheck=svn dcommit --dry-run
-	cp=cherry-pick
-	hist=log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short --decorate
+	# Gerrit関連のalias定義
+	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \"" 
+	push-for-review = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'" 
+	#pfr = "!sh -c 'git push-for-review'" 
+	pfr = push origin HEAD:refs/for/master
+
+	# 自分の
+	co = checkout
+	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
+	ci = commit
+	up = svn rebase
+	st = status -sb
+	mg = merge --no-ff
+	lg = log --stat --summary --decorate
+	mt = mergetool
+	df = diff --ignore-space-at-eol --ignore-space-change --word-diff
+	rb = rebase --ignore-whitespace --autosquash
+	mt = mergetool
+	pr = pull --rebase
+	svncheck = svn dcommit --dry-run
+	cp = cherry-pick
+	hist = log --oneline --graph --date=short --decorate
+#	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short --decorate
+	last = log --stat --summary --decorate -n1
+	hlast = log --pretty=format:'%H' -n1
+	topic = "!sh -c 'git co -b $1 master' dummy"
+	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
+	ontomaster = rebase --onto master local
 [color]
 	ui = auto
+[push]
+	default = upstream
