@@ -25,7 +25,7 @@ alias :e='vim'
 
 # ccache 用の設定
 export CCACHE_PREFIX="distcc"
-export CCACHE_DIR=/opt/syasui/CCACHE_DIR
+export CCACHE_DIR=/opt/$USER/CCACHE_DIR
 
 # svn用
 export SVN_EDITOR="vim"
