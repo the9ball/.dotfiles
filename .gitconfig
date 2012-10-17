@@ -23,7 +23,8 @@
 	up = svn rebase
 	st = status -sb
 	mg = merge --no-ff
-	lg = log --stat --summary --decorate
+#	lg = log --stat --summary --decorate
+	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	mt = mergetool
 	df = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	rb = rebase --ignore-whitespace --autosquash
