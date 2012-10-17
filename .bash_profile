@@ -10,8 +10,15 @@ fi
 stty stop undef
 
 # OLD_PS1=${PS1}
-export OLD_PS1="[\u@\h \W]\$ "
-export SCREEN_TITLE='\[\ek\e\\\]';
+export OLD_PS1='[\u@\h \W]\$ '
+
+# http://d.hatena.ne.jp/u-no/20070626
+# screen は任意のプログラムが "<esc>khogehoge<esc>\" という文字列を吐くと、そのウィンドウのタイトルを hogehoge にかえるという機能が備わっています
+# 最後に実行したコマンド
+#export SCREEN_TITLE='\[\ek\e\\\]'
+# 現在のカレントディレクトリ
+export SCREEN_TITLE='\[\ek\W\e\\\]'
+
 export PS1="${SCREEN_TITLE}${OLD_PS1}"
 
 # export OLD_PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/~}"; echo -ne "\007"'
