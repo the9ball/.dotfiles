@@ -45,3 +45,13 @@
 	ui = auto
 [push]
 	default = upstream
+
+# もしものためのコマンド
+# git filter-branch --commit-filter '
+# GIT_AUTHOR_NAME="Shaula"
+# GIT_AUTHOR_EMAIL="the9ball@gmail.com"
+# GIT_COMMITTER_NAME="Shaula"
+# GIT_COMMITTER_EMAIL="the9ball@gmail.com"
+# git commit-tree "$@"
+# ' HEAD
+
