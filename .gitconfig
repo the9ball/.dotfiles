@@ -7,6 +7,7 @@
 	editor = vim
 	autocrlf = false
 	eol = lf
+	filemode = false
 [merge]
 	tool = vimdiff
 [alias]
@@ -23,10 +24,11 @@
 	up = svn rebase
 	st = status -sb
 	mg = merge --no-ff
-#	lg = log --stat --summary --decorate
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+	lgs = log --stat --summary --decorate
 	mt = mergetool
 	df = diff --ignore-space-at-eol --ignore-space-change --word-diff
+	dfl = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --autosquash
 	mt = mergetool
 	pr = pull --rebase
@@ -39,7 +41,7 @@
 	topic = "!sh -c 'git co -b $1 master' dummy"
 	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	t = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n5
+	t = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	ontomaster = rebase --onto master local
 [color]
 	ui = auto
@@ -54,4 +56,6 @@
 # GIT_COMMITTER_EMAIL="the9ball@gmail.com"
 # git commit-tree "$@"
 # ' HEAD
+
+# git ls-tree origin/intern2 -r | sed "s/\t/ /" | \grep " \.gitignore" | cut -d' ' -f 3 | xargs git unpack-file | xargs cat
 
