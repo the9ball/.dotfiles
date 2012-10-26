@@ -38,3 +38,54 @@ export CCACHE_DIR=/opt/$USER/CCACHE_DIR
 export SVN_EDITOR="vim"
 alias svndiff='svn diff -x --ignore-eol-style'
 
+# git用
+#_gitcatfunc_core_()
+#{
+#	# gitのrootディレクトリへの相対パスをエスケープ付きで取得する。
+#	temp=`git rev-parse --show-cdup | sed 's/\\//\\\\\\//g'`
+#
+#	# git ls-tree の中から対象のファイルを探す。
+#	file=`git ls-tree $1 -r | sed 's/\t/ /' | egrep " $2\$" | cut -d' ' -f3`
+#
+#	if [ "" != "${file}" ]; then
+#		# 存在したならば出力する。
+#		echo ${file} | xargs git unpack-file | sed "s/^/${temp}/" | xargs sh -c 'cat $1; rm $1' dummy
+#	fi
+#}
+#export -f _gitcatfunc_core_
+#
+#_gitcatfunc_()
+#{
+#	rev=$1
+#	shift
+#
+#	for file in $@ ; do
+#		_gitcatfunc_core_ ${rev} ${file}
+#	done
+#}
+#alias gitcat=_gitcatfunc_
+#
+#_gitcatfunc_file_core_()
+#{
+##	pwd
+##	echo $2
+##	echo git status -s | egrep '^\?' | egrep '$2$'
+##	temp=git status -s | egrep '^\?' | egrep '$2$'
+##	echo ${temp}
+#
+##	if [[ "" = `git status -s | egrep '^\?' | egrep '$2$'` ]] ; then
+##		echo $2
+#		_gitcatfunc_core_ $1 $2 > $2.$1
+##	fi
+##	echo "++++"
+#}
+#_gitcatfunc_file_()
+#{
+#	rev=$1
+#	shift
+#
+#	for file in $@ ; do
+#		_gitcatfunc_file_core_ ${rev} ${file}
+#	done
+#}
+#alias gitcatf=_gitcatfunc_file_
