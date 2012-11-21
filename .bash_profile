@@ -17,7 +17,7 @@ export OLD_PS1='[\u@\h \W]\$ '
 # 最後に実行したコマンド
 #export SCREEN_TITLE='\[\ek\e\\\]'
 # 現在のカレントディレクトリ
-export SCREEN_TITLE='\[\ek\W\e\\\]'
+export SCREEN_TITLE='\[\ek\W\e\\\]\r'
 
 export PS1="${SCREEN_TITLE}${OLD_PS1}"
 
