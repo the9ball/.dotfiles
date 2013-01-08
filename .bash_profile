@@ -38,3 +38,6 @@ export CCACHE_DIR=/opt/$USER/CCACHE_DIR
 export SVN_EDITOR="vim"
 alias svndiff='svn diff -x --ignore-eol-style'
 
+# CentOS用バージョン表示
+# そのうちOS毎のやつ作るかも。
+alias osver='cat /etc/redhat-release'
