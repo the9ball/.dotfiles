@@ -45,3 +45,9 @@ alias osver='cat /etc/redhat-release'
 # ccache
 export CC='ccache gcc'
 export CXX='ccache g++'
+
+# function _update_ps1()
+# {
+# 	   export PS1="$(~/powerline-bash/powerline-bash.py $?)"
+# }
+# export PROMPT_COMMAND="_update_ps1"
