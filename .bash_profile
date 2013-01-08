@@ -31,7 +31,7 @@ alias :vi='vim'
 alias :e='vim'
 
 # ccache 用の設定
-export CCACHE_PREFIX="distcc"
+#export CCACHE_PREFIX="distcc"
 export CCACHE_DIR=/opt/$USER/CCACHE_DIR
 
 # svn用
