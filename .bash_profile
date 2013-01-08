@@ -41,3 +41,7 @@ alias svndiff='svn diff -x --ignore-eol-style'
 # CentOS用バージョン表示
 # そのうちOS毎のやつ作るかも。
 alias osver='cat /etc/redhat-release'
+
+# ccache
+export CC='ccache gcc'
+export CXX='ccache g++'
