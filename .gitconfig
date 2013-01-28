@@ -47,6 +47,7 @@
 	ontomaster = rebase --onto master local
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
 	temp = "!sh -c \"git commit -a -m \\\"`date`\\\"$'\\n'$'\\n'\\\"`git diff`\\\"\""
+	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
 [color]
 	ui = auto
 [push]
