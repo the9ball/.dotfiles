@@ -1,8 +1,8 @@
 # .bash_profile
 
 # Get the aliases and functions
-if [ -f ~/.bashrc ]; then
-	. ~/.bashrc
+if [ -f $HOME/.bashrc ]; then
+	. $HOME/.bashrc
 fi
 
 # User specific environment and startup programs
@@ -45,6 +45,15 @@ alias osver='cat /etc/redhat-release'
 # ccache
 export CC='ccache gcc'
 export CXX='ccache g++'
+
+# git completion
+if [ -f /etc/bash_completion.d/git ]; then
+	. /etc/bash_completion.d/git
+elif [ -f `which git`/../../contrib/completion/git-completion.bash ]; then
+	. `which git`/../../contrib/completion/git-completion.bash
+else
+	echo 'git-completion.bash is not found'
+fi
 
 # function _update_ps1()
 # {
