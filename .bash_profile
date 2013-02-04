@@ -30,6 +30,14 @@ alias vi='vim'
 alias :vi='vim'
 alias :e='vim'
 
+# 雑多なalias
+alias la='ls -al'
+alias ll='ls -l'
+alias vi='vim'
+
+# 
+export EDITER=vim
+
 # ccache 用の設定
 #export CCACHE_PREFIX="distcc"
 export CCACHE_DIR=/opt/$USER/CCACHE_DIR
