@@ -47,3 +47,5 @@ shelltitle '$ |sh'
 
 # setenv PROMPTO_COMMAND 'echo -ne "\ek$(whoami)\e\\"'
 
+# bash_profileを読む設定
+shell -bash
