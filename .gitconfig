@@ -28,8 +28,8 @@
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	lgs = log --stat --summary --decorate
 	mt = mergetool
+	d = diff --ignore-space-at-eol --ignore-space-change
 	df = diff --ignore-space-at-eol --ignore-space-change --word-diff
-	dfl = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --autosquash
 	mt = mergetool
 	pr = pull --rebase
