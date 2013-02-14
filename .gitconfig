@@ -33,6 +33,7 @@
 	rb = rebase --ignore-whitespace --autosquash
 	mt = mergetool
 	pr = pull --rebase
+	amend = commit --amend -C HEAD
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
