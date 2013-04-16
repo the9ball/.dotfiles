@@ -48,6 +48,7 @@
 	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	ontomaster = rebase --onto origin/master local
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
+	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
 [color]
