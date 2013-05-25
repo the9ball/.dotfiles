@@ -8,6 +8,7 @@
 	autocrlf = false
 	eol = lf
 	filemode = false
+	quotepath = false
 [merge]
 	tool = vimdiff
 	ff = false
@@ -33,6 +34,7 @@
 	rb = rebase --ignore-whitespace --autosquash
 	mt = mergetool
 	pr = pull --rebase
+	cia = commit --amend -C HEAD
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
@@ -43,10 +45,11 @@
 	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	t = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
-	ontomaster = rebase --onto master local
+	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	ontomaster = rebase --onto origin/master local
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
-	temp = "!sh -c \"git commit -a -m \\\"`date`\\\"$'\\n'$'\\n'\\\"`git diff`\\\"\""
+	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
+	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
 [color]
 	ui = auto
