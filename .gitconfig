@@ -34,6 +34,7 @@
 	rb = rebase --ignore-whitespace --autosquash
 	mt = mergetool
 	pr = pull --rebase
+	fp = fetch --prune
 	cia = commit --amend -C HEAD
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
@@ -54,6 +55,9 @@
 	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
+
+# メモ
+# git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
 [color]
 	ui = auto
 [push]
