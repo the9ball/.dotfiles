@@ -49,8 +49,8 @@
 	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	onto = rebase --onto
 	ontoi = rebase -i --onto
-	ontomaster = rebase --onto origin/master local
-	ontoimaster = rebase -i --onto origin/master local
+	ontomaster = rebase --onto origin/master master
+	ontoimaster = rebase -i --onto origin/master master
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
 	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
