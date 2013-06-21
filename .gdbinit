@@ -5,7 +5,7 @@ source ~/.gdbscript/dumpmap
 source ~/.gdbscript/stlcontainers
 
 # オブジェクトの型を見る
-set print object
+set print object on
 
 # 静的メンバを表示しない
 set print static-members off
