@@ -35,6 +35,7 @@
 	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	df = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --autosquash
+	ri = rebase -i
 	mt = mergetool
 	pr = pull --rebase
 	fp = fetch --prune
