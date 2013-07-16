@@ -22,7 +22,10 @@
 	# 自分の
 	co = checkout
 	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
-	ci = commit
+	ci = commit -v
+	cm = commit -m
+	ca = commit --amend -v
+	cia = commit --amend -C HEAD
 	up = svn rebase
 	st = status -sb
 	mg = merge --no-ff
@@ -35,7 +38,6 @@
 	mt = mergetool
 	pr = pull --rebase
 	fp = fetch --prune
-	cia = commit --amend -C HEAD
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
