@@ -14,15 +14,18 @@
 	ff = false
 [alias]
 	# Gerrit関連のalias定義
-	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \"" 
-	push-for-review = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'" 
-	#pfr = "!sh -c 'git push-for-review'" 
-	pfr = push origin HEAD:refs/for/master
+	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
+	push-for-review = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
+	pfr = "!sh -c 'git push-for-review'"
+	#pfr = push origin HEAD:refs/for/master
 
 	# 自分の
 	co = checkout
 	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
-	ci = commit
+	ci = commit -v
+	cm = commit -m
+	ca = commit --amend -v
+	cia = commit --amend -C HEAD
 	up = svn rebase
 	st = status -sb
 	mg = merge --no-ff
@@ -32,9 +35,10 @@
 	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	df = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --autosquash
+	ri = rebase -i
 	mt = mergetool
 	pr = pull --rebase
-	cia = commit --amend -C HEAD
+	fp = fetch --prune
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
@@ -42,15 +46,21 @@
 	last = log --stat --summary --decorate -n1
 	hlast = log --pretty=format:'%H' -n1
 	topic = "!sh -c 'git co -b $1 master' dummy"
-	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
-	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
-	ontomaster = rebase --onto origin/master local
+	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	onto = rebase --onto
+	ontoi = rebase -i --onto
+	ontomaster = rebase --onto origin/master master
+	ontoimaster = rebase -i --onto origin/master master
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
 	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
+
+# メモ
+# git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
 [color]
 	ui = auto
 [push]
