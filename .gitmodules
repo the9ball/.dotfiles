@@ -4,3 +4,6 @@
 [submodule "bash-completion"]
 	path = bash-completion
 	url = git://git.debian.org/git/bash-completion/bash-completion.git
+[submodule "powerline-shell"]
+	path = powerline-shell
+	url = https://github.com/milkbikis/powerline-shell
