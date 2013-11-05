@@ -15,8 +15,8 @@
 [alias]
 	# Gerrit関連のalias定義
 	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
-	push-for-review = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
-	pfr = "!sh -c 'git push-for-review'"
+	pfrmaster = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
+	pfrelease = "!sh -c 'git push origin HEAD:refs/for/release/`git current-branch`'"
 	#pfr = push origin HEAD:refs/for/master
 
 	# 自分の
