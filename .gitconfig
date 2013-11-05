@@ -59,6 +59,7 @@
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
 	list = ls-files
+	commitdiff = show-branch --topo-order
 
 # メモ
 # git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
