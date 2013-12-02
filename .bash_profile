@@ -19,7 +19,7 @@ export __git_ps1="git current-branch 1>/dev/null"
 # 最後に実行したコマンド
 #export SCREEN_TITLE='\[\ek\e\\\]'
 # 現在のカレントディレクトリ
-export SCREEN_TITLE='\[\ek\W $(__git_ps1)\e\\\]\r'
+export SCREEN_TITLE='\[\ek\W$(__git_ps1)\e\\\]\r'
 
 export PS1="${SCREEN_TITLE}${OLD_PS1}"
 
