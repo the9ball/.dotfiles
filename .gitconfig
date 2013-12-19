@@ -15,8 +15,8 @@
 [alias]
 	# Gerrit関連のalias定義
 	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
-	push-for-review = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
-	pfr = "!sh -c 'git push-for-review'"
+	pfrmaster = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
+	pfrelease = "!sh -c 'git push origin HEAD:refs/for/release/`git current-branch`'"
 	#pfr = push origin HEAD:refs/for/master
 
 	# 自分の
@@ -58,6 +58,8 @@
 	remove = "!sh -c 'git rebase --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
+	list = ls-files
+	commitdiff = show-branch --topo-order
 
 # メモ
 # git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する

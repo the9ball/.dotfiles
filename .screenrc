@@ -10,7 +10,7 @@ backtick 0 1 1 date +"%Y/%m/%d %H:%M"
 #		%H	hardstatus 有？
 # %-16	右端から16文字の位置
 # %0`	backtick の値(?) 時刻が入る。
-caption always "%{=r dB}%-Lw%40L>%?%F%{=d dR}%:[%? %n%f %t %?%F%{-}%:]%?%+Lw%-16=%0`"
+caption always "%{=r dB}%-Lw%40L>%?%F%{=d dR}%:[%? %n%f %t %?%F%{-}%:]%?%+Lw%{=r dB}%< %=%0` "
 
 # レイアウトをオートセーブしない
 # layout autosave off
