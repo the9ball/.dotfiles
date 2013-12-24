@@ -61,14 +61,34 @@
 	list = ls-files
 	commitdiff = show-branch --topo-order
 
-# メモ
-# git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
 [color]
 	ui = auto
 [push]
 	default = upstream
 
+######################################################################################
+# メモ
+# git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
+######################################################################################
+# 特定のファイルを無視する.
+# 作業ツリー上でもリポジトリ上でもファイル更新があって、それをマージするとき
+#
+# assume-unchanged : 作業ツリー上の更新は破棄されて、リポジトリの内容が取り込まれます。
+# skip-worktree : 作業ツリー上の更新は保持されて、リポジトリの内容は取り込まれません。
+# 作業ツリー上でファイル更新があって、git reset --hard を実行したとき
+#
+# assume-unchanged : 作業ツリー上の更新は破棄されます。
+# skip-worktree : 作業ツリー上の更新は保持されます。
+#
+# git update-index --assume-unchanged [ファイル名]
+# git update-index --no-assume-unchanged [ファイル名]
+# git update-index --skip-worktree [ファイル名]
+# git update-index --no-skip-worktree [ファイル名]
+# git ls-files -v
+######################################################################################
 # もしものためのコマンド
+#
+# コミッターとかを強制的に書き換える。
 # git filter-branch --commit-filter '
 # GIT_AUTHOR_NAME="Shaula"
 # GIT_AUTHOR_EMAIL="the9ball@gmail.com"
@@ -76,6 +96,6 @@
 # GIT_COMMITTER_EMAIL="the9ball@gmail.com"
 # git commit-tree "$@"
 # ' HEAD
-
-# git ls-tree origin/intern2 -r | sed "s/\t/ /" | \grep " \.gitignore" | cut -d' ' -f 3 | xargs git unpack-file | xargs cat
+# あとは git push -f とかなんとか
+######################################################################################
 
