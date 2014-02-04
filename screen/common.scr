@@ -13,7 +13,9 @@ altscreen on
 term xterm-256color
 
 # 横幅がおかしくなる現象の修正 よくわかりませんでした。
-termcapinfo  xterm-256color hs@:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l
+termcapinfo xterm-256color hs@:is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l
+termcapinfo xterm 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
+termcapinfo kterm-color 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
 
 # 参考：http://shyouhei.tumblr.com/post/313410522/screenrc
 
