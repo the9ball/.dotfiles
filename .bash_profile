@@ -67,10 +67,6 @@ else
 	echo 'git-completion.bash is not found'
 fi
 
-# private-keyの適用
-eval `ssh-agent` > /dev/null
-ssh-add $HOME/.ssh/*_rsa >/dev/null 2>&1
-
 # function _update_ps1()
 # {
 # 	   export PS1="$(~/powerline-bash/powerline-bash.py $?)"
