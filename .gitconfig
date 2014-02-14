@@ -37,7 +37,7 @@
 	rb = rebase --ignore-whitespace --preserve-merge
 	ri = rebase -i
 	mt = mergetool
-	pr = pull --rebase
+	pr = pull --rebase --prune
 	fp = fetch --prune
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
@@ -57,7 +57,7 @@
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
 	remove = "!sh -c 'git rebase --preserve-merge --onto $1^ $1' dummy"
 	temp =  "!sh -c 'git commit -m \"`date`\"'"
-	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase origin master\" && git commit --all --message=\"update submodule\"'"
+	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
 	list = ls-files
 	commitdiff = show-branch --topo-order
 
