@@ -36,7 +36,6 @@
 	df = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --preserve-merge
 	ri = rebase -i
-	mt = mergetool
 	pr = pull --rebase --prune
 	fp = fetch --prune
 	svncheck = svn dcommit --dry-run
