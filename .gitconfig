@@ -60,6 +60,7 @@
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
 	list = ls-files
 	commitdiff = show-branch --topo-order
+	pushu = push --set-upstream
 
 [color]
 	ui = auto
