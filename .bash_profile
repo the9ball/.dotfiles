@@ -72,3 +72,17 @@ fi
 # 	   export PS1="$(~/powerline-bash/powerline-bash.py $?)"
 # }
 # export PROMPT_COMMAND="_update_ps1"
+
+# .vimとの連携前提
+if [ -d ${HOME}/.vim/bundle/lua-5.2.2-utf8/src ] ; then
+	export PATH=${HOME}/.vim/bundle/lua-5.2.2-utf8/src:${PATH}
+fi
+
+##
+# Your previous /Users/Shaula/.bash_profile file was backed up as /Users/Shaula/.bash_profile.macports-saved_2014-02-17_at_04:37:22
+##
+
+# MacPorts Installer addition on 2014-02-17_at_04:37:22: adding an appropriate PATH variable for use with MacPorts.
+export PATH=/opt/local/bin:/opt/local/sbin:$PATH
+# Finished adapting your PATH environment variable for use with MacPorts.
+
