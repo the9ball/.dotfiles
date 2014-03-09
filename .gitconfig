@@ -60,6 +60,8 @@
 	list = ls-files
 	commitdiff = show-branch --topo-order
 	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
+	cage = update-index --assume-unchanged
+	bail = update-index --no-assume-unchanged
 
 [color]
 	ui = auto
