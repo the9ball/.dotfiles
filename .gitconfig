@@ -62,6 +62,8 @@
 	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
 	cage = update-index --assume-unchanged
 	bail = update-index --no-assume-unchanged
+	gp = grep -n
+	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 
 [color]
 	ui = auto
