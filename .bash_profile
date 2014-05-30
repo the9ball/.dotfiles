@@ -40,7 +40,7 @@ alias ll='ls -l'
 alias vi='vim'
 
 # 
-export EDITER=vim
+export EDITOR=vim
 
 # ccache 用の設定
 #export CCACHE_PREFIX="distcc"

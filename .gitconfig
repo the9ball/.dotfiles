@@ -44,7 +44,7 @@
 #	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short --decorate
 	last = log --stat --summary --decorate -n1
 	hlast = log --pretty=format:'%H' -n1
-	topic = "!sh -c 'git co -b $1 master' dummy"
+	topic = "!sh -c 'git co --no-track -b $1 origin/master' dummy"
 	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
@@ -55,11 +55,15 @@
 	ontoimaster = rebase -i --onto origin/master master
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
 	remove = "!sh -c 'git rebase --preserve-merge --onto $1^ $1' dummy"
-	temp =  "!sh -c 'git commit -m \"`date`\"'"
+	tempa =  "!sh -c 'git commit -am \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
 	list = ls-files
 	commitdiff = show-branch --topo-order
-	pushu = push --set-upstream
+	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
+	cage = update-index --assume-unchanged
+	bail = update-index --no-assume-unchanged
+	gp = grep -n
+	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 
 [color]
 	ui = auto
