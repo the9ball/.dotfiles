@@ -60,8 +60,10 @@
 	list = ls-files
 	commitdiff = show-branch --topo-order
 	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
-	cage = update-index --assume-unchanged
-	bail = update-index --no-assume-unchanged
+	cage = update-index --skip-worktree
+	bail = update-index --no-skip-worktree
+	neglect = update-index --assume-unchanged
+	esteem = update-index --no-assume-unchanged
 	gp = grep -n
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 
