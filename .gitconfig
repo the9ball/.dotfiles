@@ -12,6 +12,8 @@
 [merge]
 	tool = vimdiff
 	ff = false
+[diff]
+	tool = vimdiff
 [alias]
 	# Gerrit関連のalias定義
 	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
