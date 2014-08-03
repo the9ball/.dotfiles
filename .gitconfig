@@ -12,6 +12,10 @@
 [merge]
 	tool = vimdiff
 	ff = false
+[diff]
+	tool = vimdiff
+[difftool]
+	prompt = false
 [alias]
 	# Gerrit関連のalias定義
 	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
@@ -32,6 +36,7 @@
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	lgs = log --stat --summary --decorate
 	mt = mergetool
+	dt = difftool
 	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	df = diff --ignore-space-at-eol --ignore-space-change
 	rb = rebase --ignore-whitespace --preserve-merge
