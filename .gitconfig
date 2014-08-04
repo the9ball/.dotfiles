@@ -21,7 +21,7 @@
 	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
 	pfrmaster = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
 	pfrelease = "!sh -c 'git push origin HEAD:refs/for/release/`git current-branch`'"
-	#pfr = push origin HEAD:refs/for/master
+	pfr = pfrmaster
 
 	# 自分の
 	co = checkout
