@@ -69,6 +69,8 @@
 	bail = update-index --no-skip-worktree
 	neglect = update-index --assume-unchanged
 	esteem = update-index --no-assume-unchanged
+	# S:--skip-worktree
+	# h:--assume-unchanged
 	skiplist = "!sh -c 'git ls-files -v | grep -v \"^H\"'"
 	gp = grep -n
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
