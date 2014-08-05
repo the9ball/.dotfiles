@@ -5,7 +5,7 @@ if [ -f $HOME/.bashrc ]; then
 	. $HOME/.bashrc
 fi
 
-export PATH=$HOME/bin:$PATH
+export PATH=$HOME/.dotfiles/bin:$HOME/bin:$PATH
 
 # User specific environment and startup programs
 
