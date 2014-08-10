@@ -5,7 +5,7 @@ if [ -f $HOME/.bashrc ]; then
 	. $HOME/.bashrc
 fi
 
-export PATH=$HOME/bin:$PATH
+export PATH=$HOME/.dotfiles/bin:$HOME/bin:$PATH
 
 # User specific environment and startup programs
 
@@ -77,6 +77,13 @@ export PROMPT_COMMAND="_update_ps1"
 if [ -d ${HOME}/.vim/bundle/lua-5.2.2-utf8/src ] ; then
 	export PATH=${HOME}/.vim/bundle/lua-5.2.2-utf8/src:${PATH}
 fi
+
+# gitのrootディレクトリに移動する関数
+cdgitroot() {
+	if [ `git rev-parse --is-inside-work-tree` ]; then
+		cd `git rev-parse --show-toplevel`
+	fi
+}
 
 ##
 # Your previous /Users/Shaula/.bash_profile file was backed up as /Users/Shaula/.bash_profile.macports-saved_2014-02-17_at_04:37:22
