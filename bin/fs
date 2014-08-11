@@ -1,2 +1,2 @@
 #!/bin/sh
-find $1 -name "$2" -print0 | xargs -0 grep -nH "$3"
+find $1 -name "$2" -print0 | xargs -0 grep -nH "$3" | sed 's/\r//g'
