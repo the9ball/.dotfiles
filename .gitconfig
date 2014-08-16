@@ -9,7 +9,7 @@
 	eol = lf
 	filemode = false
 	quotepath = false
-	excludesfile = ~/.gitignoreglobal
+	excludesfile = ~/.dotfiles/gitignoreglobal
 [merge]
 	tool = vimdiff
 	ff = false
@@ -77,6 +77,7 @@
 	skiplist = "!sh -c 'git ls-files -v | grep -v \"^H\"'"
 	gp = grep -n
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
+	firstcommit = commit --allow-empty -m'First Commit'
 
 [color]
 	ui = auto
