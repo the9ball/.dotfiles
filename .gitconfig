@@ -31,6 +31,8 @@
 	cm = commit -m
 	ca = commit --amend -v
 	cia = commit --amend -C HEAD
+	au = add -u :/
+	ra = reset :/
 	up = svn rebase
 	st = status -sb
 	mg = merge --no-ff
