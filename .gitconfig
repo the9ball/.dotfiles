@@ -9,7 +9,7 @@
 	eol = lf
 	filemode = false
 	quotepath = false
-	excludesfile = ~/.gitignoreglobal
+	excludesfile = ~/.dotfiles/gitignoreglobal
 [merge]
 	tool = vimdiff
 	ff = false
