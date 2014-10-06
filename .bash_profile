@@ -14,7 +14,7 @@ stty stop undef
 # OLD_PS1=${PS1}
 export OLD_PS1='[\u@\h \W]\$ '
 
-export __git_ps1="git current-branch 1>/dev/null"
+alias __git_ps1="git current-branch 1>/dev/null"
 
 # http://d.hatena.ne.jp/u-no/20070626
 # screen は任意のプログラムが "<esc>khogehoge<esc>\" という文字列を吐くと、そのウィンドウのタイトルを hogehoge にかえるという機能が備わっています
