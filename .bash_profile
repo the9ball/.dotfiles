@@ -14,7 +14,7 @@ stty stop undef
 # OLD_PS1=${PS1}
 export OLD_PS1='[\u@\h \W]\$ '
 
-export __git_ps1="git current-branch 1>/dev/null"
+alias __git_ps1="git current-branch 1>/dev/null"
 
 # http://d.hatena.ne.jp/u-no/20070626
 # screen は任意のプログラムが "<esc>khogehoge<esc>\" という文字列を吐くと、そのウィンドウのタイトルを hogehoge にかえるという機能が備わっています
@@ -63,6 +63,8 @@ if [ -f /etc/bash_completion.d/git ]; then
 	. /etc/bash_completion.d/git
 elif [ -f `which git`/../../contrib/completion/git-completion.bash ]; then
 	. `which git`/../../contrib/completion/git-completion.bash
+elif [ -f $HOME/.dotfiles/git-completion/git-completion.bash ]; then
+	. $HOME/.dotfiles/git-completion/git-completion.bash
 else
 	echo 'git-completion.bash is not found'
 fi

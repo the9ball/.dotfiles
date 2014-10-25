@@ -78,6 +78,8 @@
 	gp = grep -n
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 	firstcommit = commit --allow-empty -m'First Commit'
+	rm-merged-branches = !git branch --merged | grep -v \\* | xargs -I % git branch -d %
+	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
 
 [color]
 	ui = auto
