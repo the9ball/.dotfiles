@@ -14,14 +14,14 @@ stty stop undef
 # OLD_PS1=${PS1}
 export OLD_PS1='[\u@\h \W]\$ '
 
-alias __git_ps1="git current-branch 1>/dev/null"
+alias ____git_ps1="git current-branch 1>/dev/null"
 
 # http://d.hatena.ne.jp/u-no/20070626
 # screen は任意のプログラムが "<esc>khogehoge<esc>\" という文字列を吐くと、そのウィンドウのタイトルを hogehoge にかえるという機能が備わっています
 # 最後に実行したコマンド
 #export SCREEN_TITLE='\[\ek\e\\\]'
 # 現在のカレントディレクトリ
-export SCREEN_TITLE='\[\ek\W$(__git_ps1)\e\\\]\r'
+export SCREEN_TITLE='\[\ek\W$(____git_ps1)\e\\\]\r'
 
 export PS1="${SCREEN_TITLE}${OLD_PS1}"
 
