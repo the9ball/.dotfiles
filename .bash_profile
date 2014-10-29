@@ -12,7 +12,7 @@ export PATH=$HOME/.dotfiles/bin:$HOME/bin:$PATH
 stty stop undef
 
 # OLD_PS1=${PS1}
-export OLD_PS1='[\u@\h \W]\$ '
+export OLD_PS1='[\u@\h \W]\n\$ '
 
 alias ____git_ps1="git current-branch 2>/dev/null"
 
