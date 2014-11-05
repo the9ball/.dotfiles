@@ -1,5 +1,6 @@
 *.swp
 *.orig
+*.orig.meta
 tags
 .DS_Store
 *.un~
