@@ -85,7 +85,7 @@
 [color]
 	ui = auto
 [push]
-	default = current
+	default = upstream
 [rebase]
 	autostash = true
 
