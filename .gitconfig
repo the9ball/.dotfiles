@@ -26,6 +26,7 @@
 
 	# 自分の
 	co = checkout
+	cob = checkout --no-track -b
 	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
 	ci = commit -v
 	cm = commit -m
@@ -80,6 +81,7 @@
 	firstcommit = commit --allow-empty -m'First Commit'
 	rm-merged-branches = !git branch --merged | grep -v \\* | xargs -I % git branch -d %
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
+	contains = branch -a --contains
 
 [color]
 	ui = auto
@@ -91,6 +93,7 @@
 ######################################################################################
 # メモ
 # git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
+# git symbolic-ref alias_name origin ブランチの更にエイリアス
 ######################################################################################
 # 特定のファイルを無視する.
 # 作業ツリー上でもリポジトリ上でもファイル更新があって、それをマージするとき
