@@ -77,7 +77,7 @@
 	# S:--skip-worktree
 	# h:--assume-unchanged
 	skiplist = "!sh -c 'git ls-files -v | grep -v \"^H\"'"
-	gp = grep -n
+	gp = grep -n -i
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 	firstcommit = commit --allow-empty -m'First Commit'
 	rm-merged-branches = !git branch --merged | grep -v \\* | xargs -I % git branch -d %
