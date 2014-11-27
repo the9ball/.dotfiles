@@ -58,6 +58,7 @@
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	full-log = log -p
 	onto = rebase --preserve-merge --onto
 	ontoi = rebase -i --onto
 	ontomaster = rebase --preserve-merge --onto origin/master master
