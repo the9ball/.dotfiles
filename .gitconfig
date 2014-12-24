@@ -85,6 +85,7 @@
 	contains = branch -a --contains
 	untrack = !git config --unset branch.`git current-branch`.remote; git config --unset branch.`git current-branch`.merge
 	revertmerge = revert -m 1
+	showfile = "!sh -c 'git show $0:$1'"
 
 [color]
 	ui = auto
