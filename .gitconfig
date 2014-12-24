@@ -84,6 +84,7 @@
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
 	contains = branch -a --contains
 	untrack = !git config --unset branch.`git current-branch`.remote; git config --unset branch.`git current-branch`.merge
+	revertmerge = revert -m 1
 
 [color]
 	ui = auto
