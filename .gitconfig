@@ -58,6 +58,7 @@
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	full-log = log -p
 	onto = rebase --preserve-merge --onto
 	ontoi = rebase -i --onto
 	ontomaster = rebase --preserve-merge --onto origin/master master
@@ -76,12 +77,16 @@
 	# S:--skip-worktree
 	# h:--assume-unchanged
 	skiplist = "!sh -c 'git ls-files -v | grep -v \"^H\"'"
-	gp = grep -n
+	gp = grep -n -i
 	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
 	firstcommit = commit --allow-empty -m'First Commit'
 	rm-merged-branches = !git branch --merged | grep -v \\* | xargs -I % git branch -d %
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
 	contains = branch -a --contains
+	untrack = !git config --unset branch.`git current-branch`.remote; git config --unset branch.`git current-branch`.merge
+	revertmerge = revert -m 1
+	showfile = "!sh -c 'git show $0:$1'"
+	findguid = "!sh -c 'cat `find . -name \"$0\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
 
 [color]
 	ui = auto
