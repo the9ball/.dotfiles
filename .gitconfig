@@ -87,6 +87,7 @@
 	revertmerge = revert -m 1
 	showfile = "!sh -c 'git show $0:$1'"
 	findguid = "!sh -c 'cat `find . -name \"$0\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
+	findstring = "!sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'"
 
 [color]
 	ui = auto
