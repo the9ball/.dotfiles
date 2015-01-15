@@ -33,6 +33,7 @@
 	ca = commit --amend -v
 	cia = commit --amend -C HEAD
 	au = add -u :/
+	aup = add -up :/
 	ra = reset :/
 	up = svn rebase
 	st = status -sb
