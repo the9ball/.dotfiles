@@ -70,6 +70,7 @@
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
 	list = ls-files
 	commitdiff = show-branch --topo-order
+	branchjunction = show-branch --merge-base
 	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
 	cage = update-index --skip-worktree
 	bail = update-index --no-skip-worktree
