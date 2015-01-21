@@ -88,7 +88,7 @@
 	untrack = !git config --unset branch.`git current-branch`.remote; git config --unset branch.`git current-branch`.merge
 	revertmerge = revert -m 1
 	showfile = "!sh -c 'git show $0:$1'"
-	findguid = "!sh -c 'cat `find . -name \"$0\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
+	findguid = "!sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
 	findstring = "!sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'"
 
 [color]
