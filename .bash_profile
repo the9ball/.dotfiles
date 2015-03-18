@@ -95,3 +95,4 @@ cdgitroot() {
 export PATH=/opt/local/bin:/opt/local/sbin:$PATH
 # Finished adapting your PATH environment variable for use with MacPorts.
 
+export HOMEBREW_GITHUB_API_TOKEN=2e20ceedd5d99ded0d8df8534e518cf197e9ad35
