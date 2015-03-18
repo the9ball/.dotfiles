@@ -90,6 +90,9 @@
 	showfile = "!sh -c 'git show $0:$1'"
 	findguid = "!sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
 	findstring = "!sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'"
+	aliaslist = !"loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
+	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
+	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
 
 [color]
 	ui = auto
