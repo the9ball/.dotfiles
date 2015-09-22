@@ -28,7 +28,7 @@
 	co = checkout
 	cob = checkout --no-track -b
 	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
-	cof = checkout --ignore-skip-worktree
+	cof = checkout --ignore-skip-worktree --force
 	ci = commit -v
 	cm = commit -m
 	ca = commit --amend -v
