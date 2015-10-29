@@ -16,7 +16,7 @@ alias ____git_ps1="git current-branch 2>/dev/null"
 # 現在のカレントディレクトリ
 export SCREEN_TITLE='\[\ek\W$(____git_ps1)\e\\\]\r'
 
-export PS1="${SCREEN_TITLE}${OLD_PS1}"
+export PS1="\\033[00m${SCREEN_TITLE}${OLD_PS1}"
 
 # export OLD_PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/~}"; echo -ne "\007"'
 # export PROMPTO_COMMAND='echo -ne "\ek$(whoami)\e\\"'
