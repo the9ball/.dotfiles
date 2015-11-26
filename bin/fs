@@ -1,2 +1,16 @@
 #!/bin/sh
-find $1 \( -name "$2" -a -type f \) -print0 | xargs -0 grep -nH "$3" | sed 's/\r//g'
+
+NAME=${2}
+REG=${1}
+DIR=${3}
+
+if [ "" == "${NAME}" -o "" == "${REG}" ]; then
+	echo "fs regex filename [directory]"
+	exit 1
+fi
+
+if [ "" == "${DIR}" ]; then
+	DIR=${PWD}
+fi
+
+find ${DIR} \( -name "${NAME}" -a -type f \) -print0 | xargs -0 grep -nH "${REG}" | sed 's/\r//g'
