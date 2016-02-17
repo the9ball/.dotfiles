@@ -69,6 +69,7 @@
 	remove = "!sh -c 'git rebase --preserve-merge --onto $1^ $1' dummy"
 	tempa =  "!sh -c 'git commit -am \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
+	subsync = !git submodule update --recursive && git submodule sync --recursive
 	list = ls-files
 	commitdiff = show-branch --topo-order
 	branchjunction = show-branch --merge-base
