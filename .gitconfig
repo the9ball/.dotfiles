@@ -97,6 +97,7 @@
 	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
 	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
 	checkout-head = !git checkout `git rev-parse HEAD`
+	btemp = branch --force temp
 
 [color]
 	ui = auto
