@@ -15,6 +15,7 @@
 	ff = false
 [diff]
 	tool = vimdiff
+	ignoreSubmodules = dirty
 [difftool]
 	prompt = false
 [alias]
