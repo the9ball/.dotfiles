@@ -38,6 +38,7 @@
 	ra = reset :/
 	up = svn rebase
 	st = status -sb
+	stt = !"git st | grep '^\\S\\S'"
 	mg = merge --no-ff
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	lgs = log --stat --summary --decorate
