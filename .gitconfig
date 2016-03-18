@@ -101,6 +101,7 @@
 	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
 	checkout-head = !git checkout `git rev-parse HEAD`
 	btemp = branch --force temp
+	resetconflict = !"git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
 
 [color]
 	ui = auto
