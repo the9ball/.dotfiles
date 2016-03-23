@@ -102,6 +102,7 @@
 	checkout-head = !git checkout `git rev-parse HEAD`
 	btemp = branch --force temp
 	resetconflict = !"git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
+	grepblame = "!sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -L \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy"
 
 [color]
 	ui = auto
