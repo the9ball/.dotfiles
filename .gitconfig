@@ -34,6 +34,7 @@
 	cm = commit -m
 	ca = commit --amend -v
 	cia = commit --amend -C HEAD
+	cf = commit --fixup
 	au = add -u :/
 	aup = add -up
 	ra = reset :/
