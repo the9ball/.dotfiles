@@ -1,4 +1,4 @@
-export PATH=$HOME/.dotfiles/bin:$HOME/bin:$PATH
+export PATH=$HOME/.dotfiles/bin:$HOME/.dotfiles/GIT_SAFE_RESET/:$HOME/bin:$PATH
 
 # User specific environment and startup programs
 
