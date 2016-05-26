@@ -34,6 +34,7 @@
 	cm = commit -m
 	ca = commit --amend -v
 	cia = commit --amend -C HEAD
+	cinv = commit --no-verify
 	cf = commit --fixup
 	au = add -u :/
 	aup = add -up
