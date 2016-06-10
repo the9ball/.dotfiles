@@ -52,7 +52,7 @@
 	rb = rebase --ignore-whitespace --preserve-merge
 	ri = rebase -i
 	pr = pull --rebase --prune
-	fp = fetch --prune
+	fp = fetch --prune --all
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
