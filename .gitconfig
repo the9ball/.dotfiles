@@ -20,7 +20,7 @@
 	prompt = false
 [alias]
 	# Gerrit関連のalias定義
-	current-branch = "!sh -c \"git branch | grep '*' | awk '{ print \\$2 }' \""
+	current-branch = rev-parse --abbrev-ref HEAD
 	pfrmaster = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
 	pfrelease = "!sh -c 'git push origin HEAD:refs/for/release/`git current-branch`'"
 	pfr = pfrmaster
