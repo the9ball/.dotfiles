@@ -15,6 +15,7 @@
 	ff = false
 [diff]
 	tool = vimdiff
+	ignoreSubmodules = dirty
 [difftool]
 	prompt = false
 [alias]
@@ -33,11 +34,14 @@
 	cm = commit -m
 	ca = commit --amend -v
 	cia = commit --amend -C HEAD
+	cinv = commit --no-verify
+	cf = commit --fixup
 	au = add -u :/
 	aup = add -up
 	ra = reset :/
 	up = svn rebase
 	st = status -sb
+	stt = !"git st | grep '^\\S\\S'"
 	mg = merge --no-ff
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	lgs = log --stat --summary --decorate
@@ -48,7 +52,7 @@
 	rb = rebase --ignore-whitespace --preserve-merge
 	ri = rebase -i
 	pr = pull --rebase --prune
-	fp = fetch --prune
+	fp = fetch --prune --all
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
@@ -59,7 +63,8 @@
 	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
-	t = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	t = log --first-parent --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	tt = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	full-log = log -p
 	onto = rebase --preserve-merge --onto
 	ontoi = rebase -i --onto
@@ -69,6 +74,7 @@
 	remove = "!sh -c 'git rebase --preserve-merge --onto $1^ $1' dummy"
 	tempa =  "!sh -c 'git commit -am \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
+	subsync = !git submodule update --recursive && git submodule sync --recursive
 	list = ls-files
 	commitdiff = show-branch --topo-order
 	branchjunction = show-branch --merge-base
@@ -91,10 +97,14 @@
 	showfile = "!sh -c 'git show $0:$1'"
 	findguid = "!sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
 	findstring = "!sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'"
+	findfile = "!sh -c 'git ls-files | grep $0'"
 	aliaslist = !"loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
 	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
 	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
 	checkout-head = !git checkout `git rev-parse HEAD`
+	btemp = branch --force temp
+	resetconflict = !"git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
+	grepblame = "!sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy"
 
 [color]
 	ui = auto
@@ -147,4 +157,7 @@
 #         git commit-tree "$@";
 #     fi' origin/master..HEAD
 ######################################################################################
-
+# push時のpush先を変更する設定
+# [url "git@github.com:"]
+#	pushInsteadOf = git://github.com/
+######################################################################################

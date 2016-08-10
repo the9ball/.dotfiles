@@ -7,3 +7,6 @@
 [submodule "powerline-shell"]
 	path = powerline-shell
 	url = https://github.com/milkbikis/powerline-shell
+[submodule "GIT_SAFE_RESET"]
+	path = GIT_SAFE_RESET
+	url = ./GIT_SAFE_RESET/
