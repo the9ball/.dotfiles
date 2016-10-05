@@ -30,6 +30,8 @@
 	cob = checkout --no-track -b
 	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
 	cof = checkout --ignore-skip-worktree --force
+	find-date = "!sh -c 'git log -1 --merges --until=\"$0\"'"
+	checkout-date = "!sh -c 'git checkout `git log -1 --merges --until=\"$0\" --format=%H`'"
 	ci = commit -v
 	cm = commit -m
 	ca = commit --amend -v
