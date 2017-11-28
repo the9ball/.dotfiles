@@ -51,6 +51,7 @@
 	dt = difftool
 	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	df = diff --ignore-space-at-eol --ignore-space-change
+	conflict-files = diff --name-only --diff-filter=U
 	rb = rebase --ignore-whitespace --preserve-merge
 	ri = rebase -i
 	pr = pull --rebase --prune
