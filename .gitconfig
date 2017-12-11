@@ -10,6 +10,7 @@
 	filemode = false
 	quotepath = false
 	excludesfile = ~/.dotfiles/gitignoreglobal
+	ignorecase = false
 [merge]
 	tool = vimdiff
 	ff = false
