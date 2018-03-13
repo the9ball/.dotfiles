@@ -19,6 +19,8 @@
 	ignoreSubmodules = dirty
 [difftool]
 	prompt = false
+[rerere]
+	enabled = true
 [alias]
 	# Gerrit関連のalias定義
 	current-branch = rev-parse --abbrev-ref HEAD
