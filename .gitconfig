@@ -1,5 +1,5 @@
 [http]
-    sslVerify = false
+	sslVerify = false
 [user]
 	name = Shaula
 	email = the9ball@gmail.com
