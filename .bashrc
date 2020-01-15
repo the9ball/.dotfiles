@@ -47,6 +47,8 @@ alias svndiff='svn diff -x --ignore-eol-style'
 # そのうちOS毎のやつ作るかも。
 alias osver='cat /etc/redhat-release'
 
+alias lfs='git lfs'
+
 # ccache
 export CC='ccache gcc'
 export CXX='ccache g++'
