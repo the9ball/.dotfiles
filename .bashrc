@@ -91,6 +91,10 @@ then
     complete -o default -F __start_kubectl k
 fi
 
+# AWS
+alias awsaccount='aws sts get-caller-identity'
+alias dockerlogin='$(aws ecr get-login --no-include-email --region ap-northeast-1)'
+
 ##
 # Your previous /Users/Shaula/.bash_profile file was backed up as /Users/Shaula/.bash_profile.macports-saved_2014-02-17_at_04:37:22
 ##
