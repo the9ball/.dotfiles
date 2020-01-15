@@ -82,6 +82,15 @@ cdgitroot() {
 	fi
 }
 
+# https://kubernetes.io/docs/tasks/tools/install-kubectl/
+if command -v kubectl >/dev/null 2>&1
+then
+    if [ -e /usr/share/bash-completion/bash_completion ]; then source /usr/share/bash-completion/bash_completion; fi
+    source <(kubectl completion bash)
+    alias kube=kubectl
+    complete -o default -F __start_kubectl k
+fi
+
 ##
 # Your previous /Users/Shaula/.bash_profile file was backed up as /Users/Shaula/.bash_profile.macports-saved_2014-02-17_at_04:37:22
 ##
