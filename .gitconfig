@@ -55,7 +55,7 @@
 	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
 	df = diff --ignore-space-at-eol --ignore-space-change
 	conflict-files = diff --name-only --diff-filter=U
-	rb = rebase --ignore-whitespace --preserve-merge
+	rb = rebase --ignore-whitespace --rebase-merges
 	ri = rebase -i
 	pr = pull --rebase --prune
 	fp = fetch --prune --all
@@ -72,12 +72,12 @@
 	t = log --first-parent --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	tt = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
 	full-log = log -p
-	onto = rebase --preserve-merge --onto
+	onto = rebase --rebase-merges --onto
 	ontoi = rebase -i --onto
-	ontomaster = rebase --preserve-merge --onto origin/master master
+	ontomaster = rebase --rebase-merges --onto origin/master master
 	ontoimaster = rebase -i --onto origin/master master
 	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
-	remove = "!sh -c 'git rebase --preserve-merge --onto $1^ $1' dummy"
+	remove = "!sh -c 'git rebase --rebase-merges --onto $1^ $1' dummy"
 	tempa =  "!sh -c 'git commit -am \"`date`\"'"
 	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
 	subsync = !git submodule update --recursive && git submodule sync --recursive
