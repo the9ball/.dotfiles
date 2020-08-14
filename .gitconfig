@@ -30,8 +30,9 @@
 
 	# 自分の
 	co = checkout
-	cob = checkout --no-track -b
-	cor = "!sh -c 'git co $1 && git rebase $0' `git current-branch`"
+	sw = switch
+	swb = sw --no-track -b
+	cor = "!sh -c 'git sw $1 && git rebase $0' `git current-branch`"
 	cof = checkout --ignore-skip-worktree --force
 	find-date = "!sh -c 'git log -1 --merges --until=\"$0\"'"
 	checkout-date = "!sh -c 'git checkout `git log -1 --merges --until=\"$0\" --format=%H`'"
