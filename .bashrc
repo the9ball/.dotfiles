@@ -58,6 +58,8 @@ if [ -f /etc/bash_completion.d/git ]; then
 	. /etc/bash_completion.d/git
 elif [ -f $(which git)/../../contrib/completion/git-completion.bash ]; then
 	. $(which git)/../../contrib/completion/git-completion.bash
+elif [ -f ~/.dotfiles/git-completion/git-completion.bash ]; then
+	. ~/.dotfiles/git-completion/git-completion.bash
 else
 	echo 'git-completion.bash is not found'
 fi
