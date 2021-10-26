@@ -11,6 +11,7 @@
 	quotepath = false
 	excludesfile = ~/.dotfiles/gitignoreglobal
 	ignorecase = false
+	longpaths = true
 [merge]
 	tool = vimdiff
 	ff = false
