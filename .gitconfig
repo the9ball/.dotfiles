@@ -23,20 +23,14 @@
 [rerere]
 	enabled = true
 [alias]
-	# Gerrit関連のalias定義
 	current-branch = rev-parse --abbrev-ref HEAD
-	pfrmaster = "!sh -c 'git push origin HEAD:refs/for/master/`git current-branch`'"
-	pfrelease = "!sh -c 'git push origin HEAD:refs/for/release/`git current-branch`'"
-	pfr = pfrmaster
-
-	# 自分の
 	co = checkout
 	sw = switch
 	swb = sw --no-track -b
-	cor = "!sh -c 'git sw $1 && git rebase $0' `git current-branch`"
+	cor = !sh -c 'git rebase $0 $1' `git current-branch`
 	cof = checkout --ignore-skip-worktree --force
-	find-date = "!sh -c 'git log -1 --merges --until=\"$0\"'"
-	checkout-date = "!sh -c 'git checkout `git log -1 --merges --until=\"$0\" --format=%H`'"
+	find-date = !sh -c 'git log -1 --merges --until=\"$0\"'
+	checkout-date = !sh -c 'git checkout `git log -1 --merges --until=\"$0\" --format=%H`'
 	ci = commit -v
 	cm = commit -m
 	ca = commit --amend -v
@@ -48,7 +42,7 @@
 	ra = reset :/
 	up = svn rebase
 	st = status -sb
-	stt = !"git st | grep '^\\S\\S'"
+	stt = !git st | grep '^\\S\\S'
 	mg = merge --no-ff
 	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 	lgs = log --stat --summary --decorate
@@ -64,10 +58,9 @@
 	svncheck = svn dcommit --dry-run
 	cp = cherry-pick
 	hist = log --oneline --graph --date=short --decorate
-#	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short --decorate
 	last = log --stat --summary --decorate -n1
 	hlast = log --pretty=format:'%H' -n1
-	topic = "!sh -c 'git co --no-track -b $1 origin/master' dummy"
+	topic = !sh -c 'git co --no-track -b $1 origin/master' dummy
 	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
 	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
@@ -78,42 +71,39 @@
 	ontoi = rebase -i --onto
 	ontomaster = rebase --rebase-merges --onto origin/master master
 	ontoimaster = rebase -i --onto origin/master master
-	rename = "!sh -c 'git branch -m `git current-branch` $1' `git current-branch`"
-	remove = "!sh -c 'git rebase --rebase-merges --onto $1^ $1' dummy"
-	tempa =  "!sh -c 'git commit -am \"`date`\"'"
-	submoduleupdate = "!sh -c 'git submodule foreach \"git checkout master; git pull --rebase --prune origin master\" && git commit --all --message=\"update submodule\"'"
-	subsync = !git submodule update --recursive && git submodule sync --recursive
+	rename = !git branch -m $(git current-branch)
+	remove = !sh -c 'git rebase --rebase-merges --onto $1^ $1' dummy
+	submoduleupdate = !git submodule foreach "git checkout --force origin/HEAD" && git commit --all --message='update submodule'
+	subsync = !git submodule update --init --recursive && git submodule sync --recursive
 	list = ls-files
 	commitdiff = show-branch --topo-order
 	branchjunction = show-branch --merge-base
-	pushu = "!sh -c 'git push --set-upstream origin `git current-branch`'"
+	pushu = push --set-upstream origin HEAD
 	cage = update-index --skip-worktree
 	bail = update-index --no-skip-worktree
 	neglect = update-index --assume-unchanged
 	esteem = update-index --no-assume-unchanged
-	# S:--skip-worktree
-	# h:--assume-unchanged
-	skiplist = "!sh -c 'git ls-files -v | grep -v \"^H\"'"
+	skiplist = !sh -c 'git ls-files -v | grep -v \"^H\"'
 	gp = grep -n -i
-	gpm = "!sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy"
+	gpm = !sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy
 	firstcommit = commit --allow-empty -m'First Commit'
 	rm-merged-branches = !git branch --merged | grep -v \\* | grep -v "+" | xargs -I % git branch -d %
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
 	contains = branch -a --contains
-	untrack = !git config --unset branch.`git current-branch`.remote; git config --unset branch.`git current-branch`.merge
+	untrack = !git config --unset branch.`git current-branch`.remote
 	revertmerge = revert -m 1
-	showfile = "!sh -c 'git show $0:$1'"
-	findguid = "!sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'"
-	findstring = "!sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'"
-	findfile = "!sh -c 'git ls-files | grep $0'"
-	aliaslist = !"loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
-	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
-	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
+	showfile = !sh -c 'git show $0:$1'
+	findguid = !sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'
+	findstring = !sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'
+	findfile = !sh -c 'git ls-files | grep $0'
+	aliaslist = "!loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
+	aliasdoc = !sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\"
+	alias = "!sh -c \\"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\\""
 	checkout-head = !git checkout `git rev-parse HEAD`
 	btemp = branch --force temp
-	resetconflict = !"git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
-	grepblame = "!sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy"
-
+	resetconflict = "!git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
+	grepblame = !sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy
+	reporoot = rev-parse --show-superproject-working-tree
 [color]
 	ui = auto
 [push]
