@@ -18,6 +18,9 @@
 [diff]
 	tool = vimdiff
 	ignoreSubmodules = dirty
+[grep]
+	lineNumber = true
+	extendedRegexp = true
 [difftool]
 	prompt = false
 [rerere]
