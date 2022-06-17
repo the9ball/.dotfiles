@@ -26,6 +26,7 @@
 [rerere]
 	enabled = true
 [alias]
+	git = !git
 	current-branch = rev-parse --abbrev-ref HEAD
 	co = checkout
 	sw = switch
