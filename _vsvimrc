@@ -10,6 +10,23 @@ set backspace=eol,start,indent
 set clipboard=unnamed
 
 nnoremap Y y$
-nnoremap ZZ :<C-u>vsc Refactor.Rename<CR>
-vnoremap < <gv
+
+nnoremap <C-e> $
+nnoremap <C-a> ^
+inoremap <C-e> <C-o>$
+inoremap <C-a> <C-o>^
+inoremap <C-f> <C-o>l
+inoremap <C-b> <C-o>h
+
 vnoremap > >gv
+vnoremap < <gv
+vnoremap <Tab> >gv
+vnoremap <S-Tab> <gv
+
+nnoremap <Space>r :<C-U>vsc Refactor.Rename<CR>
+nnoremap <Space>b :<C-U>vsc Build.BuildSelection<CR>
+
+" 以下動作未確認
+nnoremap <Space>t :<C-U>vsc RunTestsInCurrentContext<CR>
+nnoremap <Space><C-t> :<C-U>vsc DebugTestsInCurrentContext<CR>
+nnoremap <Space>a :<C-U>vsc RunAllTestsInSolution<CR>
