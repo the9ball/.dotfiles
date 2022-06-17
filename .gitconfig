@@ -77,6 +77,7 @@
 	rename = !git branch -m $(git current-branch)
 	remove = !sh -c 'git rebase --rebase-merges --onto $1^ $1' dummy
 	submoduleupdate = !git submodule foreach "git checkout --force origin/HEAD" && git commit --all --message='update submodule'
+	sub = submodule
 	sup = submodule update --init --recursive
 	subsync = !git submodule update --init --recursive && git submodule sync --recursive
 	list = ls-files
