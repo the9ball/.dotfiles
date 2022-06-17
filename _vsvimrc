@@ -1,3 +1,5 @@
+" echo "source ~/.dotfiles/_vsvimrc" > ~/_vsvimrc
+
 set hlsearch
 set incsearch
 set ignorecase

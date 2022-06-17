@@ -1,3 +1,8 @@
+# cat<<EOF >~/.gitconfig
+# [include]
+#   path = ./.dotfiles/.gitconfig
+# EOF
+
 [http]
 	sslVerify = false
 [user]
