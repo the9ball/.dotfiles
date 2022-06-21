@@ -17,12 +17,6 @@
 	excludesfile = ~/.dotfiles/gitignoreglobal
 	ignorecase = false
 	longpaths = true
-[merge]
-	tool = vimdiff
-	ff = false
-[diff]
-	tool = vimdiff
-	ignoreSubmodules = dirty
 [grep]
 	lineNumber = true
 	extendedRegexp = true
@@ -30,6 +24,24 @@
 	prompt = false
 [rerere]
 	enabled = true
+[color]
+	ui = auto
+[merge]
+	tool = vimdiff
+	ff = false
+[diff]
+	tool = vimdiff
+	ignoreSubmodules = dirty
+[push]
+	default = upstream
+[rebase]
+	autostash = true
+[pull]
+	rebase = true
+[fetch]
+	prune = true
+[advice]
+	skippedCherryPicks = false
 [alias]
 	git = !git
 	current-branch = rev-parse --abbrev-ref HEAD
@@ -116,18 +128,6 @@
 	grepblame = !sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy
 	reporoot = rev-parse --show-toplevel
 	superreporoot = rev-parse --show-superproject-working-tree
-[color]
-	ui = auto
-[push]
-	default = upstream
-[rebase]
-	autostash = true
-[pull]
-	rebase = true
-[fetch]
-	prune = true
-[advice]
-	skippedCherryPicks = false
 
 ######################################################################################
 # メモ
