@@ -122,6 +122,12 @@
 	default = upstream
 [rebase]
 	autostash = true
+[pull]
+	rebase = true
+[fetch]
+	prune = true
+[advice]
+	skippedCherryPicks = false
 
 ######################################################################################
 # メモ
