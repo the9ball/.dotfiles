@@ -15,6 +15,11 @@ nnoremap Y y$
 
 nnoremap <C-e> $
 nnoremap <C-a> ^
+nnoremap n nzz
+nnoremap N Nzz
+nnoremap { {zz
+nnoremap } }zz
+
 inoremap <C-e> <C-o>$
 inoremap <C-a> <C-o>^
 inoremap <C-f> <C-o>l
