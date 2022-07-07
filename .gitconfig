@@ -73,7 +73,7 @@
 	df = diff --ignore-space-at-eol --ignore-space-change
 	conflict-files = diff --name-only --diff-filter=U
 	rb = rebase --ignore-whitespace --rebase-merges
-	ri = rebase -i --rebase-merges
+	ri = rebase -i # --rebase-merges を入れるとfixup!コメントの効果が出なくなる
 	pr = pull --rebase --prune
 	fp = fetch --prune --all
 	svncheck = svn dcommit --dry-run
