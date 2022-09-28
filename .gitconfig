@@ -106,7 +106,7 @@
 	bail = update-index --no-skip-worktree
 	neglect = update-index --assume-unchanged
 	esteem = update-index --no-assume-unchanged
-	skiplist = !sh -c 'git ls-files -v | grep -v \"^H\"'
+	skiplist = !echo ':tips: S(skip-worktree):cage,bail / h(assume-unchanged):neglect,esteem' && git ls-files -v | grep -v \"^H\"
 	gp = grep -n -i
 	gpm = !sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy
 	firstcommit = commit --allow-empty -m'First Commit'
