@@ -41,6 +41,8 @@
 	rebase = true
 [fetch]
 	prune = true
+[log]
+	date = iso-local
 [advice]
 	skippedCherryPicks = false
 [alias]
