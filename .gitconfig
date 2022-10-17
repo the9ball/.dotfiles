@@ -36,6 +36,7 @@
 	default = upstream
 [rebase]
 	autostash = true
+	autosquash = true
 [pull]
 	rebase = true
 [fetch]
