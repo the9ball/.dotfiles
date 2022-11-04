@@ -132,6 +132,7 @@
 	grepblame = !sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy
 	reporoot = rev-parse --show-toplevel
 	superreporoot = rev-parse --show-superproject-working-tree
+	findconfig = !sh -cx \"git config --show-origin --show-scope --get-regexp \\\".*${1}.*\\\"\"
 
 ######################################################################################
 # メモ
