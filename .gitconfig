@@ -41,6 +41,7 @@
 	rebase = true
 [fetch]
 	prune = true
+	showForcedUpdates = true
 [log]
 	date = iso-local
 [advice]
