@@ -35,6 +35,7 @@
 	ignoreSubmodules = dirty
 [push]
 	default = upstream
+	useForceIfIncludes = true
 [rebase]
 	autostash = true
 	autosquash = true
