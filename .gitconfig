@@ -19,6 +19,7 @@
 	longpaths = true
 [grep]
 	lineNumber = true
+	column = true
 	extendedRegexp = true
 [difftool]
 	prompt = false
