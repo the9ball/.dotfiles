@@ -48,6 +48,7 @@
 	date = iso-local
 [advice]
 	skippedCherryPicks = false
+	detachedHead = false
 [alias]
 	git = !git
 	current-branch = rev-parse --abbrev-ref HEAD
