@@ -33,6 +33,8 @@
 [diff]
 	tool = vimdiff
 	ignoreSubmodules = dirty
+[branch]
+	autoSetupMerge = false
 [push]
 	default = upstream
 	useForceIfIncludes = true
