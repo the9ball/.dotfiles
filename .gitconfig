@@ -129,8 +129,8 @@
 	findstring = !sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'
 	findfile = !sh -c 'git ls-files | grep $0'
 	aliaslist = "!loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
-	aliasdoc = !sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\"
-	alias = "!sh -c \\"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\\""
+	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
+	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
 	checkout-head = !git checkout `git rev-parse HEAD`
 	btemp = branch --force temp
 	resetconflict = "!git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
