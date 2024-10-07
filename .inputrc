@@ -1,0 +1,7 @@
+# echo "$include ~/.dotfiles/.inputrc" > ~/.inputrc
+
+$include /etc/inputrc
+
+set bell-style none
+set completion-ignore-case On
+
