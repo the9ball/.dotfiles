@@ -105,5 +105,10 @@ export GOPATH="${HOME}/gocode"
 export PATH="${GOPATH}/bin:${PATH}"
 
 # for aqua
+export PATH=${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH
 export AQUA_PROGRESS_BAR=true
 export AQUA_LOG_COLOR=always
+
+if command -v aqua &> /dev/null; then
+	source <(aqua completion bash)
+fi
