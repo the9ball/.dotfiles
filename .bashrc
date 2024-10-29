@@ -87,6 +87,12 @@ then
     complete -o default -F __start_kubectl k
 fi
 
+# https://github.com/ahmetb/kubectx
+if [ -d $HOME/.dotfiles/kubectx ]; then
+	source $HOME/.dotfiles/kubectx/completion/kubectx.bash
+	source $HOME/.dotfiles/kubectx/completion/kubens.bash
+fi
+
 # AWS
 alias awsaccount='aws sts get-caller-identity'
 alias dockerlogin='$(aws ecr get-login --no-include-email --region ap-northeast-1)'
