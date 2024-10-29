@@ -4,22 +4,17 @@ export PATH=$HOME/.dotfiles/bin:$HOME/.dotfiles/GIT_SAFE_RESET/:$HOME/bin:$PATH
 
 stty stop undef
 
-# OLD_PS1=${PS1}
-export OLD_PS1='[\u@\h \W]\n\$ '
+# kube-ps1
+if [ -d $HOME/.dotfiles/kube-ps1 ]; then
+	source $HOME/.dotfiles/kube-ps1/kube-ps1.sh
+fi
 
-alias ____git_ps1="git current-branch 2>/dev/null"
-
-# http://d.hatena.ne.jp/u-no/20070626
-# screen は任意のプログラムが "<esc>khogehoge<esc>\" という文字列を吐くと、そのウィンドウのタイトルを hogehoge にかえるという機能が備わっています
-# 最後に実行したコマンド
-#export SCREEN_TITLE='\[\ek\e\\\]'
-# 現在のカレントディレクトリ
-export SCREEN_TITLE='\[\ek\W$(____git_ps1)\e\\\]\r'
-
-export PS1="\\033[00m${SCREEN_TITLE}${OLD_PS1}"
-
-# export OLD_PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/#$HOME/~}"; echo -ne "\007"'
-# export PROMPTO_COMMAND='echo -ne "\ek$(whoami)\e\\"'
+# PS1
+export OLD_PS1=${PS1}
+export PS1_COLOR='\033[32m'
+function git_branch { printf '\033[34m<'; printf "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"; printf ">${PS1_COLOR}"; }
+function git_ps1 { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git_branch; }
+export PS1='$(printf ${PS1_COLOR})[\u@\h \W$(git_ps1)]\033[0m $(kube_ps1)\n\$ '
 
 # alias
 alias la='ls -al'
