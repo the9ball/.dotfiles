@@ -26,7 +26,7 @@ alias la='ls -al'
 alias ll='ls -l'
 alias vi='vim'
 
-# 
+# その他global系設定
 export EDITOR=vim
 
 # ccache 用の設定
