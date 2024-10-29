@@ -11,10 +11,9 @@ fi
 
 # PS1
 export OLD_PS1=${PS1}
-export PS1_COLOR='\033[32m'
-function git_branch { printf '\033[34m<'; printf "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"; printf ">${PS1_COLOR}"; }
+function git_branch { printf ' (\033[38;5;6m'; printf "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"; printf "\033[0m)"; }
 function git_ps1 { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git_branch; }
-export PS1='$(printf ${PS1_COLOR})[\u@\h \W$(git_ps1)]\033[0m $(kube_ps1)\n\$ '
+export PS1='\n\033[32m\u@\h\033[0m \033[33m\W\033[0m$(git_ps1) $(kube_ps1)\n\$ '
 
 # alias
 alias la='ls -al'
