@@ -108,3 +108,7 @@ export HOMEBREW_GITHUB_API_TOKEN=2e20ceedd5d99ded0d8df8534e518cf197e9ad35
 
 export GOPATH="${HOME}/gocode"
 export PATH="${GOPATH}/bin:${PATH}"
+
+# for aqua
+export AQUA_PROGRESS_BAR=true
+export AQUA_LOG_COLOR=always
