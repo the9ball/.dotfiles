@@ -4,6 +4,16 @@ export PATH=$HOME/.dotfiles/bin:$HOME/.dotfiles/GIT_SAFE_RESET/:$HOME/bin:$PATH
 
 stty stop undef
 
+# for aqua
+export PATH=${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH
+export AQUA_GLOBAL_CONFIG=$HOME/.dotfiles/aqua.yaml
+export AQUA_PROGRESS_BAR=true
+export AQUA_LOG_COLOR=always
+
+if command -v aqua &> /dev/null; then
+	source <(aqua completion bash)
+fi
+
 # kube-ps1
 if [ -d $HOME/.dotfiles/kube-ps1 ]; then
 	source $HOME/.dotfiles/kube-ps1/kube-ps1.sh
@@ -109,11 +119,3 @@ export HOMEBREW_GITHUB_API_TOKEN=2e20ceedd5d99ded0d8df8534e518cf197e9ad35
 export GOPATH="${HOME}/gocode"
 export PATH="${GOPATH}/bin:${PATH}"
 
-# for aqua
-export PATH=${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH
-export AQUA_PROGRESS_BAR=true
-export AQUA_LOG_COLOR=always
-
-if command -v aqua &> /dev/null; then
-	source <(aqua completion bash)
-fi
