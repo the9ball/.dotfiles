@@ -35,7 +35,8 @@ fi
 export OLD_PS1=${PS1}
 function git_branch { printf ' (\033[38;5;6m'; printf "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"; printf "\033[0m)"; }
 function git_ps1 { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git_branch; }
-export PS1='\n\033[32m\u@\h\033[0m \033[33m\W\033[0m$(git_ps1) $(kube_ps1)\n\$ '
+# $(git_ps1) だとwindowsでのgit-bashでうまく動かなかった
+export PS1='\n\033[32m\u@\h\033[0m \033[33m\W\033[0m`git_ps1` `kube_ps1`\n\$ '
 
 # alias
 alias la='ls -al'
