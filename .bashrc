@@ -4,6 +4,18 @@ export PATH=$HOME/.dotfiles/bin:$HOME/.dotfiles/GIT_SAFE_RESET/:$HOME/bin:$PATH
 
 stty stop undef
 
+# for Github Copilot for CLI
+if command -v gh &> /dev/null ; then
+	if gh extension list | grep -q "copilot"; then
+		eval "$(gh copilot alias -- bash)"
+		alias ??='ghcs -t shell'
+		alias git?='ghcs -t git'
+		alias gh?='ghcs -t gh'
+	else
+		echo "try 'gh extension install github/gh-copilot'"
+	fi
+fi
+
 # for aqua
 export PATH=${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH
 export AQUA_GLOBAL_CONFIG=$HOME/.dotfiles/aqua.yaml
