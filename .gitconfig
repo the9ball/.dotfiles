@@ -122,6 +122,8 @@
 	rm-merged-branches = !git branch --merged | grep -v \\* | grep -v "+" | xargs -I % git branch -d %
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
 	contains-branches = branch -a --contains
+	#↓うまく動かないので諦め…
+	#contains-commit = !sh -c "git merge-base --is-ancestor $2 $1 && echo 'contains' || echo 'not contains'" _
 	contains-commit = merge-base --is-ancestor
 	untrack = !git config --unset branch.`git current-branch`.remote
 	revertmerge = revert -m 1
