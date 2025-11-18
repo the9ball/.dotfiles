@@ -121,7 +121,8 @@
 	firstcommit = commit --allow-empty -m'First Commit'
 	rm-merged-branches = !git branch --merged | grep -v \\* | grep -v "+" | xargs -I % git branch -d %
 	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
-	contains = branch -a --contains
+	contains-branches = branch -a --contains
+	contains-commit = merge-base --is-ancestor
 	untrack = !git config --unset branch.`git current-branch`.remote
 	revertmerge = revert -m 1
 	showfile = !sh -c 'git show $0:$1'
