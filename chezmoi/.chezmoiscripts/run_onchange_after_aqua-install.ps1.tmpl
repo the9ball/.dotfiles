@@ -56,23 +56,25 @@ if ($LASTEXITCODE -ne 0) {
     throw "aqua install failed (exit code: $LASTEXITCODE)"
 }
 
-# AWS CLI v2 is distributed as a Windows MSI and is not supported by aqua's
-# Windows amd64 package definition. Install it through winget instead.
-$awsPath = Join-Path $env:ProgramFiles 'Amazon\AWSCLIV2\aws.exe'
-if (-not (Test-Path -LiteralPath $awsPath)) {
-    $wingetCommand = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $wingetCommand) {
-        throw 'AWS CLI is not installed and winget is unavailable. Install Microsoft App Installer first.'
-    }
+# AWS CLI and aws-vault have no Windows amd64 asset in aqua's registry.
+# aqua installs them on Linux/macOS and skips them on Windows amd64; Windows
+# gets both packages from winget instead.
+$wingetCommand = Get-Command winget -ErrorAction SilentlyContinue
+if ($wingetCommand) {
+    foreach ($packageId in @('Amazon.AWSCLI', '99designs.aws-vault')) {
+        $installed = (& $wingetCommand.Source list --id $packageId --exact --source winget --disable-interactivity 2>$null | Out-String)
+        if ($installed -match [regex]::Escape($packageId)) {
+            continue
+        }
 
-    & $wingetCommand.Source install --id Amazon.AWSCLI --exact --source winget --silent --accept-source-agreements --accept-package-agreements
-    if ($LASTEXITCODE -ne 0) {
-        throw "winget failed to install AWS CLI (exit code: $LASTEXITCODE)"
+        & $wingetCommand.Source install --id $packageId --exact --source winget --silent --accept-source-agreements --accept-package-agreements
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget failed to install $packageId (exit code: $LASTEXITCODE)"
+        }
     }
 }
-
-if (-not (Test-Path -LiteralPath $awsPath)) {
-    throw 'AWS CLI installation completed, but aws.exe could not be found.'
+elseif ($env:OS -eq 'Windows_NT') {
+    throw 'AWS CLI and aws-vault are not installed and winget is unavailable. Install Microsoft App Installer first.'
 }
 
 $aquaBin = Split-Path -Parent $aquaPath
