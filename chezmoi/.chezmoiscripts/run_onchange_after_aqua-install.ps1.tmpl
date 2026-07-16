@@ -1,0 +1,86 @@
+# aqua.yaml checksum: {{ include "../aqua.yaml" | sha256sum }}
+# pre-commit-config.yaml checksum: {{ include "../.pre-commit-config.yaml" | sha256sum }}
+$ErrorActionPreference = 'Stop'
+
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$configPath = Join-Path $repoRoot 'aqua.yaml'
+
+if (-not (Test-Path -LiteralPath $configPath)) {
+    throw "aqua.yaml was not found: $configPath"
+}
+
+$aquaPath = $null
+$aquaCommand = Get-Command aqua -ErrorAction SilentlyContinue
+if ($aquaCommand) {
+    $aquaPath = $aquaCommand.Source
+}
+
+if (-not $aquaPath) {
+    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+        throw 'aqua is not installed and Chocolatey is unavailable. Install Chocolatey first.'
+    }
+
+    & choco install aqua -y --no-progress
+    if ($LASTEXITCODE -ne 0) {
+        throw "Chocolatey failed to install aqua (exit code: $LASTEXITCODE)"
+    }
+
+    $aquaCommand = Get-Command aqua -ErrorAction SilentlyContinue
+    if ($aquaCommand) {
+        $aquaPath = $aquaCommand.Source
+    }
+}
+
+if (-not $aquaPath) {
+    $candidate = Join-Path $env:ChocolateyInstall 'bin\aqua.exe'
+    if (Test-Path -LiteralPath $candidate) {
+        $aquaPath = $candidate
+    }
+}
+
+if (-not $aquaPath) {
+    throw 'aqua was installed, but aqua.exe could not be found in PATH.'
+}
+
+# GitHub CLI used for artifact-attestation verification derives its cache path
+# from HOME. PowerShell does not always define HOME on Windows.
+$env:HOME = $env:USERPROFILE
+$env:GH_CONFIG_DIR = Join-Path $env:USERPROFILE '.config\gh'
+# GitHub CLI's attestation cache currently resolves to C:\WINDOWS under this
+# Windows/chezmoi environment. Keep aqua's Cosign and SLSA checks enabled while
+# disabling only this verification method until the cache-path issue is fixed.
+$env:AQUA_DISABLE_GITHUB_ARTIFACT_ATTESTATION = 'true'
+
+& $aquaPath install --config $configPath
+if ($LASTEXITCODE -ne 0) {
+    throw "aqua install failed (exit code: $LASTEXITCODE)"
+}
+
+$aquaBin = Split-Path -Parent $aquaPath
+$prekPath = $null
+$prekCommand = Get-Command prek -ErrorAction SilentlyContinue
+if ($prekCommand) {
+    $prekPath = $prekCommand.Source
+}
+
+if (-not $prekPath) {
+    $candidate = Join-Path $aquaBin 'prek.exe'
+    if (Test-Path -LiteralPath $candidate) {
+        $prekPath = $candidate
+    }
+}
+
+if (-not $prekPath) {
+    throw 'prek was installed by aqua, but prek.exe could not be found in PATH.'
+}
+
+Push-Location $repoRoot
+try {
+    & $prekPath install --overwrite
+}
+finally {
+    Pop-Location
+}
+if ($LASTEXITCODE -ne 0) {
+    throw "prek failed to install the Git hook (exit code: $LASTEXITCODE)"
+}
