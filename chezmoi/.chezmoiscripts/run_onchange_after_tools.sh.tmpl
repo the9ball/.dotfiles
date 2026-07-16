@@ -1,0 +1,11 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/bin/sh
+set -eu
+
+# aqua.yaml checksum: {{ include "../aqua.yaml" | sha256sum }}
+# pre-commit-config.yaml checksum: {{ include "../.pre-commit-config.yaml" | sha256sum }}
+
+repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
+aqua install --config "$repo_root/aqua.yaml"
+prek install --overwrite
+{{- end }}
