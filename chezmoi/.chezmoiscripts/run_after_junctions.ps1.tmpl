@@ -1,0 +1,40 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = 'Stop'
+
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$links = @(
+    @{
+        Path = Join-Path $env:USERPROFILE '.agents'
+        Target = Join-Path $repoRoot '.agents'
+    },
+    @{
+        Path = Join-Path $env:USERPROFILE '.claude\skills'
+        Target = Join-Path $repoRoot '.agents\skills'
+    }
+)
+
+foreach ($link in $links) {
+    if (-not (Test-Path -LiteralPath $link.Target -PathType Container)) {
+        throw "Junction target does not exist: $($link.Target)"
+    }
+
+    $existing = Get-Item -LiteralPath $link.Path -Force -ErrorAction SilentlyContinue
+    if ($existing) {
+        if ($existing.LinkType -ne 'Junction') {
+            throw "Refusing to replace a non-junction path: $($link.Path)"
+        }
+
+        $actualTarget = [IO.Path]::GetFullPath([string]$existing.Target)
+        $expectedTarget = [IO.Path]::GetFullPath($link.Target)
+        if (-not $actualTarget.Equals($expectedTarget, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Junction target mismatch: $($link.Path) -> $actualTarget (expected $expectedTarget)"
+        }
+
+        continue
+    }
+
+    $parent = Split-Path -Parent $link.Path
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    New-Item -ItemType Junction -Path $link.Path -Target $link.Target | Out-Null
+}
+{{- end }}

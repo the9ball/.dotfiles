@@ -1,0 +1,35 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/bin/sh
+set -eu
+
+repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
+
+ensure_link() {
+    link=$1
+    target=$2
+
+    if [ ! -d "$target" ]; then
+        echo "symlink target does not exist: $target" >&2
+        exit 1
+    fi
+
+    if [ -L "$link" ]; then
+        if [ "$(readlink "$link")" = "$target" ]; then
+            return
+        fi
+        echo "symlink target mismatch: $link" >&2
+        exit 1
+    fi
+
+    if [ -e "$link" ]; then
+        echo "refusing to replace a non-symlink path: $link" >&2
+        exit 1
+    fi
+
+    mkdir -p "$(dirname "$link")"
+    ln -s "$target" "$link"
+}
+
+ensure_link "$HOME/.agents" "$repo_root/.agents"
+ensure_link "$HOME/.claude/skills" "$repo_root/.agents/skills"
+{{- end }}
