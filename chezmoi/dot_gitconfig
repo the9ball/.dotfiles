@@ -3,9 +3,6 @@
 #   path = ./.dotfiles/.gitconfig
 # EOF
 
-[include]
-	path = ~/.gitconfig.local
-
 [core]
 	editor = vim
 	autocrlf = false
@@ -186,4 +183,8 @@
 # push時のpush先を変更する設定
 # [url "git@github.com:"]
 #	pushInsteadOf = git://github.com/
+
+# Machine-local overrides. Keep credentials and host-specific paths there.
+[include]
+	path = ~/.gitconfig.local
 ######################################################################################

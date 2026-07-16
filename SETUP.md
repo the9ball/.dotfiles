@@ -14,6 +14,7 @@ chezmoi apply
 - `aqua install`: `aqua.yaml`に定義されたCLIを導入
 - Windows: `winget import`: `winget.json`に定義されたAWS CLIとaws-vaultを導入
 - `prek install`: Git hookを設定
+- `.bashrc`と`.gitconfig`をホームディレクトリへ配置
 - `.agents`と`.claude/skills`の共有リンクを作成
 
 ## Windows
