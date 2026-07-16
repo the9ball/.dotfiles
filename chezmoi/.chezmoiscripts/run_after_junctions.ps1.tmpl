@@ -21,7 +21,7 @@ foreach ($link in $links) {
     $existing = Get-Item -LiteralPath $link.Path -Force -ErrorAction SilentlyContinue
     if ($existing) {
         if ($existing.LinkType -ne 'Junction') {
-            throw "Refusing to replace a non-junction path: $($link.Path)"
+            throw "Refusing to replace a non-junction path: $($link.Path). Move or remove it manually, then rerun 'chezmoi apply'."
         }
 
         $actualTarget = [IO.Path]::GetFullPath([string]$existing.Target)

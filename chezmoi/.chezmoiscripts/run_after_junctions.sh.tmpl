@@ -22,7 +22,7 @@ ensure_link() {
     fi
 
     if [ -e "$link" ]; then
-        echo "refusing to replace a non-symlink path: $link" >&2
+        echo "refusing to replace a non-symlink path: $link; move or remove it manually, then rerun 'chezmoi apply'" >&2
         exit 1
     fi
 
