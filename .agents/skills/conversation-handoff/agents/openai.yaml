@@ -1,0 +1,4 @@
+interface:
+  display_name: "Conversation Handoff"
+  short_description: "Move a long conversation to a fresh session safely"
+  default_prompt: "Use $conversation-handoff to move this conversation to a fresh session while preserving its intent and history."
