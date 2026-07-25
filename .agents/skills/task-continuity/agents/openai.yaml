@@ -1,0 +1,8 @@
+interface:
+  display_name: "Task Continuity"
+  short_description: "長期タスクの状態を外部メモへ継続保存し、compact後に再検証する"
+  default_prompt: "Use $task-continuity to preserve and verify this long-running task state."
+
+policy:
+  allow_implicit_invocation: true
+
