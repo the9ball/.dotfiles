@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex Job Logs"
+  short_description: "View or follow codex-companion job logs"
+  default_prompt: "Use $codex-logs to display or follow a codex-companion background job log."
+
+policy:
+  allow_implicit_invocation: false
