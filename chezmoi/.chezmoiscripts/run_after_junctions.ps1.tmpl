@@ -10,6 +10,10 @@ $links = @(
     @{
         Path = Join-Path $env:USERPROFILE '.claude\skills'
         Target = Join-Path $repoRoot '.agents\skills'
+    },
+    @{
+        Path = Join-Path $env:USERPROFILE '.claude\agents'
+        Target = Join-Path $repoRoot '.claude\agents'
     }
 )
 
