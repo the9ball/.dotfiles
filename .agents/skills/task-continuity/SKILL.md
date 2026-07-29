@@ -30,7 +30,7 @@ Soft triggers:
 
 Do not activate for short questions, one small edit, or a brief review.
 
-## Obtain one scoped approval
+## Resolve write approval
 
 Before creating runtime state, tell the user why continuity protection is
 appropriate and propose a memo path.
@@ -43,7 +43,14 @@ When proposing a new `.task-continuity` directory, also offer to create a
 `.gitignore` whose complete contents are `*` so the directory remains local.
 Do not create it when the user chooses another location unless requested.
 
-Ask for one approval covering:
+First inspect hook context for `TASK_CONTINUITY_WRITE_PREAPPROVED`. A nonempty
+absolute directory means the installed hook validated that directory's local
+`.allow-write` marker. Reuse that approval without asking again, but only for a
+memo directly inside that exact directory and only for task-continuity runtime
+writes. Mere directory, memo, or unvalidated marker existence is never
+approval.
+
+When standing approval is absent, ask for one approval covering:
 
 - Creating the selected memo.
 - Continuously updating it until this task is closed.
@@ -51,10 +58,13 @@ Ask for one approval covering:
   is installed.
 - Allowing mechanical, unverified `PreCompact` and `PostCompact` append-only
   records.
+- Creating a local `.allow-write` marker for future task-continuity sessions in
+  the exact selected memo directory.
 
-Do not write before approval. After approval, treat these exact runtime-state
-writes as approved for the rest of the task. Obtain new approval if the path or
-scope changes.
+Allow the user to decline the standing portion while approving only the current
+task. Do not write before either current-task or standing approval exists.
+Obtain new approval for deletion, moving files, writing outside the approved
+directory, or expanding the approved operations.
 
 ## Create and activate the memo
 
@@ -62,7 +72,10 @@ scope changes.
 2. Replace every placeholder and record the approval scope.
 3. If approved, create `.gitignore` with exactly `*` in the newly created
    default directory.
-4. Follow the activation interface supplied by installed task-continuity hook
+4. After new standing approval, follow the hook's directory-grant instruction
+   to create `.allow-write` before activation. Do not create the marker
+   manually, and do not run the instruction for task-scoped-only approval.
+5. Follow the activation interface supplied by installed task-continuity hook
    context to associate the session ID with the approved memo path.
 
 Installed hook context should provide the current session ID, proposed default
@@ -72,6 +85,9 @@ to a risk or maintenance reminder to reduce repeated input overhead. If the
 full session-start context does not exist, create and maintain the memo without
 hook recovery and tell the user that compact automation is unavailable until
 `INSTALL.md` is completed.
+
+After activation, the hook may omit the standing-approval notification because
+the active session registry entry already identifies the approved memo.
 
 After activation, follow the host adapter's reminder policy. A long-interval
 periodic reminder is the normal balance; boundary-only and strict per-turn

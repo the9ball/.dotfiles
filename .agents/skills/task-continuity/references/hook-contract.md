@@ -41,8 +41,25 @@ The storage format and location are environment-specific. Do not put registry
 state in the shared skill directory or source repository.
 
 Register a session only after the user approves the memo path, continuous
-maintenance, registry entry, and compact append behavior. A hook must not infer
-consent merely because a similarly named Markdown file exists.
+maintenance, registry entry, and compact append behavior, or when a validated
+standing marker records that consent.
+
+Store standing approval in `.allow-write` inside the approved memo directory,
+not in the session registry or model memory. The marker must record:
+
+- Schema version
+- Approved absolute directory
+- Approval timestamp
+- Approval scope limited to task-continuity runtime writes
+- Explicit-user-approval source and installation ownership marker
+
+Require a regular non-symbolic marker, normalize its recorded path according
+to the host OS, and require an exact match with the marker's parent directory.
+When the directory is inside Git, reject a tracked marker and require Git
+ignore rules to exclude it. A hook must not infer consent merely because a
+directory, Markdown memo, or unvalidated marker exists. Standing approval does
+not authorize deletion, moves, nested-directory writes, or writes outside the
+exact directory.
 
 ## Context interface
 
@@ -51,12 +68,19 @@ Model-visible hook context must use clear labels and provide:
 - `TASK_CONTINUITY_SESSION_ID`
 - `TASK_CONTINUITY_DEFAULT_MEMO_PATH`
 - `TASK_CONTINUITY_ACTIVE_MEMO_PATH` when active
+- `TASK_CONTINUITY_WRITE_PREAPPROVED=<approved-absolute-directory>` before
+  activation, with an empty value when no validated marker exists
 - An environment-specific activation instruction
 - An environment-specific close instruction
+- An environment-specific standing-directory grant instruction
 
 Before activation, context must ask the model to evaluate continuity risk and
-invoke `$task-continuity` when its trigger criteria apply. It must state that
-no file may be written before task-scoped approval.
+invoke `$task-continuity` when its trigger criteria apply. Without standing
+approval, it must state that no file may be written before task-scoped
+approval. With standing approval, it must state the exact permitted directory
+and that another confirmation is unnecessary for covered runtime writes.
+After activation, omit the standing-approval field; the active memo path and
+session registry entry are sufficient.
 
 After activation, context must instruct the model to read and continuously
 maintain the active memo, revalidate it against primary evidence, and update it
@@ -89,7 +113,11 @@ When no approved active session exists:
 - Ask the model to evaluate task continuity risk.
 - On routine turns, the activation and close commands may be omitted when they
   were supplied at `SessionStart`; refer to the session-start instructions.
-- Do not create a directory, registry entry, memo, or `.gitignore`.
+- When no validated standing marker exists, do not create a directory,
+  registry entry, memo, `.gitignore`, or `.allow-write`.
+- When exact standing approval exists, expose it to the model but do not
+  mechanically create or activate a memo; the skill still decides whether
+  continuity risk warrants activation.
 
 When an approved active session exists:
 

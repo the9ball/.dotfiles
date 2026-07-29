@@ -142,6 +142,14 @@ never survive a failed or incomplete run.
 13. On a host with documented model-visible output, recovery context
     identifies the active memo and requires revalidation.
 14. Paths containing spaces and non-ASCII characters work on the target OS.
+15. A standing directory approval is recorded only by an explicit manual grant
+    action that creates a path-bound `.allow-write` marker, and a new session
+    reuses it only in that exact directory.
+16. A pre-existing directory, memo, tracked marker, symbolic marker, malformed
+    marker, or path-mismatched marker remains unapproved; sibling and nested
+    directories do not match.
+17. Standing approval is injected as one compact field before activation and
+    omitted after activation.
 
 Run the host's own configuration validator or launch a disposable new session
 when available. If neither is possible, label the result `fixture-only`; do not
