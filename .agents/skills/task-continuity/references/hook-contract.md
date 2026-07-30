@@ -74,6 +74,10 @@ Model-visible hook context must use clear labels and provide:
 - An environment-specific close instruction
 - An environment-specific standing-directory grant instruction
 
+These `TASK_CONTINUITY_*` names are text labels in injected model context. They
+are not environment variables and must not be read from the process environment
+unless a host adapter separately documents such an interface.
+
 Before activation, context must ask the model to evaluate continuity risk and
 invoke `$task-continuity` when its trigger criteria apply. Without standing
 approval, it must state that no file may be written before task-scoped
@@ -91,8 +95,11 @@ Keep injected context short. Do not inject the complete memo automatically.
 The complete activation and close commands must be available at `SessionStart`.
 Per-turn `UserPromptSubmit` context may omit those commands and use only a
 compact risk reminder before activation, or the active memo path and
-maintenance reminder after activation. This keeps routine turns inexpensive
-without removing the recovery and activation interface at session boundaries.
+maintenance reminder after activation. A validated standing-approval memo at
+the exact default path uses host-side automatic registration, so missing the
+session-start command does not block recovery. This keeps routine turns
+inexpensive without removing the manual interface for custom paths and
+task-scoped-only approval.
 
 Each host adapter may define a host-local reminder policy. The abstract modes
 are `periodic` (emit a short active-session reminder at a configurable long
@@ -116,8 +123,11 @@ When no approved active session exists:
 - When no validated standing marker exists, do not create a directory,
   registry entry, memo, `.gitignore`, or `.allow-write`.
 - When exact standing approval exists, expose it to the model but do not
-  mechanically create or activate a memo; the skill still decides whether
-  continuity risk warrants activation.
+  mechanically create a memo; the skill still decides whether continuity risk
+  warrants activation.
+- When the exact default memo later exists, register it from the event hook
+  only after validating the marker and memo frontmatter as specified under
+  "Automatic default-path registration".
 
 When an approved active session exists:
 
@@ -128,6 +138,10 @@ When an approved active session exists:
 - Do not rewrite the memo mechanically.
 
 ## PreCompact
+
+Before deciding that no active registry entry exists, attempt automatic
+default-path registration. This protects a newly created standing-approved memo
+when compaction occurs before the next prompt event.
 
 Write only when all conditions hold:
 
@@ -161,6 +175,26 @@ Do not assume every host provides the summary. Keep this hook minimal: only
 append. A retried or repeated event may produce duplicate boundary records;
 that is acceptable and is resolved later during reconciliation rather than by
 deduplication at compaction time.
+
+## Automatic default-path registration
+
+The host event handler may create a missing registry entry without model-side
+file writes only when all of these checks pass:
+
+- The event is `SessionStart`, `UserPromptSubmit`, or `PreCompact`.
+- No registry entry already exists for the host and session.
+- The memo is the exact default
+  `<git-root-or-cwd>/.task-continuity/<session-id>.md`.
+- The exact memo directory contains a valid standing `.allow-write` marker.
+- The memo is a regular readable file whose frontmatter declares
+  `status: active`, `continuous_write_approved: true`, the exact session ID,
+  and the exact approved memo path.
+
+The event handler owns this registry write. Do not require the model's
+sandboxed shell to write host-local registry state. Never reopen an existing
+closed entry, adopt a custom path, or infer activation from a marker alone. On
+failure, leave the registry unchanged, do not write the memo, and report an
+advisory without blocking the host event.
 
 ## SessionStart
 

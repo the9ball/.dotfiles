@@ -50,6 +50,18 @@ memo directly inside that exact directory and only for task-continuity runtime
 writes. Mere directory, memo, or unvalidated marker existence is never
 approval.
 
+`TASK_CONTINUITY_*` names are labels inside model-visible hook context, not
+process environment variables.
+
+When hook context is absent, perform a read-only fallback check before asking
+again. Resolve the default `.task-continuity` directory from the current Git
+root or working directory, then validate its `.allow-write` using the same
+rules in `references/hook-contract.md`: regular non-symbolic file, exact
+normalized parent path, exact scope/source/ownership fields, and untracked plus
+Git-ignored when inside Git. Reuse a valid marker without reconfirmation. If
+the host session ID is unavailable, do not guess it; maintain a user-approved
+custom memo without hook recovery until the adapter exposes the ID.
+
 When standing approval is absent, ask for one approval covering:
 
 - Creating the selected memo.
@@ -75,16 +87,20 @@ directory, or expanding the approved operations.
 4. After new standing approval, follow the hook's directory-grant instruction
    to create `.allow-write` before activation. Do not create the marker
    manually, and do not run the instruction for task-scoped-only approval.
-5. Follow the activation interface supplied by installed task-continuity hook
-   context to associate the session ID with the approved memo path.
+5. For the validated standing-approval default path, let the next host event
+   validate the memo frontmatter and register it automatically. For a custom
+   path or task-scoped-only approval, follow the activation interface supplied
+   by installed task-continuity hook context.
 
 Installed hook context should provide the current session ID, proposed default
 path, active memo path when one exists, and environment-specific activation and
 close instructions at session start. Routine prompt context may be abbreviated
 to a risk or maintenance reminder to reduce repeated input overhead. If the
-full session-start context does not exist, create and maintain the memo without
-hook recovery and tell the user that compact automation is unavailable until
-`INSTALL.md` is completed.
+full session-start context does not exist but a valid standing marker and
+session ID are available, create the default memo and let `UserPromptSubmit` or
+`PreCompact` recover registration. Otherwise create and maintain the memo
+without hook recovery and tell the user that compact automation is unavailable
+until the adapter is repaired.
 
 After activation, the hook may omit the standing-approval notification because
 the active session registry entry already identifies the approved memo.

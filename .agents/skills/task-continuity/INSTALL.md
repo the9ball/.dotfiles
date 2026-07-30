@@ -29,6 +29,8 @@ documentation before generating any runtime script or editing configuration.
    stable, user-accessible runtime.
 5. Select stable user-local locations for generated hook code, session state,
    and an installation ownership record.
+   Confirm that lifecycle event handlers, rather than model-issued shell
+   commands, can write the selected session-state location.
 6. Present the exact files, configuration entries, commands, and exclusions to
    the user.
 7. Obtain approval before creating or modifying files.
@@ -39,6 +41,8 @@ documentation before generating any runtime script or editing configuration.
 10. Show the real configuration diff, obtain any required final approval, and
     install it.
 11. Verify the installed hook through a new session without creating a memo.
+    Manual runtime invocation is fixture evidence only; separately confirm that
+    model-visible context is actually delivered by the host.
 
 Do not install a new runtime or dependency without separate approval.
 
@@ -150,6 +154,19 @@ never survive a failed or incomplete run.
     directories do not match.
 17. Standing approval is injected as one compact field before activation and
     omitted after activation.
+18. When hook context is unavailable, a read-only validation of a correct
+    default-directory marker reuses standing approval without another user
+    confirmation; invalid, tracked, symbolic, or path-mismatched markers do
+    not.
+19. After a standing-approved default memo is created, `UserPromptSubmit`
+    registers it without a model-issued registry write and then follows the
+    active reminder policy.
+20. `PreCompact` can register the same eligible default memo before appending,
+    while an invalid memo, custom path, or existing closed entry is never
+    adopted or reopened.
+21. A fixture that denies the model-side command access to the registry still
+    passes through the event-handler registration interface supported by the
+    host, or the installation is explicitly reported as degraded.
 
 Run the host's own configuration validator or launch a disposable new session
 when available. If neither is possible, label the result `fixture-only`; do not
