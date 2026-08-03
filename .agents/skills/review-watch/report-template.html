@@ -1,0 +1,363 @@
+<!doctype html>
+<!--
+  PR 下読みレポートの雛形。
+  {{...}} を埋めて1レビュー1ファイルとして出力する。
+  外部リソースは一切参照しないこと(オフラインでも一時ディレクトリでもそのまま開ける)。
+  指摘が無いカテゴリのセクションは、空のまま残さず削除する。
+-->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{リポジトリ}} #{{PR番号}} 下読みレポート</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --bg-sunken: #f6f7f9;
+    --bg-card: #ffffff;
+    --fg: #1a1d21;
+    --fg-muted: #5c6570;
+    --border: #e2e5e9;
+    --border-strong: #cbd1d8;
+    --accent: #2f6feb;
+    --critical: #d1242f;
+    --critical-bg: #fff0f0;
+    --warn: #9a6700;
+    --warn-bg: #fff8e5;
+    --info: #2f6feb;
+    --info-bg: #eff4ff;
+    --neutral: #5c6570;
+    --neutral-bg: #f3f4f6;
+    --ok: #1a7f37;
+    --ok-bg: #eaf7ee;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16191d;
+      --bg-sunken: #1d2126;
+      --bg-card: #1d2126;
+      --fg: #e6e9ed;
+      --fg-muted: #9aa4af;
+      --border: #2d333b;
+      --border-strong: #3d444d;
+      --accent: #6ea8ff;
+      --critical: #ff7b72;
+      --critical-bg: #35201f;
+      --warn: #e3b341;
+      --warn-bg: #33291a;
+      --info: #6ea8ff;
+      --info-bg: #1b2436;
+      --neutral: #9aa4af;
+      --neutral-bg: #24292f;
+      --ok: #57d364;
+      --ok-bg: #17291c;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 62rem; margin: 0 auto; }
+
+  /* ---- ヘッダー ---- */
+  .eyebrow {
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+    font-family: var(--mono);
+    margin: 0 0 0.4rem;
+  }
+  h1 {
+    font-size: 1.5rem;
+    line-height: 1.4;
+    margin: 0 0 1rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-sunken);
+    font-size: 0.8125rem;
+    color: var(--fg-muted);
+    white-space: nowrap;
+  }
+  .chip b { color: var(--fg); font-weight: 600; font-family: var(--mono); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* ---- 総評 ---- */
+  .verdict {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--accent);
+    border-radius: 8px;
+    background: var(--bg-card);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .verdict h2 { font-size: 0.8125rem; margin: 0 0 0.5rem; letter-spacing: 0.06em; color: var(--fg-muted); font-weight: 600; }
+  .verdict p { margin: 0 0 0.5rem; }
+  .verdict p:last-child { margin-bottom: 0; }
+
+  .tally { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2.25rem; }
+  .tally .count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+  .tally .count b { font-family: var(--mono); font-size: 1.05rem; }
+  .count.critical { background: var(--critical-bg); border-color: color-mix(in srgb, var(--critical) 35%, transparent); color: var(--critical); }
+  .count.warn     { background: var(--warn-bg);     border-color: color-mix(in srgb, var(--warn) 35%, transparent);     color: var(--warn); }
+  .count.info     { background: var(--info-bg);     border-color: color-mix(in srgb, var(--info) 35%, transparent);     color: var(--info); }
+  .count.neutral  { background: var(--neutral-bg);  color: var(--neutral); }
+
+  /* ---- セクション ---- */
+  section { margin-bottom: 2.5rem; }
+  h2.section {
+    font-size: 1.0625rem;
+    font-weight: 650;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h2.section .n { color: var(--fg-muted); font-family: var(--mono); font-weight: 500; font-size: 0.9375rem; margin-left: 0.4rem; }
+
+  /* ---- 指摘カード ---- */
+  .finding {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--neutral);
+    border-radius: 8px;
+    background: var(--bg-card);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.85rem;
+  }
+  .finding.critical { border-left-color: var(--critical); }
+  .finding.warn     { border-left-color: var(--warn); }
+  .finding.info     { border-left-color: var(--info); }
+
+  .finding > header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 650;
+    padding: 0.1rem 0.5rem;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .badge.critical { background: var(--critical-bg); color: var(--critical); }
+  .badge.warn     { background: var(--warn-bg);     color: var(--warn); }
+  .badge.info     { background: var(--info-bg);     color: var(--info); }
+  .badge.neutral  { background: var(--neutral-bg);  color: var(--neutral); }
+  .loc { font-family: var(--mono); font-size: 0.8125rem; color: var(--fg-muted); word-break: break-all; }
+
+  .claim { font-weight: 600; margin: 0 0 0.6rem; }
+  dl { margin: 0; }
+  dt {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+    font-weight: 650;
+    margin-top: 0.7rem;
+  }
+  dd { margin: 0.15rem 0 0; }
+
+  pre {
+    margin: 0.4rem 0 0;
+    padding: 0.75rem 0.9rem;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  code:not(pre code) {
+    font-family: var(--mono);
+    font-size: 0.875em;
+    background: var(--bg-sunken);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.05em 0.35em;
+  }
+
+  /* ---- 確認した観点 ---- */
+  ul.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+  ul.checks li { display: flex; gap: 0.6rem; align-items: baseline; }
+  ul.checks .mark { font-family: var(--mono); font-weight: 700; flex: none; width: 1.2rem; }
+  ul.checks .mark.done { color: var(--ok); }
+  ul.checks .mark.skip { color: var(--fg-muted); }
+
+  .callout {
+    border: 1px dashed var(--border-strong);
+    border-radius: 8px;
+    background: var(--bg-sunken);
+    padding: 1rem 1.25rem;
+  }
+  .callout ul { margin: 0.4rem 0 0; padding-left: 1.3rem; }
+
+  /* ---- 表 ---- */
+  .scroll-x { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 0.75rem; letter-spacing: 0.04em; color: var(--fg-muted); font-weight: 650; white-space: nowrap; }
+  td.num { font-family: var(--mono); text-align: right; }
+
+  footer.page {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--fg-muted);
+  }
+  footer.page p { margin: 0.2rem 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">{{リポジトリ}} · #{{PR番号}} · {{作成者}}</p>
+  <h1>{{PRタイトル}}</h1>
+
+  <div class="meta">
+    <span class="chip">base <b>{{baseブランチ}}</b></span>
+    <span class="chip">head <b>{{headブランチ}}</b></span>
+    <span class="chip">変更ファイル <b>{{変更ファイル数}}</b></span>
+    <span class="chip">差分 <b>+{{追加行数}} / -{{削除行数}}</b></span>
+    <span class="chip">下読み <b>{{使用モデル}}</b></span>
+    <span class="chip"><a href="{{PRのURL}}">GitHub で開く</a></span>
+  </div>
+
+  <div class="verdict">
+    <h2>総評</h2>
+    <!-- 3〜5文。「何を見て、何が引っかかり、人が判断すべき点はどこか」を書く。 -->
+    <p>{{総評}}</p>
+  </div>
+
+  <div class="tally">
+    <span class="count critical"><b>{{要修正件数}}</b> 要修正</span>
+    <span class="count warn"><b>{{要確認件数}}</b> 要確認</span>
+    <span class="count info"><b>{{提案件数}}</b> 提案</span>
+    <span class="count neutral"><b>{{確認済み観点数}}</b> 確認した観点</span>
+  </div>
+
+  <section>
+    <h2 class="section">指摘<span class="n">{{指摘総数}}件</span></h2>
+
+    <!-- 指摘1件につき .finding を1つ。重大度の高い順に並べる。
+         class は critical(要修正) / warn(要確認) / info(提案) から選び、badge と揃える。
+         指摘が0件なら、このカードを消して「機械的な突合では問題を検出できなかった」旨を1文書く。 -->
+    <article class="finding critical">
+      <header>
+        <span class="badge critical">要修正</span>
+        <span class="loc"><a href="{{該当行へのGitHubリンク}}">{{ファイルパス}}:{{行番号}}</a></span>
+      </header>
+      <p class="claim">{{指摘の一文要約}}</p>
+      <dl>
+        <dt>根拠</dt>
+        <dd>{{なぜそう言えるのか。読んだファイル・比較した対象を具体的に書く}}</dd>
+
+        <dt>該当箇所</dt>
+        <dd><pre>{{コードまたは設定値の抜粋}}</pre></dd>
+
+        <dt>確認方法</dt>
+        <dd>{{人がこの指摘の当否を確かめる手順。誤指摘だった場合に何を見れば分かるかも書く}}</dd>
+
+        <dt>確度</dt>
+        <dd>{{高 / 中 / 低 と、その理由を一言}}</dd>
+      </dl>
+    </article>
+
+    <article class="finding warn">
+      <header>
+        <span class="badge warn">要確認</span>
+        <span class="loc">{{ファイルパス}}</span>
+      </header>
+      <p class="claim">{{指摘の一文要約}}</p>
+      <dl>
+        <dt>根拠</dt>
+        <dd>{{根拠}}</dd>
+        <dt>確認方法</dt>
+        <dd>{{確認方法}}</dd>
+        <dt>確度</dt>
+        <dd>{{確度}}</dd>
+      </dl>
+    </article>
+  </section>
+
+  <!-- 既存ファイルとの設定突合や画像の文言チェックなど、表で見せた方が早いものはここに。
+       不要なら節ごと削除する。 -->
+  <section>
+    <h2 class="section">突合結果</h2>
+    <div class="scroll-x">
+      <table>
+        <thead>
+          <tr><th>対象</th><th>期待値(既存/元資料)</th><th>実際の値</th><th>判定</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>{{ファイル名やセル}}</td><td>{{期待値}}</td><td>{{実際の値}}</td><td>{{一致 / 不一致}}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section">確認した観点</h2>
+    <ul class="checks">
+      <li><span class="mark done">✓</span><span>{{確認した観点と、その結果}}</span></li>
+      <li><span class="mark skip">—</span><span>{{確認していない観点と、その理由}}</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2 class="section">見ていない範囲・限界</h2>
+    <div class="callout">
+      <!-- ここを空にしない。人が最終判断するための最重要セクション。 -->
+      <p>{{この下読みで判断できていないこと}}</p>
+      <ul>
+        <li>{{仕様の妥当性など、元資料がないと判断できない点}}</li>
+        <li>{{実機動作の確認が必要な点}}</li>
+        <li>{{取得件数の上限やページングで見落とした可能性のある範囲}}</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="page">
+    <p>{{生成日時}} · {{使用モデル}} による下読み</p>
+    <p>取得したファイル数 {{AIが見たファイル数}} / PR の changedFiles {{変更ファイル数}}{{一致しない場合はその旨}}</p>
+    <p>この内容は自動生成された下読みです。指摘には誤りが含まれます。GitHub へ投稿する前に人が確認してください。</p>
+  </footer>
+
+</div>
+</body>
+</html>
