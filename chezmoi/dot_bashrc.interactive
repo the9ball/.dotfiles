@@ -1,0 +1,68 @@
+# 対話シェル専用の設定。~/.bashrc から、対話シェルのときだけ読み込まれる。
+#
+# 非対話シェル(Claude Code などが起動する bash、スクリプト実行)では意味がないか、
+# TTY が無いために警告を出すものをここに集約している。
+# 環境変数や関数定義など、非対話シェルでも必要なものは ~/.bashrc 側に置く。
+
+# Ctrl-S によるフロー制御を無効化する。TTY が無いと失敗するため対話シェル限定。
+stty stop undef
+
+# for aqua
+if command -v aqua &> /dev/null; then
+	source <(aqua completion bash)
+fi
+
+# PS1
+export OLD_PS1=${PS1}
+function git_branch { printf ' (\033[38;5;6m'; printf "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"; printf "\033[0m)"; }
+function git_ps1 { git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git_branch; }
+# $(git_ps1) だとwindowsでのgit-bashでうまく動かなかった
+export PS1='\n\033[32m\u@\h\033[0m \033[33m\W\033[0m`git_ps1` `kube_ps1`\n\$ '
+
+if ! command -v kube_ps1 >/dev/null 2>&1; then
+  kube_ps1() { :; }
+fi
+
+# function _update_ps1()
+# {
+# 	   export PS1="$(~/powerline-bash/powerline-bash.py $?)"
+# }
+# export PROMPT_COMMAND="_update_ps1"
+
+# alias
+alias la='ls -al'
+alias ll='ls -l'
+alias vi='vim'
+alias :vi='vim'
+alias :e='vim'
+
+# svn用
+alias svndiff='svn diff -x --ignore-eol-style'
+
+alias lfs='git lfs'
+
+# git completion
+# Git for Windows は /etc/profile.d/git-prompt.sh が自前で読み込むため、
+# 既に読み込まれていれば何もしない。見つからない場合も黙る。
+if ! type -t __git_complete > /dev/null; then
+	for candidate in \
+		/etc/bash_completion.d/git \
+		/usr/share/bash-completion/completions/git \
+		/mingw64/share/git/completion/git-completion.bash
+	do
+		if [ -f "$candidate" ]; then
+			. "$candidate"
+			break
+		fi
+	done
+fi
+
+# https://kubernetes.io/docs/tasks/tools/install-kubectl/
+if command -v kubectl >/dev/null 2>&1
+then
+    if [ -e /usr/share/bash-completion/bash_completion ]; then source /usr/share/bash-completion/bash_completion; fi
+    source <(kubectl completion bash)
+    alias k=kubectl
+    alias kube=kubectl
+    complete -o default -F __start_kubectl k
+fi
