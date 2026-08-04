@@ -216,6 +216,7 @@ Use a stable ownership identity recognizable without fuzzy matching. Record:
 - Host and configuration path
 - Exact owned hook events and matcher groups
 - Exact generated script paths
+- Exact generated launcher paths when the host adapter requires one
 - Exact ownership marker
 - Installation version or timestamp
 - Runtime executable used
@@ -236,6 +237,28 @@ ambiguous ownership and must stop the operation.
 Reinstalling an already-correct version is a true no-op. Preserve every byte
 and file in configuration, runtime, registry, and ownership state, including
 stored installation timestamps.
+
+## Command execution compatibility
+
+Treat platform-specific command fields and execution-shell selection as
+separate capabilities. Do not assume a Windows-specific command override is
+executed directly or by a native Windows shell unless current host behavior
+guarantees it.
+
+When the host can pass the selected command text through Git Bash, PowerShell,
+or another session shell, generate the smallest host-local launcher that
+provides one shell-neutral handler invocation. Require that invocation to use
+an absolute user-owned path with no whitespace or shell metacharacters. Put
+fixed runtime paths and arguments inside the launcher, preserve stdin, stdout,
+stderr, and success/failure status, and never resolve the runtime from `PATH`
+or the repository working directory. Do not claim exact numeric preservation
+when the selected parent shell normalizes external nonzero exit codes.
+
+Keep generated launchers, runtimes, and ownership records under the host's
+user-local state; never add them to the shared skill. Record the exact launcher
+path and handler identity so install, update, and uninstall remain idempotent
+and cannot claim unrelated files. Re-review or re-trust the hook when a host
+uses the handler hash as its trust identity.
 
 ## Configuration conformance
 

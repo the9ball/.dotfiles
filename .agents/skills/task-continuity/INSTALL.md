@@ -31,6 +31,8 @@ documentation before generating any runtime script or editing configuration.
    and an installation ownership record.
    Confirm that lifecycle event handlers, rather than model-issued shell
    commands, can write the selected session-state location.
+   Also determine whether a platform-specific command override selects only a
+   command string or guarantees its execution shell.
 6. Present the exact files, configuration entries, commands, and exclusions to
    the user.
 7. Obtain approval before creating or modifying files.
@@ -62,6 +64,12 @@ Treat these as acceptance criteria, not suggestions:
 - Give every owned hook entry and generated file a stable, exact
   `task-continuity` ownership identity. Never recognize ownership by substring,
   prefix, suffix, regex, or another fuzzy match.
+- When the host may reinterpret a platform-specific command through the
+  session shell, generate a host-local launcher whose invocation contains no
+  whitespace or shell metacharacters. Bake fixed executable paths and
+  arguments into that launcher instead of relying on `PATH` or the repository
+  working directory. Store the launcher outside the shared skill and record it
+  as an owned generated file.
 - If a host schema does not permit a dedicated ownership field, identify a
   handler by exact normalized structural equality with the ownership record,
   including event, matcher group, command, arguments, runtime path, and marker
@@ -108,7 +116,11 @@ Host notes (current primary targets):
   and handler container against the current Claude Code schema.
 - Codex: hooks live in `hooks.json`, `config.toml`, or another supported layer.
   Confirm that hooks are enabled and that command hooks at the selected scope
-  can be reviewed and trusted.
+  can be reviewed and trusted. On Windows, verify from the current source or a
+  fixture whether `commandWindows` controls the execution shell or only the
+  selected command text. When a Git Bash, PowerShell, or other session shell
+  may reinterpret it, use a generated user-local launcher rather than a quoted
+  runtime path in the handler string.
 
 ## Required temporary tests
 
@@ -167,6 +179,17 @@ never survive a failed or incomplete run.
 21. A fixture that denies the model-side command access to the registry still
     passes through the event-handler registration interface supported by the
     host, or the installation is explicitly reported as degraded.
+22. A generated launcher preserves stdin, stdout, stderr, and success/failure status when
+    invoked through every session shell relevant to the target host. On
+    Windows Codex this must include Git Bash and the native shell used by the
+    host. The handler invocation itself contains no quoted executable path,
+    whitespace, shell metacharacters, `PATH` lookup, or repository-relative
+    component. Do not require an exact nonzero numeric code from a parent shell
+    that documents or exhibits nonzero-code normalization.
+23. Updating a directly invoked owned handler to a launcher updates the exact
+    handler identity, generated-file list, and ownership record together. A
+    second install is byte-for-byte unchanged, and uninstall removes only the
+    recorded launcher and other owned generated runtime files.
 
 Run the host's own configuration validator or launch a disposable new session
 when available. If neither is possible, label the result `fixture-only`; do not
