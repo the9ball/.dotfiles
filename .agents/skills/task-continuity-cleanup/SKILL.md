@@ -8,6 +8,9 @@ description: List and permanently delete stale Markdown memo files directly unde
 Treat task-continuity memos as disposable working-state caches. Remove stale
 memos only through an explicit, previewed cleanup operation.
 
+When changing candidate selection or deletion semantics, read
+`references/design-rationale.md` first. Do not load it during routine cleanup.
+
 ## Resolve the cleanup scope
 
 Accept zero or more user-selected paths and a staleness threshold in days.
