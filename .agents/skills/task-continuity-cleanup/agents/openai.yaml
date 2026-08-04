@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task Continuity Cleanup"
+  short_description: "Safely remove stale task-continuity memos"
+  default_prompt: "Use $task-continuity-cleanup to list and remove stale .task-continuity memo files."

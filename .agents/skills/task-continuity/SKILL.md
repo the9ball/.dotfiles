@@ -152,6 +152,12 @@ memo.
 
 ## Recover after compaction or resume
 
+When hook context points to an active memo that no longer exists, treat the
+memo as discarded volatile state rather than a fatal error. Never infer its
+missing contents. Revalidate the available conversation and current primary
+evidence, then follow the normal approval and activation workflow to recreate
+and register a memo if continuity protection is still warranted.
+
 When hook context reports an active memo after `PostCompact`,
 `SessionStart(compact)`, or resume:
 
