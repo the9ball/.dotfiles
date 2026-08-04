@@ -25,7 +25,9 @@ For each selected path:
    append `.task-continuity` and resolve again.
 3. Require the resulting directory's final component to equal
    `.task-continuity` exactly.
-4. Reject a symbolic link, reparse point, junction, or non-directory target.
+4. Require the resulting directory to exist. Report a missing directory as a
+   selected-path error, never as an empty or already-clean result.
+5. Reject a symbolic link, reparse point, junction, or non-directory target.
 
 Never search recursively for other `.task-continuity` directories. Multiple
 explicitly selected directories are allowed.
@@ -39,7 +41,9 @@ calendar dates.
 Inspect only direct children matching `*.md`. Do not recurse, follow links, or
 read file contents or frontmatter. Require each candidate to be a regular file
 and not a symbolic link or reparse point. Collect only its absolute path,
-modification time in UTC, and size.
+modification time, and size. Preserve the full-precision machine timestamp
+captured during preview, such as filesystem ticks or nanoseconds, for later
+comparison. Never reconstruct that value from human-readable display text.
 
 `TASK_CONTINUITY_ACTIVE_MEMO_PATH`, when present in hook context, is
 model-visible context rather than a process environment variable. Normalize
@@ -52,8 +56,10 @@ stale references, ownership records, and fixture installations are outside
 this skill's scope.
 
 Show the selected directories, threshold, cutoff, candidate count, and a list
-containing path, modification time, and size. If there are no candidates,
-report that no cleanup is needed and stop.
+containing path, size, UTC modification time, and local modification time with
+an explicit UTC offset. Display formatting must not replace the preserved
+machine timestamp. If there are no candidates, report that no cleanup is
+needed and stop.
 
 ## Obtain deletion approval
 
@@ -72,7 +78,8 @@ Delete it only when all of the following remain true:
 - It is the same direct child of the approved `.task-continuity` directory.
 - It still matches `*.md`.
 - It is still a regular non-symbolic, non-reparse-point file.
-- Its modification time and size match the approved preview.
+- Its full-precision machine modification time and size exactly match the
+  values captured for the approved preview.
 - Its modification time is still strictly older than the cutoff.
 - It is not the normalized current-session memo exclusion.
 

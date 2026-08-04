@@ -155,8 +155,13 @@ memo.
 When hook context points to an active memo that no longer exists, treat the
 memo as discarded volatile state rather than a fatal error. Never infer its
 missing contents. Revalidate the available conversation and current primary
-evidence, then follow the normal approval and activation workflow to recreate
-and register a memo if continuity protection is still warranted.
+evidence. If continuity protection is still warranted, follow the normal
+approval rules and recreate the memo at the exact path reported by the hook.
+That path is already registered as this session's active memo, so do not run
+the activation instruction; an existing session entry cannot be repointed and
+activation may fail with a conflict. If the user selects a different path,
+maintain it without hook recovery and state that compact automation is
+unavailable for this session.
 
 When hook context reports an active memo after `PostCompact`,
 `SessionStart(compact)`, or resume:
