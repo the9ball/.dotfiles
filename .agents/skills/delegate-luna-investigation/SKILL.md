@@ -16,6 +16,9 @@ Coordinate an investigation from the primary Codex task. Keep the delegated task
 - Keep small, clear work in the primary task when delegation overhead exceeds the work.
 - Do not delegate file edits, external writes, destructive actions, approvals, purchases, or material scope expansion.
 - Instruct the Luna task not to create subagents or additional tasks and not to modify files or external state.
+- Use the same saved local checkout as the primary Sol task. Never create, select, move, or remove a worktree from this skill.
+- Run sequentially: while the Luna task is active, make the primary Sol task wait and do not perform separate work against the shared checkout.
+- Leave any worktree decision to the user and the primary Sol task. If they select another checkout, use that existing selection without changing it.
 - Keep integration, evidence verification, decisions, and the final response in the primary task.
 - Do not claim Luna ran unless task activity identifies the effective model or the task was created explicitly with `gpt-5.6-luna`.
 
@@ -25,7 +28,7 @@ Treat these fields as the delegated workstream identity:
 
 - objective and expected deliverable;
 - relevant artifacts and investigation scope;
-- project, worktree, and branch;
+- project, selected checkout, and branch;
 - authorization and read-only boundary;
 - governing assumptions.
 
@@ -45,9 +48,9 @@ Use observed degradation rather than turn count alone. Examples include repeated
 ## Create the Luna Task
 
 1. List available projects and select the project matching the primary task.
-2. For a Git project, use a worktree. Start from the current working tree when its branch or uncommitted changes are relevant; otherwise use the normal project default.
+2. Use that project's saved local environment so Luna reads the same checkout as Sol. Do not request a new worktree.
 3. Create a task with model `gpt-5.6-luna`, reasoning effort `max`, and title `[Luna調査] <short workstream>`.
-4. If creation returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Wait for setup and resolve the ready task through the recent-task list and its exact title before continuing.
+4. If creation still returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Resolve the ready task through the recent-task list and verify its delegation marker before continuing.
 5. Retain the ready task's `threadId` and `hostId` for follow-ups.
 
 Make the initial prompt self-contained and include:
@@ -65,7 +68,7 @@ Require concise findings that distinguish verified facts from inference and incl
 
 ## Continue and Collect Results
 
-1. Wait for the delegated task rather than repeatedly polling it.
+1. Wait for the delegated task rather than repeatedly polling it or doing other work against the shared checkout.
 2. Read its final result and inspect the cited evidence from the primary task when practical.
 3. If evidence is incomplete or a correction is needed, send a follow-up to the same task. Omit model and reasoning overrides so its Luna Max settings and conversation context remain intact.
 4. State only the delta, new evidence, challenged conclusion, and required output in the follow-up.
