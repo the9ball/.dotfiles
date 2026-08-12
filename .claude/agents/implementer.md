@@ -213,6 +213,9 @@ jq -r '.result.touchedFiles[]?' "$JOB_JSON"                           # 完了�
 
   プロセスが死んでいれば、そのジョブは孤児化している(タイムアウト等で殺され、完了ステータスが書かれないまま
   残った状態)。待ち続けず、直ちに中断してその事実を報告する。
+  - この確認は PID の一致だけを見ているため、**Windows が PID を再利用していると「生存」と誤認しうる**
+    (孤児なのに待ち続ける方向の誤り)。だから下記の打ち切り条件、特にログの mtime 停止を併せて必ず見る。
+    生存と判定したうえで打ち切り条件に達した場合は、PID 再利用の可能性も報告に含める。
 - **`pid` が空のときの扱いを、状態によって分ける。** `pid` が `null` であること自体は完了時
   (`completed`/`failed`/`cancelled`)には正常だが、`queued`/`running` のときは異常である。バックグラウンドの
   ジョブは worker の pid を記録するが、その記録は `pid: child.pid ?? null` なので、worker の spawn に失敗すると
@@ -294,8 +297,25 @@ find "$DATA_DIR" -path "*/jobs/*.json" -exec jq -r --arg sid "$CODEX_COMPANION_S
 
 ### 中断・キャンセルが必要になったときの報告
 
-- ジョブ JSON の `pid` を報告に含める。呼び出し元は PowerShell から `taskkill /PID <pid> /T /F` で止められる
-  (Codex の子プロセスまで落とすため `/T` が必要)。
+- ジョブ JSON の `pid` を報告に含める。ただし**記録された `pid` だけを根拠に強制終了を案内してはならない。**
+  Windows は PID を再利用するため、記録時点のプロセスが既に終了していれば、その番号は無関係な別プロセスに
+  割り当たっている可能性がある。その状態で `taskkill /T /F` を実行すると**無関係なプロセスツリーを巻き込んで
+  落とす**(孤児を放置した場合の実害として挙げているのと同じ事故を、こちらから起こすことになる)。
+- 強制終了を案内してよいのは、**プロセスが生存しており、かつそれが当該ジョブのプロセスだと同定できた場合だけ**。
+  同定はコマンドラインと起動時刻の両方で行う(PID の一致だけでは不十分)。
+
+  ```bash
+  pwsh -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' |
+    Select-Object ProcessId,Name,CreationDate,CommandLine | Format-List"
+  ```
+
+  - `Name` が `node.exe` で、`CommandLine` に `codex-companion` / `app-server-broker` 等の Codex 由来の文字列が
+    含まれ、`CreationDate` がジョブの `startedAt` と整合すること。いずれかが合わなければ**別プロセスなので案内しない。**
+  - 同定できた場合のみ、呼び出し元向けに PowerShell の `taskkill /PID <pid> /T /F` を案内する
+    (Codex の子プロセスまで落とすため `/T` が必要)。
+- **孤児ジョブ(`pid` が死んでいる/空)に対して強制終了を案内しない。** 止める対象が既に存在しないので無意味であり、
+  PID 再利用が起きていれば有害でしかない。この場合に必要なのはジョブレコードの `status` の修正だけであり、
+  その判断は呼び出し元・ユーザーに委ねる(Implementer は書き換えない)。
 - `/codex:cancel` を唯一の手段として案内しない。Windows + Git Bash 環境では内部の `taskkill /PID` が MSYS に
   変換されて失敗する。
 - 中断時点の `git status --porcelain` の出力と、委譲したステップ番号も併せて報告する(呼び出し元が
