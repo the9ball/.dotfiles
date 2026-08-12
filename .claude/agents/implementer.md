@@ -70,17 +70,30 @@ tools: Read, Grep, Glob, Bash, Agent
      - 「(計画ファイルモードなら計画ファイルと、)対象リポジトリ自身の規約ドキュメント(`CLAUDE.md`/`AGENTS.md` 等)を読み、そこに書かれたルール(デバッグコードの `#if DEBUG` 分類、git commit/push 禁止など)に厳密に従うこと」という一文 — モード共通
      - **直接タスクモード**: 「指示された範囲だけを変更し、ついでのリファクタリングや周辺の改善をしないこと」という一文(計画ファイルによる範囲の枠が無いため、範囲逸脱の歯止めをタスク文側で明示する)
    - 個々のルールの詳細(`#if DEBUG` の書き方、規約の中身など)はタスク文で繰り返さない。それらは規約ドキュメント側(計画ファイルモードでは計画ファイルも)の内容として Codex 自身に読ませる。
+   - **委譲する直前に、自セッションの既存ジョブ ID のベースラインを取る。** 委譲後に新規ジョブを一意に特定するために必要。同じリポジトリで別セッション(別の Claude Code ウィンドウ、fork したスレッドなど)が並行して Codex を走らせていることが実際にあり、`createdAt` の新しさだけでは自分のジョブを判別できない。
+
+     ```bash
+     DATA_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data}"
+     find "$DATA_DIR" -path "*/jobs/task-*.json" -exec jq -r --arg sid "$CODEX_COMPANION_SESSION_ID" \
+       'select(.sessionId==$sid) | "\(.createdAt) \(.id) \(.status)"' {} \; | sort -r | head -5
+     ```
+
+     `CODEX_COMPANION_SESSION_ID` は自セッションの ID で、ジョブレコードの `sessionId` と一致する。**他セッションのジョブを自分のジョブとして扱わない。**
 5. 委譲の戻りを次の3つに分類し、**いずれの場合もジョブの完了まで自力で追跡する**(呼び出し元に丸投げしない)。完了を確認したら Read/Grep と `git diff` で実際の変更内容を確認する。Codex の自己申告のみで完了扱いにしない。依頼範囲外の変更(計画ファイルモードなら計画外の変更)やルール違反があれば逸脱として扱う(「計画からの逸脱時の対応」を参照)。モード共通。
    - **背景化メッセージ(`started in the background as <jobId>`)が返った**: 期待どおりの経路。jobId を取り、「Codex への委譲」の「ポーリング手順」で完了まで待つ。
    - **フォアグラウンドで完走した出力が返った**: そのまま変更内容の確認に進む(`--background` が `codex:codex-rescue` 側で落とされた場合に起きる)。
-   - **タイムアウト等で何も返らない、またはエラーだけ返った**: jobId が分からないだけで、ジョブファイル自体は作られている。次のコマンドで自リポジトリの直近ジョブを特定し、ポーリングに入る。**ここで諦めて中断報告しない。**
+   - **タイムアウト等で何も返らない、またはエラーだけ返った**: jobId が分からないだけの場合と、Codex がそもそも起動していない場合の両方がありうる(`codex:codex-rescue` は「Bash 呼び出しが失敗した、または Codex を起動できなかった」ときも何も返さない仕様のため)。**ジョブファイルが必ず作られていると仮定してはいけない。** ステップ4で取ったベースラインと突き合わせて次のように判定する。
 
      ```bash
-     ls -t "$HOME/.claude/plugins/data"/*/state/*/jobs/*.json | head -5 \
-       | while read -r f; do jq -r '"\(.createdAt) \(.id) \(.status) \(.workspaceRoot)"' "$f"; done
+     DATA_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data}"
+     find "$DATA_DIR" -path "*/jobs/task-*.json" -exec jq -r --arg sid "$CODEX_COMPANION_SESSION_ID" \
+       'select(.sessionId==$sid) | "\(.createdAt) \(.id) \(.status) \(.workspaceRoot)"' {} \; | sort -r | head -5
      ```
 
-     `workspaceRoot` が対象リポジトリと一致し、`createdAt` が委譲直後で `status` が `queued`/`running` のものが該当ジョブ。複数該当して特定できない場合だけ、候補一覧を添えて呼び出し元に確認する。
+     - **ベースラインに無いジョブがちょうど1件** → それが自分のジョブ。ポーリングに入る。ここで諦めて中断報告しない。
+     - **ベースラインに無いジョブが0件** → Codex は起動していない。ポーリングしても永遠に完了しないので、待たずに「委譲が起動に失敗した」として呼び出し元に報告する(作業ツリーは変更されていないはずなので `git status --porcelain` で裏を取って添える)。
+     - **ベースラインに無いジョブが2件以上** → 自分のジョブを特定できない。推測で1件を選ばず、候補一覧を添えて呼び出し元に確認する。
+     - いずれの判定でも `sessionId` が自セッションと一致するジョブだけを候補にする。`createdAt` が委譲直後だからといって他セッションのジョブを拾わない。
 6. 各委譲単位ごとに、対応する検証(ビルド/テスト)を自分で Bash で実行する。モード共通。
 7. 全ステップ完了後、通しで検証を実行し、結果を記録する。
    - **計画ファイルモード**: 計画の `## 検証方法` に沿って実行する。
@@ -142,13 +155,15 @@ Codex の実行はバックグラウンドに寄せ、完了はジョブファ�
 直接読める。次のコマンドで完結する(いずれも読み取りのみ)。
 
 ```bash
-JOB_JSON=$(find "$HOME/.claude/plugins/data" -path "*/jobs/<jobId>.json" | head -1)
-jq -r '"status=\(.status) phase=\(.phase) pid=\(.pid)"' "$JOB_JSON"   # 状態
+DATA_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.claude/plugins/data}"
+JOB_JSON=$(find "$DATA_DIR" -path "*/jobs/<jobId>.json" | head -1)
+jq -r '"status=\(.status) phase=\(.phase) pid=\(.pid) session=\(.sessionId)"' "$JOB_JSON"  # 状態
 tail -5 "${JOB_JSON%.json}.log"                                       # 進捗
 jq -r '.rendered' "$JOB_JSON"                                         # 完了時の最終出力
 jq -r '.result.touchedFiles[]?' "$JOB_JSON"                           # 完了時の変更ファイル一覧
 ```
 
+- 読み始める前に `sessionId` が `$CODEX_COMPANION_SESSION_ID` と一致することを確認する。一致しなければ別セッションのジョブなので触らない。
 - `status` は `queued`/`running`/`completed`/`failed`/`cancelled` のいずれか。
 - 完了時にジョブ JSON へ `rendered`(Codex の最終テキストそのまま)と `result.touchedFiles` が保存されるため、
   `/codex:result` を人間に打ってもらう必要はない。
@@ -172,6 +187,9 @@ jq -r '.result.touchedFiles[]?' "$JOB_JSON"                           # 完了�
   `pid` を `null` にするので、`pid` が空のときは生存確認を行わない。
 - **`tasklist /FI` は使わない。** MSYS が `/FI` をパスとして変換し `'C:/Program Files/Git/FI'` になってエラーする。
   生存確認は上記の `ps -W`(WINPID 列)で行う。
+- **`completed` 以外で抜けたときは委譲失敗として扱う。** `failed`/`cancelled` では `rendered` が入らないことがあるため、
+  ログの末尾(`tail -30`)と `git status --porcelain` を添えて呼び出し元に報告する。作業ツリーに中途半端な変更が
+  残っている可能性があるので、失敗を無視して次のステップへ進まない。
 
 ### 中断・キャンセルが必要になったときの報告
 
