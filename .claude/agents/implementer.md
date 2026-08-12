@@ -302,18 +302,25 @@ find "$DATA_DIR" -path "*/jobs/*.json" -exec jq -r --arg sid "$CODEX_COMPANION_S
   Windows は PID を再利用するため、記録時点のプロセスが既に終了していれば、その番号は無関係な別プロセスに
   割り当たっている可能性がある。その状態で `taskkill /T /F` を実行すると**無関係なプロセスツリーを巻き込んで
   落とす**(孤児を放置した場合の実害として挙げているのと同じ事故を、こちらから起こすことになる)。
-- 強制終了を案内してよいのは、**プロセスが生存しており、かつそれが当該ジョブのプロセスだと同定できた場合だけ**。
-  同定はコマンドラインと起動時刻の両方で行う(PID の一致だけでは不十分)。
+- 強制終了を案内してよいのは、**プロセスが生存しており、かつそれが当該ジョブ自身のプロセスだと同定できた場合だけ**。
+  PID の一致は同定にならない。
 
   ```bash
   pwsh -NoProfile -Command "Get-CimInstance Win32_Process -Filter 'ProcessId=<pid>' |
     Select-Object ProcessId,Name,CreationDate,CommandLine | Format-List"
   ```
 
-  - `Name` が `node.exe` で、`CommandLine` に `codex-companion` / `app-server-broker` 等の Codex 由来の文字列が
-    含まれ、`CreationDate` がジョブの `startedAt` と整合すること。いずれかが合わなければ**別プロセスなので案内しない。**
+  - **決定的な同定: `CommandLine` に `task-worker` と当該 `<jobId>` の両方が含まれること。** バックグラウンドの
+    ワーカーは `codex-companion.mjs task-worker --cwd <cwd> --job-id <jobId>` として起動されるため、jobId が
+    コマンドラインに現れる。これが一致すれば取り違えは起こらない。まずこれを確認する。
+  - **フォアグラウンドの場合は jobId がコマンドラインに現れない**(companion 自身の `process.pid` が記録されるため)。
+    この場合は `CommandLine` に `codex-companion.mjs` が含まれ、かつ `CreationDate` がジョブの `startedAt` と
+    数秒以内で一致することを条件とする。これは決定的ではないので、少しでも合わなければ案内しない。
+  - **`app-server-broker` は当該ジョブのプロセスではない。同定条件に使わず、これを根拠に停止を案内しない。**
+    ブローカーはワークスペース単位で共有される常駐プロセスであり、`/T /F` で落とすと**同じワークスペースの
+    他のジョブ(他セッションの実行中ジョブを含む)まで巻き込む**。扱いは下記の残存プロセスの項に従う。
   - 同定できた場合のみ、呼び出し元向けに PowerShell の `taskkill /PID <pid> /T /F` を案内する
-    (Codex の子プロセスまで落とすため `/T` が必要)。
+    (Codex の子プロセスまで落とすため `/T` が必要)。**同定できなければ停止を案内せず、観測した事実だけを報告する。**
 - **孤児ジョブ(`pid` が死んでいる/空)に対して、記録された `pid` での強制終了を案内しない。** その番号のプロセスは
   既に存在せず、PID 再利用が起きていれば有害でしかない。ジョブレコードの `status` の修正が必要なだけであり、
   その判断は呼び出し元・ユーザーに委ねる(Implementer は書き換えない)。
