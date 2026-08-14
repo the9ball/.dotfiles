@@ -1,0 +1,8 @@
+# このディレクトリは ~/.agents へ、配下の skills/ は ~/.claude/skills へ
+# ジャンクション(symlink)で公開される。ルールを対象の隣に置くことで、
+# 公開先の増減やディレクトリ移動があっても設定が一緒に付いていくようにする。
+# リポジトリ root の .gitignore は dotfiles 全体の関心事だけに保つ。
+
+# Claude Code のローカル専用設定。マシン固有の permissions などが入るため共有しない。
+# 共有したい設定は .claude/settings.json に置けば追跡される。
+.claude/settings.local.json
