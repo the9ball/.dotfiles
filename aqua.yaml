@@ -10,6 +10,7 @@ registries:
 - type: standard
   ref: v4.538.0 # renovate: depName=aquaproj/aqua-registry
 packages:
+- name: nodejs/node@v26.7.0
 - name: ahmetb/kubectx@v0.11.0
 - name: ahmetb/kubectx/kubens@v0.11.0
 - name: kubernetes/kubectl@v1.36.2
