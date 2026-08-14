@@ -1,0 +1,12 @@
+# 全リポジトリ共通の ignore。git が XDG 既定パスとして自動で読むため、
+# core.excludesfile の設定は不要（設定を挟まない分、参照が切れる余地がない）。
+
+*.swp
+*.un~
+*.orig
+*.orig.meta
+tags
+
+# Claude Code のローカル専用設定。マシン固有の permissions が入るため共有しない。
+# リポジトリ側の .gitignore を編集できない業務リポジトリのために、global 側にも置く。
+**/.claude/settings.local.json

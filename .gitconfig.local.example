@@ -3,7 +3,3 @@
 [user]
 	name = Your Name
 	email = you@example.com
-
-[core]
-	# Set this to the location of the shared global ignore file on this machine.
-	# excludesfile = ~/.dotfiles/gitignoreglocal
