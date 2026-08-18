@@ -15,6 +15,18 @@ state_directory="${REVIEW_WATCH_STATE_DIRECTORY:-${HOME}/.claude/.review-watch}"
 state_file="${state_directory}/seen-pull-requests.tsv"
 search_result_limit="${REVIEW_WATCH_SEARCH_LIMIT:-50}"
 
+# 二重起動の抑止。所有トークンを書いたファイルを1つ置き、ループごとに読み直す。
+# 中身が自分のトークンでなければ、より新しいプロセスに所有権を奪われたと見なして退く。
+# 起動側は何もしなくてよく、外から全員を止めるにはこのファイルへ
+# どのプロセスのものでもない値を書く(例: echo stop > owner-token)。
+#
+# kill でプロセスを撃つ方式は採らない。Monitor がこのスクリプトを起動する際の
+# ラッパーのコマンドラインにもスクリプトのパスが含まれるため、パターンマッチで
+# 撃つと起動したばかりの自分の親を殺してしまう。
+owner_token_file="${state_directory}/owner-token"
+owner_token_check_interval_seconds="${REVIEW_WATCH_OWNER_CHECK_INTERVAL_SECONDS:-5}"
+owner_token="$$-$(date +%s)"
+
 # GitHub の検索インデックスは反映が遅れるため、まだレビューを提出していない PR が
 # 一時的に検索結果から消えることがある。この回数だけ連続で不在だった PR を初めて忘れる。
 # 1 にすると検索の揺れで二重通知が起きやすく、大きくすると再依頼の検知が遅れる。
@@ -22,6 +34,39 @@ absence_count_before_forgetting=2
 
 mkdir -p "${state_directory}"
 touch "${state_file}"
+
+# 所有トークンが自分のものかどうか。ファイルが無い場合も奪われたものとして扱う
+# (外から削除するのも全員を止める手段になる)。
+is_still_owner() {
+  [ "$(cat "${owner_token_file}" 2>/dev/null || true)" = "${owner_token}" ]
+}
+
+# 次のポーリングまで待つ。待っている間も所有権を確認し、奪われていたら 1 を返す。
+# sleep を刻むのは、退くまでの間だけ新旧2プロセスが状態ファイルを共有してしまい、
+# その窓で PR を取りこぼしうるため。刻み幅がそのまま取りこぼし窓の上限になる。
+wait_until_next_poll() {
+  local remaining_seconds="${polling_interval_seconds}"
+  local chunk_seconds
+  while [ "${remaining_seconds}" -gt 0 ]; do
+    chunk_seconds="${owner_token_check_interval_seconds}"
+    if [ "${chunk_seconds}" -gt "${remaining_seconds}" ]; then
+      chunk_seconds="${remaining_seconds}"
+    fi
+    sleep "${chunk_seconds}"
+    remaining_seconds=$((remaining_seconds - chunk_seconds))
+    is_still_owner || return 1
+  done
+  return 0
+}
+
+# 所有権を主張する。これで先に動いていたプロセスは次の確認で自分から退く。
+printf '%s\n' "${owner_token}" > "${owner_token_file}"
+
+# 先行プロセスが退くまで待ってから最初のポーリングに入る。
+# 待たないと、両方が生きている間に検知した PR を先行プロセスが状態ファイルへ
+# 「既知」として書き込み、こちらが黙って読み飛ばす(= レビュー依頼の取りこぼし)。
+sleep "$((owner_token_check_interval_seconds + 1))"
+is_still_owner || exit 0
 
 while true; do
   # 一時的な API 失敗で監視全体を落とさない。失敗した回は「該当なし」として扱う。
@@ -74,5 +119,7 @@ while true; do
   done < "${state_file}"
   printf '%s' "${updated_state_lines}" > "${state_file}"
 
-  sleep "${polling_interval_seconds}"
+  # 所有権を奪われていたらここで終わる。
+  # トークンファイルは新しい所有者のものなので消さないこと。
+  wait_until_next_poll || exit 0
 done
