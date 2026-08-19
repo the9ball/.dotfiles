@@ -70,3 +70,37 @@ chezmoi --source "$HOME/.dotfiles" apply
 ```
 
 セットアップの詳細な挙動を確認したい場合は、[`SETUP.md`](SETUP.md)と`chezmoi/.chezmoiscripts/`を参照してください。
+
+## Agent Skillsの導入
+
+第三者スキルの実体はGitで追跡せず、ロックファイルと復元手順を追跡します。
+
+`gh-stack`は`.agents/.skill-lock.json`に出所を記録し、次のコマンドで復元します。
+
+```sh
+gh skill install github/gh-stack gh-stack
+```
+
+Datadogの`dd-pup`、`dd-logs`、`dd-docs`は、リポジトリのルートで次を実行して導入します。
+
+```sh
+npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill dd-docs --full-depth -y
+```
+
+このコマンドは、`.agents/skills`に3つのスキルを配置し、ルートの`skills-lock.json`を更新します。
+
+`.agents/skills/dd-readonly-delegate`は、このリポジトリで管理する共有スキルです。第三者スキルの導入コマンドでは復元しません。
+
+このスキルはDatadogのメトリクス、ログ、ダッシュボード、ドキュメントの参照に使用します。単発の読み取り調査はサブエージェントへ委譲し、継続的な調査ではメインスレッドが関連スキルとMCPの文脈を保持します。
+
+## Datadog MCPの設定
+
+MCPエンドポイントは次のとおりです。
+
+```text
+https://mcp.datadoghq.com/v1/mcp
+```
+
+Codexは`~/.codex/config.toml`で`bearer_token_env_var = "DD_ACCESS_TOKEN"`を設定し、環境変数からSATを参照します。Claudeは`~/.claude.json`で`Authorization`ヘッダを設定します。SATの実値は、どちらの設定にもリポジトリにも保存しません。
+
+現在のCodex設定では、`.agents/skills`の共有スキルを認識します。Windowsでは`~/.claude/skills`も`.agents/skills`を参照します。

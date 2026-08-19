@@ -3,5 +3,12 @@
 
 # gh skill install で導入した第三者スキル。実体は追跡せず、
 # 出所は .agents/.skill-lock.json に記録する。
-# 復元: gh skill install github/gh-stack gh-stack
+# 復元手順は README.manual.md を参照する。
 .agents/skills/gh-stack/
+
+# npx skills add で導入した第三者スキル。実体は追跡せず、
+# 出所はルートの skills-lock.json に記録する。
+# 復元手順は README.manual.md を参照する。
+.agents/skills/dd-docs/
+.agents/skills/dd-logs/
+.agents/skills/dd-pup/

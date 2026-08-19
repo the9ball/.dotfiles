@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "dd-docs": {
+      "source": "datadog-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "dd-docs/SKILL.md",
+      "computedHash": "0c2a584c08e2611e71cc2df9f991f68681a79ef707e4a3fe5e296daa94db1b81"
+    },
+    "dd-logs": {
+      "source": "datadog-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "dd-logs/SKILL.md",
+      "computedHash": "3c6cca0a63ddc578cb4e6f198f891442f06144c8b3d82a72ba1a23ec0878819b"
+    },
+    "dd-pup": {
+      "source": "datadog-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "dd-pup/SKILL.md",
+      "computedHash": "c20040e8019986eaf9a3df00901025f5fcebf9f8205fda4ec56d2eb18c162715"
+    }
+  }
+}

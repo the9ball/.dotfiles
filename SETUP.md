@@ -23,3 +23,5 @@ Windows x64ではAWS CLIとaws-vaultがaquaの対象外になるため、winget�
 Linux/macOSではwingetを実行せず、AWS系も含めてaquaで導入します。
 
 以後、コミット時に`.pre-commit-config.yaml`のgitleaksフックが実行されます。
+
+Agent Skillsの導入手順は、[`README.manual.md`](README.manual.md)の「Agent Skillsの導入」を参照してください。Datadog MCPの設定手順は、同じ文書の「Datadog MCPの設定」を参照してください。
