@@ -1,0 +1,7 @@
+interface:
+  display_name: "Dig"
+  short_description: "設計と意思決定を一問ずつ深掘り"
+  default_prompt: "Use $dig to stress-test the assumptions behind this design decision."
+
+policy:
+  allow_implicit_invocation: false
