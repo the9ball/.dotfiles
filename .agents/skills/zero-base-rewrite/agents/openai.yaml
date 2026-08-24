@@ -1,0 +1,7 @@
+interface:
+  display_name: "文書をゼロベースで清書"
+  short_description: "文書をゼロベースで再構成し、原本保存と内容比較まで行う"
+  default_prompt: "Use $zero-base-rewrite to rewrite this document as a self-contained artifact independent of conversation history, preserve the source, and compare the result before delivery."
+
+policy:
+  allow_implicit_invocation: true
