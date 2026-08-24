@@ -105,16 +105,20 @@ while true; do
   # 状態ファイルを書き直す。
   # 検索結果に残っているものは不在カウントを 0 に戻し、消えているものはカウントを進め、
   # 閾値に達した行は落とす(= レビューを提出したので忘れてよい)。
+  #
+  # 比較するのは「今回の不在を数えた後」の回数。記録されている回数と閾値をそのまま比べると、
+  # 閾値に達した回では落とさずカウントだけ進めてしまい、実際に落ちるのが1回分遅れる。
   updated_state_lines=""
   while IFS=$'\t' read -r recorded_url recorded_absence_count; do
     [ -z "${recorded_url}" ] && continue
     case "${recorded_absence_count}" in
       ''|*[!0-9]*) recorded_absence_count=0 ;;
     esac
+    absence_count_including_this_poll=$((recorded_absence_count + 1))
     if printf '%s\n' "${current_urls}" | grep -Fxq "${recorded_url}"; then
       updated_state_lines+="${recorded_url}"$'\t'"0"$'\n'
-    elif [ "${recorded_absence_count}" -lt "${absence_count_before_forgetting}" ]; then
-      updated_state_lines+="${recorded_url}"$'\t'"$((recorded_absence_count + 1))"$'\n'
+    elif [ "${absence_count_including_this_poll}" -lt "${absence_count_before_forgetting}" ]; then
+      updated_state_lines+="${recorded_url}"$'\t'"${absence_count_including_this_poll}"$'\n'
     fi
   done < "${state_file}"
   printf '%s' "${updated_state_lines}" > "${state_file}"
