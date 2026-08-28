@@ -28,4 +28,24 @@ foreach ($variableName in $environmentVariables.Keys) {
         Write-Host "set user environment variable ${variableName}=${desiredValue}"
     }
 }
+
+# Older versions persisted the default AQUA_ROOT_DIR. Remove only that legacy
+# value; a custom user value must remain untouched.
+$currentAquaRoot = [Environment]::GetEnvironmentVariable('AQUA_ROOT_DIR', 'User')
+if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA) -and
+    -not [string]::IsNullOrWhiteSpace($currentAquaRoot) -and
+    $currentAquaRoot -match '^[A-Za-z]:[\\/]') {
+    try {
+        $legacyAquaRoot = Join-Path $env:LOCALAPPDATA 'aquaproj-aqua'
+        $normalizedCurrentAquaRoot = [IO.Path]::GetFullPath($currentAquaRoot).TrimEnd('\\')
+        $normalizedLegacyAquaRoot = [IO.Path]::GetFullPath($legacyAquaRoot).TrimEnd('\\')
+        if ([StringComparer]::OrdinalIgnoreCase.Equals($normalizedCurrentAquaRoot, $normalizedLegacyAquaRoot)) {
+            [Environment]::SetEnvironmentVariable('AQUA_ROOT_DIR', $null, 'User')
+            Write-Host 'removed legacy user environment variable AQUA_ROOT_DIR'
+        }
+    }
+    catch {
+        Write-Verbose 'skip AQUA_ROOT_DIR migration because the value could not be normalized'
+    }
+}
 {{- end }}

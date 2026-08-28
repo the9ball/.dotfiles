@@ -13,11 +13,21 @@
 # AQUA_GLOBAL_CONFIG も Windows ではユーザー環境変数として設定するため
 # (run_after_environment.ps1.tmpl)、ここでは触らない。両方で設定すると
 # シェルの種類によって参照する aqua.yaml が変わる。
-case "$OSTYPE" in
+case "${OSTYPE-}" in
 	msys*|cygwin*) ;;
 	*)
 		export AQUA_GLOBAL_CONFIG="$HOME/.dotfiles/aqua.yaml"
-		export PATH="${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH"
+		aqua_root_directory="${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}"
+		# Only prepend a POSIX absolute path without a drive-letter colon or UNC prefix.
+		case "$aqua_root_directory" in
+			/*)
+				case "$aqua_root_directory" in
+					//*|*:*) ;;
+					*) export PATH="$aqua_root_directory/bin:$PATH" ;;
+				esac
+				;;
+		esac
+		unset aqua_root_directory
 		;;
 esac
 export AQUA_PROGRESS_BAR=true

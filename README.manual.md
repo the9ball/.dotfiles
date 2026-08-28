@@ -21,39 +21,107 @@ WinGetのインストール直後は、PATH変更を現在のPowerShellが認識
 winget install --id aquaproj.aqua --exact
 ```
 
-新しいPowerShellで、自己更新とユーザーPATHへの永続登録を行います。PATHに同じディレクトリがある場合は追加しません。
+新しいPowerShellで、自己更新とユーザーPATHへの永続登録を行います。次のスニペットは、展開前のPATH文字列とレジストリ型を保持して書き込み、変更時に環境変数の更新を通知します。PATHに同じディレクトリがある場合は追加しません。
 
 ```powershell
 aqua update-aqua
 
 $aquaRootDirectory = (aqua root-dir).Trim()
 $aquaBinDirectory = Join-Path $aquaRootDirectory 'bin'
-$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
-$pathEntries = if ([string]::IsNullOrWhiteSpace($userPath)) { @() } else { @($userPath -split ';') }
-$normalizedAquaBinDirectory = [IO.Path]::GetFullPath($aquaBinDirectory).TrimEnd('\\')
-$hasAquaBinDirectory = $false
-foreach ($pathEntry in $pathEntries) {
-    if ([string]::IsNullOrWhiteSpace($pathEntry)) { continue }
-    try {
-        $normalizedPathEntry = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($pathEntry)).TrimEnd('\\')
-        if ($normalizedPathEntry -ieq $normalizedAquaBinDirectory) {
-            $hasAquaBinDirectory = $true
-            break
+$environmentKey = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+if ($null -eq $environmentKey) {
+    throw 'Failed to open HKCU:\Environment.'
+}
+
+$pathChanged = $false
+try {
+    $rawUserPath = $environmentKey.GetValue(
+        'Path',
+        $null,
+        [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames
+    )
+    $pathValueKind = if ($null -eq $rawUserPath) {
+        [Microsoft.Win32.RegistryValueKind]::ExpandString
+    } else {
+        $environmentKey.GetValueKind('Path')
+    }
+
+    if ($pathValueKind -notin @(
+        [Microsoft.Win32.RegistryValueKind]::String,
+        [Microsoft.Win32.RegistryValueKind]::ExpandString
+    )) {
+        throw "Unsupported HKCU:\Environment\Path registry type: $pathValueKind"
+    }
+
+    $rawUserPath = if ($null -eq $rawUserPath) { '' } else { [string]$rawUserPath }
+    $pathEntries = if ([string]::IsNullOrEmpty($rawUserPath)) {
+        @()
+    } else {
+        @($rawUserPath -split ';')
+    }
+    $normalizedAquaBinDirectory = [IO.Path]::GetFullPath($aquaBinDirectory).TrimEnd('\')
+    $hasAquaBinDirectory = $false
+    foreach ($pathEntry in $pathEntries) {
+        if ([string]::IsNullOrWhiteSpace($pathEntry)) { continue }
+        try {
+            $expandedPathEntry = [Environment]::ExpandEnvironmentVariables($pathEntry)
+            $normalizedPathEntry = [IO.Path]::GetFullPath($expandedPathEntry).TrimEnd('\')
+            if ($normalizedPathEntry -ieq $normalizedAquaBinDirectory) {
+                $hasAquaBinDirectory = $true
+                break
+            }
+        }
+        catch {
+            # Ignore malformed existing PATH entries while preserving them.
         }
     }
-    catch {
-        # Ignore malformed existing PATH entries while preserving them.
+    if (-not $hasAquaBinDirectory) {
+        $newRawUserPath = if ([string]::IsNullOrEmpty($rawUserPath)) {
+            $aquaBinDirectory
+        } elseif ($rawUserPath.EndsWith(';')) {
+            "$rawUserPath$aquaBinDirectory"
+        } else {
+            "$rawUserPath;$aquaBinDirectory"
+        }
+        $environmentKey.SetValue('Path', $newRawUserPath, $pathValueKind)
+        $pathChanged = $true
     }
 }
-if (-not $hasAquaBinDirectory) {
-    $newUserPath = if ([string]::IsNullOrEmpty($userPath)) {
-        $aquaBinDirectory
-    } elseif ($userPath.EndsWith(';')) {
-        "$userPath$aquaBinDirectory"
-    } else {
-        "$userPath;$aquaBinDirectory"
+finally {
+    $environmentKey.Close()
+}
+
+if ($pathChanged) {
+    if (-not ('AquaEnvironmentChangeNotifier' -as [type])) {
+        Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class AquaEnvironmentChangeNotifier
+{
+    /// <summary>Broadcasts a user environment change notification.</summary>
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern IntPtr SendMessageTimeout(
+        IntPtr windowHandle,
+        uint message,
+        IntPtr parameter,
+        string data,
+        uint flags,
+        uint timeoutMilliseconds,
+        out IntPtr result);
+}
+'@
     }
-    [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
+    $broadcastResult = [IntPtr]::Zero
+    [AquaEnvironmentChangeNotifier]::SendMessageTimeout(
+        [IntPtr]0xffff,
+        0x001A,
+        [IntPtr]::Zero,
+        'Environment',
+        0x0002,
+        5000,
+        [ref]$broadcastResult
+    ) | Out-Null
 }
 ```
 
