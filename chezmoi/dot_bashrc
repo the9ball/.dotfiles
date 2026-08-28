@@ -6,7 +6,20 @@
 # 「非対話なら冒頭で return」はここでは使えない。下の PATH は非対話シェルにも必要。
 
 # for aqua
-export PATH=${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH
+# Windows では aqua の bin が Windows 側の PATH に入っており、Git Bash が
+# POSIX パスへ変換して引き継ぐため、ここで足す必要はない。
+# Windows 形式のパスをそのまま PATH へ足すと、ドライブレターのコロンで
+# 分割され、相対エントリが PATH の先頭に入る。
+# AQUA_GLOBAL_CONFIG も Windows ではユーザー環境変数として設定するため
+# (run_after_environment.ps1.tmpl)、ここでは触らない。両方で設定すると
+# シェルの種類によって参照する aqua.yaml が変わる。
+case "$OSTYPE" in
+	msys*|cygwin*) ;;
+	*)
+		export AQUA_GLOBAL_CONFIG="$HOME/.dotfiles/aqua.yaml"
+		export PATH="${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}/bin:$PATH"
+		;;
+esac
 export AQUA_PROGRESS_BAR=true
 export AQUA_LOG_COLOR=always
 

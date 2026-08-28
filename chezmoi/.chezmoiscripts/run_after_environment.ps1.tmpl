@@ -1,0 +1,31 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = 'Stop'
+
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$aquaConfig = Join-Path $repoRoot 'aqua.yaml'
+
+# Pin the aqua global configuration as a user environment variable.
+# Relying on an interactive-shell-only setting lets non-interactive bash and
+# PowerShell read a different aqua.yaml, so each environment ends up resolving
+# a different version of the same command.
+#
+# This script is run_after_ rather than run_onchange_ on purpose: the value has
+# to be re-checked on every apply. A run_onchange_ script is skipped while its
+# content is unchanged, so a value overwritten by something else would never be
+# repaired.
+#
+# AQUA_ROOT_DIR is deliberately not set here. aqua already defaults to the right
+# root on each OS, and exporting a Windows path would break ~/.bashrc, which
+# would split it on the drive letter colon and prepend a relative PATH entry.
+$environmentVariables = @{
+    'AQUA_GLOBAL_CONFIG' = $aquaConfig
+}
+foreach ($variableName in $environmentVariables.Keys) {
+    $desiredValue = $environmentVariables[$variableName]
+    $currentValue = [Environment]::GetEnvironmentVariable($variableName, 'User')
+    if ($currentValue -ne $desiredValue) {
+        [Environment]::SetEnvironmentVariable($variableName, $desiredValue, 'User')
+        Write-Host "set user environment variable ${variableName}=${desiredValue}"
+    }
+}
+{{- end }}

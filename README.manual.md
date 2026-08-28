@@ -22,6 +22,10 @@ aqua update-aqua
 winget uninstall aquaproj.aqua
 ```
 
+`winget uninstall`する前に、`%LOCALAPPDATA%\aquaproj-aqua\bin`がPATHに入っていることを確認してください。
+wingetのパッケージディレクトリはアンインストールでPATHから外れるため、
+aqua自身のbinがPATHに無いと`aqua`が見つからなくなり、`chezmoi apply`が失敗します。
+
 以後のaquaの更新は`aqua update-aqua`で行います。
 wingetに残したままにすると、実際には使われていない方が`winget upgrade`の対象になり、どちらが動いているのか分からなくなります。
 
