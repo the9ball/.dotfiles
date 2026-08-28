@@ -11,6 +11,20 @@
 - aqua
 - Windows: `winget`
 
+### Windowsでのaquaの導入
+
+aquaは自分自身を`%LOCALAPPDATA%\aquaproj-aqua\bin`へ配置して自己更新します。
+wingetはその起点を用意するためだけに使い、配置後は重複を残さないようアンインストールします。
+
+```powershell
+winget install aquaproj.aqua
+aqua update-aqua
+winget uninstall aquaproj.aqua
+```
+
+以後のaquaの更新は`aqua update-aqua`で行います。
+wingetに残したままにすると、実際には使われていない方が`winget upgrade`の対象になり、どちらが動いているのか分からなくなります。
+
 ## 2. リポジトリを配置する
 
 ```sh

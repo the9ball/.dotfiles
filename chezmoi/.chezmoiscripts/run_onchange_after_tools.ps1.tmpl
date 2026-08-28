@@ -8,6 +8,22 @@ $repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
 $aquaConfig = Join-Path $repoRoot 'aqua.yaml'
 $wingetConfig = Join-Path $repoRoot 'winget.json'
 
+# Pin the aqua global configuration and root directory as user environment variables.
+# Relying on an interactive-shell-only setting lets non-interactive bash and PowerShell
+# read a different configuration file, so each environment ends up on a different version.
+$environmentVariables = @{
+    'AQUA_GLOBAL_CONFIG' = $aquaConfig
+    'AQUA_ROOT_DIR'      = (Join-Path $env:LOCALAPPDATA 'aquaproj-aqua')
+}
+foreach ($variableName in $environmentVariables.Keys) {
+    $desiredValue = $environmentVariables[$variableName]
+    $currentValue = [Environment]::GetEnvironmentVariable($variableName, 'User')
+    if ($currentValue -ne $desiredValue) {
+        [Environment]::SetEnvironmentVariable($variableName, $desiredValue, 'User')
+        Write-Host "set user environment variable ${variableName}=${desiredValue}"
+    }
+}
+
 $aqua = (Get-Command aqua -ErrorAction Stop).Source
 & $aqua install --config $aquaConfig
 if ($LASTEXITCODE -ne 0) {
