@@ -8,23 +8,66 @@
 
 - Git
 - chezmoi
-- aqua
+- aqua（Windowsは以下の手順）
 - Windows: `winget`
 
 ### Windowsでのaquaの導入
 
-aquaは自分自身を`%LOCALAPPDATA%\aquaproj-aqua\bin`へ配置して自己更新します。
+aquaは自分自身を`aqua root-dir`で表示されるルートの`bin`へ配置して自己更新します。
 wingetはその起点を用意するためだけに使い、配置後は重複を残さないようアンインストールします。
+WinGetのインストール直後は、PATH変更を現在のPowerShellが認識しないため、新しいPowerShellを開いてから次へ進みます。
 
 ```powershell
-winget install aquaproj.aqua
-aqua update-aqua
-winget uninstall aquaproj.aqua
+winget install --id aquaproj.aqua --exact
 ```
 
-`winget uninstall`する前に、`%LOCALAPPDATA%\aquaproj-aqua\bin`がPATHに入っていることを確認してください。
-wingetのパッケージディレクトリはアンインストールでPATHから外れるため、
-aqua自身のbinがPATHに無いと`aqua`が見つからなくなり、`chezmoi apply`が失敗します。
+新しいPowerShellで、自己更新とユーザーPATHへの永続登録を行います。PATHに同じディレクトリがある場合は追加しません。
+
+```powershell
+aqua update-aqua
+
+$aquaRootDirectory = (aqua root-dir).Trim()
+$aquaBinDirectory = Join-Path $aquaRootDirectory 'bin'
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+$pathEntries = if ([string]::IsNullOrWhiteSpace($userPath)) { @() } else { @($userPath -split ';') }
+$normalizedAquaBinDirectory = [IO.Path]::GetFullPath($aquaBinDirectory).TrimEnd('\\')
+$hasAquaBinDirectory = $false
+foreach ($pathEntry in $pathEntries) {
+    if ([string]::IsNullOrWhiteSpace($pathEntry)) { continue }
+    try {
+        $normalizedPathEntry = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($pathEntry)).TrimEnd('\\')
+        if ($normalizedPathEntry -ieq $normalizedAquaBinDirectory) {
+            $hasAquaBinDirectory = $true
+            break
+        }
+    }
+    catch {
+        # Ignore malformed existing PATH entries while preserving them.
+    }
+}
+if (-not $hasAquaBinDirectory) {
+    $newUserPath = if ([string]::IsNullOrEmpty($userPath)) {
+        $aquaBinDirectory
+    } elseif ($userPath.EndsWith(';')) {
+        "$userPath$aquaBinDirectory"
+    } else {
+        "$userPath;$aquaBinDirectory"
+    }
+    [Environment]::SetEnvironmentVariable('Path', $newUserPath, 'User')
+}
+```
+
+PATHの変更を反映するため、もう一度新しいPowerShellを開き、`aqua`が自己更新先から解決されることを確認します。
+
+```powershell
+(Get-Command aqua -ErrorAction Stop).Source
+```
+
+確認後にWinGet版を削除します。削除後も新しいPowerShellで上の確認を行い、`aqua`のパスが`aqua root-dir`の`bin`配下であることを確認してください。
+
+```powershell
+winget uninstall --id aquaproj.aqua --exact
+```
 
 以後のaquaの更新は`aqua update-aqua`で行います。
 wingetに残したままにすると、実際には使われていない方が`winget upgrade`の対象になり、どちらが動いているのか分からなくなります。
