@@ -1,6 +1,11 @@
 ---
 # aqua - Declarative CLI Version Manager
 # https://aquaproj.github.io/
+#
+# バージョンは自動更新されない。このリポジトリでRenovateなどのbotは動いておらず、
+# GitHub上のリモートも受け皿にすぎないため、折を見て手動で更新する。
+# `aqua update` は全パッケージを最新へ上げてしまうので、kubectl(クラスタとの
+# バージョンスキュー)とpinact(メジャー跨ぎ)は個別に判断すること。
 # checksum:
 #   enabled: true
 #   require_checksum: true
@@ -8,7 +13,7 @@
 #   - all
 registries:
 - type: standard
-  ref: v4.538.0 # renovate: depName=aquaproj/aqua-registry
+  ref: v4.538.0
 packages:
 - name: nodejs/node@v26.7.0
 - name: ahmetb/kubectx@v0.11.0
