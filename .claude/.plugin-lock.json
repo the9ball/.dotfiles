@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "marketplaces": {
+    "openai-codex": {
+      "source": "openai/codex-plugin-cc",
+      "sourceType": "git",
+      "sourceUrl": "https://github.com/openai/codex-plugin-cc.git",
+      "ref": "db52e28f4d9ded852ab3942cea316258ae4ef346",
+      "marketplacePath": ".claude-plugin/marketplace.json",
+      "marketplaceManifestGitBlob": "870246242b10e862119a72442e686553b62dd27b",
+      "resolvedAt": "2026-08-31T15:27:39+09:00",
+      "plugins": {
+        "codex": {
+          "pluginPath": "plugins/codex",
+          "version": "1.0.6",
+          "installedAt": "2026-07-09T11:34:20.769Z",
+          "pluginTreeGitObject": "6008c0a418894220e89c2c9e4dc8b5d3c1a2ce4c",
+          "pluginManifestGitBlob": "e91e5238c2a1cd02bf9d52d6f007aba53a6bca30",
+          "pluginManifestSha256": "1ADA392C8329978654FFF2D65EB3A3E5C9C36A22D8B58ECA8560DFFFB2475642"
+        }
+      }
+    }
+  }
+}

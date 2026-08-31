@@ -204,6 +204,26 @@ chezmoi --source "$HOME/.dotfiles" apply
 
 第三者スキルの実体はGitで追跡せず、ロックファイルと復元手順を追跡します。
 
+### Claude Code pluginの導入
+
+Claude CodeからCodexを呼び出す`codex@openai-codex`は、plugin本体を`.dotfiles`へvendorせず、marketplaceから取得します。取得元、commit、versionとハッシュは[`.claude/.plugin-lock.json`](.claude/.plugin-lock.json)に記録します。
+
+marketplaceの登録とpluginの有効・無効は、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)を正とします。このテンプレートは`~/.claude/settings.json`のうち`extraKnownMarketplaces`と`enabledPlugins`だけを上書きし、`permissions`や`hooks`など他のキーは現在の内容をそのまま書き戻します。Claude Code自身が同じファイルへ書き込むため、ファイル全体を管理すると、その書き込みを巻き戻してしまうためです。
+
+現在は無効（`false`）の状態で記録しています。有効化すると`codex` pluginの`SessionStart`、`SessionEnd`、`Stop`フックが動き出すため、切り替えはUIではなくテンプレートを書き換えて適用します。
+
+`````sh
+chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/settings.json"
+`````
+
+適用の対象は必ずこのパスに絞ってください。対象を指定しない`apply`は、`.bashrc`の更新やaqua、winget、prekの実行まで巻き込みます。
+
+適用後は新しいClaude Codeセッションを開始してください。有効化した場合は、起動時にmarketplaceから`~/.claude/plugins/`配下へpluginが取得されます。plugin本体は無効化すると自動で掃除されるため、`~/.claude/plugins/cache/`が空でも異常ではありません。
+
+完全に取り除く場合は、テンプレートから該当キーを削除して適用し、`~/.claude/settings.json`に残ったエントリを手動で消します。`modify_`テンプレートはキーを追加・上書きするだけで、削除はしません。
+
+更新は、upstreamの新しいcommitとの差分（manifest、hooks、scripts、agents、commands）を確認してから、ロック情報と復元手順を同時に更新します。
+
 `gh-stack`は`.agents/.skill-lock.json`に出所を記録し、次のコマンドで復元します。
 
 ```sh

@@ -1,0 +1,43 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+~/.claude/settings.json のうち、plugin の取得元と有効・無効だけを .dotfiles の
+管理下に置く。Claude Code 自身が同じファイルへ permissions や hooks を書き込む
+ため、ファイル全体を置き換えるとそれらを巻き戻してしまう。modify_ テンプレート
+は現在の内容を .chezmoi.stdin で受け取れるので、管理対象のキーだけを上書きし、
+残りはそのまま書き戻す。
+
+plugin 本体は .dotfiles へ vendor せず、marketplace から取得する。取得元と
+commit は .claude/.plugin-lock.json に記録する。復元手順は README.manual.md を
+参照する。
+
+*/ -}}
+{{- $settings := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $settings = .chezmoi.stdin | fromJson -}}
+{{- end -}}
+
+{{- /* marketplace の取得元。plugin を有効化するとここから clone される。 */ -}}
+{{- $marketplaces := dict -}}
+{{- if hasKey $settings "extraKnownMarketplaces" -}}
+{{-   $marketplaces = index $settings "extraKnownMarketplaces" -}}
+{{- end -}}
+{{- $_ := set $marketplaces "openai-codex" (dict
+      "source" (dict
+        "source" "git"
+        "url" "https://github.com/openai/codex-plugin-cc.git")) -}}
+{{- $_ = set $settings "extraKnownMarketplaces" $marketplaces -}}
+
+{{- /*
+  有効・無効の状態。false のまま記録する。有効化すると codex plugin の
+  SessionStart / SessionEnd / Stop フックが動き出すため、切り替えは UI ではなく
+  このテンプレートを書き換えて chezmoi apply する。
+*/ -}}
+{{- $enabledPlugins := dict -}}
+{{- if hasKey $settings "enabledPlugins" -}}
+{{-   $enabledPlugins = index $settings "enabledPlugins" -}}
+{{- end -}}
+{{- $_ = set $enabledPlugins "codex@openai-codex" false -}}
+{{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
+
+{{ $settings | toPrettyJson }}
