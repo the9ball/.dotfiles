@@ -204,13 +204,39 @@ chezmoi --source "$HOME/.dotfiles" apply
 
 第三者スキルの実体はGitで追跡せず、ロックファイルと復元手順を追跡します。
 
+### Codex pluginの導入
+
+公式の`dotnet/skills`は、plugin本体を`.dotfiles`へvendorせず、Codex marketplaceから取得します。取得元、commit、対象pluginのversionとハッシュは[`.agents/.plugin-lock.json`](.agents/.plugin-lock.json)に記録します。
+
+現在は、安定版の`dotnet` pluginだけを導入します。次のコマンドで、ロックされたcommitから復元できます。
+
+`````sh
+codex plugin marketplace add dotnet/skills --ref d68dd70857076a17d4b418649bbcd20a315d59c3
+codex plugin add dotnet@dotnet-agent-skills
+`````
+
+導入後は新しいCodex CLIセッションを開始してください。pluginを一時停止する場合は`/plugins`で`dotnet`を無効化し、完全に戻す場合は次を実行します。
+
+`````sh
+codex plugin remove dotnet@dotnet-agent-skills
+codex plugin marketplace remove dotnet-agent-skills
+`````
+
+更新は、upstreamの新しいcommitとの差分（manifest、LSP、skills、agents、MCP、外部ダウンロード処理）を確認してから、ロック情報と復元手順を同時に更新します。
+
 ### Claude Code pluginの導入
 
-Claude CodeからCodexを呼び出す`codex@openai-codex`は、plugin本体を`.dotfiles`へvendorせず、marketplaceから取得します。取得元、commit、versionとハッシュは[`.claude/.plugin-lock.json`](.claude/.plugin-lock.json)に記録します。
+Claude CodeからCodexを呼び出す`codex@openai-codex`と、.NET開発のskillとC# language serverを追加する`dotnet@dotnet-agent-skills`は、plugin本体を`.dotfiles`へvendorせず、marketplaceから取得します。取得元、commit、versionとハッシュは[`.claude/.plugin-lock.json`](.claude/.plugin-lock.json)に記録します。
+
+Claude Codeはmarketplace側のcommit固定に対応しません（`ref`はブランチとタグのみ）。ロックのcommitは、取得時点を記録して更新時の差分確認に使うもので、再現を保証するものではありません。
 
 marketplaceの登録とpluginの有効・無効は、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)を正とします。このテンプレートは`~/.claude/settings.json`のうち`extraKnownMarketplaces`と`enabledPlugins`だけを上書きし、`permissions`や`hooks`など他のキーは現在の内容をそのまま書き戻します。Claude Code自身が同じファイルへ書き込むため、ファイル全体を管理すると、その書き込みを巻き戻してしまうためです。
 
-現在は無効（`false`）の状態で記録しています。有効化すると`codex` pluginの`SessionStart`、`SessionEnd`、`Stop`フックが動き出すため、切り替えはUIではなくテンプレートを書き換えて適用します。
+有効・無効の切り替えは、UIではなくテンプレートを書き換えて適用します。UIで切り替えても、次の適用でテンプレートの値に戻ります。
+
+`codex`は無効（`false`）の状態で記録しています。有効化すると`SessionStart`、`SessionEnd`、`Stop`フックが動き出すためです。
+
+`dotnet`は有効（`true`）です。フックは持たず、`setup-local-sdk` skillとC# language serverを追加します。有効化すると、起動時に`dotnet/skills`のリポジトリ全体が`~/.claude/plugins/marketplaces/`へcloneされます（`depth 1`のshallow cloneで約19MB）。pluginの実体はそこから`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`へ展開され、取得したcommitは`~/.claude/plugins/installed_plugins.json`の`gitCommitSha`に記録されます。展開はcloneと同時ではなく、pluginが読み込まれた後に現れます。またC#ファイルを開くと、`dnx`が`roslyn-language-server`のprerelease版をNuGetから取得して常駐させます。動作には.NET SDK 10以降（`dnx`を同梱）が必要です。
 
 `````sh
 chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/settings.json"
@@ -218,11 +244,11 @@ chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/settings.json"
 
 適用の対象は必ずこのパスに絞ってください。対象を指定しない`apply`は、`.bashrc`の更新やaqua、winget、prekの実行まで巻き込みます。
 
-適用後は新しいClaude Codeセッションを開始してください。有効化した場合は、起動時にmarketplaceから`~/.claude/plugins/`配下へpluginが取得されます。plugin本体は無効化すると自動で掃除されるため、`~/.claude/plugins/cache/`が空でも異常ではありません。
+適用後は新しいClaude Codeセッションを開始してください。有効化した場合は、起動時にmarketplaceから`~/.claude/plugins/`配下へpluginが取得されます。使われていないplugin本体は掃除されることがありますが（`~/.claude/plugins/.last_inuse_sweep`）、削除は保証されません。無効な`codex`の実体も`cache/`に残っています。導入状態は`cache/`の有無ではなく、`installed_plugins.json`と`extraKnownMarketplaces`で判断してください。
 
 完全に取り除く場合は、テンプレートから該当キーを削除して適用し、`~/.claude/settings.json`に残ったエントリを手動で消します。`modify_`テンプレートはキーを追加・上書きするだけで、削除はしません。
 
-更新は、upstreamの新しいcommitとの差分（manifest、hooks、scripts、agents、commands）を確認してから、ロック情報と復元手順を同時に更新します。
+更新は、upstreamの新しいcommitとの差分（manifest、hooks、scripts、agents、commands、LSP、skills）を確認してから、ロック情報と復元手順を同時に更新します。
 
 `gh-stack`は`.agents/.skill-lock.json`に出所を記録し、次のコマンドで復元します。
 

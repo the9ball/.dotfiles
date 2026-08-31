@@ -17,7 +17,12 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{-   $settings = .chezmoi.stdin | fromJson -}}
 {{- end -}}
 
-{{- /* marketplace の取得元。plugin を有効化するとここから clone される。 */ -}}
+{{- /*
+  marketplace の取得元。plugin を有効化するとここから clone される。
+  Claude Code は marketplace 側の commit 固定に対応しない（ref はブランチとタグ
+  のみ）ため、ここでは既定のブランチを追う。取得された commit は
+  .claude/.plugin-lock.json に記録する。
+*/ -}}
 {{- $marketplaces := dict -}}
 {{- if hasKey $settings "extraKnownMarketplaces" -}}
 {{-   $marketplaces = index $settings "extraKnownMarketplaces" -}}
@@ -26,18 +31,33 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
       "source" (dict
         "source" "git"
         "url" "https://github.com/openai/codex-plugin-cc.git")) -}}
+{{- $_ = set $marketplaces "dotnet-agent-skills" (dict
+      "source" (dict
+        "source" "git"
+        "url" "https://github.com/dotnet/skills.git")) -}}
 {{- $_ = set $settings "extraKnownMarketplaces" $marketplaces -}}
 
 {{- /*
-  有効・無効の状態。false のまま記録する。有効化すると codex plugin の
-  SessionStart / SessionEnd / Stop フックが動き出すため、切り替えは UI ではなく
-  このテンプレートを書き換えて chezmoi apply する。
+  有効・無効の状態。切り替えは UI ではなくこのテンプレートを書き換えて
+  chezmoi apply する。UI で切り替えても、次の apply でここの値に戻る。
 */ -}}
 {{- $enabledPlugins := dict -}}
 {{- if hasKey $settings "enabledPlugins" -}}
 {{-   $enabledPlugins = index $settings "enabledPlugins" -}}
 {{- end -}}
+
+{{- /*
+  codex plugin は false のまま記録する。有効化すると SessionStart、SessionEnd、
+  Stop のフックが動き出すため。
+*/ -}}
 {{- $_ = set $enabledPlugins "codex@openai-codex" false -}}
+
+{{- /*
+  dotnet plugin は skill 1 個と C# language server を追加する。フックは持たない。
+  C# ファイルを開くと dnx が roslyn-language-server の prerelease を NuGet から
+  取得して常駐させる。
+*/ -}}
+{{- $_ = set $enabledPlugins "dotnet@dotnet-agent-skills" true -}}
 {{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
 
 {{ $settings | toPrettyJson }}

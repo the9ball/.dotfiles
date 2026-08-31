@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "marketplaces": {
+    "dotnet-agent-skills": {
+      "source": "dotnet/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/dotnet/skills.git",
+      "ref": "d68dd70857076a17d4b418649bbcd20a315d59c3",
+      "marketplacePath": ".agents/plugins/marketplace.json",
+      "marketplaceManifestGitBlob": "6821be0e0fee83dcf5f0ff24e3ab45e631f5da7f",
+      "resolvedAt": "2026-08-31T11:23:54+09:00",
+      "plugins": {
+        "dotnet": {
+          "pluginPath": "plugins/dotnet",
+          "version": "0.2.3",
+          "pluginTreeGitObject": "401c34635819083f9268c9a35234a4c72b10ddf9",
+          "pluginManifestGitBlob": "bfcadfbb1177501198192c5cd6a084b8baaf8724",
+          "pluginManifestSha256": "37C4BBFE7A78BF3F60CEA0B81230526A10D99D4CBEB393AA310B0B148E285731"
+        }
+      }
+    }
+  }
+}

@@ -19,6 +19,24 @@
           "pluginManifestSha256": "1ADA392C8329978654FFF2D65EB3A3E5C9C36A22D8B58ECA8560DFFFB2475642"
         }
       }
+    },
+    "dotnet-agent-skills": {
+      "source": "dotnet/skills",
+      "sourceType": "git",
+      "sourceUrl": "https://github.com/dotnet/skills.git",
+      "ref": "d68dd70857076a17d4b418649bbcd20a315d59c3",
+      "marketplacePath": ".claude-plugin/marketplace.json",
+      "marketplaceManifestGitBlob": "b04ea6af12681a625505b014cf1e3a753eda469a",
+      "resolvedAt": "2026-08-31T16:01:54+09:00",
+      "plugins": {
+        "dotnet": {
+          "pluginPath": "plugins/dotnet",
+          "version": "0.2.3",
+          "pluginTreeGitObject": "401c34635819083f9268c9a35234a4c72b10ddf9",
+          "pluginManifestGitBlob": "bfcadfbb1177501198192c5cd6a084b8baaf8724",
+          "pluginManifestSha256": "37C4BBFE7A78BF3F60CEA0B81230526A10D99D4CBEB393AA310B0B148E285731"
+        }
+      }
     }
   }
 }
