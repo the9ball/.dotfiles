@@ -9,10 +9,13 @@
 対象: [`git-completion/git-completion.bash`](git-completion/git-completion.bash)
 
 - ファイル先頭の表示は「GNU General Public License, version 2.0」です。
-- Git の upstream にある completion スクリプトを基にしたファイルです。
-- upstream: <https://github.com/git/git/blob/master/contrib/completion/git-completion.bash>
+- Git の upstream にある completion スクリプトを、2026-08-13 の最新確認コミット `05e2ab1f31dd79ab6e17fc8f69a640ac8d0169d5` から取得しています。
+- upstream（固定コミット）: <https://github.com/git/git/blob/05e2ab1f31dd79ab6e17fc8f69a640ac8d0169d5/contrib/completion/git-completion.bash>
+- upstream（現行ブランチ）: <https://github.com/git/git/blob/master/contrib/completion/git-completion.bash>
+- 2026-08-31 の確認では、ローカルファイルと固定コミットの内容・SHA-256（`D44CA9E259C05E1DFEBDAC7F005C50BD26D3771B2F83D68D3FCBED43A9AAAE2D`）が一致しました。
+- ファイル内に取り込まれている `bash_completion` 部分は、別途「GPL version 2、または（選択により）それ以降」と表示されています。
 - GPLv2 の本文と配布条件: <https://github.com/git/git/blob/master/COPYING>
-- 配布時は、ファイル内の著作権表示・ライセンス表示を保持し、このファイルをリポジトリ全体のライセンス表示で上書きしないでください。
+- 配布時は、ファイル内にある両方の著作権表示・ライセンス表示を保持し、このファイルをリポジトリ全体のライセンス表示で上書きしないでください。
 
 ## サブモジュール
 
