@@ -12,3 +12,7 @@
 .agents/skills/dd-docs/
 .agents/skills/dd-logs/
 .agents/skills/dd-pup/
+
+# 個人用の private CLI 由来スキル。実体は追跡せず、各自の環境で用意する。
+.agents/skills/backlog-cli/
+.agents/skills/redmine-cli/
