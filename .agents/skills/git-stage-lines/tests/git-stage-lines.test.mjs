@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync, existsSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -95,6 +95,35 @@ function createManyHunkFile(repository, relativePath = "source.txt") {
   commitAll(repository);
   return lines;
 }
+
+test("runs when launched through a directory junction or symlink", () => {
+  const repository = createRepository();
+  const lines = createManyHunkFile(repository);
+  lines[9] = "selected-10\n";
+  writeLines(repository, "source.txt", lines);
+
+  const linkedSkillRoot = join(repository, "linked-skill");
+  const linkType = process.platform === "win32" ? "junction" : "dir";
+  symlinkSync(skillRoot, linkedSkillRoot, linkType);
+
+  for (const nodeOptions of [[], ["--preserve-symlinks-main"]]) {
+    const result = spawnSync(process.execPath, [
+      ...nodeOptions,
+      join(linkedSkillRoot, "bin", "git-stage-lines.mjs"),
+      "--list",
+      "--",
+      "source.txt",
+    ], {
+      cwd: repository,
+      encoding: null,
+      shell: false,
+      windowsHide: true,
+    });
+    assertSuccess(result);
+    assert.deepEqual(result.stdout.toString("utf8").trim().split(/\r?\n/), ["1 L10/D10 (+1/-1)"]);
+    assert.match(result.stderr.toString("utf8"), /diff-fingerprint=[0-9a-f]{64}/);
+  }
+});
 
 test("stages one of multiple hunks", () => {
   const repository = createRepository();

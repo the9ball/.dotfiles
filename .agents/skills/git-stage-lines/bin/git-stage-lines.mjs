@@ -3,7 +3,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, mkdtempSync, readFileSync, readlinkSync, rmSync, copyFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, copyFileSync } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -724,6 +724,16 @@ export function main(argumentsList = process.argv.slice(2)) {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+let isDirectInvocation = false;
+try {
+  // Normalize both paths because ESM canonicalizes module URLs through junctions while argv[1] preserves aliases.
+  isDirectInvocation = Boolean(process.argv[1]) &&
+    realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+} catch {
+  // Keep the previous lexical comparison when either path cannot be resolved.
+  isDirectInvocation = Boolean(process.argv[1]) && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+}
+
+if (isDirectInvocation) {
   process.exitCode = main();
 }
