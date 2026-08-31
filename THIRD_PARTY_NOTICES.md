@@ -34,6 +34,11 @@
 - `japanese-tech-writing`: <https://gist.github.com/k16shikano/fd287c3133457c4fd8f5601d34aa817d>、Unlicense
 - `conversation-handoff`: <https://gist.github.com/tegnike/09dbb98711d8b91e66de21611f5b88ff>、MIT License
 
-その他のローカル管理 skills については、2026-08-31 の追跡ファイル走査で逐語的な外部出典は見つかりませんでした。ただし、これは独自著作物であることの法的な証明ではありません。
+次のローカル実装は、`PROVENANCE.md` に参照先を記録しています。参照先のデータ形式・プロトコル・同分野の先行例は確認できましたが、2026-08-31 の調査では第三者コードの逐語的な取り込みは確認できませんでした。第三者の `LICENSE` は同梱していません。
+
+- `codex-logs`: OpenAI `codex-plugin-cc` のジョブ状態・ログ配置を互換性の参照先とする自作 PowerShell ビューア。<https://github.com/openai/codex-plugin-cc>
+- `codex-rate-limits`: OpenAI Codex app-server の `account/rateLimits/read` 仕様と、同目的の公開実装を参照した自作 PowerShell スキル。<https://github.com/openai/codex/blob/main/codex-rs/app-server/README.md>、<https://github.com/AFrayde01/codex-rate-limits-skill>
+
+この節に記載したもの以外のローカル管理 skills については、2026-08-31 の追跡ファイル走査で逐語的な外部出典は見つかりませんでした。ただし、これは独自著作物であることの法的な証明ではありません。
 
 gh-stack、Datadog、dotnet などの第三者 skill/plugin 本体はリポジトリへ vendor せず、ロックファイルと復元手順だけを管理しています。作業ディレクトリ全体をアーカイブする場合は、無視されている第三者実体が混入しないこと、および混入させる場合は upstream の `LICENSE`/`NOTICE` も含めることを確認してください。
