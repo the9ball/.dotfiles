@@ -101,6 +101,10 @@ description: ユーザーが「徹底的にレビューして」と明示する�
 
 ## 逐次検証
 
+### レビュー範囲の事前確定
+
+共通のGitレビュー範囲規則に従い、比較基準・終端状態・対象identityが確定するまで、レビュー者・回答者を起動せず、台帳を初期化しない。確定後は、コミット済み差分（PRを含む）はbase/target SHA（PRは固定base/head SHA）、stagedは比較基準HEAD SHAとindex snapshot identity、working treeは比較基準HEAD SHA・index/追跡ファイルのsnapshot identity・含めるuntracked manifestを台帳に固定する。PRの場合、またはその他のレビューでuntrackedを除外する場合は、untracked manifest欄に「excluded」と記録する。対象identityが変化した場合は既存結果と混ぜず、停止して再確認・再初期化する。
+
 1. 調整者が対象、範囲、比較基準、証拠マップ、役割構成、進捗確認予算を確定し、必要な承認を得てから共有台帳を初期化する。
 2. レビュー者が対象を独立に調査し、候補指摘を根拠とともに返す。調整者が固定IDを割り当てて台帳へ記録する。
 3. 回答者が対象と台帳の現在状態を読み、各指摘について同意、部分同意、不同意、または追加証拠要求を返す。調整者が台帳を更新する。

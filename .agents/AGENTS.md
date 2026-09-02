@@ -48,6 +48,17 @@
 
 - コミットの修正・取り消し・別ブランチへの移植では、通常の新規コミットに固定せず、目的に合う場合は `--fixup`、revert、cherry-pick を検討する。
 
+## Gitレビュー範囲の確定
+
+- Git差分レビューは、実質レビューの前に「比較基準」と「終端状態」を一意に確定する。`HEAD`の役割は終端状態によって異なり、コミット済み差分（直近commitやPR）では通常終端側のcommit（PRは固定head SHA）、index・working treeとの差分では通常比較基準commitとなる。`HEAD`の指定だけで基準・終端の双方が確定したとはみなさない。
+- PR番号またはURLが明示された場合は、PR提供元が示す固定base/head SHAとその提供元の差分定義（通常は`merge-base(base, head)`からheadまで）に一致するコミット済み差分を対象とする。提供元の差分定義を取得できない場合だけ、固定base/head SHAから同じmerge-base差分を再現する。移動するローカルbase refの先端は使わず、ローカルのindex・working tree・untrackedは含めない。
+- 「staged」は`HEAD`を比較基準とするindexのみ、「直近commit」は`HEAD^..HEAD`、「未commit」または「作業ツリー」は`HEAD`を比較基準としてstaged・unstaged・非ignoredのuntrackedを含む。ignoredは除外する。
+- 終端状態のidentityは、commit/PRでは固定したbase/target SHA（PRはbase/head SHA）、stagedでは比較基準`HEAD` SHAとindex snapshot identity、未commit・作業ツリーでは比較基準`HEAD` SHA、index/追跡ファイルのsnapshot identity、含めるuntrackedのpath・hash manifestで構成する。untrackedを除外する場合はmanifest欄に「excluded」と記録する。
+- 「upstreamとの差分」は、明示がなければ現在ブランチの追跡先`@{u}`から`HEAD`までのコミット済み変更（merge-base基準）とする。`@{u}`をPR baseやreleaseブランチと同一視しない。dirtyな変更を含めるかは別に確認する。
+- 「レビューして」「このブランチの変更」など、比較基準または終端状態が一意でない場合は、branch、追跡先、PRのbase/head、`HEAD`、dirty状態を読み取り専用で確認し、候補を原則1問で提示する。確認前にレビューやサブエージェント起動を始めない。main、develop、release系のブランチを暗黙の比較元にしない。
+- `@{u}`が未設定・解決不能、PR headとローカル`HEAD`が不一致、または対象がレビュー中に変化した場合は、推測や新旧証拠の混在をせず、範囲を再確認する。
+- レビュー結果の冒頭に、状態に応じた比較基準・終端のref/SHAまたはsnapshot identity、含めた状態、除外した状態、untrackedの扱いを記載する。
+
 ## 実装規模の見積り
 
 - 実装計画を作る規模のタスクでは、要素ごとに推定コード量(行数)をソフト目標として計画に書く。実装中に見積りを大きく超えた場合(1.5倍かつ+30行以上が目安、範囲で見積った場合は上限を基準)は作業を止め、超過理由と対応案をユーザーに報告する。自分で妥当性を判断して続行してはならず、ユーザーの明示的な承認を得てから続行する。
