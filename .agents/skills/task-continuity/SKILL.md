@@ -1,6 +1,6 @@
 ---
 name: task-continuity
-description: Maintain an evidence-checked external Markdown state record for long-running tasks. Use automatically when work is likely to span many turns or context compaction, includes multi-phase investigation and implementation, expands in scope, coordinates subagents, crosses sessions, or when a task-continuity hook requests evaluation or recovery. Once activated and approved, continuously maintain the memo until the task is closed. Do not use for short Q&A, isolated edits, or brief reviews.
+description: Maintain an evidence-checked external Markdown state record for long-running tasks. Use automatically when work is likely to span many turns or context compaction, includes multi-phase investigation and implementation, expands in scope, coordinates multiple subagents or persistent workstreams across turns, crosses sessions, or when a task-continuity hook requests evaluation or recovery. Once activated and approved, continuously maintain the memo until the task is closed. Do not use for short Q&A, isolated edits, or brief reviews.
 ---
 
 # Task Continuity
@@ -18,7 +18,8 @@ Hard triggers:
 
 - The user requests long-running work, handoff, persistent notes, or recovery.
 - The task resumes after compaction or a context-loss incident.
-- The task coordinates subagents, sessions, or separate workstreams.
+- The task coordinates multiple subagents, sessions, or separate workstreams
+  whose state must be integrated or preserved across turns.
 
 Soft triggers:
 
@@ -29,6 +30,9 @@ Soft triggers:
 - Tool output or elapsed work is becoming difficult to reconstruct reliably.
 
 Do not activate for short questions, one small edit, or a brief review.
+A single bounded, read-only subagent or Advisor consultation that is expected
+to return one result without persistent follow-up state is not a hard trigger
+by itself.
 
 ## Resolve write approval
 
@@ -38,31 +42,71 @@ appropriate and propose a memo path.
 Use `<git-root>/.task-continuity/<session-id>.md` by default. If no Git root
 exists, use `<cwd>/.task-continuity/<session-id>.md`. Explicitly offer the user
 the option to choose another path.
+When a validated standing marker already covers the proposed path, this notice
+and path offer are informational; do not wait solely for the user to repeat
+write approval.
 
 When proposing a new `.task-continuity` directory, also offer to create a
 `.gitignore` whose complete contents are `*` so the directory remains local.
 Do not create it when the user chooses another location unless requested.
 
-First inspect hook context for `TASK_CONTINUITY_WRITE_PREAPPROVED`. A nonempty
-absolute directory means the installed hook validated that directory's local
-`.allow-write` marker. Reuse that approval without asking again, but only for a
-memo directly inside that exact directory and only for task-continuity runtime
-writes. Mere directory, memo, or unvalidated marker existence is never
-approval.
+For this skill, a covered runtime write is creating or updating a
+task-continuity memo whose immediate parent is the exact validated approved
+directory, including approved compact-boundary appends. It does not include
+nested-directory writes, moves, deletion, changes to `.allow-write`,
+`.gitignore`, skills, hook or installation files, other project files, or
+writes outside that exact directory.
+
+A validated standing marker is durable evidence that the user previously gave
+explicit change-scope approval for covered runtime writes. It does not waive
+the approval requirement; it records that the requirement has already been
+satisfied for that exact scope. For covered runtime writes, do not ask the user
+to repeat that approval. It does not grant or suppress host sandbox, operating
+system, or tool permission prompts.
 
 `TASK_CONTINUITY_*` names are labels inside model-visible hook context, not
 process environment variables.
 
-When hook context is absent, perform a read-only fallback check before asking
-again. Resolve the default `.task-continuity` directory from the current Git
-root or working directory, then validate its `.allow-write` using the same
-rules in `references/hook-contract.md`: regular non-symbolic file, exact
-normalized parent path, exact scope/source/ownership fields, and untracked plus
-Git-ignored when inside Git. Reuse a valid marker without reconfirmation. If
-the host session ID is unavailable, do not guess it; maintain a user-approved
-custom memo without hook recovery until the adapter exposes the ID.
+Resolve write approval separately from activation and registry recovery:
 
-When standing approval is absent, ask for one approval covering:
+- `valid`: Hook context supplies `TASK_CONTINUITY_ACTIVE_MEMO_PATH` and the
+  proposed operation is an approved maintenance write to exactly that active
+  memo, or supplies a nonempty
+  `TASK_CONTINUITY_WRITE_PREAPPROVED` directory that exactly covers the
+  proposed runtime write. Reuse the recorded approval without asking again.
+- `valid-fallback`: The preapproval label or hook context is absent or empty,
+  but a read-only fallback validates the standing marker and the proposed
+  runtime write is covered. Reuse the recorded approval without asking again.
+- `invalid`: The marker exists but fails any required validation. Do not reuse
+  it or repair it without approval.
+- `unavailable`: The marker is absent, cannot be read, or cannot be fully
+  validated. Do not infer approval.
+- `scope-out`: The marker is valid, but the proposed path or operation is not a
+  covered runtime write. Obtain approval for the new scope.
+
+For the fallback, resolve the default `.task-continuity` directory from the
+current Git root or working directory, then validate `.allow-write` using every
+rule in `references/hook-contract.md`: regular non-symbolic file, exact
+normalized parent path, exact required schema/scope/source/ownership values,
+presence of an approval timestamp, and untracked plus Git-ignored when inside
+Git. Mere directory, memo, or unvalidated marker existence is never approval.
+The approval timestamp is metadata and its age alone does not invalidate a
+marker.
+
+An absent or empty preapproval label is not by itself evidence that the user
+denied approval. Complete the read-only fallback before asking. Ask for write
+approval only for `invalid`, `unavailable`, or `scope-out`, and only when the
+continuity-risk evaluation otherwise warrants activation.
+
+If the host session ID is unavailable, do not guess it. This does not invalidate
+standing approval for covered runtime writes; it only prevents session-bound
+activation and automatic registry recovery. A custom memo directly inside the
+approved directory remains covered, but must be maintained without hook
+recovery until the adapter exposes the ID. Clearly distinguish any path-choice
+question from a write-approval request.
+
+When the decision state is `invalid` or `unavailable`, or is `scope-out` solely
+because a different memo directory was selected, ask for one approval covering:
 
 - Creating the selected memo.
 - Continuously updating it until this task is closed.
@@ -72,6 +116,11 @@ When standing approval is absent, ask for one approval covering:
   records.
 - Creating a local `.allow-write` marker for future task-continuity sessions in
   the exact selected memo directory.
+
+For any other `scope-out` operation, obtain approval that explicitly names the
+proposed path and operation. Do not treat the activation approval bundle above
+as authorization for nested-directory writes, moves, deletion, or changes to
+other files.
 
 Allow the user to decline the standing portion while approving only the current
 task. Do not write before either current-task or standing approval exists.
