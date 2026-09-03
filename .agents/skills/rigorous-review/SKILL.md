@@ -41,11 +41,22 @@ description: ユーザーが「徹底的にレビューして」と明示する�
 
 可能ならレビュー者と回答者を別のエージェントコンテキストで実行する。両者を同時に動かさず、必ず一方の完了と台帳更新を終えてから他方を開始する。実行環境が委譲の承認を要求する場合は、開始前に両役割と全往復の範囲をまとめて承認対象とし、環境が各回の承認を要求しない限りターンごとに承認を取り直さない。別コンテキストを利用できない場合は同一エージェント内で役割を逐次切り替え、その独立性が弱いことを最終報告に明記する。
 
+### Advisor engagement
+
+- Advisor を使用する場合、調整者は一つの `advisor_engagement_id` を一つの rigorous-review 実行へ固定する。同じ root 内の別判断は別 engagement とする。
+- Advisor の継続ハンドルは、root ID、engagement ID、role とともに台帳へ記録する。同一 engagement の再開時は既存ハンドルを使い、起動器が返した実効ハンドルと再開結果を保存する。
+- Advisor は Reviewer／Respondent の一方ではなく、中立の助言者である。出力は出所付きの証拠候補、反証候補、検証手段として扱い、Reviewer／Respondent の双方が評価するまで指摘状態や承認を変更しない。
+- Advisor の判断は既存の target identity manifest と epoch identity に結び付ける。epoch が変わった場合は旧判断を新しい対象へ自動適用せず、現物から再検証する。
+- Advisor が `NEEDS_EVIDENCE` を返した場合、調整者は evidence request ID、未解決命題、必要証拠、確認方法、許可範囲、予算、終了条件を台帳へ記録し、同一 request ID・epoch につき最大1つの Evidence child を起動する。
+- Evidence child の結果は調整者が現物と照合してから証拠候補として台帳へ反映する。child の結果だけで指摘状態や共同最終記録を確定しない。
+
 ### 調整者
 
 親エージェントが調整者となり、対象範囲、共有台帳、実行順序、最終報告を管理する。調整者は争点を多数決や印象で裁定しない。
 
 共有台帳は調整者だけが書き込む。レビュー者と回答者には毎回同じ絶対パスを渡し、台帳の現在状態を読んだうえで更新案を返させる。バッチ化している場合は、全体索引、共通証拠マップ、割り当てられた未確定項目を現在状態とする。調整者は更新案を検査して正本へ反映する。この単一書き込み方式により、相手の記述の消去や部分的な上書きを防ぐ。
+
+Advisor を使用する場合、調整者は engagement と epoch を確定してから dispatch し、同一 engagement の dispatch を直列化する。再開不能時は predecessor、successor、失敗理由、渡した台帳版を記録し、新しい Advisor が同じ対象 identity を受領したことを確認する。
 
 ### レビュー者
 
@@ -99,6 +110,12 @@ description: ユーザーが「徹底的にレビューして」と明示する�
 - 決着に必要な追加証拠
 - 問題の存在、影響度、修正要否、修正案それぞれの合意状態
 - 状態、共同最終記録の単調増加する版番号または内容hash、その同一版に対する双方の承認
+
+Advisor を使用する場合は、次も台帳へ記録する。
+
+- `advisor_engagement_id`、root ID、Advisor の継続ハンドル、role、dispatch の順序
+- target identity manifest、epoch identity、再利用した証拠、今回再検証した証拠
+- evidence request ID、起動した child の実効ハンドル、返却 packet の取得元・版または hash・確認方法・未取得証拠・不確実性
 
 ## 逐次検証
 
