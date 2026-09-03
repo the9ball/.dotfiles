@@ -62,6 +62,14 @@
 
 - コミットの修正・取り消し・別ブランチへの移植では、通常の新規コミットに固定せず、目的に合う場合は `--fixup`、revert、cherry-pick を検討する。
 
+## Git index.lock
+
+- リポジトリ状態の参照だけを目的とする Git コマンドでは、可能な限りグローバルオプション `--no-optional-locks` をサブコマンドより前に指定する（例: `git --no-optional-locks status --short --branch`）。
+- インデックス、作業ツリー、参照、履歴を更新し得るコマンド（`add`、`commit`、`checkout`、`switch`、`restore`、`reset`、`merge`、`rebase`、`cherry-pick`、`revert`、`stash` など）には指定しない。
+- `index.lock` エラーが出た場合は、エラーに表示されたパス、または `git rev-parse --git-path index.lock` で対象のロックを特定する。
+- 同じリポジトリまたは worktree を操作中の Git プロセスがある場合は、その終了を待ってからコマンドを再試行する。
+- `index.lock` は、作成元プロセスが終了しており、残留ロックであることを確認できない限り削除しない。確認できない場合は削除せず、ユーザーに報告する。
+
 ## Gitレビュー範囲の確定
 
 - Git差分レビューは、実質レビューの前に「比較基準」と「終端状態」を一意に確定する。`HEAD`の役割は終端状態によって異なり、コミット済み差分（直近commitやPR）では通常終端側のcommit（PRは固定head SHA）、index・working treeとの差分では通常比較基準commitとなる。`HEAD`の指定だけで基準・終端の双方が確定したとはみなさない。
