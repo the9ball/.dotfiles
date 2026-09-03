@@ -20,16 +20,13 @@
 - エージェント定義側が「自動起動しない」「明示的な指名を待つ」と定めている場合は、この既定より定義側を優先する。
 - 委譲先の報告を鵜呑みにしない。ファイル変更や検証結果など事実に関わる結論は、自分で差分やログを確認して裏を取る。
 
-## Advisor セッションの継続
+## Agent セッションの継続
 
-- Advisor の再利用単位は、一つの明示的な判断を表す `advisor_engagement_id` とする。再利用キーは `(root_session_id, advisor_engagement_id, role)` とし、同じ root でも判断が異なる場合は継続ハンドルを分ける。
-- root は engagement、対象 epoch、再利用可否、追加調査の予算、共有台帳を所有する。起動器は継続ハンドルの解決・再開・新規作成・失敗理由・実効ハンドルの返却を担当する。Advisor は渡された判断と台帳を読み取り専用で評価する。
-- 同一 engagement の dispatch は直列化し、競合時の重複作成を防ぐ。再開できない場合は predecessor、successor、失敗理由、渡した台帳版を記録する。
-- Advisor には root ID、engagement ID、role、台帳版、target identity、epoch identity を渡す。対象 epoch が変わった場合は、旧判断の再利用状態を現物から再検証する。
-- Reviewer と Respondent は独立したコンテキストで実行する。Advisor の出力は判断を代行する裁定ではなく、出所付きの証拠候補として扱う。
-- 情報が不足する場合は `NEEDS_EVIDENCE` として、未解決命題、必要な証拠、確認方法、許可範囲、予算、終了条件を root へ返す。
-- Evidence child は同一 request ID・epoch につき最大1つとし、レビュー対象、workspace、ローカルファイル、台帳を変更しない。サブエージェント起動、権限拡張、外部変更、外部送信も行わず、取得元・版または hash・確認方法・未取得証拠・不確実性を含む packet を返す。
-- root は Evidence packet を現物と照合してから台帳へ反映する。不足が残る場合は自動再試行せず、未解決として Advisor／回答者へ戻すか、ユーザー判断を求める。
+- Agent の再利用単位は、一つの明示的な判断を表す `engagement_id` とする。再利用キーは `(root_session_id, engagement_id, role)` とし、同じ root でも判断が異なる場合は継続ハンドルを分ける。
+- root は engagement、対象 epoch、再利用可否、共有台帳を所有する。起動器は role ごとの継続ハンドルの解決・再開・新規作成・失敗理由・実効ハンドルの返却を担当する。Advisor、Reviewer、Respondent は渡された判断と台帳を評価し、ハンドル管理を直接変更しない。
+- 同一 engagement の同一 role の dispatch は直列化し、競合時の重複作成を防ぐ。同じハンドルを使うのは再開に成功した場合だけとし、再開できない場合は predecessor、successor、失敗理由、渡した台帳版を記録する。
+- Advisor、Reviewer、Respondent には root ID、engagement ID、role、台帳版、target identity、epoch identity を渡す。対象 epoch が変わった場合は、旧判断の再利用状態を現物から再検証する。
+- Reviewer と Respondent は role ごとに独立したコンテキストを維持し、互いのハンドルを共有しない。Advisor の出力は判断を代行する裁定ではなく、出所付きの助言として扱う。
 
 ## 用途別ガイドの参照
 
