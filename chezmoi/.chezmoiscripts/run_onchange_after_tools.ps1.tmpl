@@ -14,6 +14,30 @@ if ($LASTEXITCODE -ne 0) {
     throw "aqua install failed (exit code: $LASTEXITCODE)"
 }
 
+# Install the Python runtime and validator dependency used by the bundled
+# skill tooling. Resolve the managed interpreter's junction before passing it
+# back to uv; uv's installer cannot target the junction path on Windows.
+$uv = (Get-Command uv -ErrorAction Stop).Source
+& $uv python install 3.13 --default
+if ($LASTEXITCODE -ne 0) {
+    throw "uv Python installation failed (exit code: $LASTEXITCODE)"
+}
+
+$pythonInterpreter = (& $uv python find 3.13 --managed-python --system --resolve-links | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($pythonInterpreter)) {
+    throw "uv Python interpreter could not be resolved (exit code: $LASTEXITCODE)"
+}
+
+$expectedPyYamlVersion = '6.0.3'
+$installedPyYamlVersion = ((& $pythonInterpreter -c 'import yaml; print(yaml.__version__)' 2>$null) -join "`n").Trim()
+$pythonCheckExitCode = $LASTEXITCODE
+if ($pythonCheckExitCode -ne 0 -or $installedPyYamlVersion -ne $expectedPyYamlVersion) {
+    & $uv pip install --break-system-packages --python $pythonInterpreter "PyYAML==$expectedPyYamlVersion"
+    if ($LASTEXITCODE -ne 0) {
+        throw "PyYAML installation failed (exit code: $LASTEXITCODE)"
+    }
+}
+
 $winget = (Get-Command winget -ErrorAction Stop).Source
 & $winget import --import-file $wingetConfig --no-upgrade --ignore-unavailable --accept-source-agreements --accept-package-agreements --disable-interactivity
 if ($LASTEXITCODE -ne 0) {

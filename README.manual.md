@@ -181,9 +181,12 @@ chezmoi --source "$HOME/.dotfiles" verify
 `apply`では、設定ファイルの配置に加えて次の処理が実行されます。
 
 - `aqua.yaml`に定義されたCLIのインストール
+- uv管理のPython 3.13とPyYAML 6.0.3のインストール
 - Windowsでは`winget.json`に定義されたAWS CLIとaws-vaultのインストール
 - `prek`のGit hook設定
 - `~/.agents`、`~/.claude/skills`、`~/.claude/agents`の共有リンク作成（Windowsではジャンクション）
+
+Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初回実行時に導入します。スクリプトの内容が変わった場合や前回の実行に失敗した場合を除き、通常の`chezmoi apply`では不足分の再導入を行いません。
 
 これらのパスに通常のディレクトリや別のリンクがすでにある場合、スクリプトは上書きせず停止します。既存の内容とリンク先を確認し、必要なら手動で退避してから再実行してください。
 

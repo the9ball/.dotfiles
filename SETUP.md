@@ -12,10 +12,13 @@ chezmoi apply
 `chezmoi apply`は、次の処理を実行します。
 
 - `aqua install`: `aqua.yaml`に定義されたCLIを導入
+- `uv python install` と `uv pip install`: Python 3.13とPyYAML 6.0.3を導入
 - Windows: `winget import`: `winget.json`に定義されたAWS CLIとaws-vaultを導入
 - `prek install`: Git hookを設定
 - `.bashrc`と`.gitconfig`をホームディレクトリへ配置
 - `.agents`と`.claude/skills`の共有リンクを作成
+
+Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初回実行時に導入します。スクリプトの内容が変わった場合や前回の実行に失敗した場合を除き、通常の`chezmoi apply`では不足分の再導入を行いません。
 
 ## Windows
 

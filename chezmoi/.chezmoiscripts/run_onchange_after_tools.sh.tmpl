@@ -7,5 +7,25 @@ set -eu
 
 repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
 aqua install --config "$repo_root/aqua.yaml"
+
+# Install the Python runtime and validator dependency used by the bundled
+# skill tooling. uv manages the interpreter so the setup is reproducible.
+uv python install 3.13 --default
+python_interpreter=$(uv python find 3.13 --managed-python --system --resolve-links)
+if [ -z "$python_interpreter" ]; then
+    echo "uv Python interpreter could not be resolved" >&2
+    exit 1
+fi
+
+expected_pyyaml_version='6.0.3'
+if installed_pyyaml_version=$("$python_interpreter" -c 'import yaml; print(yaml.__version__)' 2>/dev/null); then
+    :
+else
+    installed_pyyaml_version=''
+fi
+if [ "$installed_pyyaml_version" != "$expected_pyyaml_version" ]; then
+    uv pip install --break-system-packages --python "$python_interpreter" "PyYAML==$expected_pyyaml_version"
+fi
+
 prek install --overwrite
 {{- end }}
