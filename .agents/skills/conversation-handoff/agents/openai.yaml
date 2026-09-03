@@ -1,4 +1,4 @@
 interface:
   display_name: "Conversation Handoff"
-  short_description: "Move a long conversation to a fresh session safely"
-  default_prompt: "Use $conversation-handoff to move this conversation to a fresh session while preserving its intent and history."
+  short_description: "Move a conversation to a clean session with read-only lookup"
+  default_prompt: "Use $conversation-handoff to move this conversation to a clean session, preserving its intent and optionally keeping a read-only reference to the source task for targeted lookup."
