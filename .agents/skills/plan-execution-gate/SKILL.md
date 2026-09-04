@@ -95,7 +95,7 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 - `REQUIRES_USER_DECISION`: 計画・範囲・リスク受容をユーザーが決める必要がある。
 - `BLOCKED`: Advisor の実行、証拠、対象 identity を確立できない。
 
-`rigorous-review` の「完了」は、そのままゲートの `PASS` ではない。ここでいう `gate-blocking` は、未修正の `指摘成立`、すべての `不同意確定`、および `調整不能` を指し、非 blocking の不同意は設けない。ゲートの `PASS` は、固定した最終 target に対して gate-blocking が一つも残らず、双方の最終記録が同じ対象版を承認している状態とする。`指摘撤回` だけは残っていてよい。指摘を修正せずに進めるユーザーの明示的 waiver は、対象 ID、理由、受容する影響、承認者を記録した `WAIVED` として扱うが、通常の `PASS` を満たさず、完了報告の代わりに停止・確認状態とする。指摘候補が0件の場合は、対象 identity、範囲、証拠、双方の no-findings の立場を含む空の共同最終記録を作成し、その同じ版を双方が承認する。全候補が撤回された場合は空の記録で代用せず、全固定IDと撤回理由、双方の withdrawal の立場を列挙した共同最終記録を双方が承認する。
+`rigorous-review` の「完了」は、そのままゲートの `PASS` ではない。共同最終記録を作成できる場合は現在のepochの共同最終記録へ、調整不能または必要条件不足で共同最終記録へ到達できない場合は調整者の停止記録へ、レビュー全体の `gate_status: PASS | BLOCKED` を記録する。ここでいう `gate-blocking` は、現在のepochに残る未修正の `指摘成立`、`不同意確定`、および `調整不能` を指し、これらが一つでも残る場合は `gate_status=BLOCKED` とする。非 blocking の不同意は設けない。ゲートの `PASS` は、固定した最終 target に対して gate-blocking が一つも残らず、双方の最終記録が同じ対象版を承認している状態とする。`指摘撤回` だけは残っていてよい。指摘を修正せずに進めるユーザーの明示的 waiver は、対象 ID、理由、受容する影響、承認者を記録した `WAIVED` として扱い、`gate_status=BLOCKED` とする。指摘候補が0件の場合は、対象 identity、範囲、証拠、双方の no-findings の立場を含む空の共同最終記録を作成し、その同じ版を双方が承認する。全候補が撤回された場合は空の記録で代用せず、全固定IDと撤回理由、双方の withdrawal の立場を列挙した共同最終記録を双方が承認する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。
 
 ## 実行順序
 
@@ -143,7 +143,7 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 - `effective_user_review=REQUIRED` の場合は、最終 candidate target に結び付くユーザー通常レビューの snapshot、提示内容、明示的な承認・変更なし、または feedback 解消確認を含む応答、未解決 feedback がないことを台帳で確認できる。`NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳で確認できる。
 - `effective_review_level` が Advisor を含む場合は、最終 Advisor の実行結果が `CLEAR` である（比較証拠付きの `assessment_mode: revalidated-reuse` による `CLEAR` の再検証を含む）。Advisor を含まない場合は、必須トリガーがすべて根拠付きで false であり、Advisor を `SKIPPED` とした理由が記録されている。
 - 追加 Advisor checkpoint の累計がゲート全体で最大2回以内で、各 checkpoint の理由・判断質問・対象・結果が記録されている。
-- `effective_review_level` が rigorous-review を含む場合は、`rigorous-review` の `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` の全固定IDが共同最終記録で確定し、`指摘成立`、`不同意確定`、`調整不能` が残っていない。rigorous-review を含まない場合は、厳密レビューを `SKIPPED` とした理由が記録されている。実行した場合、指摘ゼロの場合は対象 identity に結び付いた空の共同最終記録を、全撤回の場合は全固定IDと撤回理由を含む記録を双方が同じ版で承認している。
+- `effective_review_level` が rigorous-review を含む場合は、`rigorous-review` の現在epochにおける `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` の全固定IDが共同最終記録で確定し、共同最終記録の `gate_status=PASS` である。現在epochの `指摘成立`、`不同意確定`、`調整不能`、または `WAIVED` が残る場合は、共同最終記録または調整者の停止記録に `gate_status=BLOCKED` として記録し、`PASS` にしない。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。rigorous-review を含まない場合は、厳密レビューを `SKIPPED` とした理由が記録されている。実行した場合、指摘ゼロの場合は対象 identity に結び付いた空の共同最終記録を、全撤回の場合は全固定IDと撤回理由を含む記録を双方が同じ版で承認している。
 - 初回コミットと fixup・amend の範囲が、計画で承認された変更だけで構成されている。
 - Commit map が必須の計画では、actual commit/hunk manifest と map を双方向に完全照合し、全 commit/hunk がちょうど一つの単位へ割り当てられ、map にない変更や重複がない。独立 rollback 単位は commit 境界で分離し、依存により同一 commit に結合する場合は理由と共同 rollback 範囲を map に記録している。
 - ユーザーの実装採否、本番採用、履歴書き換え、push、PR・Issue 更新、外部送信が必要な場合は、それぞれの既存承認を別途取得している。
