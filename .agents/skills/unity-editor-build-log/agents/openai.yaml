@@ -1,0 +1,4 @@
+interface:
+  display_name: "Unity Editor Build Log"
+  short_description: "Extract the latest completed Unity build block safely"
+  default_prompt: "Use $unity-editor-build-log to extract and classify the latest completed Unity Player Build or Script Compilation block with secrets redacted."
