@@ -18,6 +18,7 @@
 - 同じ作業ツリーに書き込む場合は、ファイル単位で編集の担当を一つに限る。分けられないなら、委譲先の完了まで主スレッドは同じ範囲を触らない。
 - 委譲先を選べる場合は、タスクを十分遂行できる範囲で最も低コストのモデルを優先する。より高性能なモデルは、成功率や品質の改善が見込める場合に限り使用する。
 - モデルやエージェントの既定値は、このファイルでは定義せず、実行環境と用途別の指示に従う。
+- 明示された role 固有のモデル制約は、その role に限り一般の Luna-first／低コスト選択より優先する。root の実装・通常検証へ拡張せず、利用不能時は判断 role を黙って代替しない。
 - エージェント定義側が「自動起動しない」「明示的な指名を待つ」と定めている場合は、この既定より定義側を優先する。
 - 委譲先の報告を鵜呑みにしない。ファイル変更や検証結果など事実に関わる結論は、自分で差分やログを確認して裏を取る。
 
@@ -25,9 +26,13 @@
 
 - Agent の再利用単位は、一つの明示的な判断を表す `engagement_id` とする。再利用キーは `(root_session_id, engagement_id, role)` とし、同じ root でも判断が異なる場合は継続ハンドルを分ける。
 - root は engagement、対象 epoch、再利用可否、共有台帳を所有する。起動器は role ごとの継続ハンドルの解決・再開・新規作成・失敗理由・実効ハンドルの返却を担当する。Advisor、Reviewer、Respondent は渡された判断と台帳を評価し、ハンドル管理を直接変更しない。
-- 同一 engagement の同一 role の dispatch は直列化し、競合時の重複作成を防ぐ。同じハンドルを使うのは再開に成功した場合だけとし、再開できない場合は predecessor、successor、失敗理由、渡した台帳版を記録する。
+- 同一 engagement の同一 role の dispatch は直列化し、競合時の重複作成を防ぐ。同じハンドルを使うのは runtime が再開成功を明示した場合だけとし、再開失敗と対象 epoch の変更は台帳へ記録して旧判断を再利用しない。
 - Advisor、Reviewer、Respondent には root ID、engagement ID、role、台帳版、target identity、epoch identity を渡す。対象 epoch が変わった場合は、旧判断の再利用状態を現物から再検証する。
 - Reviewer と Respondent は role ごとに独立したコンテキストを維持し、互いのハンドルを共有しない。Advisor の出力は判断を代行する裁定ではなく、出所付きの助言として扱う。
+- 実質的な調査（対象の探索、仕様・挙動・依存関係の確認、再現、証拠収集）は、原則として `scount` Evidence child へ委譲する。root は対象 identity、epoch、台帳の最小確認と packet の現物照合に専念し、Reviewer／Respondent が独立性のために対象を直接検証することは例外とする。
+- `scount` は読み取り専用の別 role とし、ファイル、workspace、台帳を変更せず、子を起動せず、権限拡張、外部変更、外部送信を行わない。固定した request の取得元、版または source hash、確認方法、取得できなかった証拠、不確実性を packet に返し、判断やレビュー状態を確定しない。
+- 同じ target／epoch で runtime が再開成功を明示した場合だけ child context を再利用する。target または epoch が変われば旧 packet／context／判断を無効化し、自動移送・自動 retry をしない。runtime がない段階では、この再利用を将来 adapter の契約として扱う。
+- 判断 role が `NEEDS_EVIDENCE` を返した場合は、root が request、許可範囲、予算、終了条件を固定し、scount → root の照合・台帳記録 → 同じ epoch の要求元 role への明示的再 dispatchを行う。証拠不足・照合不能なら `NEEDS_EVIDENCE` または gate の `BLOCKED` を維持する。
 
 ## 用途別ガイドの参照
 
