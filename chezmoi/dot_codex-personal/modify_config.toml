@@ -1,0 +1,16 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+Manage only stable personal Codex settings. The existing target config is
+parsed first and then overlaid with the repository defaults, so Codex-managed
+projects, hook state, model availability state, and any other unknown keys are
+preserved. auth.json is a separate file and is never read or written here.
+
+*/ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromToml .chezmoi.stdin -}}
+{{- end -}}
+{{- $defaults := fromToml (include ".chezmoitemplates/codex-personal-defaults.toml") -}}
+{{- $config = mergeOverwrite $config $defaults -}}
+{{ $config | toToml }}
