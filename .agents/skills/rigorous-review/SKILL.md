@@ -131,6 +131,10 @@ Agent を継続利用する場合は、次も台帳へ記録する。
 
 ## 逐次検証
 
+### Advisor依頼のファイルスコープ
+
+Advisorを起動するときは、`../../guides/advisor-review.md` の読み取りスコープ契約に従い、各対象ファイルを読み取りスコープ宣言として渡す。共有台帳のcoverage manifestには、少なくともpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを記録する。部分参照では1始まり・両端含みの行範囲と安定アンカーを必須とし、全文・差分・構造指定はそのmodeと対象identityを固定する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は、レビュー全体を`PASS`として確定してはならない。
+
 ### レビュー範囲の事前確定
 
 共通のGitレビュー範囲規則に従い、比較基準・終端状態・対象identityが確定するまで、レビュー者・回答者を起動せず、台帳を初期化しない。確定後は、コミット済み差分（PRを含む）はbase/target SHA（PRは固定base/head SHA）、stagedは比較基準HEAD SHAとindex snapshot identity、working treeは比較基準HEAD SHA・index/追跡ファイルのsnapshot identity・含めるuntracked manifestを台帳に固定する。PRの場合、またはその他のレビューでuntrackedを除外する場合は、untracked manifest欄に「excluded」と記録する。対象identityが変化した場合は既存結果と混ぜず、停止して再確認・再初期化する。
