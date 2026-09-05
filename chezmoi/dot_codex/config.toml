@@ -1,0 +1,240 @@
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+service_tier = "default"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+personality = "pragmatic"
+model_verbosity = "low"
+model_reasoning_summary = "concise"
+default_permissions = "default-permissions"
+
+notify = [ "C:\\Users\\syasui\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\440c4f095d41ea30\\bin\\node_modules\\@oai\\sky\\bin\\windows\\codex-computer-use.exe", "turn-ended" ]
+
+[marketplaces.openai-bundled]
+source_type = "local"
+source = '\\?\C:\Users\syasui\.codex\.tmp\bundled-marketplaces\openai-bundled'
+
+[marketplaces.openai-primary-runtime]
+source_type = "local"
+source = '\\?\C:\Users\syasui\.cache\codex-runtimes\codex-primary-runtime\plugins\openai-primary-runtime'
+
+[marketplaces.dotnet-agent-skills]
+last_updated = "2026-08-31T02:31:38Z"
+last_revision = "d68dd70857076a17d4b418649bbcd20a315d59c3"
+source_type = "git"
+source = "https://github.com/dotnet/skills.git"
+ref = "d68dd70857076a17d4b418649bbcd20a315d59c3"
+
+[plugins."browser@openai-bundled"]
+enabled = true
+
+[plugins."documents@openai-primary-runtime"]
+enabled = true
+
+[plugins."pdf@openai-primary-runtime"]
+enabled = true
+
+[plugins."spreadsheets@openai-primary-runtime"]
+enabled = true
+
+[plugins."presentations@openai-primary-runtime"]
+enabled = true
+
+[plugins."template-creator@openai-primary-runtime"]
+enabled = true
+
+[plugins."sites@openai-bundled"]
+enabled = true
+
+[plugins."visualize@openai-bundled"]
+enabled = true
+
+[plugins."chrome@openai-bundled"]
+enabled = true
+
+[plugins."codex-app-tools@openai-bundled"]
+enabled = true
+
+[plugins."dotnet@dotnet-agent-skills"]
+enabled = true
+
+[plugins."unified-computer-use@openai-bundled"]
+enabled = true
+
+[plugins."computer-use@openai-bundled"]
+enabled = true
+
+[agents]
+enabled = true
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+max_concurrent_threads_per_session = 10
+max_depth = 5
+
+[features]
+js_repl = false
+multi_agent = true
+default_mode_request_user_input = true
+network_proxy = true
+
+[features.multi_agent_v2]
+enabled = true
+
+[permissions.default-permissions]
+extends = ":workspace"
+
+[permissions.default-permissions.filesystem]
+'C:\Users\syasui\AppData\Roaming\GitHub CLI' = "read"
+'D:\repository' = "write"
+'C:\Users\syasui\work\gitmeta' = "write"
+
+[permissions.default-permissions.network]
+enabled = true
+
+[permissions.default-permissions.network.domains]
+"api.github.com" = "allow"
+"github.com" = "allow"
+
+[mcp_servers.node_repl]
+args = []
+command = 'C:\Users\syasui\AppData\Local\OpenAI\Codex\runtimes\cua_node\440c4f095d41ea30\bin\node_repl.exe'
+startup_timeout_sec = 120
+
+[mcp_servers.node_repl.env]
+NODE_REPL_NATIVE_PIPE_CONNECT_TIMEOUT_MS = "1000"
+NODE_REPL_NODE_MODULE_DIRS = 'C:\Users\syasui\AppData\Local\OpenAI\Codex\runtimes\cua_node\440c4f095d41ea30\bin\node_modules'
+NODE_REPL_NODE_PATH = 'C:\Users\syasui\AppData\Local\OpenAI\Codex\runtimes\cua_node\440c4f095d41ea30\bin\node.exe'
+NODE_REPL_TRUSTED_CODE_PATHS = 'C:\Users\syasui\.codex;C:\Users\syasui\AppData\Local\OpenAI\Codex\runtimes\cua_node\440c4f095d41ea30\bin\node_modules'
+CODEX_HOME = 'C:\Users\syasui\.codex'
+BROWSER_USE_AVAILABLE_BACKENDS = "chrome,iab"
+BROWSER_USE_TINYSKY_ENABLED = "1"
+NODE_REPL_INSTRUCTIONS_USE_CASE_BROWSER = ""
+NODE_REPL_INSTRUCTIONS_USE_CASE_CHROME = ""
+BROWSER_USE_CODEX_APP_BUILD_FLAVOR = "prod"
+BROWSER_USE_CODEX_APP_VERSION = "26.901.41600"
+NODE_REPL_TRUSTED_SERVICES = '{"browser":"C:/Users/syasui/.codex/plugins/cache/openai-bundled/browser/26.901.41600/scripts/browser-service.mjs","sky":"@oai/sky/service"}'
+SKY_CUA_NATIVE_PIPE = "1"
+SKY_CUA_NATIVE_PIPE_DIRECTORY = '\\.\pipe\codex-computer-use-22a5da61-08f3-47eb-8fe3-a43da8496121'
+CODEX_CLI_PATH = 'C:\Users\syasui\AppData\Local\OpenAI\Codex\bin\27d6a192e9c98618\codex.exe'
+
+[mcp_servers.datadog]
+url = "https://mcp.datadoghq.com/v1/mcp"
+bearer_token_env_var = "DD_ACCESS_TOKEN"
+
+[desktop]
+conversationDetailMode = "STEPS_COMMANDS"
+ambient-suggestions-enabled = false
+reviewDelivery = "detached"
+composerEnterBehavior = "cmdAlways"
+followUpQueueMode = "steer"
+show-context-window-usage = true
+enabled-reasoning-efforts = ["low", "medium", "high", "xhigh", "ultra", "max"]
+worktree-upstream-refresh-mode = "best-effort"
+
+[desktop.appearanceLightChromeTheme]
+accent = "#3a83f7"
+accentSource = "chatgpt"
+contrast = 45
+ink = "#1a1c1f"
+opaqueWindows = true
+surface = "#ffffff"
+
+[desktop.appearanceLightChromeTheme.fonts]
+
+[desktop.appearanceLightChromeTheme.semanticColors]
+diffAdded = "#00a240"
+diffRemoved = "#ba2623"
+skill = "#924ff7"
+
+[desktop.appearanceDarkChromeTheme]
+accent = "#3a83f7"
+accentSource = "chatgpt"
+contrast = 60
+ink = "#ffffff"
+opaqueWindows = true
+surface = "#181818"
+
+[desktop.appearanceDarkChromeTheme.fonts]
+
+[desktop.appearanceDarkChromeTheme.semanticColors]
+diffAdded = "#40c977"
+diffRemoved = "#fa423e"
+skill = "#ad7bf9"
+
+[windows]
+sandbox = "unelevated"
+
+[projects.'d:\repository\sentia']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\work\sentia']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\appdata\local\temp\claude\c--users-syasui-work-sentia-sentia\3b5faa06-a005-4337-9700-69ed511d2eb5\scratchpad\implementer-smoketest']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-07-11\c-users-syasui-plans']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\.dotfiles']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\.codex']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\temp']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\.codex\.agents']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-03\realtime-voice-chat']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-03\realtime-voice-chat-2']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-03\realtime-voice-chat-3']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-03\realtime-voice-chat-4']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-03\realtime-voice-chat-5']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\temp\implementer-polling-test']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-19\delegated-role-luna-read-only-investigator']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\work\sentia\sentia']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-08-21\bash-c-users-syasui-dotfiles-agents']
+trust_level = "trusted"
+
+[projects.'c:\users\syasui\documents\codex\2026-09-05\new-chat']
+trust_level = "trusted"
+
+[tui.model_availability_nux]
+"gpt-5.6-sol" = 4
+
+[shell_environment_policy.set]
+NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S = "8e172ec9f458f2e636fc69a1b8c68c217f6bb8d10c41f70a05a0878b73863701"
+
+[hooks.state]
+
+[hooks.state.'C:\Users\syasui\.codex\hooks.json:pre_compact:0:0']
+trusted_hash = "sha256:ea1b65f3dfb5d96cd9f7befade94fc8fc0b1c1a79fdb40a4c53e7145ec04cd56"
+
+[hooks.state.'C:\Users\syasui\.codex\hooks.json:post_compact:0:0']
+trusted_hash = "sha256:25cf5083fbe78b693382e0f1dede43bb01b9d57f07ff4b64eb80a9a2d11d9660"
+
+[hooks.state.'C:\Users\syasui\.codex\hooks.json:session_start:0:0']
+trusted_hash = "sha256:6bf3a2ec860752e5f224413af0fa74e626e03b853f2aa04a5ec244f91781aba0"
+
+[hooks.state.'C:\Users\syasui\.codex\hooks.json:user_prompt_submit:0:0']
+trusted_hash = "sha256:01245cb9b52a9b5f85eb2b543f5cc62228294ca1cedcefb43da26620620d3624"
