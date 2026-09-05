@@ -35,6 +35,7 @@ alias ll='ls -l'
 alias vi='vim'
 alias :vi='vim'
 alias :e='vim'
+alias pcodex='CODEX_HOME="$HOME/.codex-personal" codex'
 
 # svn用
 alias svndiff='svn diff -x --ignore-eol-style'
