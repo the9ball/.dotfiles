@@ -44,7 +44,7 @@ description: ユーザーが「徹底的にレビューして」と明示する�
 
 ### Agent engagement
 
-- 調整者は一つの `engagement_id` を一つの rigorous-review 実行へ固定する。同じ root 内の別判断は別 engagement とする。
+- 調整者は一つの `engagement_id` を一つの rigorous-review 実行へ固定する。同じ root 内の別判断は別 engagement とする。各再試行には一意の `attempt_id` を付け、失敗したattemptとその台帳snapshotを履歴として保持する。
 - Advisor、Reviewer、Respondent の継続ハンドルは、root ID、engagement ID、role とともに台帳へ記録する。同一 role の再開時は既存ハンドルを使い、起動器が返した実効ハンドルと再開結果を保存する。
 - 同じハンドルを再利用するのは、同じ root・engagement・role の再開に成功した場合だけとする。role 間でハンドルを共有せず、Reviewer と Respondent の独立したコンテキストを維持する。
 - Advisor は Reviewer／Respondent の一方ではなく、中立の助言者である。出力は出所付きの助言として扱い、Reviewer／Respondent の双方が評価するまで指摘状態や承認を変更しない。
@@ -123,9 +123,10 @@ Agent を継続利用する場合、調整者は engagement と epoch を確定�
 
 Agent を継続利用する場合は、次も台帳へ記録する。
 
-- `engagement_id`、root ID、role ごとの継続ハンドル、dispatch の順序
+- `engagement_id`、root ID、`attempt_id`、role ごとの継続ハンドル、dispatch の順序
 - target identity manifest、epoch identity、再利用した状態、今回再検証した状態
 - 再開結果、失敗理由、渡した台帳版、対象 epoch の再検証結果
+- dispatch前、各roleの応答を正本へ反映した直後、各childの共同最終記録を確定した直後のcheckpoint。各checkpointには `unit_id`、ledger version／hash、active role／turn、finding状態、次のrole、累積見積り、未完了位置を含める。
 - `scount` を使用した場合は、request ID、target／epoch、取得範囲、packet の取得元・版または source hash・確認方法・未取得証拠・不確実性、観測できた実効モデル・推論予算、root の現物照合結果を記録する。runtime が返せない値は不明として残す。
 
 ## 逐次検証
@@ -139,7 +140,7 @@ Agent を継続利用する場合は、次も台帳へ記録する。
 3. Reviewerが対象を独立に検証し、候補指摘を根拠とともに返す。調整者が固定IDを割り当てて台帳へ記録する。
 4. Respondentが対象と台帳の現在状態を読み、各指摘について同意、部分同意、不同意、または追加証拠要求を返す。調整者が台帳を更新する。
 5. Reviewerが更新後の現在状態と反証を読み、指摘の維持、限定、修正、撤回を返す。
-6. 新しい証拠、反例、仕様根拠、または命題の限定がある限り、RespondentとReviewerを交互に実行する。各ターン後に必ず台帳を保存してから次を開始する。
+6. 新しい証拠、反例、仕様根拠、または命題の限定がある限り、RespondentとReviewerを交互に実行する。調整者が応答を正本台帳へ反映し、更新後の `ledger_version` と `ledger_hash` を付けて永続保存した時点でcheckpointを確定し、その後に次のroleを開始する。最後の検証可能なcheckpointより後の部分応答、approval、finding更新、child結果は採用しない。
 7. 争点が十分に絞れたら、調整者が共同最終記録を作り、版番号または内容hashを付ける。ReviewerとRespondentへ順番に同じ版を提示し、それぞれに「自分と相手の立場を正確に表しているか」を確認させる。承認には対象となる版番号またはhashを記録する。
 8. どちらかが不正確だと答えた場合、変更すべき箇所と正確な代替文を返させ、台帳を更新して版番号またはhashを変更する。内容が変わった時点で、その記録に対する双方の旧承認を無効化して再確認する。結論を変えるよう圧力をかけない。
 
@@ -226,6 +227,14 @@ Agent を継続利用する場合は、次も台帳へ記録する。
 - 固定トークン数を分割開始条件にはしないが、各 dispatch は実効モデルの context／output 上限、ユーザーが予算を指定した場合の予算、その他の既知の実行制約へ収まる場合だけ許可する。ユーザーが予算を指定していないことだけで全レビューを `BLOCKED` にしてはならない。
 - 見積りに必要な範囲、出力上限、実効上限、または確認可能な残予算を根拠付きで確定できない場合、既知の unit が上限へ収まらない場合は、unit または dependency closure を縮小して再計画する。縮小できない場合は既存の `NEEDS_EVIDENCE` または `BLOCKED` の扱いに従い、dispatch を確定してはならない。新しい gate status を追加してはならない。
 - 通常運用では実行後の実トークン計測を必須にしない。Phase E の paired cost comparison を実施する場合だけ、比較に必要な実測を記録する。事前見積りは枠の消費を保証するものではなく、分割・縮小・順序変更の判断材料である。
-- context compaction、dependency closure の拡張、新しい boundary edge、見積り超過、credit failure の後は、既消費・既dispatch分を累積から除外せず再計算する。credit failureでは部分応答を完了結果として採用せず、失敗記録、台帳 snapshot、新しい縮小計画、新しい attempt identity を固定してから同じ role を再実行する。新しい計画なしに次の role・unitを起動したり、同条件で retry したりしてはならない。
+- context compaction、dependency closure の拡張、新しい boundary edge、見積り超過、credit failure の後は、既消費・既dispatch分を累積から除外せず再計算する。判定用のroundtrip数とrole execution数もattempt変更でリセットしない。credit failureでは部分応答を完了結果として採用せず、失敗記録、台帳 snapshot、新しい縮小計画、新しい attempt identity を固定してから同じ role を再実行する。credit failureしたdispatchも既dispatchとして記録し、安全に縮小できない、または実効上限・残予算を確認できない場合は既存の `NEEDS_EVIDENCE` または `BLOCKED` へ移す。新しい計画なしに次の role・unitを起動したり、同条件で retry したりしてはならない。
+
+### クレジット切れからの再開
+
+- credit failureを検知したら現在のattemptを凍結し、失敗理由、最後のcheckpoint、未完了のrole／unit、累積消費、未checkpointの応答を台帳へ記録する。クレジット回復と再開可能性が実行環境で確認できるまでdispatchを開始しない。再開できない場合は既存の `NEEDS_EVIDENCE` または `BLOCKED` として停止し、新しいgate statusを作らない。
+- 再開前にtarget identity、epoch、台帳の整合性、実効context／output上限、残予算を再検証し、縮小後のdispatch計画と新しい `attempt_id` を固定する。新しいattemptを作っても、全期間累積、既dispatch分、判定用カウンタをゼロへ戻さない。
+- 同じtarget／epoch、unit scope identity、content hash、必要なedge coverage、Reviewer／Respondent双方が承認した同一のshared final record hashが揃う完了済みchildだけを再利用できる。再利用しても親のcoverage、統合、親双方の承認を省略してはならない。
+- activeだったroleは最後の確定checkpointから再実行する。未checkpointの部分応答から候補やfinding IDを復元せず、再実行後の完全な応答で同じ命題が返った場合は既存の固定IDへ照合し、既存候補なら新IDを発行しない。台帳にない候補は、再実行後の完全な応答として初めて採否を判定する。
+- 同じroleのhandleは、同じroot／engagement／roleについてruntimeが再開成功を明示した場合だけ再利用し、そうでなければ新しい独立contextへ台帳を渡す。target、artifact、モデル、role、推論予算、permission、sandbox、routing、tool設定などepoch identityが変わった場合は、旧approval、packet、finding状態を自動移送せず、新しいepochで再検証する。
 
 この節を適用した場合でも、既存の `gate_status`、共有最終記録、approval、epoch の規則を優先する。手動 coordinator がこの節を実行した事実だけから、runtime が全 dispatch 経路を監視・拒否したとは主張してはならない。
