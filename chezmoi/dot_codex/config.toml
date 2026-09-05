@@ -81,6 +81,9 @@ network_proxy = true
 [features.multi_agent_v2]
 enabled = true
 
+[features.context_management]
+experimental_mode = true
+
 [permissions.default-permissions]
 extends = ":workspace"
 
