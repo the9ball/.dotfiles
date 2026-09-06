@@ -186,7 +186,11 @@ chezmoi --source "$HOME/.dotfiles" verify
 - `prek`のGit hook設定
 - `~/.agents`、`~/.claude/skills`、`~/.claude/agents`の共有リンク作成（Windowsではジャンクション）
 
-Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）も導入され、`codex`コマンドがPATHから使える状態になります。`codex-remote/start-codex-remote.sh`は、WSL側の`codex`を使いながら`CODEX_HOME=/mnt/c/Users/syasui/.codex-personal`を参照する前提です。
+Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）も導入され、`codex`コマンドがPATHから使える状態になります。
+
+WSLのCodex Remote Controlは、`codex-wsl/start-codex-wsl.sh`からWSL側の`codex`を起動し、`CODEX_HOME=$HOME/.codex-remote`を使います。
+
+Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、OS固有の設定を分けてWSL側の`~/.codex-remote/AGENTS.md`を使うため、現在は別ホームを採用しています。
 
 Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初回実行時に導入します。スクリプトの内容が変わった場合や前回の実行に失敗した場合を除き、通常の`chezmoi apply`では不足分の再導入を行いません。
 

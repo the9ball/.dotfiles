@@ -27,7 +27,11 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 Windows x64ではAWS CLIとaws-vaultがaquaの対象外になるため、wingetで導入します。
 Linux/macOSではwingetを実行せず、AWS系も含めてaquaで導入します。
 
-WSLで`codex-remote/start-codex-remote.sh`を使う前提として、WSL側の`codex`はこのセットアップで導入されます。個人用の`CODEX_HOME`は`/mnt/c/Users/syasui/.codex-personal`を利用します。
+WSL側のCodex Remote Controlは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)の手順で導入します。
+
+WSL側の`CODEX_HOME`は`$HOME/.codex-remote`に分けます。
+
+Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、現在のWindows設定にはWSLで解釈できないパスが含まれるため、WSL固有の`AGENTS.md`を置ける別ホームを使います。
 
 以後、コミット時に`.pre-commit-config.yaml`のgitleaksフックが実行されます。
 
