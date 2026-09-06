@@ -4,6 +4,9 @@
 #
 # バージョンは自動更新されない。このリポジトリでRenovateなどのbotは動いておらず、
 # GitHub上のリモートも受け皿にすぎないため、折を見て手動で更新する。
+# openai/codexもAquaで管理する。更新時は`aqua update codex`で宣言を更新し、
+# 差分を確認してコミットした後に`aqua install`を実行する。
+# Aqua管理のcodexには`codex update`を使用しない。
 # `aqua update` は更新が有効なパッケージを最新へ上げてしまうので、kubectl(クラスタとの
 # バージョンスキュー)とpinact(メジャー跨ぎ)は個別に判断すること。
 # checksum:

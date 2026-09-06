@@ -186,9 +186,13 @@ chezmoi --source "$HOME/.dotfiles" verify
 - `prek`のGit hook設定
 - `~/.agents`、`~/.claude/skills`、`~/.claude/agents`の共有リンク作成（Windowsではジャンクション）
 
-Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）も導入され、`codex`コマンドがPATHから使える状態になります。
+Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）もAquaで導入され、`codex`コマンドがPATHから使える状態になります。
+Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yaml`を更新し、差分を確認してコミットした後に`aqua install`を実行します。
+このCLIには`codex update`を使用しません。
 
-WSLのCodex Remote Controlは、`codex-wsl/start-codex-wsl.sh`からWSL側の`codex`を起動し、`CODEX_HOME=$HOME/.codex-remote`を使います。
+WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
+standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
+`.codex-remote`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
 
 Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、OS固有の設定を分けてWSL側の`~/.codex-remote/AGENTS.md`を使うため、現在は別ホームを採用しています。
 
