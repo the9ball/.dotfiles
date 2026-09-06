@@ -36,6 +36,7 @@ WSLランチャーは、`$HOME/.codex-remote`のstandalone実体を明示して`
 ### 前提
 
 - WindowsにWSL2がインストールされている。
+- `wsl.exe`の既定ディストリビューションがセットアップ対象と一致している（複数のディストリビューションを使う場合）。
 - リポジトリがWindows側の`C:\Users\<ユーザー名>\.dotfiles`に配置されている。
 - WSLから`$HOME/.dotfiles`がリポジトリを参照できる。
 - WSLで`aqua`コマンドを実行できる。
@@ -120,10 +121,10 @@ Get-ScheduledTaskInfo -TaskName 'Codex Remote Control' |
 WSL側でRemote Controlのプロセスを確認します。
 
 ~~~sh
-pgrep -af 'codex remote-control start'
+pgrep -af '[c]odex app-server --remote-control'
 ~~~
 
-`LastTaskResult`が`0`であり、WSL側にRemote Controlプロセスが残っていれば、手動起動の確認は完了です。
+`LastTaskResult`が`0`であり、出力された実行パスが`$HOME/.codex-remote/`配下で、WSL側にRemote Controlプロセスが残っていれば、手動起動の確認は完了です。
 
 ## トラブルシューティング
 
@@ -136,6 +137,18 @@ WSLランチャーは`$HOME/.codex-remote/packages/standalone/current/codex`を�
 
 タスクのアクションが`codex-wsl/start-codex-wsl.bat`を指していることを確認します。
 その後、WSLでstandalone実体の`--version`と`login status`を確認します。
+
+### 別のWSLディストリビューションが起動する
+
+ランチャーは`wsl.exe`の既定ディストリビューションを使います。
+セットアップ対象が既定でない場合は、PowerShellで対象名を確認してから既定値を変更します。
+
+~~~powershell
+wsl.exe --list --verbose
+wsl.exe --set-default Ubuntu-24.04
+~~~
+
+`Ubuntu-24.04`は、セットアップ対象のディストリビューション名に置き換えます。
 
 ### Windows側の設定をWSLから読んでしまう
 

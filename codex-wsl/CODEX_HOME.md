@@ -29,9 +29,14 @@ cd "$HOME/.dotfiles"
 export AQUA_GLOBAL_CONFIG="$HOME/.dotfiles/aqua.yaml"
 export PATH="$HOME/.local/share/aquaproj-aqua/bin:$PATH"
 export CODEX_HOME="$HOME/.codex-remote"
-export CODEX_NON_INTERACTIVE=1
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
-unset CODEX_NON_INTERACTIVE
+mkdir -p "$CODEX_HOME"
+(
+    export CODEX_INSTALL_DIR="$CODEX_HOME/bin"
+    # インストーラーが起動スクリプトへPATHを追記しないよう、実行中だけ追加する。
+    export PATH="$PATH:$CODEX_INSTALL_DIR"
+    curl -fsSL https://chatgpt.com/codex/install.sh | sh
+)
+hash -r 2>/dev/null || true
 
 export CODEX_STANDALONE="$CODEX_HOME/packages/standalone/current/codex"
 test -x "$CODEX_STANDALONE"
@@ -40,6 +45,35 @@ test -x "$CODEX_STANDALONE"
 
 `aqua install`は通常のCodex CLIを導入しますが、Remote Control用のstandalone実体は導入しません。
 この手順のインストーラーは、`$CODEX_HOME/packages/standalone/current/codex`にstandalone実体を配置します。
+`CODEX_INSTALL_DIR`は専用ホーム内へ一時的に向け、インストール中だけPATHへ追加します。
+そのため、standalone用のbinディレクトリを通常のPATHへ永続追加しません。
+
+## 既存のstandaloneリンクを移行する
+
+以前のインストールで`~/.local/bin/codex`がstandalone実体へのシンボリックリンクになっている場合は、Aquaの通常CLIより先に解決されます。
+対象が専用ホームのstandalone配下であることを確認してから、次のコマンドでリンクだけを削除します。
+
+~~~sh
+export CODEX_HOME="$HOME/.codex-remote"
+old_codex="$HOME/.local/bin/codex"
+if [ -L "$old_codex" ]; then
+    old_target="$(readlink -f "$old_codex")"
+    case "$old_target" in
+        "$CODEX_HOME/packages/standalone/"*)
+            rm "$old_codex"
+            ;;
+    esac
+fi
+hash -r 2>/dev/null || true
+~~~
+
+通常のCodex CLIがAquaのproxyを指すことを確認します。
+
+~~~sh
+export PATH="$HOME/.local/share/aquaproj-aqua/bin:$PATH"
+hash -r 2>/dev/null || true
+test "$(command -v codex)" = "$HOME/.local/share/aquaproj-aqua/bin/codex"
+~~~
 
 ## standalone版を更新する
 
@@ -47,9 +81,13 @@ standalone版の更新も、同じインストーラーを実行します。
 
 ~~~sh
 export CODEX_HOME="$HOME/.codex-remote"
-export CODEX_NON_INTERACTIVE=1
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
-unset CODEX_NON_INTERACTIVE
+mkdir -p "$CODEX_HOME"
+(
+    export CODEX_INSTALL_DIR="$CODEX_HOME/bin"
+    # インストーラーが起動スクリプトへPATHを追記しないよう、実行中だけ追加する。
+    export PATH="$PATH:$CODEX_INSTALL_DIR"
+    curl -fsSL https://chatgpt.com/codex/install.sh | sh
+)
 
 "$CODEX_HOME/packages/standalone/current/codex" --version
 ~~~
