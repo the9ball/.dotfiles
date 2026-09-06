@@ -31,6 +31,9 @@ Windowsランチャーはタスクスケジューラから呼び出され、WSL�
 WSLランチャーは、`$HOME/.codex-wsl`のstandalone実体を明示して`codex remote-control start`を実行します。
 通常CLIのAqua管理とRemote Controlのstandalone管理を分離するため、ランチャーから裸の`codex`コマンドは呼び出しません。
 
+Windows側CodexからWSL側の通常CLIを一回だけ非対話で実行する場合は、[`wsl-codex-exec` Skill](../.agents/skills/wsl-codex-exec/SKILL.md)を明示的に使用します。
+これはログオン時に常駐するRemote Controlランチャーとは別の経路です。
+
 ## WSL基盤を確認する
 
 ### 前提

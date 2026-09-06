@@ -1,0 +1,7 @@
+interface:
+  display_name: "WSL Codex exec"
+  short_description: "Run one explicit Codex exec in WSL"
+  default_prompt: "Use $wsl-codex-exec to run this request once in the configured WSL Codex environment."
+
+policy:
+  allow_implicit_invocation: false

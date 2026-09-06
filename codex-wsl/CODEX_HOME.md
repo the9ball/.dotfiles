@@ -20,6 +20,10 @@ Windows側の`CODEX_HOME`（通常は`C:\Users\<ユーザー名>\.codex-personal
 この分離はアカウントを分けるためではありません。
 Windows側とWSL側で同じChatGPTアカウントを使用できます。
 
+この専用ホームを使ってWindows側Codexから一回の依頼を実行する場合は、[`wsl-codex-exec` Skill](../.agents/skills/wsl-codex-exec/SKILL.md)を明示的に使用します。
+Skillのラッパーはこの文書の`CODEX_HOME`と、`SETUP.md`のAqua設定を前提にしています。
+これらの値を変更した場合は、Skillのラッパーとこの文書を同じ変更で更新してください。
+
 ## standalone版を導入する
 
 WSLの対話型シェルで次を実行します。
