@@ -1,0 +1,188 @@
+# リポジトリ直下で管理する共有 Git 設定です。
+# chezmoi がホームへ配置する ~/.gitconfig は、このファイルを読み込むランチャーです。
+
+[core]
+	editor = vim
+	autocrlf = false
+	eol = lf
+	filemode = false
+	quotepath = false
+	ignorecase = false
+	longpaths = true
+[grep]
+	lineNumber = true
+	column = true
+	extendedRegexp = true
+[difftool]
+	prompt = false
+[rerere]
+	enabled = true
+[color]
+	ui = auto
+[merge]
+	tool = vimdiff
+	ff = false
+[diff]
+	tool = vimdiff
+	ignoreSubmodules = dirty
+[branch]
+	autoSetupMerge = false
+[push]
+	default = upstream
+	useForceIfIncludes = true
+[rebase]
+	autostash = true
+	autosquash = true
+[pull]
+	rebase = true
+[fetch]
+	prune = true
+	showForcedUpdates = true
+[log]
+	date = iso-local
+[advice]
+	skippedCherryPicks = false
+	detachedHead = false
+[alias]
+	git = !git
+	current-branch = rev-parse --abbrev-ref HEAD
+	co = checkout
+	sw = switch
+	swb = sw --no-track -b
+	cor = !sh -c 'git rebase $0 $1' `git current-branch`
+	cof = checkout --ignore-skip-worktree --force
+	find-date = !sh -c 'git log -1 --merges --until=\"$0\"'
+	checkout-date = !sh -c 'git checkout `git log -1 --merges --until=\"$0\" --format=%H`'
+	ci = commit -v
+	cm = commit -m
+	ca = commit --amend -v
+	cia = commit --amend -C HEAD
+	cinv = commit --no-verify
+	cf = commit --fixup
+	au = add -u :/
+	aup = add -up
+	ra = reset :/
+	up = svn rebase
+	st = status -sb
+	stt = !git st | grep '^\\S\\S'
+	mg = merge --no-ff
+	lg = log --oneline --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+	lgs = log --stat --summary --decorate
+	mt = mergetool
+	dt = difftool
+	d = diff --ignore-space-at-eol --ignore-space-change --word-diff
+	df = diff --ignore-space-at-eol --ignore-space-change
+	conflict-files = diff --name-only --diff-filter=U
+	rb = rebase --ignore-whitespace --rebase-merges
+	ri = rebase -i # --rebase-merges を入れるとfixup!コメントの効果が出なくなる
+	pr = pull --rebase --prune
+	fp = fetch --prune --all
+	svncheck = svn dcommit --dry-run
+	cp = cherry-pick
+	hist = log --oneline --graph --date=short --decorate
+	last = log --stat --summary --decorate -n1
+	hlast = log --pretty=format:'%H' -n1
+	topic = !sh -c 'git co --no-track -b $1 origin/master' dummy
+	tree = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cD) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	tr = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cD) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	tl = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cD) %C(bold blue)<%an>%Creset' --abbrev-commit --date=local
+	t = log --first-parent --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cD) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	tt = log --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cD) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative -n10
+	full-log = log -p
+	onto = rebase --rebase-merges --onto
+	ontoi = rebase -i --onto
+	ontomaster = rebase --rebase-merges --onto origin/master master
+	ontoimaster = rebase -i --onto origin/master master
+	rename = !git branch -m $(git current-branch)
+	remove = !sh -c 'git rebase --rebase-merges --onto $1^ $1' dummy
+	submoduleupdate = !git submodule foreach "git checkout --force origin/HEAD" && git commit --all --message='update submodule'
+	sub = submodule
+	sup = submodule update --init --recursive
+	subsync = !git submodule update --init --recursive && git submodule sync --recursive
+	list = ls-files
+	commitdiff = show-branch --topo-order
+	branchjunction = show-branch --merge-base
+	pushu = push --set-upstream origin HEAD
+	cage = update-index --skip-worktree
+	bail = update-index --no-skip-worktree
+	neglect = update-index --assume-unchanged
+	esteem = update-index --no-assume-unchanged
+	skiplist = !echo ':tips: S(skip-worktree):cage,bail / h(assume-unchanged):neglect,esteem' && git ls-files -v | grep -v \"^H\"
+	gp = grep -n -i
+	gpm = !sh -c \"git log --grep=\"$1\" --pretty=format:\\\"%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cd) %C(bold blue)<%an>%Creset\\\" --abbrev-commit --date=local\" dummy
+	firstcommit = commit --allow-empty -m'First Commit'
+	rm-merged-branches = !git branch --merged | grep -v \\* | grep -v "+" | xargs -I % git branch -d %
+	branch-authors = for-each-ref --format='%(authorname)%09%(refname:short)' --sort authorname
+	contains-branches = branch -a --contains
+	#↓うまく動かないので諦め…
+	#contains-commit = !sh -c "git merge-base --is-ancestor $2 $1 && echo 'contains' || echo 'not contains'" _
+	contains-commit = merge-base --is-ancestor
+	untrack = !git config --unset branch.`git current-branch`.remote
+	revertmerge = revert -m 1
+	showfile = !sh -c 'git show $0:$1'
+	findguid = !sh -c 'cat `find . ! -name \"*.meta\" -name \"$0*\"`.meta | grep guid | cut -d\" \" -f2 | xargs git grep -nH'
+	findstring = !sh -c 'echo $0 | native2ascii -encoding UTF-8 | sed \"s/^.*$/\\\"&\\\"/\" | sed \"s/\\\\\\\\/\\\\\\\\\\\\\\\\/g\" | xargs git grep -inH'
+	findfile = !sh -c 'git ls-files | grep $0'
+	aliaslist = "!loop=; for k in `git config --get-regexp '^alias.' | sed -e 's/^alias.\\([^ ]*\\) .*$/\\1/g' | sort`; do printf ${k}; loop=${loop}1; if test ${#loop} -lt 5; then printf '\t'; else echo ''; loop=; fi; done"
+	aliasdoc = "!sh -c \"git config --get-regexp '^alias.' | grep '^alias.$1\\ ' | sed -e 's/^alias.$1/$1 =/g'\""
+	alias = "!sh -c \"if test -z $1; then git aliaslist; else git aliasdoc $1; fi\""
+	checkout-head = !git checkout `git rev-parse HEAD`
+	btemp = branch --force temp
+	resetconflict = "!git status -sb | grep '^[^ ?#][^ ?#]' | cut -d' ' -f2 | xargs git reset"
+	grepblame = !sh -c 'git grep -anH $1 | sed -e \"s/^\\(.*\\):\\([0-9]*\\):.*$/git blame -fL \\2,\\2 -- \\1/\" | xargs -n6 -i sh -c \"eval {}\" | grep $2' dummy
+	reporoot = rev-parse --show-toplevel
+	superreporoot = rev-parse --show-superproject-working-tree
+	findconfig = !sh -cx \"git config --show-origin --show-scope --get-regexp \\\".*${1}.*\\\"\"
+
+######################################################################################
+# メモ
+# git remote prune origin リモートで削除されたリモートブランチをローカルでも削除する
+# git symbolic-ref alias_name origin ブランチの更にエイリアス
+######################################################################################
+# 特定のファイルを無視する.
+# 作業ツリー上でもリポジトリ上でもファイル更新があって、それをマージするとき
+#
+# assume-unchanged : 作業ツリー上の更新は破棄されて、リポジトリの内容が取り込まれます。
+# skip-worktree : 作業ツリー上の更新は保持されて、リポジトリの内容は取り込まれません。
+# 作業ツリー上でファイル更新があって、git reset --hard を実行したとき
+#
+# assume-unchanged : 作業ツリー上の更新は破棄されます。
+# skip-worktree : 作業ツリー上の更新は保持されます。
+#
+# git update-index --assume-unchanged [ファイル名]
+# git update-index --no-assume-unchanged [ファイル名]
+# git update-index --skip-worktree [ファイル名]
+# git update-index --no-skip-worktree [ファイル名]
+# git ls-files -v
+######################################################################################
+# もしものためのコマンド
+#
+# コミッターとかを強制的に書き換える。
+# git filter-branch --commit-filter '
+# GIT_AUTHOR_NAME="Shaula"
+# GIT_AUTHOR_EMAIL="the9ball@gmail.com"
+# GIT_COMMITTER_NAME="Shaula"
+# GIT_COMMITTER_EMAIL="the9ball@gmail.com"
+# git commit-tree "$@"
+# ' HEAD
+# あとは git push -f とかなんとか
+# git filter-branch --commit-filter '
+#     if [ "$GIT_COMMITTER_NAME" = "<Old Name>" ];
+#     then
+#         GIT_COMMITTER_NAME="<New Name>";
+#         GIT_AUTHOR_NAME="<New Name>";
+#         GIT_COMMITTER_EMAIL="<New Email>";
+#         GIT_AUTHOR_EMAIL="<New Email>";
+#         git commit-tree "$@";
+#     else
+#         git commit-tree "$@";
+#     fi' origin/master..HEAD
+######################################################################################
+# push時のpush先を変更する設定
+# [url "git@github.com:"]
+#	pushInsteadOf = git://github.com/
+
+# Machine-local overrides. Keep credentials and host-specific paths there.
+[include]
+	path = ~/.gitconfig.local
+######################################################################################
