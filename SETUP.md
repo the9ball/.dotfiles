@@ -15,7 +15,7 @@ chezmoi apply
 - `uv python install` と `uv pip install`: Python 3.13とPyYAML 6.0.3を導入
 - Windows: `winget import`: `winget.json`に定義されたAWS CLIとaws-vaultを導入
 - `prek install`: Git hookを設定
-- `.bashrc`と`.gitconfig`をホームディレクトリへ配置
+- `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置（Bash の2ファイルはリポジトリ直下の実設定を読み込むランチャー）
 - `.agents`と`.claude/skills`の共有リンクを作成
 
 Linux/macOS/WSLでは、`aqua install`でCodex CLI（`openai/codex`）も導入され、`codex`コマンドがPATHから使える状態になります。
