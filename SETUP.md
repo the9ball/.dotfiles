@@ -40,9 +40,9 @@ Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、winget�
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
 WSL版Codex Remote Controlを使う場合は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
-`.codex-remote`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
+`.codex-wsl`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
 
-WSL側の`CODEX_HOME`は`$HOME/.codex-remote`に分けます。
+WSL側の`CODEX_HOME`は`$HOME/.codex-wsl`に分けます。
 Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、現在のWindows設定にはWSLで解釈できないパスが含まれています。
 WSL固有の`AGENTS.md`を置き、Windows側の設定、ログ、セッション、SQLite状態を分離するため、現在は別ホームを使います。
 

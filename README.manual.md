@@ -192,9 +192,9 @@ Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yam
 
 WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
-`.codex-remote`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
+`.codex-wsl`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
 
-Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、OS固有の設定を分けてWSL側の`~/.codex-remote/AGENTS.md`を使うため、現在は別ホームを採用しています。
+Windows側の`CODEX_HOME`と同じ物理ディレクトリを参照することは可能ですが、OS固有の設定を分けてWSL側の`~/.codex-wsl/AGENTS.md`を使うため、現在は別ホームを採用しています。
 
 Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初回実行時に導入します。スクリプトの内容が変わった場合や前回の実行に失敗した場合を除き、通常の`chezmoi apply`では不足分の再導入を行いません。
 

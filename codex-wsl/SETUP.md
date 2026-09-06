@@ -4,18 +4,18 @@
 Windowsのログオン時にWSL2上のCodex Remote Controlを起動する場合だけ実行します。
 
 通常のCodex CLIはAquaで管理します。
-`.codex-remote`の作成、standalone版の導入、ログイン、Windowsの自動起動登録は、`chezmoi apply`では実行しません。
+`.codex-wsl`の作成、standalone版の導入、ログイン、Windowsの自動起動登録は、`chezmoi apply`では実行しません。
 
 ## 実行順
 
 次の順番で実行します。
 
 1. WSL側でAqua管理の通常CLIを確認する。
-2. [`CODEX_HOME.md`](CODEX_HOME.md)で`~/.codex-remote`をセットアップする。
+2. [`CODEX_HOME.md`](CODEX_HOME.md)で`~/.codex-wsl`をセットアップする。
 3. この文書の手順でWindowsの自動起動を登録する。
 
-`.codex-remote`の手順は、WSL基盤の確認を前提にします。
-Windowsの自動起動登録は、`.codex-remote`のログイン確認後に行います。
+`.codex-wsl`の手順は、WSL基盤の確認を前提にします。
+Windowsの自動起動登録は、`.codex-wsl`のログイン確認後に行います。
 
 ## 構成
 
@@ -23,12 +23,12 @@ Windowsの自動起動登録は、`.codex-remote`のログイン確認後に行�
 - **Windowsランチャー**：`codex-wsl/start-codex-wsl.bat`
 - **WSLランチャー**：`codex-wsl/start-codex-wsl.sh`
 - **通常CLI**：Aquaが管理する`codex`
-- **Remote Control実体**：`$HOME/.codex-remote/packages/standalone/current/codex`
+- **Remote Control実体**：`$HOME/.codex-wsl/packages/standalone/current/codex`
 - **Windows側のCODEX_HOME**：`C:\Users\<ユーザー名>\.codex-personal`
 
 Windowsランチャーはタスクスケジューラから呼び出され、WSLランチャーに処理を渡します。
 
-WSLランチャーは、`$HOME/.codex-remote`のstandalone実体を明示して`codex remote-control start`を実行します。
+WSLランチャーは、`$HOME/.codex-wsl`のstandalone実体を明示して`codex remote-control start`を実行します。
 通常CLIのAqua管理とRemote Controlのstandalone管理を分離するため、ランチャーから裸の`codex`コマンドは呼び出しません。
 
 ## WSL基盤を確認する
@@ -76,7 +76,7 @@ codex --version
 `aqua update`は`aqua.yaml`を更新し、`aqua install`はその宣言を実体へ反映します。
 Aqua管理の`codex`に対して`codex update`を実行すると、Aquaの宣言と実体の管理が分かれるため、この手順では使用しません。
 
-## `.codex-remote`をセットアップする
+## `.codex-wsl`をセットアップする
 
 通常CLIの確認が完了したら、[`CODEX_HOME.md`](CODEX_HOME.md)を実行します。
 
@@ -88,7 +88,7 @@ Aqua管理の`codex`に対して`codex update`を実行すると、Aquaの宣言
 次の条件を満たしてから登録します。
 
 - WSL基盤の確認が完了している。
-- `$HOME/.codex-remote/packages/standalone/current/codex`が存在する。
+- `$HOME/.codex-wsl/packages/standalone/current/codex`が存在する。
 - standalone実体で`login status`が`Logged in using ChatGPT`を返す。
 
 PowerShellで次を実行します。
@@ -124,13 +124,13 @@ WSL側でRemote Controlのプロセスを確認します。
 pgrep -af '[c]odex app-server --remote-control'
 ~~~
 
-`LastTaskResult`が`0`であり、出力された実行パスが`$HOME/.codex-remote/`配下で、WSL側にRemote Controlプロセスが残っていれば、手動起動の確認は完了です。
+`LastTaskResult`が`0`であり、出力された実行パスが`$HOME/.codex-wsl/`配下で、WSL側にRemote Controlプロセスが残っていれば、手動起動の確認は完了です。
 
 ## トラブルシューティング
 
 ### standalone実体が見つからない
 
-WSLランチャーは`$HOME/.codex-remote/packages/standalone/current/codex`を直接実行します。
+WSLランチャーは`$HOME/.codex-wsl/packages/standalone/current/codex`を直接実行します。
 ファイルが存在しない場合は、[`CODEX_HOME.md`](CODEX_HOME.md)のstandalone導入手順を再実行します。
 
 ### Windowsタスクが失敗する
@@ -152,7 +152,7 @@ wsl.exe --set-default Ubuntu-24.04
 
 ### Windows側の設定をWSLから読んでしまう
 
-WSLランチャーが`CODEX_HOME=$HOME/.codex-remote`を設定していることを確認します。
+WSLランチャーが`CODEX_HOME=$HOME/.codex-wsl`を設定していることを確認します。
 Windows側の`~/.codex-personal`をWSLの`CODEX_HOME`に指定すると、Windows専用パスを含む設定の読み込みで失敗する可能性があります。
 
 ### `AQUA_GLOBAL_CONFIG`が別の設定を指す

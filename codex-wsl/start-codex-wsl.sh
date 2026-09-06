@@ -5,7 +5,7 @@ set -euo pipefail
 # configuration contains Windows-only paths that the Linux binary cannot parse.
 export AQUA_GLOBAL_CONFIG="${HOME}/.dotfiles/aqua.yaml"
 export PATH="${HOME}/.local/share/aquaproj-aqua/bin:${PATH}"
-export CODEX_HOME="${HOME}/.codex-remote"
+export CODEX_HOME="${HOME}/.codex-wsl"
 
 # Remote Control is owned by the standalone installation in CODEX_HOME. The
 # regular `codex` command is Aqua-managed and has a separate update lifecycle.
