@@ -1,98 +1,96 @@
-# WSL版 Codex Remote Control のセットアップ
+# WSL版Codex Remote Controlのセットアップ
 
-この手順は、Windows のログオン時に WSL2 上の Codex Remote Control を起動する構成を再現する。
+この構成は任意です。
+Windowsのログオン時にWSL2上のCodex Remote Controlを起動する場合だけ実行します。
+
+通常のCodex CLIはAquaで管理します。
+`.codex-remote`の作成、standalone版の導入、ログイン、Windowsの自動起動登録は、`chezmoi apply`では実行しません。
+
+## 実行順
+
+次の順番で実行します。
+
+1. WSL側でAqua管理の通常CLIを確認する。
+2. [`CODEX_HOME.md`](CODEX_HOME.md)で`~/.codex-remote`をセットアップする。
+3. この文書の手順でWindowsの自動起動を登録する。
+
+`.codex-remote`の手順は、WSL基盤の確認を前提にします。
+Windowsの自動起動登録は、`.codex-remote`のログイン確認後に行います。
 
 ## 構成
 
-- **起動ディレクトリ**：codex-wsl
-- **Windows ランチャー**：codex-wsl/start-codex-wsl.bat
-- **WSL ランチャー**：codex-wsl/start-codex-wsl.sh
-- **WSL 用 CODEX_HOME**：~/.codex-remote
-- **Windows 用 CODEX_HOME**：C:\Users\<ユーザー名>\.codex-personal
+- **リポジトリ**：`$HOME/.dotfiles`
+- **Windowsランチャー**：`codex-wsl/start-codex-wsl.bat`
+- **WSLランチャー**：`codex-wsl/start-codex-wsl.sh`
+- **通常CLI**：Aquaが管理する`codex`
+- **Remote Control実体**：`$HOME/.codex-remote/packages/standalone/current/codex`
+- **Windows側のCODEX_HOME**：`C:\Users\<ユーザー名>\.codex-personal`
 
-Windows ランチャーはタスク スケジューラから呼び出され、WSL ランチャーに処理を渡す。
+Windowsランチャーはタスクスケジューラから呼び出され、WSLランチャーに処理を渡します。
 
-WSL ランチャーは、Aqua の設定ファイル、Aqua のバイナリディレクトリ、WSL 用 CODEX_HOME を明示してから codex remote-control start を実行する。
+WSLランチャーは、`$HOME/.codex-remote`のstandalone実体を明示して`codex remote-control start`を実行します。
+通常CLIのAqua管理とRemote Controlのstandalone管理を分離するため、ランチャーから裸の`codex`コマンドは呼び出しません。
 
-~/.codex-remote/AGENTS.md は、WSL 側だけに適用するグローバル指示を置く場所として使う。
+## WSL基盤を確認する
 
-Codex は CODEX_HOME 内の AGENTS.md をグローバル指示として読み込むため、Windows 側の指示と WSL 側の指示を分離できる。
+### 前提
 
-## CODEX_HOME を分ける理由
+- WindowsにWSL2がインストールされている。
+- リポジトリがWindows側の`C:\Users\<ユーザー名>\.dotfiles`に配置されている。
+- WSLから`$HOME/.dotfiles`がリポジトリを参照できる。
+- WSLで`aqua`コマンドを実行できる。
 
-Windows と WSL が同じ物理ディレクトリを参照すること自体は可能である。
+### Aqua管理の通常CLIを導入する
 
-ただし、現在の Windows 用 config.toml には Windows 専用のファイルパス、通知コマンド、MCP サーバーの実行ファイルが含まれている。
-
-その config.toml を WSL の Linux 版 Codex から読むと、Windows パスを解釈できず codex login status の前に失敗する。
-
-そのため、Windows 側の設定を ~/.codex-personal に残し、WSL 側は ~/.codex-remote に分けている。
-
-この分離はアカウントを分けるためではない。
-
-両方の auth.json に保存された account_id は一致しており、同じ ChatGPT アカウントを使用している。
-
-共有方式へ変更する場合は、設定を OS 非依存に整理したうえで、config、認証情報、ログ、セッション、スキル、パッケージ情報、SQLite 状態を共有することになる。
-
-Windows と WSL の同時アクセスを避ける運用まで確認できるまでは、現在の分離を維持する。
-
-## 前提
-
-- Windows に WSL2 がインストールされている。
-- リポジトリが Windows 側の C:\Users\<ユーザー名>\.dotfiles に配置されている。
-- WSL から $HOME/.dotfiles がリポジトリを参照できる。
-- WSL で aqua コマンドを実行できる。
-
-## WSL 側の CLI を導入する
-
-WSL の対話型シェルで次を実行する。
+WSLの対話型シェルで次を実行します。
 
 ~~~sh
 cd "$HOME/.dotfiles"
 export AQUA_GLOBAL_CONFIG="$HOME/.dotfiles/aqua.yaml"
 export PATH="$HOME/.local/share/aquaproj-aqua/bin:$PATH"
 aqua install --config "$AQUA_GLOBAL_CONFIG"
+command -v aqua
+command -v codex
 codex --version
 ~~~
 
-AQUA_GLOBAL_CONFIG はシェルのプロファイルに依存せず、この手順とランチャーで明示する。
+`aqua install`は`aqua.yaml`に宣言したバージョンを適用します。
+通常の`chezmoi apply`でも同じAqua管理CLIを導入します。
 
-リポジトリの aqua.yaml には openai/codex が定義されている。
+### 通常CLIを更新する
 
-Remote Control は、Aqua 版の CLI だけでなく CODEX_HOME 配下のスタンドアロン実体も必要とする。
-
-同じ WSL シェルで次を実行する。
-
-~~~sh
-export CODEX_HOME="$HOME/.codex-remote"
-export CODEX_NON_INTERACTIVE=1
-curl -fsSL https://chatgpt.com/codex/install.sh | sh
-~~~
-
-インストーラーは CODEX_HOME/packages/standalone/current/codex にスタンドアロン実体を配置する。
-
-この手順では通常の codex コマンドを Aqua 版に固定し、Remote Control が必要とするスタンドアロン実体だけを CODEX_HOME から参照する。
-
-## WSL 側の Codex にログインする
-
-同じ WSL シェルで、次を実行する。
+Aqua管理のCodex CLIは、Aquaの宣言を更新してからインストールします。
 
 ~~~sh
+cd "$HOME/.dotfiles"
 export AQUA_GLOBAL_CONFIG="$HOME/.dotfiles/aqua.yaml"
 export PATH="$HOME/.local/share/aquaproj-aqua/bin:$PATH"
-export CODEX_HOME="$HOME/.codex-remote"
-mkdir -p "$CODEX_HOME"
-codex login --device-auth
-codex login status
+aqua --config "$AQUA_GLOBAL_CONFIG" update codex
+git diff -- aqua.yaml
+# 差分を確認してコミットした後に実行する
+aqua install --config "$AQUA_GLOBAL_CONFIG"
+codex --version
 ~~~
 
-ログイン操作は対話型シェルで行い、認証情報をスクリプトやリポジトリへ保存しない。
+`aqua update`は`aqua.yaml`を更新し、`aqua install`はその宣言を実体へ反映します。
+Aqua管理の`codex`に対して`codex update`を実行すると、Aquaの宣言と実体の管理が分かれるため、この手順では使用しません。
 
-codex login status が Logged in using ChatGPT を返せば、WSL 側の認証状態を確認できる。
+## `.codex-remote`をセットアップする
 
-## Windows のタスク スケジューラへ登録する
+通常CLIの確認が完了したら、[`CODEX_HOME.md`](CODEX_HOME.md)を実行します。
 
-PowerShell で次を実行する。
+この手順では、standalone版、専用`CODEX_HOME`、ログイン、WSL固有の`AGENTS.md`を扱います。
+認証情報とruntimeデータはリポジトリへ保存しません。
+
+## Windowsの自動起動を登録する
+
+次の条件を満たしてから登録します。
+
+- WSL基盤の確認が完了している。
+- `$HOME/.codex-remote/packages/standalone/current/codex`が存在する。
+- standalone実体で`login status`が`Logged in using ChatGPT`を返す。
+
+PowerShellで次を実行します。
 
 ~~~powershell
 $dotfiles = Join-Path $HOME '.dotfiles'
@@ -105,13 +103,11 @@ $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoi
 Register-ScheduledTask -TaskName 'Codex Remote Control' -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description 'Starts codex-wsl from the dotfiles repository when this user logs on.' -Force
 ~~~
 
-この登録は現在ユーザーの対話型ログオン時に実行し、バッテリー使用時も停止しない。
-
-同名タスクが存在する場合は、ランチャーのパスを新しい codex-wsl のパスへ更新する。
+同名タスクが存在する場合は、`-Force`でアクションを`codex-wsl`のランチャーへ更新します。
 
 ## 起動を確認する
 
-PowerShell でタスクの状態を確認し、手動起動する。
+PowerShellでタスクの状態を確認し、手動起動します。
 
 ~~~powershell
 Get-ScheduledTask -TaskName 'Codex Remote Control' |
@@ -121,57 +117,40 @@ Get-ScheduledTaskInfo -TaskName 'Codex Remote Control' |
   Select-Object LastRunTime, LastTaskResult
 ~~~
 
-WSL 側で長時間実行中の Codex プロセスを確認する。
+WSL側でRemote Controlのプロセスを確認します。
 
 ~~~sh
 pgrep -af 'codex remote-control start'
 ~~~
 
-LastTaskResult が 0 であり、WSL 側に remote-control プロセスが残っていれば、手動起動の確認は完了である。
-
-## WSL 固有の指示を追加する
-
-WSL 側だけの制約や運用規則は ~/.codex-remote/AGENTS.md に記述する。
-
-~~~sh
-cat > "$HOME/.codex-remote/AGENTS.md" <<'EOF'
-# WSL 用 Codex 指示
-
-ここに WSL 固有の指示を書く。
-EOF
-~~~
-
-認証情報やアクセストークンは AGENTS.md に書かない。
+`LastTaskResult`が`0`であり、WSL側にRemote Controlプロセスが残っていれば、手動起動の確認は完了です。
 
 ## トラブルシューティング
 
-### aqua が node を見つけられない
+### standalone実体が見つからない
 
-シェルの PATH に Aqua のバイナリディレクトリが入っているか確認する。
+WSLランチャーは`$HOME/.codex-remote/packages/standalone/current/codex`を直接実行します。
+ファイルが存在しない場合は、[`CODEX_HOME.md`](CODEX_HOME.md)のstandalone導入手順を再実行します。
 
-~~~sh
-export PATH="$HOME/.local/share/aquaproj-aqua/bin:$PATH"
-command -v node
-command -v codex
-~~~
+### Windowsタスクが失敗する
 
-cmd.exe ではシングルクォートが引用符として扱われないため、ログイン操作は対話型 WSL シェルか PowerShell から行う。
+タスクのアクションが`codex-wsl/start-codex-wsl.bat`を指していることを確認します。
+その後、WSLでstandalone実体の`--version`と`login status`を確認します。
 
-### Windows 側の設定を WSL から読んでしまう
+### Windows側の設定をWSLから読んでしまう
 
-WSL ランチャーが CODEX_HOME="$HOME/.codex-remote" を設定しているか確認する。
+WSLランチャーが`CODEX_HOME=$HOME/.codex-remote`を設定していることを確認します。
+Windows側の`~/.codex-personal`をWSLの`CODEX_HOME`に指定すると、Windows専用パスを含む設定の読み込みで失敗する可能性があります。
 
-Windows 側の ~/.codex-personal を WSL の CODEX_HOME に指定すると、Windows 専用パスを含む config.toml の読み込みで失敗する。
+### `AQUA_GLOBAL_CONFIG`が別の設定を指す
 
-### ログイン状態を確認する
-
-~~~sh
-export CODEX_HOME="$HOME/.codex-remote"
-codex login status
-~~~
+WSLランチャーは`$HOME/.dotfiles/aqua.yaml`を明示します。
+対話型シェルでAquaの操作を行う場合も、この文書の`export`を先に実行します。
 
 ## 参照
 
-- [Codex の環境変数](https://learn.chatgpt.com/docs/config-file/environment-variables)
-- [AGENTS.md の探索規則](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
-- [Codex の WSL ガイド](https://learn.chatgpt.com/docs/windows/wsl)
+- [`CODEX_HOME.md`](CODEX_HOME.md)
+- [OpenAI公式のCodex CLI手順](https://learn.chatgpt.com/docs/codex/cli)
+- [Codexの環境変数](https://learn.chatgpt.com/docs/config-file/environment-variables)
+- [AGENTS.mdの探索規則](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+- [CodexのWSLガイド](https://learn.chatgpt.com/docs/windows/wsl)
