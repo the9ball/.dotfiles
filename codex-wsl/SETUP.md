@@ -36,6 +36,33 @@ Windows側CodexからWSL側の通常CLIを一回だけ非対話で実行する�
 
 ## WSL基盤を確認する
 
+### WSL interopを確認する
+
+WSLからWindows側の`powershell.exe`や`schtasks.exe`を実行するには、WSL interopが有効でなければなりません。
+interopはこの文書のセットアップ前提であり、Remote Controlの起動や操作ごとに修復するものではありません。
+
+現在のruntime登録は`/proc/sys/fs/binfmt_misc/WSLInterop`で確認します。
+次の確認を通常のWSLターミナルで実行してください。
+
+~~~sh
+test -r /proc/sys/fs/binfmt_misc/WSLInterop
+sed -n '1,20p' /proc/sys/fs/binfmt_misc/WSLInterop
+command -v powershell.exe
+command -v schtasks.exe
+powershell.exe -NoLogo -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+schtasks.exe /Query /FO LIST
+~~~
+
+`WSLInterop`には、`enabled`、`interpreter /init`、`flags: PF`、`magic 4d5a`が含まれることを期待します。
+PowerShellの確認ではバージョンが表示され、`schtasks.exe`の確認では終了コード0になることを確認します。
+`/etc/wsl.conf`の`[interop] enabled=true`は起動時設定であり、現在のruntime登録そのものを証明しません。
+`appendWindowsPath=true`はWindows実行ファイルをPATHから解決するための設定であり、binfmt登録とは別の設定です。
+
+制限付きCodexサンドボックスでは、`WSLInterop`が見えず、Windowsコマンドが実行環境の制約によって失敗する場合があります。
+その場合はinterop未設定と断定せず、通常のWSLターミナルで同じ確認をやり直してください。
+`Exec format error`が発生する場合は、interopのruntime登録を復旧してからRemote Controlを操作します。
+この文書の確認手順と、将来のRemote Control関連Skillは、interopの自動修復やWSLの再起動を行いません。
+
 ### 前提
 
 - WindowsにWSL2がインストールされている。
