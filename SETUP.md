@@ -18,12 +18,16 @@ chezmoi apply
 - `.bashrc`と`.gitconfig`をホームディレクトリへ配置
 - `.agents`と`.claude/skills`の共有リンクを作成
 
+Linux/macOS/WSLでは、`aqua install`でCodex CLI（`openai/codex`）も導入され、`codex`コマンドがPATHから使える状態になります。
+
 Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初回実行時に導入します。スクリプトの内容が変わった場合や前回の実行に失敗した場合を除き、通常の`chezmoi apply`では不足分の再導入を行いません。
 
 ## Windows
 
 Windows x64ではAWS CLIとaws-vaultがaquaの対象外になるため、wingetで導入します。
 Linux/macOSではwingetを実行せず、AWS系も含めてaquaで導入します。
+
+WSLで`codex-remote/start-codex-remote.sh`を使う前提として、WSL側の`codex`はこのセットアップで導入されます。個人用の`CODEX_HOME`は`/mnt/c/Users/syasui/.codex-personal`を利用します。
 
 以後、コミット時に`.pre-commit-config.yaml`のgitleaksフックが実行されます。
 

@@ -16,6 +16,7 @@ registries:
   ref: v4.556.0
 packages:
 - name: nodejs/node@v26.8.1
+- name: openai/codex@rust-v0.153.4
 - name: ahmetb/kubectx@v0.11.0
 - name: ahmetb/kubectx/kubens@v0.11.0
 - name: kubernetes/kubectl@v1.36.2
