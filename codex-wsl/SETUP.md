@@ -63,6 +63,33 @@ PowerShellの確認ではバージョンが表示され、`schtasks.exe`の確�
 `Exec format error`が発生する場合は、interopのruntime登録を復旧してからRemote Controlを操作します。
 この文書の確認手順と、将来のRemote Control関連Skillは、interopの自動修復やWSLの再起動を行いません。
 
+### Gitのリモート認証を確認する
+
+WSLからGitリモートへ接続するときは、Windows側のGit Credential Managerを使えます。
+資格情報をWSLへコピーせず、Windowsの資格情報ストアをWSLのGitから呼び出します。
+
+WSL側の`~/.gitconfig.local`に、次の設定を追加します。
+このファイルはマシン固有の設定であり、リポジトリにはコミットしません。
+
+~~~ini
+[credential]
+	helper = !sh -c 'exec \"/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe\" \"$@\"' -
+~~~
+
+`git-credential-manager.exe`のインストール場所が異なる場合は、`helper`のパスを実際の場所に置き換えます。
+設定値に含まれる二重引用符は、パスの空白を保つためにバックスラッシュでエスケープしています。
+
+設定を読み込んだことと、Credential Managerから資格情報を取得できることを次のコマンドで確認します。
+出力には資格情報を含めないため、標準出力を破棄します。
+
+~~~sh
+git config --includes --get credential.helper
+printf 'protocol=https\nhost=github.com\n\n' | git credential fill >/dev/null
+~~~
+
+`git credential fill`が失敗する場合は、通常のWSLターミナルでWSL interopとWindows実行ファイルのパスを確認します。
+`gh`の`hosts.yml`やアクセストークンをWSLへコピーする手順は採用しません。
+
 ### 前提
 
 - WindowsにWSL2がインストールされている。
