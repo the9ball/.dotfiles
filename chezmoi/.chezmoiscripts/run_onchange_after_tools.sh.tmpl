@@ -6,12 +6,35 @@ set -eu
 # pre-commit-config.yaml checksum: {{ include "../.pre-commit-config.yaml" | sha256sum }}
 
 repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
-aqua install --config "$repo_root/aqua.yaml"
+aqua_root_directory="${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}"
+case ":$PATH:" in
+    *":$aqua_root_directory/bin:"*) ;;
+    *) PATH="$aqua_root_directory/bin:$PATH"; export PATH ;;
+esac
+resolve_aqua_command() {
+    command_name=$1
+    managed_command="$aqua_root_directory/bin/$command_name"
+    if [ -x "$managed_command" ]; then
+        printf '%s\n' "$managed_command"
+        return
+    fi
+    if command -v "$command_name" >/dev/null 2>&1; then
+        command -v "$command_name"
+        return
+    fi
+    echo "required aqua-managed command is not available: $command_name" >&2
+    exit 1
+}
+
+aqua_command=$(resolve_aqua_command aqua)
+"$aqua_command" install --config "$repo_root/aqua.yaml"
+uv_command=$(resolve_aqua_command uv)
+prek_command=$(resolve_aqua_command prek)
 
 # Install the Python runtime and validator dependency used by the bundled
 # skill tooling. uv manages the interpreter so the setup is reproducible.
-uv python install 3.13 --default
-python_interpreter=$(uv python find 3.13 --managed-python --system --resolve-links)
+"$uv_command" python install 3.13 --default
+python_interpreter=$("$uv_command" python find 3.13 --managed-python --system --resolve-links)
 if [ -z "$python_interpreter" ]; then
     echo "uv Python interpreter could not be resolved" >&2
     exit 1
@@ -24,8 +47,8 @@ else
     installed_pyyaml_version=''
 fi
 if [ "$installed_pyyaml_version" != "$expected_pyyaml_version" ]; then
-    uv pip install --break-system-packages --python "$python_interpreter" "PyYAML==$expected_pyyaml_version"
+    "$uv_command" pip install --break-system-packages --python "$python_interpreter" "PyYAML==$expected_pyyaml_version"
 fi
 
-prek install --overwrite
+"$prek_command" install --overwrite
 {{- end }}
