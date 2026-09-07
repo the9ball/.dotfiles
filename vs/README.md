@@ -22,9 +22,13 @@
 1. 対象PCに Visual Studio 2026 をインストールします。
 2. IDEで公式の Import and Export Settings 機能を開き、VS2026.vssettingsをインポートします。
 3. Visual Studio Installer の対象インスタンスで公式の構成エクスポート（Export configuration）を実行し、生成した .vsconfig を `vs/VS2026.vsconfig` として保存します。
-4. extensions.md のMarketplace拡張機能をインストールします。
-5. extensions.md に記載した VSColorOutput64 のユーザー設定は、内容を確認してから必要な場合だけ手動で配置します。VsVimは既存の `~/.vim` 管理対象です。
-6. ValueChangedGenerator はMarketplaceでの出所を確認できていないため、元のVSIXまたはソースを別途確保してから手動インストールします。
+4. リポジトリルートで `powershell -ExecutionPolicy Bypass -File .\vs\install-extensions.ps1 -DryRun` を実行し、対象とスキップ理由を確認します。
+5. 問題がなければ `powershell -ExecutionPolicy Bypass -File .\vs\install-extensions.ps1` を実行します。`vswhere.exe` で検出したVS2026（18.x）だけを対象に、`vs/extensions.psd1` の自動化対象をユーザー単位でインストールします。
+6. 自動化対象外のMarketplace拡張機能は、対応版が公開された場合に `vs/extensions.psd1` の分類を更新してから再確認します。
+7. extensions.md に記載した VSColorOutput64 のユーザー設定は、内容を確認してから必要な場合だけ手動で配置します。VsVimは既存の `~/.vim` 管理対象です。
+8. ValueChangedGenerator はMarketplaceでの出所を確認できていないため、元のVSIXまたはソースを別途確保してから手動インストールします。
+
+`vs/extensions.md` は取得時点の記録として維持し、実行用の分類・Marketplace ID・取得方法は `vs/extensions.psd1` に分離しています。
 
 ## 対象外
 
