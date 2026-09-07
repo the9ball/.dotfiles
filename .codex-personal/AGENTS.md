@@ -1,5 +1,11 @@
 # Codexの読み取り範囲
 
+## Canonical source
+
+このファイルは、Windowsホスト側の `~/.codex-personal/AGENTS.md` に対応する、リポジトリ管理分の canonical source です。
+Windowsホスト側のファイルはホスト固有の指示を含む独立した通常ファイルで、自動的には同期されません。
+リポジトリ管理分を変更する場合は、可能な限りこの `~/.dotfiles/.codex-personal/AGENTS.md` 側を変更し、内容を確認したうえで `~/.codex-personal/AGENTS.md` に手動で反映してください。
+
 ここでいう「Codex登録ルート」とは、Codexが管理するグローバル状態ファイル
 `.codex-global-state.json` の登録情報に記録されたディレクトリをいう。
 Gitリポジトリ、現在の作業ディレクトリ、ワークスペース、または環境変数上の

@@ -128,6 +128,10 @@ if [ ! -e "$CODEX_HOME/AGENTS.md" ]; then
     cat > "$CODEX_HOME/AGENTS.md" <<'EOF'
 # WSL用Codex指示
 
+この `AGENTS.md` は初回作成時に使う雛形です。雛形の canonical source は `~/.dotfiles/codex-wsl/CODEX_HOME.md` の「WSL固有の指示を追加する」節にあります。
+生成後の `~/.codex-wsl/AGENTS.md` は独立した通常ファイルで、雛形の変更は自動反映されません。
+変更する場合は、可能な限り `~/.dotfiles/codex-wsl/CODEX_HOME.md` 側の雛形を変更し、必要に応じて現行の `~/.codex-wsl/AGENTS.md` に手動で反映してください。
+
 ここにWSL固有の指示を書く。
 EOF
 else

@@ -1,3 +1,9 @@
+## Canonical source
+
+このディレクトリの実体（canonical source）は `~/.dotfiles/.agents/` にあります。
+このディレクトリは `~/.agents/` から symlink / junction 経由で利用されています。
+変更する場合は、可能な限り `~/.dotfiles/.agents/` 側の実体を変更してください。
+
 ## Local project instructions
 
 - When an `AGENTS.md` exists in a directory, read `AGENTS.local.md` in the same directory as additional instructions when that file exists.
