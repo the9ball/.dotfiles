@@ -31,6 +31,8 @@
 
 `vs/extensions.md` は取得時点の記録として維持し、実行用の分類・Marketplace ID・取得方法・Visual Studio世代ごとの対象範囲は `vs/extensions.psd1` に分離しています。実行用インベントリでは `DefaultProfile` と `Profiles` が正規の設定です。
 
+自動化対象には `InstallScope` と `VersionPolicy` を記録できます。`Any` は同じVSインスタンスのMachine/Userいずれかに同一拡張機能があればスキップし、`LatestCompatible` はMarketplaceの互換版より古い場合だけ更新を試みます。インストール済み状態の列挙に失敗した場合は安全側で停止します。状態を確認済みとみなして続行する必要がある場合だけ、明示的に `-AllowUnknownInstalledState` を指定してください。
+
 ## 対象外
 
 拡張機能のバイナリ、ユーザープロファイルの AppData 全体、Visual Studioのレジストリ、認証情報、commit、pushはこの成果物に含めていません。

@@ -48,6 +48,8 @@
             DownloadUrl = 'https://marketplace.visualstudio.com/items?itemName=ivson4.ParallelBuildsMonitor-18691'
             AcquireMethod = 'MarketplaceGalleryApi'
             AutoInstall = $true
+            InstallScope = 'Any'
+            VersionPolicy = 'LatestCompatible'
             Classification = 'Marketplace'
             CurrentVersion = '1.11'
             MarketplaceTargets = '[15.0,17.0); [17.0,19.0)'

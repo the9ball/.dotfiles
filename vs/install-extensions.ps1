@@ -33,6 +33,10 @@
     Allow the selected profile to target every matching instance.  Without this
     switch, multiple matching instances require -InstanceId for safety.
 
+.PARAMETER AllowUnknownInstalledState
+    Continue after installed-extension enumeration fails.  This weakens the
+    fail-closed idempotency check and should only be used deliberately.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\vs\install-extensions.ps1
 
@@ -48,7 +52,8 @@ param(
     [string]$ManifestPath,
     [string]$Profile,
     [string]$InstanceId,
-    [switch]$AllInstances
+    [switch]$AllInstances,
+    [switch]$AllowUnknownInstalledState
 )
 
 Set-StrictMode -Version 2.0
@@ -251,7 +256,11 @@ function Get-InstalledVsixManifests {
     foreach ($instance in @($Instances)) {
         $machineRoot = Join-Path $instance.InstallationPath 'Common7\IDE\Extensions'
         if (Test-Path -LiteralPath $machineRoot -PathType Container) {
-            $roots += $machineRoot
+            $roots += [PSCustomObject]@{
+                Root       = $machineRoot
+                InstanceId = [string]$instance.InstanceId
+                Scope      = 'Machine'
+            }
         }
     }
 
@@ -259,19 +268,38 @@ function Get-InstalledVsixManifests {
     if (-not [string]::IsNullOrWhiteSpace($localAppData)) {
         $userVisualStudioRoot = Join-Path $localAppData 'Microsoft\VisualStudio'
         if (Test-Path -LiteralPath $userVisualStudioRoot -PathType Container) {
-            $userConfigurations = @(Get-ChildItem -LiteralPath $userVisualStudioRoot -Directory -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -match '^18\.' })
+            $userConfigurations = @(Get-ChildItem -LiteralPath $userVisualStudioRoot -Directory -Force -ErrorAction Stop)
             foreach ($configuration in $userConfigurations) {
+                $configurationInstanceId = $null
+                if ($configuration.Name -match '^[0-9]+\.[0-9]+_(?<instanceId>.+)$') {
+                    $configurationInstanceId = $Matches['instanceId']
+                }
+                if ([string]::IsNullOrWhiteSpace($configurationInstanceId)) {
+                    continue
+                }
+
+                $matchingInstances = @($Instances | Where-Object { $_.InstanceId -ieq $configurationInstanceId })
+                if ($matchingInstances.Count -eq 0) {
+                    continue
+                }
+
                 $userRoot = Join-Path $configuration.FullName 'Extensions'
                 if (Test-Path -LiteralPath $userRoot -PathType Container) {
-                    $roots += $userRoot
+                    foreach ($matchingInstance in $matchingInstances) {
+                        $roots += [PSCustomObject]@{
+                            Root       = $userRoot
+                            InstanceId = [string]$matchingInstance.InstanceId
+                            Scope      = 'User'
+                        }
+                    }
                 }
             }
         }
     }
 
     $manifests = @()
-    foreach ($root in @($roots | Select-Object -Unique)) {
-        $files = @(Get-ChildItem -LiteralPath $root -Recurse -Filter 'extension.vsixmanifest' -File -Force -ErrorAction SilentlyContinue)
+    foreach ($root in @($roots | Sort-Object -Property InstanceId, Scope, Root -Unique)) {
+        $files = @(Get-ChildItem -LiteralPath $root.Root -Recurse -Filter 'extension.vsixmanifest' -File -Force -ErrorAction Stop)
         foreach ($file in $files) {
             try {
                 [xml]$xml = Get-Content -LiteralPath $file.FullName -Raw
@@ -295,6 +323,8 @@ function Get-InstalledVsixManifests {
                     Version             = [string](Get-PropertyValue -Object $identity -Name 'Version' -Default '')
                     DisplayName         = [string](Get-PropertyValue -Object $xml.PackageManifest.Metadata -Name 'DisplayName' -Default '')
                     Path                = $file.FullName
+                    InstanceId          = [string]$root.InstanceId
+                    Scope               = [string]$root.Scope
                     InstallationTargets = $targets
                 }
             }
@@ -305,19 +335,21 @@ function Get-InstalledVsixManifests {
         }
     }
 
-    return @($manifests | Sort-Object -Property Id, Path -Unique)
+    return @($manifests | Sort-Object -Property InstanceId, Scope, Id, Path -Unique)
 }
 
 function Find-InstalledExtension {
     param(
         [object]$Entry,
-        [object[]]$Manifests
+        [object[]]$Manifests,
+        [string]$InstanceId
     )
 
     $entryId = [string](Get-PropertyValue -Object $Entry -Name 'VsixId' -Default '')
     $entryName = [string](Get-PropertyValue -Object $Entry -Name 'Name' -Default '')
 
-    foreach ($manifest in @($Manifests)) {
+    $instanceManifests = @($Manifests | Where-Object { $_.InstanceId -ieq $InstanceId })
+    foreach ($manifest in @($instanceManifests | Sort-Object -Property @{ Expression = { if ($_.Scope -ieq 'User') { 0 } else { 1 } } }, Path)) {
         $manifestId = [string](Get-PropertyValue -Object $manifest -Name 'Id' -Default '')
         if (-not [string]::IsNullOrWhiteSpace($entryId) -and $manifestId -ieq $entryId) {
             return $manifest
@@ -360,6 +392,140 @@ function Test-VersionRangeIncludes {
     $lowerOk = if ($match.Groups['open'].Value -eq '[') { $Version -ge $lower } else { $Version -gt $lower }
     $upperOk = if ($match.Groups['close'].Value -eq ']') { $Version -le $upper } else { $Version -lt $upper }
     return [bool]($lowerOk -and $upperOk)
+}
+
+function ConvertTo-VersionOrNull {
+    param([string]$Text)
+
+    if ([string]::IsNullOrWhiteSpace($Text)) {
+        return $null
+    }
+
+    try {
+        return [version]$Text
+    }
+    catch {
+        return $null
+    }
+}
+
+function Test-VersionRangeSyntax {
+    param([string]$Range)
+
+    if ([string]::IsNullOrWhiteSpace($Range)) {
+        return $false
+    }
+
+    $match = [regex]::Match($Range.Trim(), '^(?<open>[\[\(])\s*(?<lower>[0-9]+(?:\.[0-9]+){0,3})\s*,\s*(?<upper>[0-9]+(?:\.[0-9]+){0,3})\s*(?<close>[\]\)])$')
+    if (-not $match.Success) {
+        return $false
+    }
+
+    try {
+        $lower = [version]$match.Groups['lower'].Value
+        $upper = [version]$match.Groups['upper'].Value
+    }
+    catch {
+        return $false
+    }
+
+    return [bool]($lower -lt $upper)
+}
+
+function Assert-Inventory {
+    param(
+        [object]$Inventory,
+        [object]$Profile,
+        [string]$ProfileName,
+        [object[]]$Entries
+    )
+
+    $errors = New-Object 'System.Collections.Generic.List[string]'
+    $schemaVersion = Get-PropertyValue -Object $Inventory -Name 'SchemaVersion' -Default $null
+    $hasProfiles = $null -ne (Get-PropertyValue -Object $Inventory -Name 'Profiles' -Default $null)
+    $minimumSchemaVersion = if ($hasProfiles) { 2 } else { 1 }
+    try {
+        if ($null -eq $schemaVersion -or [int]$schemaVersion -lt $minimumSchemaVersion) {
+            $errors.Add("SchemaVersion must be $minimumSchemaVersion or newer for this inventory shape.")
+        }
+    }
+    catch {
+        $errors.Add('SchemaVersion must be an integer.')
+    }
+
+    $targetVersionRange = [string](Get-PropertyValue -Object $Profile -Name 'TargetVersionRange' -Default '')
+    if (-not (Test-VersionRangeSyntax -Range $targetVersionRange)) {
+        $errors.Add("Profile '$ProfileName' has an invalid TargetVersionRange: '$targetVersionRange'.")
+    }
+
+    if ($Entries.Count -eq 0) {
+        $errors.Add("Profile '$ProfileName' has no extension records.")
+    }
+
+    $seenVsixIds = @{}
+    foreach ($entry in @($Entries)) {
+        $name = [string](Get-PropertyValue -Object $entry -Name 'Name' -Default '')
+        $vsixId = [string](Get-PropertyValue -Object $entry -Name 'VsixId' -Default '')
+        if ([string]::IsNullOrWhiteSpace($name)) {
+            $errors.Add('An extension record has no Name.')
+        }
+        if ([string]::IsNullOrWhiteSpace($vsixId)) {
+            $errors.Add("Extension '$name' has no VsixId.")
+        }
+        elseif ($seenVsixIds.ContainsKey($vsixId)) {
+            $errors.Add("Duplicate VsixId '$vsixId' in profile '$ProfileName'.")
+        }
+        else {
+            $seenVsixIds[$vsixId] = $true
+        }
+
+        $autoInstall = [bool](Get-PropertyValue -Object $entry -Name 'AutoInstall' -Default $false)
+        if (-not $autoInstall) {
+            continue
+        }
+
+        $marketplaceId = [string](Get-PropertyValue -Object $entry -Name 'MarketplaceId' -Default '')
+        if ([string]::IsNullOrWhiteSpace($marketplaceId) -or $marketplaceId -notmatch '\.') {
+            $errors.Add("Auto-install extension '$name' must have a MarketplaceId containing a publisher separator.")
+        }
+
+        $installScope = [string](Get-PropertyValue -Object $entry -Name 'InstallScope' -Default 'User')
+        if ($installScope -notin @('User', 'Machine', 'Any')) {
+            $errors.Add("Extension '$name' has unsupported InstallScope '$installScope'.")
+        }
+
+        $versionPolicy = [string](Get-PropertyValue -Object $entry -Name 'VersionPolicy' -Default 'LatestCompatible')
+        if ($versionPolicy -notin @('LatestCompatible', 'Manual')) {
+            $errors.Add("Extension '$name' has unsupported VersionPolicy '$versionPolicy'.")
+        }
+    }
+
+    if ($errors.Count -gt 0) {
+        throw ('Extension inventory validation failed: ' + ($errors -join ' '))
+    }
+}
+
+function Test-VisualStudioInstanceRunning {
+    param([object]$Instance)
+
+    $productPath = [string](Get-PropertyValue -Object $Instance -Name 'ProductPath' -Default '')
+    if ([string]::IsNullOrWhiteSpace($productPath)) {
+        return $false
+    }
+
+    foreach ($process in @(Get-Process -Name 'devenv' -ErrorAction SilentlyContinue)) {
+        try {
+            if ($process.Path -ieq $productPath) {
+                return $true
+            }
+        }
+        catch {
+            # An inaccessible unrelated process is not attributed to this
+            # instance; VSIXInstaller will report any actual lock failure.
+        }
+    }
+
+    return $false
 }
 
 function Test-OfficialMarketplaceAssetUrl {
@@ -675,6 +841,7 @@ catch {
 }
 
 $profiles = Get-PropertyValue -Object $inventory -Name 'Profiles' -Default $null
+$selectedProfile = $null
 if ($null -ne $profiles) {
     $selectedProfileName = $Profile
     if ([string]::IsNullOrWhiteSpace($selectedProfileName)) {
@@ -710,6 +877,15 @@ if ($entries.Count -eq 0) {
 }
 if ([string]::IsNullOrWhiteSpace($script:TargetVersionRange)) {
     Write-Error "The selected profile '$($script:ProfileName)' has no TargetVersionRange."
+    exit 1
+}
+
+$profileForValidation = if ($null -ne $selectedProfile) { $selectedProfile } else { $inventory }
+try {
+    Assert-Inventory -Inventory $inventory -Profile $profileForValidation -ProfileName $script:ProfileName -Entries $entries
+}
+catch {
+    Write-Error $_.Exception.Message
     exit 1
 }
 
@@ -789,18 +965,22 @@ try {
     Write-Info ("Found {0} installed VSIX manifest(s) while checking idempotency." -f $installedManifests.Count)
 }
 catch {
-    Write-WarnMessage "Could not enumerate installed VSIX manifests; VSIXInstaller will still be called when needed: $($_.Exception.Message)"
+    if (-not $AllowUnknownInstalledState) {
+        foreach ($entry in $autoEntries) {
+            Add-Result -Status 'Failed' -Name ([string](Get-PropertyValue -Object $entry -Name 'Name' -Default '(unnamed extension)')) -Instance '' -Reason ("Could not enumerate installed VSIX manifests; refusing to install with unknown state. Use -AllowUnknownInstalledState only when this is intentional. Details: {0}" -f $_.Exception.Message)
+        }
+        Write-Summary
+        exit 1
+    }
+    Write-WarnMessage "Could not enumerate installed VSIX manifests; continuing because -AllowUnknownInstalledState was specified: $($_.Exception.Message)"
 }
 
-$devenvProcesses = @()
-try {
-    $devenvProcesses = @(Get-Process -Name 'devenv' -ErrorAction SilentlyContinue)
-}
-catch {
-    $devenvProcesses = @()
-}
-if ($devenvProcesses.Count -gt 0) {
-    Write-WarnMessage 'A Visual Studio process is running. Install attempts are recorded as failures until Visual Studio is closed; no process is forcefully terminated.'
+$runningInstanceIds = @{}
+foreach ($instance in $instances) {
+    if (Test-VisualStudioInstanceRunning -Instance $instance) {
+        $runningInstanceIds[$instance.InstanceId] = $true
+        Write-WarnMessage ("Visual Studio is running for instance {0}; install attempts for this instance are recorded as failures until it is closed." -f $instance.DisplayName)
+    }
 }
 
 foreach ($entry in $autoEntries) {
@@ -826,13 +1006,24 @@ foreach ($entry in $autoEntries) {
             continue
         }
 
-        $installed = Find-InstalledExtension -Entry $entry -Manifests $installedManifests
-        if ($null -ne $installed) {
-            Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason ("Already installed (identity {0}, version {1})." -f $installed.Id, $installed.Version)
-            continue
+        $installed = Find-InstalledExtension -Entry $entry -Manifests $installedManifests -InstanceId $instance.InstanceId
+        $installScope = [string](Get-PropertyValue -Object $entry -Name 'InstallScope' -Default 'User')
+        $versionPolicy = [string](Get-PropertyValue -Object $entry -Name 'VersionPolicy' -Default 'LatestCompatible')
+        if ($null -ne $installed -and ($installScope -ieq 'Any' -or $installed.Scope -ieq $installScope)) {
+            $installedVersion = ConvertTo-VersionOrNull ([string]$installed.Version)
+            $availableVersion = ConvertTo-VersionOrNull ([string]$marketplace.Version)
+            $needsUpdate = $false
+            if ($versionPolicy -eq 'LatestCompatible' -and $null -ne $installedVersion -and $null -ne $availableVersion) {
+                $needsUpdate = $installedVersion -lt $availableVersion
+            }
+            if (-not $needsUpdate -or $versionPolicy -eq 'Manual') {
+                Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason ("Already installed in {0} scope (identity {1}, version {2})." -f $installed.Scope, $installed.Id, $installed.Version)
+                continue
+            }
+            Write-Info ("{0}: updating {1} from installed version {2} to Marketplace version {3}." -f $entryName, $instance.DisplayName, $installed.Version, $marketplace.Version)
         }
 
-        if ($devenvProcesses.Count -gt 0) {
+        if ($runningInstanceIds.ContainsKey($instance.InstanceId)) {
             Add-Result -Status 'Failed' -Name $entryName -Instance $instance.DisplayName -Reason 'devenv.exe is running; close Visual Studio and rerun the script so the per-user extension can be applied safely.'
             continue
         }
