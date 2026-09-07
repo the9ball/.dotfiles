@@ -71,6 +71,10 @@ network_proxy = true
 
 [features.multi_agent_v2]
 enabled = true
+# Re-check long-running child work every 20 minutes, while retaining a
+# one-hour upper bound for autonomous runs.
+default_wait_timeout_ms = 1_200_000
+max_wait_timeout_ms = 3_600_000
 
 [features.context_management]
 experimental_mode = true
