@@ -17,9 +17,13 @@
 `git`、`chezmoi`、`aqua`を先に用意し、リポジトリを配置してから次を実行します。
 
 ```sh
-chezmoi --source "$HOME/.dotfiles" diff
-chezmoi --source "$HOME/.dotfiles" apply
+# 初回だけ、リポジトリの設定テンプレートからchezmoiの設定を生成する
+chezmoi --source "$HOME/.dotfiles" init
+chezmoi diff
+chezmoi apply
 ```
+
+`chezmoi`の設定は`sourceDir = "~/.dotfiles"`とし、WindowsとWSLで同じホーム相対のソースを解決します。初回の`init`以後は`chezmoi diff`と`chezmoi apply`を引数なしで実行できます。既存環境で設定が古い場合も、リポジトリを明示した初回`init`を実行してから設定を更新してください。
 
 OSごとの前提条件や初回のローカル設定は、[`README.manual.md`](README.manual.md)を参照してください。
 

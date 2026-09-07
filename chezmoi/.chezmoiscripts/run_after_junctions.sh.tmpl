@@ -4,6 +4,14 @@ set -eu
 
 repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
 
+canonical_directory() {
+    directory=$1
+    (
+        cd "$directory"
+        pwd -P
+    )
+}
+
 ensure_link() {
     link=$1
     target=$2
@@ -14,7 +22,7 @@ ensure_link() {
     fi
 
     if [ -L "$link" ]; then
-        if [ "$(readlink "$link")" = "$target" ]; then
+        if [ "$(canonical_directory "$link")" = "$(canonical_directory "$target")" ]; then
             return
         fi
         echo "symlink target mismatch: $link" >&2

@@ -1,6 +1,6 @@
 # 手動セットアップ
 
-新規環境でこのリポジトリを使い始めるときの手順です。通常の更新は、リポジトリのルートで`chezmoi --source "$HOME/.dotfiles" apply`を実行します。
+新規環境でこのリポジトリを使い始めるときの手順です。通常の更新は、リポジトリのルートで`chezmoi apply`を実行します。`chezmoi`の設定は`sourceDir = "~/.dotfiles"`とし、WindowsとWSLで同じホーム相対のソースを解決します。
 
 ## 1. 前提コマンドを用意する
 
@@ -173,9 +173,9 @@ Copy-Item .gitconfig.local.example "$HOME/.gitconfig.local"
 まず適用前の差分を確認し、問題がなければ適用します。
 
 ```sh
-chezmoi --source "$HOME/.dotfiles" diff
-chezmoi --source "$HOME/.dotfiles" apply
-chezmoi --source "$HOME/.dotfiles" verify
+chezmoi diff
+chezmoi apply
+chezmoi verify
 ```
 
 `apply`では、設定ファイルの配置に加えて次の処理が実行されます。
@@ -208,7 +208,7 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 cd "$HOME/.dotfiles"
 git pull --rebase
 git submodule update --init --recursive
-chezmoi --source "$HOME/.dotfiles" apply
+chezmoi apply
 ```
 
 セットアップの詳細な挙動を確認したい場合は、[`SETUP.md`](SETUP.md)と`chezmoi/.chezmoiscripts/`を参照してください。

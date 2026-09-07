@@ -2,6 +2,7 @@
 
 `chezmoi`は設定ファイルの配置と、標準のパッケージ導入を行います。
 通常は`chezmoi apply`だけを実行します。
+設定ファイルの`sourceDir`は`~/.dotfiles`とし、WindowsとWSLでOS固有の絶対パスを共有しません。
 
 WSL版Codex Remote Controlは任意機能です。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、手動手順で行います。
