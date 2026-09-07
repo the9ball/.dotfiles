@@ -40,6 +40,8 @@ alias vi='vim'
 alias :vi='vim'
 alias :e='vim'
 alias pcodex='CODEX_HOME="$HOME/.codex-personal" codex'
+# WSL用ホーム未セットアップ環境でのwcodex実行時エラーは許容する。
+alias wcodex='CODEX_HOME="$HOME/.codex-wsl" codex'
 
 # svn用
 alias svndiff='svn diff -x --ignore-eol-style'

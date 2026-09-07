@@ -1,0 +1,49 @@
+# Stable Codex settings for the default work account.
+#
+# Keep runtime-owned state out of this file. The modify_ template preserves
+# projects, hooks.state, model availability, and other keys written by Codex.
+# Host-specific paths or integrations belong in codex-defaults.toml.local.
+
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+sandbox_mode = "workspace-write"
+service_tier = "default"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
+personality = "pragmatic"
+model_verbosity = "low"
+model_reasoning_summary = "concise"
+default_permissions = "default-permissions"
+
+[agents]
+enabled = true
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+max_concurrent_threads_per_session = 10
+max_depth = 5
+
+[features]
+js_repl = false
+multi_agent = true
+default_mode_request_user_input = true
+network_proxy = true
+
+[features.multi_agent_v2]
+enabled = true
+
+[features.context_management]
+experimental_mode = true
+
+[permissions.default-permissions]
+extends = ":workspace"
+
+[permissions.default-permissions.network]
+enabled = true
+
+[permissions.default-permissions.network.domains]
+"api.github.com" = "allow"
+"github.com" = "allow"
+
+[mcp_servers.datadog]
+url = "https://mcp.datadoghq.com/v1/mcp"
+bearer_token_env_var = "DD_ACCESS_TOKEN"

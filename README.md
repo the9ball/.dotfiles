@@ -46,4 +46,4 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 
 ## ローカル設定と秘密情報
 
-`.bashrc.local.example`と`.gitconfig.local.example`を各環境用にコピーして編集します。`*.local`はGitの追跡対象外ですが、認証情報や秘密情報をコミット・貼り付けしないでください。
+`.bashrc.local.example`、`.gitconfig.local.example`、`chezmoi/.chezmoitemplates/codex-defaults.toml.local.example`を各環境用にコピーして編集します。`*.local`はGitの追跡対象外ですが、認証情報や秘密情報をコミット・貼り付けしないでください。Codexの通常起動は仕事用の`codex`、個人用は`pcodex`、WSL用は`wcodex`です。

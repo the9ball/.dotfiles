@@ -157,6 +157,7 @@ POSIX系のシェルでは次を実行します。
 ```sh
 cp .bashrc.local.example "$HOME/.bashrc.local"
 cp .gitconfig.local.example "$HOME/.gitconfig.local"
+cp chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-defaults.toml.local
 ```
 
 WindowsのPowerShellでは`cp`の代わりに次を実行します。
@@ -164,9 +165,10 @@ WindowsのPowerShellでは`cp`の代わりに次を実行します。
 ```powershell
 Copy-Item .bashrc.local.example "$HOME/.bashrc.local"
 Copy-Item .gitconfig.local.example "$HOME/.gitconfig.local"
+Copy-Item chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-defaults.toml.local
 ```
 
-コピーしたファイルに名前、メールアドレス、マシン固有のPATHなどを設定します。認証情報は保存せず、必要なツールの認証機能を使ってください。
+コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。共有チェックアウトでは`codex-defaults.toml.local`がWindowsとWSLの両方で読まれるため、両方で解釈できる値だけを置き、WSL専用設定は`codex-wsl/`へ分けます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、`codex-defaults.toml.local`には書きません。
 
 ## 4. 差分を確認して適用する
 
@@ -189,6 +191,9 @@ chezmoi verify
 Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）もAquaで導入され、`codex`コマンドがPATHから使える状態になります。
 Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yaml`を更新し、差分を確認してコミットした後に`aqua install`を実行します。
 このCLIには`codex update`を使用しません。
+
+通常の`codex`は`CODEX_HOME`未設定の`~/.codex`を仕事用アカウントとして使います。個人用は`pcodex`、WSL用CLIは`wcodex`を使い、それぞれ`~/.codex-personal`、`~/.codex-wsl`へ`CODEX_HOME`を切り替えます。`wcodex`は全環境へ定義されますが、`~/.codex-wsl`がない場合の実行時エラーは許容し、別ホームへフォールバックしません。
+通常のCodex設定は`modify_`方式で既存の実行時状態を保持し、共有defaultsを上書きします。端末固有の値は`chezmoi/.chezmoitemplates/codex-defaults.toml.local`へ置きます。
 
 WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。

@@ -1,0 +1,23 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+Manage only stable, portable work Codex settings. The existing target config
+is parsed first and overlaid with repository defaults, so Codex-managed
+projects, hook state, model availability state, and unknown keys are kept.
+An optional codex-defaults.toml.local file can add host-specific values.
+auth.json is a separate file and is never read or written here.
+
+*/ -}}
+{{- $config := dict -}}
+{{- $stdin := index .chezmoi "stdin" -}}
+{{- if $stdin -}}
+{{-   $config = fromToml $stdin -}}
+{{- end -}}
+{{- $defaults := fromToml (include ".chezmoitemplates/codex-defaults.toml") -}}
+{{- $localDefaultsPath := printf "%s/.chezmoitemplates/codex-defaults.toml.local" .chezmoi.sourceDir -}}
+{{- if (stat $localDefaultsPath) -}}
+{{-   $local := fromToml (include ".chezmoitemplates/codex-defaults.toml.local") -}}
+{{-   $defaults = mergeOverwrite $defaults $local -}}
+{{- end -}}
+{{- $config = mergeOverwrite $config $defaults -}}
+{{ $config | toToml }}

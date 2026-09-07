@@ -1,0 +1,12 @@
+# Copy this file to codex-defaults.toml.local for host-specific Codex values.
+# The .local file is ignored by Git and merged after codex-defaults.toml.
+# A shared checkout reads this file on both Windows and WSL, so keep values
+# valid on both systems; put WSL-only setup under codex-wsl/ instead.
+# Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
+
+# Example:
+# [permissions.default-permissions.filesystem]
+# "/mnt/d/repository" = "write"
+#
+# [mcp_servers.example]
+# url = "https://example.invalid/mcp"

@@ -36,6 +36,10 @@ chezmoi apply
 Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）もAquaで導入されます。
 これは通常のCLIの導入であり、Remote Control用standalone版の導入やログインは行いません。
 
+通常の`codex`は`CODEX_HOME`を設定せず、標準の`~/.codex`を仕事用アカウントとして使います。`~/.codex/config.toml`はリポジトリのポータブルなdefaultsを`modify_`方式でマージします。Codexが管理するプロジェクト履歴、hook状態、認証、ログ、セッションはリポジトリへ保存しません。
+個人用は`pcodex`（`~/.codex-personal`）、WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
+端末固有のCodex設定は、[`README.manual.md`](README.manual.md)の手順で`chezmoi/.chezmoitemplates/codex-defaults.toml.local`へ置きます。
+
 ### Codex CLIの更新
 
 通常のCodex CLIはAquaで管理します。
