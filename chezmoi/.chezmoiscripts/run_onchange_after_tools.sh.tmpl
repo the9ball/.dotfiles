@@ -7,6 +7,9 @@ set -eu
 
 repo_root=$(dirname '{{ .chezmoi.sourceDir }}')
 aqua_root_directory="${AQUA_ROOT_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/aquaproj-aqua}"
+# chezmoi can inherit a Codex-provided global Aqua config. Keep every command
+# in this setup run on the repository manifest instead.
+export AQUA_GLOBAL_CONFIG="$repo_root/aqua.yaml"
 case ":$PATH:" in
     *":$aqua_root_directory/bin:"*) ;;
     *) PATH="$aqua_root_directory/bin:$PATH"; export PATH ;;
