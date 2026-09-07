@@ -21,8 +21,12 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 `winget` が使えない場合は、[Aquaの公式リリース](https://github.com/aquaproj/aqua/releases)からWindows x64版を取得し、ユーザーの`PATH`にあるディレクトリへ配置してください。
 
 ~~~sh
+# 初回だけ、リポジトリを明示してchezmoiの設定を生成する
+chezmoi --source "$HOME/.dotfiles" init
 chezmoi apply
 ~~~
+
+初回の`init`以後は、リポジトリのルートを明示せず`chezmoi apply`を実行できます。
 
 `chezmoi apply`は、次の処理を実行します。
 

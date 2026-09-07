@@ -1,0 +1,15 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+Keep the chezmoi configuration itself portable between Windows and WSL. Any
+other user-managed options are preserved, while sourceDir remains fixed to the
+home-relative repository path required by this source tree.
+
+*/ -}}
+{{- $config := dict -}}
+{{- $stdin := index .chezmoi "stdin" -}}
+{{- if $stdin -}}
+{{-   $config = fromToml $stdin -}}
+{{- end -}}
+{{- $config = mergeOverwrite $config (dict "sourceDir" "~/.dotfiles") -}}
+{{ $config | toToml }}

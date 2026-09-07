@@ -149,6 +149,13 @@ git submodule update --init --recursive
 ```
 
 すでにclone済みの場合は、`git pull --rebase`と`git submodule update --init --recursive`で更新します。
+初回だけ、リポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
+
+```sh
+chezmoi --source "$HOME/.dotfiles" init
+```
+
+以後は`chezmoi apply`と`chezmoi diff`を引数なしで実行できます。状態確認は常時実行スクリプトを除外して`chezmoi verify --exclude=scripts`を使います。
 
 ## 3. マシン固有の設定を作る
 
@@ -177,8 +184,10 @@ Copy-Item chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.c
 ```sh
 chezmoi diff
 chezmoi apply
-chezmoi verify
+chezmoi verify --exclude=scripts
 ```
+
+`run_after_`や`run_onchange_after_`のスクリプトは適用のたびに実行対象となるため、`chezmoi verify`へ含めると終了コード1になります。スクリプト以外の管理対象を確認する場合は`--exclude=scripts`を指定してください。
 
 `apply`では、設定ファイルの配置に加えて次の処理が実行されます。
 
