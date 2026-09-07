@@ -1,9 +1,11 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
 
-Manage only the rootPaths of the ~/.dotfiles local project in the Windows
-Codex Desktop state. The existing state arrives through .chezmoi.stdin and
-all other runtime-owned keys are returned unchanged.
+Manage only the rootPaths of the local project containing the dotfiles root in
+the Windows Codex Desktop state. Project display names are runtime-owned and
+may vary between Codex versions, so the project is identified by its root
+path. If the project does not exist yet, leave the state unchanged rather than
+creating or rejecting it.
 
 */ -}}
 {{- if not .chezmoi.stdin -}}
@@ -21,44 +23,56 @@ all other runtime-owned keys are returned unchanged.
 {{-   fail "local-projects must be a JSON object" -}}
 {{- end -}}
 
-{{- $projectName := "~/.dotfiles" -}}
+{{- $home := .chezmoi.rawHomeDir -}}
+{{- $dotfilesRoot := printf "%s\\.dotfiles" $home -}}
+{{- $normalizedDotfilesRoot := lower (replace "/" "\\" $dotfilesRoot) -}}
 {{- $projectKey := "" -}}
 {{- $matches := 0 -}}
 {{- range $key, $project := $projects -}}
-  {{- if and (kindIs "map" $project) (hasKey $project "name") (eq (index $project "name") $projectName) -}}
+  {{- if not (kindIs "map" $project) -}}
+    {{- fail (printf "local project %q must be a JSON object" $key) -}}
+  {{- end -}}
+  {{- if not (hasKey $project "rootPaths") -}}
+    {{- fail (printf "local project %q has no rootPaths array" $key) -}}
+  {{- end -}}
+  {{- $projectRoots := index $project "rootPaths" -}}
+  {{- if not (kindIs "slice" $projectRoots) -}}
+    {{- fail (printf "local project %q rootPaths must be an array" $key) -}}
+  {{- end -}}
+  {{- $containsDotfilesRoot := false -}}
+  {{- range $root := $projectRoots -}}
+    {{- if not (kindIs "string" $root) -}}
+      {{- fail (printf "local project %q rootPaths array must contain only strings" $key) -}}
+    {{- end -}}
+    {{- if eq (lower (replace "/" "\\" $root)) $normalizedDotfilesRoot -}}
+      {{- $containsDotfilesRoot = true -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $containsDotfilesRoot -}}
     {{- $projectKey = $key -}}
     {{- $matches = add1 $matches -}}
   {{- end -}}
 {{- end -}}
-{{- if ne $matches 1 -}}
-{{-   fail (printf "expected exactly one local-project named %q, found %d" $projectName $matches) -}}
-{{- end -}}
-
-{{- $project := index $projects $projectKey -}}
-{{- if not (hasKey $project "rootPaths") -}}
-{{-   fail "the ~/.dotfiles project has no rootPaths array" -}}
-{{- end -}}
-{{- $existingRoots := index $project "rootPaths" -}}
-{{- if not (kindIs "slice" $existingRoots) -}}
-{{-   fail "the ~/.dotfiles project rootPaths value must be an array" -}}
-{{- end -}}
-{{- range $root := $existingRoots -}}
-  {{- if not (kindIs "string" $root) -}}
-    {{- fail "the ~/.dotfiles project rootPaths array must contain only strings" -}}
+{{- if eq $matches 1 -}}
+  {{- $project := index $projects $projectKey -}}
+  {{- $existingRoots := index $project "rootPaths" -}}
+  {{- $desiredRoots := list
+        (printf "%s\\.agents" $home)
+        (printf "%s\\.claude" $home)
+        (printf "%s\\.codex" $home)
+        (printf "%s\\.codex-personal" $home)
+        $dotfilesRoot
+  -}}
+  {{- $existingRootsJSON := $existingRoots | toJson -}}
+  {{- $desiredRootsJSON := $desiredRoots | toJson -}}
+  {{- if eq $existingRootsJSON $desiredRootsJSON -}}
+    {{- .chezmoi.stdin -}}
+  {{- else -}}
+    {{- $_ := set $project "rootPaths" $desiredRoots -}}
+    {{- $state | toJson -}}
   {{- end -}}
+{{- else if gt $matches 1 -}}
+  {{- fail (printf "found %d local projects containing the dotfiles root %q" $matches $dotfilesRoot) -}}
+{{- else -}}
+  {{- .chezmoi.stdin -}}
 {{- end -}}
-
-{{- $home := .chezmoi.rawHomeDir -}}
-{{- $dotfilesRoot := printf "%s\\.dotfiles" $home -}}
-{{- if not (has $dotfilesRoot $existingRoots) -}}
-{{-   fail (printf "the ~/.dotfiles project does not contain the expected root %q" $dotfilesRoot) -}}
-{{- end -}}
-{{- $desiredRoots := list
-      (printf "%s\\.agents" $home)
-      (printf "%s\\.claude" $home)
-      (printf "%s\\.codex" $home)
-      (printf "%s\\.codex-personal" $home)
-      $dotfilesRoot
--}}
-{{- $_ := set $project "rootPaths" $desiredRoots -}}
-{{ $state | toPrettyJson }}
