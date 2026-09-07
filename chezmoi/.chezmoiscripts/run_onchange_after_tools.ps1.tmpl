@@ -19,13 +19,22 @@ if ($LASTEXITCODE -ne 0) {
 # back to uv; uv's installer cannot target the junction path on Windows.
 $uv = (Get-Command uv -ErrorAction Stop).Source
 & $uv python install 3.13 --default
-if ($LASTEXITCODE -ne 0) {
-    throw "uv Python installation failed (exit code: $LASTEXITCODE)"
+$pythonInstallExitCode = $LASTEXITCODE
+if ($pythonInstallExitCode -ne 0) {
+    Write-Warning "uv Python installation returned exit code $pythonInstallExitCode; trying an existing managed 3.13 installation"
 }
 
-$pythonInterpreter = (& $uv python find 3.13 --managed-python --system --resolve-links | Out-String).Trim()
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($pythonInterpreter)) {
-    throw "uv Python interpreter could not be resolved (exit code: $LASTEXITCODE)"
+$pythonInstallationsJson = (& $uv python list 3.13 --only-installed --output-format json --managed-python | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($pythonInstallationsJson)) {
+    throw "uv Python installations could not be listed (exit code: $LASTEXITCODE)"
+}
+
+$pythonInterpreter = ($pythonInstallationsJson | ConvertFrom-Json |
+    Where-Object { $_.implementation -eq 'cpython' -and $_.version_parts.major -eq 3 -and $_.version_parts.minor -eq 13 } |
+    Sort-Object { $_.version_parts.patch } -Descending |
+    Select-Object -First 1 -ExpandProperty path)
+if ([string]::IsNullOrWhiteSpace($pythonInterpreter) -or -not (Test-Path -LiteralPath $pythonInterpreter -PathType Leaf)) {
+    throw "uv Python 3.13 interpreter could not be resolved (install exit code: $pythonInstallExitCode)"
 }
 
 $expectedPyYamlVersion = '6.0.3'

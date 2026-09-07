@@ -23,6 +23,15 @@ chezmoi --source "$HOME/.dotfiles" apply
 
 OSごとの前提条件や初回のローカル設定は、[`README.manual.md`](README.manual.md)を参照してください。
 
+Windowsの新規環境では、まずAquaを導入し、Aqua経由で`chezmoi`を含むCLIをセットアップします。
+
+```powershell
+winget install --id aquaproj.aqua --exact
+aqua install --config "$HOME\.dotfiles\aqua.yaml"
+```
+
+`winget` が利用できない場合は、[Aquaの公式リリース](https://github.com/aquaproj/aqua/releases)からWindows x64版を取得し、ユーザーの`PATH`にあるディレクトリへ配置してください。
+
 ## AIに依頼するとき
 
 最初にこのREADME、`README.manual.md`、`SETUP.md`、`AGENTS.md`を読ませ、OSと既存環境を確認させてください。たとえば次のように依頼できます。

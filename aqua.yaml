@@ -18,6 +18,7 @@ registries:
 - type: standard
   ref: v4.556.0
 packages:
+- name: twpayne/chezmoi@v2.71.1
 - name: nodejs/node@v26.8.1
 - name: openai/codex@rust-v0.153.4
 - name: ahmetb/kubectx@v0.11.0

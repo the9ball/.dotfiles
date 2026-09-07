@@ -8,6 +8,17 @@ standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの
 
 ## 共通
 
+### 初回のみ: Aqua の導入
+
+Windowsでは、まずAquaを導入し、PowerShellを再起動してから、リポジトリの定義に従ってCLIを揃えます。`aqua.yaml`には `chezmoi` も含まれています。
+
+```powershell
+winget install --id aquaproj.aqua --exact
+aqua install --config "$HOME\.dotfiles\aqua.yaml"
+```
+
+`winget` が使えない場合は、[Aquaの公式リリース](https://github.com/aquaproj/aqua/releases)からWindows x64版を取得し、ユーザーの`PATH`にあるディレクトリへ配置してください。
+
 ~~~sh
 chezmoi apply
 ~~~
