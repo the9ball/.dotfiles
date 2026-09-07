@@ -53,5 +53,7 @@ if [ "$installed_pyyaml_version" != "$expected_pyyaml_version" ]; then
     "$uv_command" pip install --break-system-packages --python "$python_interpreter" "PyYAML==$expected_pyyaml_version"
 fi
 
+# chezmoi runs scripts from the target home; prek must install the hook in this repository.
+cd "$repo_root"
 "$prek_command" install --overwrite
 {{- end }}
