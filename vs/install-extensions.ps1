@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Restores the VS2026-compatible extensions recorded in extensions.md.
+    Restores the Visual Studio extensions recorded in the selected profile.
 
 .DESCRIPTION
     The inventory and the classification live in extensions.psd1.  Marketplace
     entries are resolved through the official Visual Studio Marketplace API,
     and the returned VSIX is checked before VSIXInstaller is invoked.
 
-    Only Visual Studio 2026 instances (version 18.x) returned by vswhere are
+    Only instances in the selected inventory profile returned by vswhere are
     considered.  VSIXInstaller is called without /admin, so the normal path is
     a per-user installation and no elevation is requested.
 
@@ -22,6 +22,17 @@
     Optional path to an alternative .psd1 inventory.  The default is the
     extensions.psd1 file next to this script.
 
+.PARAMETER Profile
+    Name of the Visual Studio profile in the inventory.  Defaults to the
+    inventory's DefaultProfile value.
+
+.PARAMETER InstanceId
+    Restrict the operation to one exact vswhere instanceId.
+
+.PARAMETER AllInstances
+    Allow the selected profile to target every matching instance.  Without this
+    switch, multiple matching instances require -InstanceId for safety.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .\vs\install-extensions.ps1
 
@@ -34,7 +45,10 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
     [switch]$DryRun,
-    [string]$ManifestPath
+    [string]$ManifestPath,
+    [string]$Profile,
+    [string]$InstanceId,
+    [switch]$AllInstances
 )
 
 Set-StrictMode -Version 2.0
@@ -42,8 +56,9 @@ $ErrorActionPreference = 'Stop'
 
 $script:Results = New-Object 'System.Collections.Generic.List[object]'
 $script:DryRunEffective = [bool]$DryRun -or [bool]$WhatIfPreference
-$script:TargetVsVersion = [version]'18.0'
-$script:TargetVsVersionRange = '[18.0,19.0)'
+$script:ProfileName = ''
+$script:TargetVersionRange = ''
+$script:IncludePrerelease = $false
 
 function Write-Info {
     param([string]$Message)
@@ -127,15 +142,33 @@ function Get-VsWherePath {
     return $null
 }
 
-function Get-Vs2026Instances {
+function Get-VisualStudioInstances {
+    param(
+        [string]$TargetVersionRange,
+        [bool]$IncludePrerelease
+    )
+
     $vswherePath = Get-VsWherePath
     if ([string]::IsNullOrWhiteSpace($vswherePath)) {
-        throw 'vswhere.exe was not found. Install Visual Studio 2026 or make the official vswhere.exe available on PATH.'
+        throw 'vswhere.exe was not found. Install the selected Visual Studio profile or make the official vswhere.exe available on PATH.'
     }
 
     Write-Info "Using vswhere.exe: $vswherePath"
+    $vswhereArguments = @(
+        '-all'
+        '-products'
+        '*'
+        '-version'
+        $TargetVersionRange
+        '-format'
+        'json'
+        '-utf8'
+    )
+    if ($IncludePrerelease) {
+        $vswhereArguments = @('-all', '-prerelease') + $vswhereArguments[1..($vswhereArguments.Count - 1)]
+    }
     $jsonLines = @(
-        & $vswherePath '-all' '-prerelease' '-products' '*' '-version' $script:TargetVsVersionRange '-format' 'json' '-utf8' 2>$null
+        & $vswherePath @vswhereArguments 2>$null
     )
     $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0 -or $jsonLines.Count -eq 0) {
@@ -169,8 +202,8 @@ function Get-Vs2026Instances {
         }
 
         # Keep this check even though vswhere was passed -version.  It prevents
-        # a future change to the query from accidentally selecting VS2022.
-        if ($installationVersion -lt [version]'18.0' -or $installationVersion -ge [version]'19.0') {
+        # a future query change from selecting an instance outside the profile.
+        if (-not (Test-VersionRangeIncludes -Range $TargetVersionRange -Version $installationVersion)) {
             continue
         }
 
@@ -202,6 +235,8 @@ function Get-Vs2026Instances {
             InstallationPath   = $installationPath
             InstallationVersion = $installationVersionText
             ProductId          = $productId
+            ProductPath        = [string](Get-PropertyValue -Object $record -Name 'productPath' -Default (Join-Path $installationPath 'Common7\IDE\devenv.exe'))
+            IsPrerelease        = [bool](Get-PropertyValue -Object $record -Name 'isPrerelease' -Default $false)
             VsixInstaller      = $vsixInstaller
         }
     }
@@ -419,16 +454,19 @@ function Get-MarketplaceMetadata {
     $version = $versions[0]
     $versionText = [string](Get-PropertyValue -Object $version -Name 'version' -Default '')
 
-    $compatibleTargets = @()
+    $installationTargets = @()
     foreach ($target in @((Get-PropertyValue -Object $extension -Name 'installationTargets' -Default @()))) {
         $targetName = [string](Get-PropertyValue -Object $target -Name 'target' -Default '')
         $targetRange = [string](Get-PropertyValue -Object $target -Name 'targetVersion' -Default '')
-        if ($targetName -like 'Microsoft.VisualStudio.*' -and $targetName -notlike '*.Ide' -and (Test-VersionRangeIncludes -Range $targetRange -Version $script:TargetVsVersion)) {
-            $compatibleTargets += "$targetName`:$targetRange"
+        if ($targetName -like 'Microsoft.VisualStudio.*' -and $targetName -notlike '*.Ide' -and -not [string]::IsNullOrWhiteSpace($targetRange)) {
+            $installationTargets += [PSCustomObject]@{
+                Id    = $targetName
+                Range = $targetRange
+            }
         }
     }
-    if ($compatibleTargets.Count -eq 0) {
-        throw "The current Marketplace version '$versionText' does not declare a Visual Studio 2026 (18.x) installation target."
+    if ($installationTargets.Count -eq 0) {
+        throw "The current Marketplace version '$versionText' does not declare a Visual Studio installation target."
     }
 
     $files = @((Get-PropertyValue -Object $version -Name 'files' -Default @()))
@@ -446,9 +484,27 @@ function Get-MarketplaceMetadata {
         CanonicalId       = $canonicalId
         Version           = $versionText
         DownloadUrl       = $downloadUrl
-        CompatibleTargets = $compatibleTargets
+        InstallationTargets = $installationTargets
         AssetType         = $assetType
     }
+}
+
+function Get-CompatibleMarketplaceTargets {
+    param(
+        [object]$Marketplace,
+        [version]$TargetVersion
+    )
+
+    $compatibleTargets = @()
+    foreach ($target in @((Get-PropertyValue -Object $Marketplace -Name 'InstallationTargets' -Default @()))) {
+        $targetId = [string](Get-PropertyValue -Object $target -Name 'Id' -Default '')
+        $targetRange = [string](Get-PropertyValue -Object $target -Name 'Range' -Default '')
+        if ((Test-VersionRangeIncludes -Range $targetRange -Version $TargetVersion)) {
+            $compatibleTargets += "$targetId`:$targetRange"
+        }
+    }
+
+    return @($compatibleTargets)
 }
 
 function Get-VsixManifestInfo {
@@ -522,17 +578,6 @@ function Download-AndValidateVsix {
             throw "VSIX identity mismatch: expected '$expectedId', received '$($vsixManifest.Id)'."
         }
 
-        $supportsTarget = $false
-        foreach ($target in @($vsixManifest.Targets)) {
-            if (([string]$target.Id -like 'Microsoft.VisualStudio.*') -and ([string]$target.Id -notlike '*.Ide') -and (Test-VersionRangeIncludes -Range ([string]$target.Version) -Version $script:TargetVsVersion)) {
-                $supportsTarget = $true
-                break
-            }
-        }
-        if (-not $supportsTarget) {
-            throw 'The downloaded VSIX manifest does not support the Visual Studio 2026 (18.x) target.'
-        }
-
         return [PSCustomObject]@{
             Path     = $vsixPath
             TempRoot = $tempRoot
@@ -545,6 +590,23 @@ function Download-AndValidateVsix {
         }
         throw
     }
+}
+
+function Test-VsixManifestSupportsVersion {
+    param(
+        [object]$Manifest,
+        [version]$TargetVersion
+    )
+
+    foreach ($target in @((Get-PropertyValue -Object $Manifest -Name 'Targets' -Default @()))) {
+        $targetId = [string](Get-PropertyValue -Object $target -Name 'Id' -Default '')
+        $targetRange = [string](Get-PropertyValue -Object $target -Name 'Version' -Default '')
+        if ($targetId -like 'Microsoft.VisualStudio.*' -and $targetId -notlike '*.Ide' -and (Test-VersionRangeIncludes -Range $targetRange -Version $TargetVersion)) {
+            return $true
+        }
+    }
+
+    return $false
 }
 
 function Invoke-VsixInstall {
@@ -572,7 +634,8 @@ function Invoke-VsixInstall {
 
 function Write-Summary {
     Write-Host ''
-    Write-Host '=== Visual Studio 2026 extension restore summary ===' -ForegroundColor White
+    $profileText = if ([string]::IsNullOrWhiteSpace($script:ProfileName)) { 'selected profile' } else { $script:ProfileName }
+    Write-Host ("=== Visual Studio extension restore summary ({0}) ===" -f $profileText) -ForegroundColor White
     if ($script:DryRunEffective) {
         Write-Host 'Dry-run: no VSIX was downloaded or installed.' -ForegroundColor Yellow
     }
@@ -602,25 +665,66 @@ if (-not (Test-Path -LiteralPath $ManifestPath -PathType Leaf)) {
 }
 
 try {
-    $inventory = Import-PowerShellDataFile -LiteralPath $ManifestPath
+    $manifestFullPath = (Resolve-Path -LiteralPath $ManifestPath).Path
+    $manifestDirectory = Split-Path -Parent $manifestFullPath
+    $inventory = Import-PowerShellDataFile -LiteralPath $manifestFullPath
 }
 catch {
     Write-Error "Could not read extension inventory '$ManifestPath': $($_.Exception.Message)"
     exit 1
 }
 
-$entries = @((Get-PropertyValue -Object $inventory -Name 'Extensions' -Default @()))
+$profiles = Get-PropertyValue -Object $inventory -Name 'Profiles' -Default $null
+if ($null -ne $profiles) {
+    $selectedProfileName = $Profile
+    if ([string]::IsNullOrWhiteSpace($selectedProfileName)) {
+        $selectedProfileName = [string](Get-PropertyValue -Object $inventory -Name 'DefaultProfile' -Default '')
+    }
+    if ([string]::IsNullOrWhiteSpace($selectedProfileName)) {
+        Write-Error 'The inventory defines Profiles but no profile was selected and no DefaultProfile is recorded.'
+        exit 1
+    }
+    if (-not ($profiles -is [System.Collections.IDictionary]) -or -not $profiles.Contains($selectedProfileName)) {
+        Write-Error "The requested Visual Studio profile was not found: $selectedProfileName"
+        exit 1
+    }
+
+    $selectedProfile = $profiles[$selectedProfileName]
+    $script:ProfileName = $selectedProfileName
+    $script:TargetVersionRange = [string](Get-PropertyValue -Object $selectedProfile -Name 'TargetVersionRange' -Default '')
+    $script:IncludePrerelease = [bool](Get-PropertyValue -Object $selectedProfile -Name 'IncludePrerelease' -Default $false)
+    $entries = @((Get-PropertyValue -Object $selectedProfile -Name 'Extensions' -Default @()))
+}
+else {
+    # Read the original flat shape for hand-maintained inventories created
+    # before profile support.  New inventories should use Profiles.
+    $script:ProfileName = if ([string]::IsNullOrWhiteSpace($Profile)) { 'legacy' } else { $Profile }
+    $script:TargetVersionRange = [string](Get-PropertyValue -Object $inventory -Name 'TargetVersionRange' -Default '')
+    $script:IncludePrerelease = $false
+    $entries = @((Get-PropertyValue -Object $inventory -Name 'Extensions' -Default @()))
+}
+
 if ($entries.Count -eq 0) {
     Write-Error 'The extension inventory is empty.'
     exit 1
 }
+if ([string]::IsNullOrWhiteSpace($script:TargetVersionRange)) {
+    Write-Error "The selected profile '$($script:ProfileName)' has no TargetVersionRange."
+    exit 1
+}
 
-$sourceDocument = Join-Path $PSScriptRoot ([string](Get-PropertyValue -Object $inventory -Name 'SourceDocument' -Default 'extensions.md'))
+$sourceDocumentName = [string](Get-PropertyValue -Object $inventory -Name 'SourceDocument' -Default 'extensions.md')
+$sourceDocument = if ([IO.Path]::IsPathRooted($sourceDocumentName)) {
+    $sourceDocumentName
+}
+else {
+    Join-Path $manifestDirectory $sourceDocumentName
+}
 if (-not (Test-Path -LiteralPath $sourceDocument -PathType Leaf)) {
     Write-WarnMessage "The source record was not found next to the inventory: $sourceDocument"
 }
 
-Write-Info ("Loaded {0} extension records from {1}" -f $entries.Count, $ManifestPath)
+Write-Info ("Loaded {0} extension records from profile '{1}' ({2})" -f $entries.Count, $script:ProfileName, $manifestFullPath)
 
 $autoEntries = @()
 foreach ($entry in $entries) {
@@ -643,21 +747,40 @@ if ($autoEntries.Count -eq 0) {
 
 $instances = @()
 try {
-    $instances = @(Get-Vs2026Instances)
+    $instances = @(Get-VisualStudioInstances -TargetVersionRange $script:TargetVersionRange -IncludePrerelease $script:IncludePrerelease)
 }
 catch {
     Write-WarnMessage $_.Exception.Message
 }
 if ($instances.Count -eq 0) {
     foreach ($entry in $autoEntries) {
-        Add-Result -Status 'Failed' -Name ([string](Get-PropertyValue -Object $entry -Name 'Name' -Default '(unnamed extension)')) -Instance '' -Reason 'No usable Visual Studio 2026 (18.x) instance was found.'
+        Add-Result -Status 'Failed' -Name ([string](Get-PropertyValue -Object $entry -Name 'Name' -Default '(unnamed extension)')) -Instance '' -Reason ("No usable Visual Studio instance was found for profile '{0}' ({1})." -f $script:ProfileName, $script:TargetVersionRange)
+    }
+    Write-Summary
+    exit 1
+}
+
+if (-not [string]::IsNullOrWhiteSpace($InstanceId)) {
+    $selectedInstances = @($instances | Where-Object { $_.InstanceId -ieq $InstanceId })
+    if ($selectedInstances.Count -eq 0) {
+        foreach ($entry in $autoEntries) {
+            Add-Result -Status 'Failed' -Name ([string](Get-PropertyValue -Object $entry -Name 'Name' -Default '(unnamed extension)')) -Instance '' -Reason ("The requested Visual Studio instanceId was not found in profile '{0}': {1}" -f $script:ProfileName, $InstanceId)
+        }
+        Write-Summary
+        exit 1
+    }
+    $instances = $selectedInstances
+}
+elseif ($instances.Count -gt 1 -and -not $AllInstances) {
+    foreach ($entry in $autoEntries) {
+        Add-Result -Status 'Failed' -Name ([string](Get-PropertyValue -Object $entry -Name 'Name' -Default '(unnamed extension)')) -Instance '' -Reason ("Multiple Visual Studio instances match profile '{0}'. Specify -InstanceId or -AllInstances." -f $script:ProfileName)
     }
     Write-Summary
     exit 1
 }
 
 foreach ($instance in $instances) {
-    Write-Info ("Target: {0} v{1} [{2}]" -f $instance.DisplayName, $instance.InstallationVersion, $instance.InstanceId)
+    Write-Info ("Target: {0} v{1} [{2}] (profile {3})" -f $instance.DisplayName, $instance.InstallationVersion, $instance.InstanceId, $script:ProfileName)
 }
 
 $installedManifests = @()
@@ -686,7 +809,8 @@ foreach ($entry in $autoEntries) {
 
     try {
         $marketplace = Get-MarketplaceMetadata -Entry $entry -Inventory $inventory
-        Write-Info ("{0}: Marketplace {1}, version {2}, targets {3}" -f $entryName, $marketplace.CanonicalId, $marketplace.Version, ($marketplace.CompatibleTargets -join ', '))
+        $targetSummary = @($marketplace.InstallationTargets | ForEach-Object { "{0}:{1}" -f $_.Id, $_.Range })
+        Write-Info ("{0}: Marketplace {1}, version {2}, declared targets {3}" -f $entryName, $marketplace.CanonicalId, $marketplace.Version, ($targetSummary -join ', '))
     }
     catch {
         Add-Result -Status 'Failed' -Name $entryName -Instance '' -Reason $_.Exception.Message
@@ -695,6 +819,13 @@ foreach ($entry in $autoEntries) {
 
     $pendingInstances = @()
     foreach ($instance in $instances) {
+        $instanceVersion = [version]$instance.InstallationVersion
+        $compatibleTargets = @(Get-CompatibleMarketplaceTargets -Marketplace $marketplace -TargetVersion $instanceVersion)
+        if ($compatibleTargets.Count -eq 0) {
+            Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason ("Marketplace version {0} does not support this instance version {1}." -f $marketplace.Version, $instance.InstallationVersion)
+            continue
+        }
+
         $installed = Find-InstalledExtension -Entry $entry -Manifests $installedManifests
         if ($null -ne $installed) {
             Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason ("Already installed (identity {0}, version {1})." -f $installed.Id, $installed.Version)
@@ -715,7 +846,7 @@ foreach ($entry in $autoEntries) {
 
     if ($script:DryRunEffective) {
         foreach ($instance in $pendingInstances) {
-            Add-Result -Status 'Planned' -Name $entryName -Instance $instance.DisplayName -Reason ("Would download the official Marketplace asset and run VSIXInstaller /quiet /norepair /instanceIds:{0}." -f $instance.InstanceId)
+            Add-Result -Status 'Planned' -Name $entryName -Instance $instance.DisplayName -Reason ("Would download the official Marketplace asset and run VSIXInstaller /quiet /norepair /instanceIds:{0} for VS {1}." -f $instance.InstanceId, $instance.InstallationVersion)
         }
         continue
     }
@@ -724,6 +855,11 @@ foreach ($entry in $autoEntries) {
     try {
         $downloaded = Download-AndValidateVsix -Entry $entry -Marketplace $marketplace
         foreach ($instance in $pendingInstances) {
+            if (-not (Test-VsixManifestSupportsVersion -Manifest $downloaded.Manifest -TargetVersion ([version]$instance.InstallationVersion))) {
+                Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason ("The downloaded VSIX manifest does not support this instance version {0}." -f $instance.InstallationVersion)
+                continue
+            }
+
             $targetDescription = "{0} ({1})" -f $entryName, $instance.DisplayName
             if (-not $PSCmdlet.ShouldProcess($targetDescription, 'Install the validated Marketplace VSIX for the current user')) {
                 Add-Result -Status 'Skipped' -Name $entryName -Instance $instance.DisplayName -Reason 'WhatIf/confirmation prevented installation.'

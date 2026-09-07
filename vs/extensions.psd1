@@ -1,18 +1,22 @@
 @{
     # This inventory is derived from vs/extensions.md.  Keep the Markdown file
     # as the human-readable record; this file is the executable classification.
-    SchemaVersion = 1
+    SchemaVersion = 2
     SourceDocument = 'extensions.md'
     VerifiedOn = '2026-09-07'
-    TargetProduct = 'Visual Studio'
-    TargetVersionRange = '[18.0,19.0)'
+    DefaultProfile = 'VS2026'
 
     # The script uses the official Marketplace gallery API to resolve the
     # current version.  It never accepts a third-party mirror as a source.
     MarketplaceApiUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery'
     MarketplaceAssetType = 'Microsoft.VisualStudio.Ide.Payload'
 
-    Extensions = @(
+    Profiles = @{
+        VS2026 = @{
+            TargetProduct = 'Visual Studio'
+            TargetVersionRange = '[18.0,19.0)'
+            IncludePrerelease = $false
+            Extensions = @(
         @{
             Name = 'ValueChangedGenerator'
             VsixId = 'ValueChangedGenerator.3764d9b9-7ffa-4fb3-9680-d5ce16903661'
@@ -193,5 +197,7 @@
             MarketplaceTargets = '[15.0,17.0)'
             Notes = 'Available from the official Marketplace, but the current manifest ends before 17.0 and does not support VS2026.'
         }
-    )
+            )
+        }
+    }
 }
