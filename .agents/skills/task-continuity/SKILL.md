@@ -127,6 +127,23 @@ task. Do not write before either current-task or standing approval exists.
 Obtain new approval for deletion, moving files, writing outside the approved
 directory, or expanding the approved operations.
 
+## Boundary revalidation and effective activity
+
+Fork, resume, compact, and recovery are the lifecycle boundaries at which
+continuity state is revalidated. At each such boundary, confirm the same task
+and session-or-fork lineage, target epoch, exact approved memo path, registry
+entry, memo frontmatter, and standing approval before accepting or repairing
+state. Do not repeat this validation for every ordinary memo write; continuous
+maintenance writes still follow the already-approved path and scope.
+
+For lifecycle decisions, the effective state is `active` when either the
+validated registry entry or the memo frontmatter is `active`. Treat the task as
+closed only after both sides explicitly declare `closed`. A `closed` registry
+entry therefore does not suppress recovery when its same-path memo is active,
+and an active registry entry does not become inactive merely because the memo
+was temporarily missing. This precedence applies to lifecycle hooks, not to
+the separate metadata-only cleanup policy.
+
 ## Create and activate the memo
 
 1. Copy `assets/task-memory-template.md` to the approved path.
@@ -202,10 +219,14 @@ memo.
 ## Recover after compaction or resume
 
 When hook context points to an active memo that no longer exists, treat the
-memo as discarded volatile state rather than a fatal error. Never infer its
-missing contents. Revalidate the available conversation and current primary
-evidence. If continuity protection is still warranted, follow the normal
-approval rules and recreate the memo at the exact path reported by the hook.
+memo as discarded volatile state rather than a fatal error. At the next
+fork/resume/compact/recovery boundary, notify the user, revalidate the task and
+session-or-fork lineage, target epoch, exact path, registry status, and standing
+approval, then recreate a fresh memo at that exact approved path when the
+checks pass. The recreation uses the template and current verified task facts;
+it does not infer or silently restore the discarded memo contents, and the new
+memo must record that reconciliation is required. The existence of the fresh
+memo by the next compaction boundary is the operational consistency condition.
 That path is already registered as this session's active memo, so do not run
 the activation instruction; an existing session entry cannot be repointed and
 activation may fail with a conflict. If the user selects a different path,
@@ -213,11 +234,12 @@ maintain it without hook recovery and state that compact automation is
 unavailable for this session.
 
 When hook context reports an active memo after `PostCompact`,
-`SessionStart(compact)`, or resume:
+`SessionStart(compact)`, fork, resume, or another recovery boundary:
 
 1. Read the complete memo before continuing.
-2. Inspect current files, Git state, and relevant external systems.
-3. Revalidate entries that are material to the next action.
+2. Revalidate the same task and session-or-fork lineage, target epoch, exact
+   memo path, registry/memo effective activity, and approval metadata.
+3. Inspect current files, Git state, and relevant external systems.
 4. Correct stale or inconsistent current-state entries.
 5. Append a reconciliation result for each unresolved emergency record.
 6. Resume normal work and continuous maintenance.

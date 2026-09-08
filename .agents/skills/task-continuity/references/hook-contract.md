@@ -61,6 +61,23 @@ directory, Markdown memo, or unvalidated marker exists. Standing approval does
 not authorize deletion, moves, nested-directory writes, or writes outside the
 exact directory.
 
+### Lifecycle state and boundary checks
+
+The effective lifecycle state is `active` when either the validated registry
+entry or the memo frontmatter is `active`. A session is `closed` only when both
+sources explicitly declare `closed`; an active memo therefore takes precedence
+over a stale `closed` registry entry, and an active registry entry takes
+precedence over a temporarily missing memo. Apply this precedence to
+`SessionStart`, `UserPromptSubmit`, `PreCompact`, `PostCompact`, fork, resume,
+and recovery decisions. Cleanup tools may retain their separate metadata-only
+selection policy.
+
+At those lifecycle boundaries, revalidate the same task and session-or-fork
+lineage, target epoch, exact approved memo path, registry/memo status, memo
+frontmatter when present, and standing approval. Do not perform this identity
+check for every ordinary memo write. A boundary failure is fail-closed for
+hook writes unless the approved recovery path below can recreate a fresh memo.
+
 ## Context interface
 
 Model-visible hook context must use clear labels and provide:
@@ -88,7 +105,9 @@ session registry entry are sufficient.
 
 After activation, context must instruct the model to read and continuously
 maintain the active memo, revalidate it against primary evidence, and update it
-before yielding the turn.
+before yielding the turn. Boundary context must additionally require the
+fork/resume/compact/recovery revalidation above; ordinary-turn maintenance does
+not require a per-write registry or frontmatter check.
 
 Keep injected context short. Do not inject the complete memo automatically.
 
@@ -127,7 +146,9 @@ When no approved active session exists:
   warrants activation.
 - When the exact default memo later exists, register it from the event hook
   only after validating the marker and memo frontmatter as specified under
-  "Automatic default-path registration".
+  "Automatic default-path registration". If the boundary detects an active
+  registry entry whose memo is missing, use the "Boundary recovery and missing
+  memo" procedure instead of treating the session as inactive.
 
 When an approved active session exists:
 
@@ -141,14 +162,25 @@ When an approved active session exists:
 
 Before deciding that no active registry entry exists, attempt automatic
 default-path registration. This protects a newly created standing-approved memo
-when compaction occurs before the next prompt event.
+when compaction occurs before the next prompt event. Then apply the effective
+activity rule: an active memo or active registry entry is sufficient to keep the
+session active.
 
-Write only when all conditions hold:
+Write only after the boundary revalidation and any required recovery have
+completed, and all of these conditions hold:
 
-- The session registry marks the session active.
+- The effective lifecycle state is active (the registry or memo is active).
 - The registry identifies an approved absolute memo path.
-- The memo still declares `status: active`.
+- The memo declares `status: active` after recovery; a closed memo may be
+  reactivated only when the same validated registry entry is active.
 - The memo still declares continuous write approval.
+
+If the registry is active but the memo is missing, first complete
+"Boundary recovery and missing memo" at this same compact boundary. Append only
+after the fresh memo passes the frontmatter and path checks. If the memo is
+active while the registry is `closed`, revalidate the boundary and reactivate
+the same exact entry rather than suppressing the write. If both sources are
+closed, do not reopen them.
 
 Append one clearly marked unverified emergency record containing:
 
@@ -171,6 +203,10 @@ For an approved active memo, append one unverified compact-boundary record.
 Include the host-generated compact summary only when the event supplies it.
 Label the summary unverified.
 
+Run the same boundary revalidation before appending. An active registry or
+active memo keeps the effective state active; both must be explicitly closed
+before the hook becomes a no-op.
+
 Do not assume every host provides the summary. Keep this hook minimal: only
 append. A retried or repeated event may produce duplicate boundary records;
 that is acceptable and is resolved later during reconciliation rather than by
@@ -191,21 +227,47 @@ file writes only when all of these checks pass:
   and the exact approved memo path.
 
 The event handler owns this registry write. Do not require the model's
-sandboxed shell to write host-local registry state. Never reopen an existing
-closed entry, adopt a custom path, or infer activation from a marker alone. On
-failure, leave the registry unchanged, do not write the memo, and report an
-advisory without blocking the host event.
+sandboxed shell to write host-local registry state. Do not adopt a custom path
+or infer activation from a marker alone. An existing `closed` entry is not
+reopened when the memo is also closed; when the same-path memo is active, the
+active-precedence rule applies and the handler may reactivate that exact entry
+after boundary validation. On failure, leave the registry unchanged, do not
+write the memo, and report an advisory without blocking the host event.
+
+## Boundary recovery and missing memo
+
+At `SessionStart`, `UserPromptSubmit`, `PreCompact`, `PostCompact`, fork,
+resume, or an explicit recovery event, a validated active registry entry may
+point to a missing memo. The event handler must:
+
+1. Confirm the same task and session-or-fork lineage, target epoch, exact
+   registered path, approved directory, and standing marker.
+2. Notify the user that the memo was missing and that its previous contents are
+   unavailable.
+3. Recreate a fresh memo from the installed template at the exact registered
+   path, without copying transcript contents or inferring discarded sections.
+4. Mark the fresh memo as requiring model-side reconciliation and preserve the
+   active state. The memo's existence by the next compaction boundary is the
+   operational consistency condition.
+5. Register/reactivate the same exact entry when necessary, then continue with
+   the boundary's normal append or model-visible recovery context.
+
+If any identity, path, approval, or frontmatter check fails, do not recreate or
+append. A registry and memo that are both explicitly `closed` remain closed and
+are never reopened by this procedure.
 
 ## SessionStart
 
-When an approved active session resumes or starts after compaction, add
-model-visible context that requires:
+When an approved active session resumes, starts after compaction, or crosses a
+fork/resume/recovery boundary, add model-visible context that requires:
 
 1. Reading the complete active memo.
-2. Rechecking current files, Git state, commands, and relevant external state.
-3. Correcting stale memo entries.
-4. Appending reconciliation results for unresolved emergency records.
-5. Resuming continuous maintenance.
+2. Revalidating task and session-or-fork lineage, target epoch, exact memo path,
+   effective active state, and approval metadata.
+3. Rechecking current files, Git state, commands, and relevant external state.
+4. Correcting stale memo entries.
+5. Appending reconciliation results for unresolved emergency records.
+6. Resuming continuous maintenance.
 
 When no active session exists, do not create one.
 
@@ -277,7 +339,10 @@ load the result, report the test as fixture-only.
 - Missing runtime: choose another existing runtime or request approval to
   install one.
 - Ambiguous ownership: stop and report.
-- Missing or inactive memo: perform no hook write.
+- Missing memo: perform the boundary recovery procedure only when a validated
+  active registry entry or active memo authorizes the exact path; otherwise
+  perform no hook write. If both registry and memo are explicitly closed,
+  perform no hook write.
 - Registry corruption: perform no hook write and report.
 - Memo append failure: leave primary work untouched and report.
 - Unsupported host feature: degrade explicitly; do not fabricate support.

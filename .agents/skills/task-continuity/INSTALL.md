@@ -151,42 +151,53 @@ never survive a failed or incomplete run.
    the unsupported behavior and does not claim that UI-only output satisfies
    the context contract.
 10. An approved active memo receives one mechanical `PreCompact` record.
-11. An unapproved, missing, inactive, or closed memo receives no hook write.
-12. The compact-time hook is append-only: a retried or repeated compact event
+11. The effective lifecycle state is active when either the validated registry
+    entry or memo is active; it becomes closed only when both explicitly declare
+    `closed`.
+12. A fixture with an active registry entry and a missing memo notifies the user,
+    revalidates task/session-or-fork identity, target epoch, path, and approval,
+    recreates a fresh memo at the exact path, and marks reconciliation required.
+    It never copies transcript contents or silently restores discarded sections.
+13. A fixture with an active memo and a closed registry entry reactivates the
+    same exact entry after boundary validation; a fixture with both sides closed
+    is a no-op and is never reopened.
+14. The compact-time hook is append-only: a retried or repeated compact event
     appends an additional unverified record without error, and nothing
     deduplicates, merges, or rewrites records at compaction time.
-13. On a host with documented model-visible output, recovery context
-    identifies the active memo and requires revalidation.
-14. Paths containing spaces and non-ASCII characters work on the target OS.
-15. A standing directory approval is recorded only by an explicit manual grant
+15. On a host with documented model-visible output, recovery context identifies
+    the active memo, requires boundary revalidation, and reports when a memo was
+    recreated.
+16. Paths containing spaces and non-ASCII characters work on the target OS.
+17. A standing directory approval is recorded only by an explicit manual grant
     action that creates a path-bound `.allow-write` marker, and a new session
     reuses it only in that exact directory.
-16. A pre-existing directory, memo, tracked marker, symbolic marker, malformed
+18. A pre-existing directory, memo, tracked marker, symbolic marker, malformed
     marker, or path-mismatched marker remains unapproved; sibling and nested
     directories do not match.
-17. Standing approval is injected as one compact field before activation and
+19. Standing approval is injected as one compact field before activation and
     omitted after activation.
-18. When hook context is unavailable, a read-only validation of a correct
+20. When hook context is unavailable, a read-only validation of a correct
     default-directory marker reuses standing approval without another user
     confirmation; invalid, tracked, symbolic, or path-mismatched markers do
     not.
-19. After a standing-approved default memo is created, `UserPromptSubmit`
+21. After a standing-approved default memo is created, `UserPromptSubmit`
     registers it without a model-issued registry write and then follows the
     active reminder policy.
-20. `PreCompact` can register the same eligible default memo before appending,
-    while an invalid memo, custom path, or existing closed entry is never
-    adopted or reopened.
-21. A fixture that denies the model-side command access to the registry still
+22. `PreCompact` can register the same eligible default memo before appending;
+    an invalid memo or custom path is never adopted, while a same-path active
+    memo may reactivate a closed registry entry after boundary validation and a
+    both-closed entry remains closed.
+23. A fixture that denies the model-side command access to the registry still
     passes through the event-handler registration interface supported by the
     host, or the installation is explicitly reported as degraded.
-22. A generated launcher preserves stdin, stdout, stderr, and success/failure status when
+24. A generated launcher preserves stdin, stdout, stderr, and success/failure status when
     invoked through every session shell relevant to the target host. On
     Windows Codex this must include Git Bash and the native shell used by the
     host. The handler invocation itself contains no quoted executable path,
     whitespace, shell metacharacters, `PATH` lookup, or repository-relative
     component. Do not require an exact nonzero numeric code from a parent shell
     that documents or exhibits nonzero-code normalization.
-23. Updating a directly invoked owned handler to a launcher updates the exact
+25. Updating a directly invoked owned handler to a launcher updates the exact
     handler identity, generated-file list, and ownership record together. A
     second install is byte-for-byte unchanged, and uninstall removes only the
     recorded launcher and other owned generated runtime files.
