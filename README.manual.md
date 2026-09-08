@@ -149,13 +149,21 @@ git submodule update --init --recursive
 ```
 
 すでにclone済みの場合は、`git pull --rebase`と`git submodule update --init --recursive`で更新します。
-初回だけ、リポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
+初回の`chezmoi apply`でCodexのグローバル状態を更新できるよう、先にAqua管理のCLIを導入し、プロジェクトや依頼を指定せずCodexを1回起動して終了します。
+
+```sh
+aqua install --config "$HOME/.dotfiles/aqua.yaml"
+cd "$HOME"
+codex
+```
+
+Codexを終了した後、初回だけリポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
 
 ```sh
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
-以後は`chezmoi apply`と`chezmoi diff`を引数なしで実行できます。状態確認は常時実行スクリプトを除外して`chezmoi verify --exclude=scripts`を使います。
+以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
 
 ## 3. マシン固有の設定を作る
 
@@ -165,6 +173,7 @@ POSIX系のシェルでは次を実行します。
 cp .bashrc.local.example "$HOME/.bashrc.local"
 cp .gitconfig.local.example "$HOME/.gitconfig.local"
 cp chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-defaults.toml.local
+cp chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local
 ```
 
 WindowsのPowerShellでは`cp`の代わりに次を実行します。
@@ -173,13 +182,14 @@ WindowsのPowerShellでは`cp`の代わりに次を実行します。
 Copy-Item .bashrc.local.example "$HOME/.bashrc.local"
 Copy-Item .gitconfig.local.example "$HOME/.gitconfig.local"
 Copy-Item chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-defaults.toml.local
+Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local
 ```
 
-コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。共有チェックアウトでは`codex-defaults.toml.local`がWindowsとWSLの両方で読まれるため、両方で解釈できる値だけを置き、WSL専用設定は`codex-wsl/`へ分けます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、`codex-defaults.toml.local`には書きません。
+コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。`codex-defaults.toml.local`は仕事用、`codex-personal-defaults.toml.local`は個人用Windowsプロファイル専用です。個人用は通常`personal-standard`を選び、GitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスだけを許可します。`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離されるため、必要な作業でだけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）を使います。個人用の絶対パスは共有テンプレートへ入れず、ホスト固有の`.local`へ置きます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、どちらのdefaultsにも書きません。
 
 ## 4. 差分を確認して適用する
 
-まず適用前の差分を確認し、問題がなければ適用します。
+まず適用前の差分を確認し、問題がなければ適用します。意図しない差分があれば適用せず停止し、適用後の検証が失敗した場合や差分が残る場合も成功扱いにしません。
 
 ```sh
 chezmoi diff
@@ -197,12 +207,12 @@ chezmoi verify --exclude=scripts
 - `prek`のGit hook設定
 - `~/.agents`、`~/.claude/skills`、`~/.claude/agents`の共有リンク作成（Windowsではジャンクション）
 
-Linux/macOS/WSLでは、`aqua.yaml`の適用時にCodex CLI（`openai/codex`）もAquaで導入され、`codex`コマンドがPATHから使える状態になります。
+Linux/macOS/WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）を初回の`chezmoi apply`より前にAquaで導入し、`codex`コマンドをPATHから使える状態にします。
 Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yaml`を更新し、差分を確認してコミットした後に`aqua install`を実行します。
 このCLIには`codex update`を使用しません。
 
 通常の`codex`は`CODEX_HOME`未設定の`~/.codex`を仕事用アカウントとして使います。個人用は`pcodex`、WSL用CLIは`wcodex`を使い、それぞれ`~/.codex-personal`、`~/.codex-wsl`へ`CODEX_HOME`を切り替えます。`wcodex`は全環境へ定義されますが、`~/.codex-wsl`がない場合の実行時エラーは許容し、別ホームへフォールバックしません。
-通常のCodex設定は`modify_`方式で既存の実行時状態を保持し、共有defaultsを上書きします。端末固有の値は`chezmoi/.chezmoitemplates/codex-defaults.toml.local`へ置きます。
+通常のCodex設定は`modify_`方式で既存の実行時状態を保持し、共有defaultsを上書きします。仕事用の端末固有値は`chezmoi/.chezmoitemplates/codex-defaults.toml.local`、個人用のホスト固有値は`chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local`へ置きます。
 
 WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
@@ -222,7 +232,9 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 cd "$HOME/.dotfiles"
 git pull --rebase
 git submodule update --init --recursive
+chezmoi diff
 chezmoi apply
+chezmoi verify --exclude=scripts
 ```
 
 セットアップの詳細な挙動を確認したい場合は、[`SETUP.md`](SETUP.md)と`chezmoi/.chezmoiscripts/`を参照してください。

@@ -1,7 +1,7 @@
 # セットアップ
 
 `chezmoi`は設定ファイルの配置と、標準のパッケージ導入を行います。
-通常は`chezmoi apply`だけを実行します。
+通常の更新は、`chezmoi diff`で差分を確認してから`chezmoi apply`を実行し、必ず`chezmoi verify --exclude=scripts`で結果を検証します。意図しない差分、適用エラー、検証失敗、または検証後に残る差分があれば成功扱いにせず停止します。
 設定ファイルの`sourceDir`は`~/.dotfiles`とし、WindowsとWSLでOS固有の絶対パスを共有しません。
 
 WSL版Codex Remote Controlは任意機能です。
@@ -21,12 +21,20 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 `winget` が使えない場合は、[Aquaの公式リリース](https://github.com/aquaproj/aqua/releases)からWindows x64版を取得し、ユーザーの`PATH`にあるディレクトリへ配置してください。
 
 ~~~sh
+# 初回はAqua管理のCLI（Codexを含む）を先に導入する
+aqua install --config "$HOME/.dotfiles/aqua.yaml"
+# リポジトリ以外のディレクトリで、プロジェクトや依頼を指定せずCodexを1回起動する
+cd "$HOME"
+codex
 # 初回だけ、リポジトリを明示してchezmoiの設定を生成する
+cd "$HOME/.dotfiles"
 chezmoi --source "$HOME/.dotfiles" init
+chezmoi diff
 chezmoi apply
+chezmoi verify --exclude=scripts
 ~~~
 
-初回の`init`以後は、リポジトリのルートを明示せず`chezmoi apply`を実行できます。
+初回の`init`以後は、リポジトリのルートを明示せず`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を実行できます。Windowsで初回の空起動を省略してグローバル状態がないまま適用すると、状態変更用テンプレートは失敗します。状態を自動作成・黙ってスキップはせず、空起動してから再試行してください。
 
 `chezmoi apply`は、次の処理を実行します。
 
@@ -37,12 +45,13 @@ chezmoi apply
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `.agents`と`.claude/skills`の共有リンクを作成する。
 
-Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）もAquaで導入されます。
+Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）もAquaで導入されます。初回は上記の`aqua install`を`chezmoi apply`より先に実行します。
 これは通常のCLIの導入であり、Remote Control用standalone版の導入やログインは行いません。
 
 通常の`codex`は`CODEX_HOME`を設定せず、標準の`~/.codex`を仕事用アカウントとして使います。`~/.codex/config.toml`はリポジトリのポータブルなdefaultsを`modify_`方式でマージします。Codexが管理するプロジェクト履歴、hook状態、認証、ログ、セッションはリポジトリへ保存しません。
 個人用は`pcodex`（`~/.codex-personal`）、WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
-端末固有のCodex設定は、[`README.manual.md`](README.manual.md)の手順で`chezmoi/.chezmoitemplates/codex-defaults.toml.local`へ置きます。
+個人用の`default_permissions`は通常`personal-standard`です。共有ワークスペースに加えてGitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスを許可し、`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離しています。必要な場合だけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で緊急プロファイルを選択してください。絶対パスは`codex-personal-defaults.toml.local`にだけ置き、共有テンプレートには含めません。
+端末固有の仕事用Codex設定は`codex-defaults.toml.local`、個人用設定は`codex-personal-defaults.toml.local`へ置きます。作成手順は[`README.manual.md`](README.manual.md)を参照してください。
 
 ### Codex CLIの更新
 

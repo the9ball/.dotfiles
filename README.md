@@ -14,16 +14,21 @@
 
 ## 新規環境の基本方針
 
-`git`、`chezmoi`、`aqua`を先に用意し、リポジトリを配置してから次を実行します。
+`git`、`chezmoi`、`aqua`を先に用意し、リポジトリを配置してから次を実行します。AquaでCodex CLIを導入した後、リポジトリ以外のディレクトリで初回だけプロジェクトや依頼を指定せず`codex`を起動して終了し、Windowsで必要なグローバル状態を作成してから`chezmoi`を適用します。
 
 ```sh
+aqua install --config "$HOME/.dotfiles/aqua.yaml"
+cd "$HOME"
+codex # プロジェクトや依頼を指定せず起動し、終了する
 # 初回だけ、リポジトリの設定テンプレートからchezmoiの設定を生成する
+cd "$HOME/.dotfiles"
 chezmoi --source "$HOME/.dotfiles" init
 chezmoi diff
 chezmoi apply
+chezmoi verify --exclude=scripts
 ```
 
-`chezmoi`の設定は`sourceDir = "~/.dotfiles"`とし、WindowsとWSLで同じホーム相対のソースを解決します。初回の`init`以後は`chezmoi diff`と`chezmoi apply`を引数なしで実行できます。既存環境で設定が古い場合も、リポジトリを明示した初回`init`を実行してから設定を更新してください。
+`chezmoi`の設定は`sourceDir = "~/.dotfiles"`とし、WindowsとWSLで同じホーム相対のソースを解決します。初回の`init`以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。`chezmoi diff`に意図しない差分があれば適用せず停止し、適用後の`verify`が失敗した場合や差分が残る場合も成功扱いにせず原因を確認してください。既存環境で設定が古い場合も、リポジトリを明示した初回`init`を実行してから設定を更新してください。
 
 OSごとの前提条件や初回のローカル設定は、[`README.manual.md`](README.manual.md)を参照してください。
 
@@ -46,4 +51,4 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 
 ## ローカル設定と秘密情報
 
-`.bashrc.local.example`、`.gitconfig.local.example`、`chezmoi/.chezmoitemplates/codex-defaults.toml.local.example`を各環境用にコピーして編集します。`*.local`はGitの追跡対象外ですが、認証情報や秘密情報をコミット・貼り付けしないでください。Codexの通常起動は仕事用の`codex`、個人用は`pcodex`、WSL用は`wcodex`です。
+`.bashrc.local.example`、`.gitconfig.local.example`、仕事用の`chezmoi/.chezmoitemplates/codex-defaults.toml.local.example`、個人用の`chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example`を必要な環境へコピーして編集します。`*.local`はGitの追跡対象外ですが、認証情報や秘密情報をコミット・貼り付けしないでください。Codexの通常起動は仕事用の`codex`、個人用は`pcodex`、WSL用は`wcodex`です。個人用は通常`personal-standard`プロファイルを使い、GitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスだけを許可します。`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離し、必要な作業でだけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で選択します。これらの絶対パスはホスト固有の`.local`オーバーレイに置きます。

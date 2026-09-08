@@ -1,0 +1,14 @@
+# Copy this file to codex-personal-defaults.toml.local for the host-local
+# personal Codex profile. The destination is ignored by Git and is merged
+# after codex-personal-defaults.toml.
+#
+# Replace <user> with the Windows account name. These paths are intentionally
+# host-local; keep WSL settings in the separate codex-wsl home instead.
+# Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
+
+[permissions.personal-standard.filesystem]
+'C:\Users\<user>\AppData\Roaming\GitHub CLI' = "read"
+
+[permissions.personal-emergency.filesystem]
+'D:\repository' = "write"
+'C:\Users\<user>\work\gitmeta' = "write"

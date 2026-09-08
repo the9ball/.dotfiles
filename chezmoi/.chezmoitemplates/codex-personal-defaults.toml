@@ -1,17 +1,17 @@
 # Stable Codex settings shared by the personal profile.
 # Runtime state such as projects, hooks.state, and tui.model_availability_nux
 # is intentionally kept in the destination config and is not managed here.
+# Host-specific absolute paths belong in codex-personal-defaults.toml.local.
 
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
-sandbox_mode = "workspace-write"
 service_tier = "default"
 model = "gpt-5.6-luna"
 model_reasoning_effort = "max"
 personality = "pragmatic"
 model_verbosity = "low"
 model_reasoning_summary = "concise"
-default_permissions = "default-permissions"
+default_permissions = "personal-standard"
 suppress_unstable_features_warning = true
 
 [notice]
@@ -79,20 +79,18 @@ max_wait_timeout_ms = 3_600_000
 [features.context_management]
 experimental_mode = true
 
-[permissions.default-permissions]
+[permissions.personal-standard]
 extends = ":workspace"
 
-[permissions.default-permissions.filesystem]
-'C:\Users\syasui\AppData\Roaming\GitHub CLI' = "read"
-'D:\repository' = "write"
-'C:\Users\syasui\work\gitmeta' = "write"
-
-[permissions.default-permissions.network]
+[permissions.personal-standard.network]
 enabled = true
 
-[permissions.default-permissions.network.domains]
+[permissions.personal-standard.network.domains]
 "api.github.com" = "allow"
 "github.com" = "allow"
+
+[permissions.personal-emergency]
+extends = "personal-standard"
 
 [mcp_servers.datadog]
 url = "https://mcp.datadoghq.com/v1/mcp"

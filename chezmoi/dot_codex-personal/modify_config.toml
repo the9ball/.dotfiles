@@ -4,13 +4,47 @@
 Manage only stable personal Codex settings. The existing target config is
 parsed first and then overlaid with the repository defaults, so Codex-managed
 projects, hook state, model availability state, and any other unknown keys are
-preserved. auth.json is a separate file and is never read or written here.
+preserved. Legacy sandbox and permission-profile keys are removed during the
+migration. auth.json is a separate file and is never read or written here.
 
 */ -}}
 {{- $config := dict -}}
 {{- if .chezmoi.stdin -}}
 {{-   $config = fromToml .chezmoi.stdin -}}
 {{- end -}}
+{{- if hasKey $config "sandbox_mode" -}}
+{{-   $config = unset $config "sandbox_mode" -}}
+{{- end -}}
+{{- if hasKey $config "permissions" -}}
+{{-   $permissions := index $config "permissions" -}}
+{{-   if hasKey $permissions "default-permissions" -}}
+{{-     $permissions = unset $permissions "default-permissions" -}}
+{{-   end -}}
+{{-   if eq (len $permissions) 0 -}}
+{{-     $config = unset $config "permissions" -}}
+{{-   else -}}
+{{-     $config = set $config "permissions" $permissions -}}
+{{-   end -}}
+{{- end -}}
 {{- $defaults := fromToml (include ".chezmoitemplates/codex-personal-defaults.toml") -}}
+{{- $localDefaultsPath := printf "%s/.chezmoitemplates/codex-personal-defaults.toml.local" .chezmoi.sourceDir -}}
+{{- if (stat $localDefaultsPath) -}}
+{{-   $local := fromToml (include ".chezmoitemplates/codex-personal-defaults.toml.local") -}}
+{{-   $defaults = mergeOverwrite $defaults $local -}}
+{{- end -}}
+{{- if hasKey $defaults "sandbox_mode" -}}
+{{-   $defaults = unset $defaults "sandbox_mode" -}}
+{{- end -}}
+{{- if hasKey $defaults "permissions" -}}
+{{-   $defaultPermissions := index $defaults "permissions" -}}
+{{-   if hasKey $defaultPermissions "default-permissions" -}}
+{{-     $defaultPermissions = unset $defaultPermissions "default-permissions" -}}
+{{-   end -}}
+{{-   if eq (len $defaultPermissions) 0 -}}
+{{-     $defaults = unset $defaults "permissions" -}}
+{{-   else -}}
+{{-     $defaults = set $defaults "permissions" $defaultPermissions -}}
+{{-   end -}}
+{{- end -}}
 {{- $config = mergeOverwrite $config $defaults -}}
 {{ $config | toToml }}
