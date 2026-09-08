@@ -50,7 +50,7 @@ description: 承認済み実装計画または goal に基づく変更を、計�
   3. 分散整合性、並行性、順序性、冪等性、複数サービス・複数バージョン展開の正しさに影響する。
   4. 公開 API、通信形式、保存形式、スキーマ、互換性保証を破る、または段階展開を必要とする。
   5. 承認済み計画にない設計判断が必要で、選択肢により上記リスク、コンポーネント境界、永続化方式、互換性、rollback 方針のいずれかが変わる。
-  6. `AGENTS.md`、`SKILL.md`、agent 定義、権限・sandbox・routing・tool/plugin 設定などの統制規則を変更し、発動、承認、write・外部送信・破壊的操作、委譲・モデル・ツール選択、対象 identity・証拠、役割独立性、停止、waiver、または `PASS` に影響する。
+  6. `AGENTS.md`、`SKILL.md`、agent 定義、権限・sandbox・routing・tool/plugin 設定などの統制規則を変更し、発動、承認、write・外部送信・破壊的操作、委譲・モデル・ツール選択、対象 identity・証拠、役割独立性、停止、`USER_AUTHORIZED`、または `PASS` に影響する。
   7. 承認済み計画から重大な逸脱がありリスク受容の判断が必要、重大な原因候補が複数残る、または同じ問題への証拠に基づく修正が2回失敗する。
 - `AGENTS.md` や `SKILL.md` のパスだけでは `REQUIRED` としない。誤字、整形、リンク修正、意味を変えない言い換えだけの場合は、規範的意味が同値である根拠を記録できたときに限り `NOT_REQUIRED` とする。
 - 要否判定は、いずれかのトリガーが true なら `REQUIRED`、true がなく unknown が一つでもあれば `UNRESOLVED`、すべて false なら `NOT_REQUIRED` の順で決める。true と unknown が混在する場合は `REQUIRED` を優先する。
@@ -77,7 +77,7 @@ description: 承認済み実装計画または goal に基づく変更を、計�
 ### Epoch identity の再検証
 
 - epoch identity は、計画 identity、base/target、対象 identity manifest、除外範囲に加え、ゲートに関係する実行環境・統制面の識別子で構成する。後者には、利用するモデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定と利用可能範囲、ゲートに影響する `AGENTS.md`・`SKILL.md`・agent 定義の版を含め、何をどの方法で識別したかを台帳へ記録する。
-- 調整者は、Advisor を実行する場合はその dispatch 直前、レビュー者・回答者の各役割を開始する直前、共同最終記録を確定する直前、`PASS` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧役割承認と共同記録を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
+- 調整者は、Advisor を実行する場合はその dispatch 直前、レビュー者・回答者の各役割を開始する直前、共同最終記録を確定する直前、`PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧役割承認と共同記録を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
 - 無関係または意味同値の環境変更だけを除外する場合も、対象の独立性、read-only 保証、モデル・tool 条件、ゲートの規範的意味に影響しない根拠を台帳へ記録する。これは `PASS` 後の変更を扱う無効化規則とは別に、`PASS` 前の再検証として適用する。
 
 ## コミット単位
@@ -96,7 +96,31 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 - `REQUIRES_USER_DECISION`: 計画・範囲・リスク受容をユーザーが決める必要がある。
 - `BLOCKED`: Advisor の実行、証拠、対象 identity を確立できない。
 
-`rigorous-review` の「完了」は、そのままゲートの `PASS` ではない。共同最終記録を作成できる場合は現在のepochの共同最終記録へ、調整不能または必要条件不足で共同最終記録へ到達できない場合は調整者の停止記録へ、レビュー全体の `gate_status: PASS | BLOCKED` を記録する。ここでいう `gate-blocking` は、現在のepochに残る未修正の `指摘成立`、`不同意確定`、および `調整不能` を指し、これらが一つでも残る場合は `gate_status=BLOCKED` とする。非 blocking の不同意は設けない。ゲートの `PASS` は、固定した最終 target に対して gate-blocking が一つも残らず、双方の最終記録が同じ対象版を承認している状態とする。`指摘撤回` だけは残っていてよい。指摘を修正せずに進めるユーザーの明示的 waiver は、対象 ID、理由、受容する影響、承認者を記録した `WAIVED` として扱い、`gate_status=BLOCKED` とする。指摘候補が0件の場合は、対象 identity、範囲、証拠、双方の no-findings の立場を含む空の共同最終記録を作成し、その同じ版を双方が承認する。全候補が撤回された場合は空の記録で代用せず、全固定IDと撤回理由、双方の withdrawal の立場を列挙した共同最終記録を双方が承認する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。
+### 状態軸とユーザー許可
+
+実装ゲートでは、所見の結論、証拠の充足、レビューゲート、実装へ進む許可を
+別々に記録する。`rigorous-review` と共有する定義は次のとおりである。
+
+- `finding_outcome`: `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` のいずれか。
+- `evidence_status`: `SUFFICIENT` または `NEEDS_EVIDENCE`。後者は情報不足・対象
+  identity 不足・再現不能などの未完了状態で、通常は `review_gate=BLOCKED` とする。
+  必要証拠、確認方法、許可範囲、終了条件を記録し、指摘の撤回や承認とはみなさない。
+- `review_gate`: `PASS`、`PASS_WITH_USER_AUTHORIZATION`、`BLOCKED` のいずれか。
+  plain `PASS` は未解決の `NEEDS_EVIDENCE`、gate-blocking な所見、独立性不足がなく、
+  通常の完了条件を満たす場合だけに使う。未解決の `NEEDS_EVIDENCE` を残したまま、
+  scoped な許可の範囲でだけ実装を進める場合は `PASS_WITH_USER_AUTHORIZATION` とし、
+  plain `PASS` に変換しない。必要条件・対象 identity・許可が不足する場合は `BLOCKED`。
+- `USER_AUTHORIZED`: 所見状態や証拠充足を上書きしない、明示的なユーザー許可の記録。
+  finding ID、target/epoch と manifest、許可者・日時・出所、操作範囲と対象外、受容影響、
+  残る確認事項、期限または再検証条件を含める。
+- `proceed_status`: `STOPPED` または `AUTHORIZED_TO_PROCEED`。有効な
+  `USER_AUTHORIZED` が同じ target/epoch と操作範囲に結び付く場合だけ、後者を設定する。
+
+`ACCEPTED_RISK` は受容の注記であり、進行許可ではない。旧 `WAIVED` を参照する履歴は
+保持してよいが、新規記録では特定の証拠・チェックを免除した意味に限定し、指摘を cleared
+とは扱わない。
+
+`rigorous-review` の「完了」は、そのまま実装ゲートの plain `PASS` ではない。共同最終記録を作成できる場合は現在のepochの共同最終記録へ、調整不能または必要条件不足により共同最終記録へ到達できない場合は調整者の停止記録へ、レビュー全体の `gate_status: PASS | PASS_WITH_USER_AUTHORIZATION | BLOCKED` を記録する。ここでいう `gate-blocking` は、現在のepochに残る未修正の `指摘成立`、`不同意確定`、`調整不能`、または許可のない `NEEDS_EVIDENCE` を指し、これらが一つでも残る場合は `gate_status=BLOCKED` とする。未解決の `NEEDS_EVIDENCE` に有効な `USER_AUTHORIZED` があり、同じ記録に scope・受容影響・残る確認事項・`proceed_status` を固定できる場合だけ `PASS_WITH_USER_AUTHORIZATION` を使う。非 blocking の不同意は設けない。ゲートの plain `PASS` は、固定した最終 target に対して gate-blocking が一つも残らず、双方の最終記録が同じ対象版を承認している状態とする。`指摘撤回` だけは残っていてよい。指摘候補が0件の場合は、対象 identity、範囲、証拠、双方の no-findings の立場を含む空の共同最終記録を作成し、その同じ版を双方が承認する。全候補が撤回された場合は空の記録で代用せず、全固定IDと撤回理由、双方の withdrawal の立場を列挙した共同最終記録を双方が承認する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。
 
 ## 実行順序
 
@@ -124,7 +148,7 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 
 ### 6. 指摘の修正
 
-- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。レビュー者・回答者に修正や commit をさせない。修正しない場合は対象 ID ごとの明示的なユーザー waiver を `WAIVED` として記録し、PASS にしない。
+- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。レビュー者・回答者に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
 - 修正後に計画で定めた build・test・生成検証を実行する。計画からの逸脱、見積り超過、追加設計判断が必要になった場合は停止して再承認を得る。
 - 修正、fixup、amend の後は、変更後 snapshot に対する旧 epoch の通常レビュー結果を再利用せず、まず新しいレビュー epoch を開始する。新 epoch でレビュー契約を再解決し、その `effective_user_review=REQUIRED` なら変更後 snapshot に対するユーザー通常レビューを実施して提示内容、ユーザー応答、未解決 feedback がないことを台帳へ記録し、`NONE` なら通常レビューを実施せず `SKIPPED` 記録を更新してから、次の Advisor 判定または `rigorous-review` へ進む。
 - 修正を対応する実装コミットへの fixup として記録する。計画またはユーザーが操作名 `amend` と対象コミットを明示して承認した場合だけ、そのコミットを amend してよい。「一つのコミットを維持する」という指定だけでは amend してはならない。
@@ -137,19 +161,19 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 
 ## 完了条件
 
-次をすべて満たしたときだけゲートを `PASS` とする。
+次をすべて満たしたときだけゲートを plain `PASS` または、未解決の `NEEDS_EVIDENCE` に有効な scoped authorization を付した `PASS_WITH_USER_AUTHORIZATION` とする。後者は記録された操作範囲に限る。
 
 - 計画 identity、承認済み範囲、対象 manifest、最終 target、最終化直前に再検証した epoch identity が一致している。
 - 計画に定めた検証が成功している。
 - `effective_user_review=REQUIRED` の場合は、最終 candidate target に結び付くユーザー通常レビューの snapshot、提示内容、明示的な承認・変更なし、または feedback 解消確認を含む応答、未解決 feedback がないことを台帳で確認できる。`NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳で確認できる。
 - `effective_review_level` が Advisor を含む場合は、最終 Advisor の実行結果が `CLEAR` である（比較証拠付きの `assessment_mode: revalidated-reuse` による `CLEAR` の再検証を含む）。Advisor を含まない場合は、必須トリガーがすべて根拠付きで false であり、Advisor を `SKIPPED` とした理由が記録されている。
 - 追加 Advisor checkpoint の累計がゲート全体で最大2回以内で、各 checkpoint の理由・判断質問・対象・結果が記録されている。
-- `effective_review_level` が rigorous-review を含む場合は、`rigorous-review` の現在epochにおける `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` の全固定IDが共同最終記録で確定し、共同最終記録の `gate_status=PASS` である。現在epochの `指摘成立`、`不同意確定`、`調整不能`、または `WAIVED` が残る場合は、共同最終記録または調整者の停止記録に `gate_status=BLOCKED` として記録し、`PASS` にしない。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。rigorous-review を含まない場合は、厳密レビューを `SKIPPED` とした理由が記録されている。実行した場合、指摘ゼロの場合は対象 identity に結び付いた空の共同最終記録を、全撤回の場合は全固定IDと撤回理由を含む記録を双方が同じ版で承認している。
+- `effective_review_level` が rigorous-review を含む場合は、`rigorous-review` の現在epochにおける `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` の全固定IDが共同最終記録で確定し、共同最終記録の `gate_status` が plain `PASS` または有効な scoped authorization を伴う `PASS_WITH_USER_AUTHORIZATION` である。現在epochの `指摘成立`、`不同意確定`、`調整不能`、または許可のない `NEEDS_EVIDENCE` が残る場合は、共同最終記録または調整者の停止記録に `gate_status=BLOCKED` として記録し、実装へ進めない。`PASS_WITH_USER_AUTHORIZATION` を使う場合は、`USER_AUTHORIZED` と `proceed_status=AUTHORIZED_TO_PROCEED` を同じ固定ID・target/epochへ結び付け、残る確認事項を報告する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。rigorous-review を含まない場合は、厳密レビューを `SKIPPED` とした理由が記録されている。実行した場合、指摘ゼロの場合は対象 identity に結び付いた空の共同最終記録を、全撤回の場合は全固定IDと撤回理由を含む記録を双方が同じ版で承認している。
 - 初回コミットと fixup・amend の範囲が、計画で承認された変更だけで構成されている。
 - Commit map が必須の計画では、actual commit/hunk manifest と map を双方向に完全照合し、全 commit/hunk がちょうど一つの単位へ割り当てられ、map にない変更や重複がない。独立 rollback 単位は commit 境界で分離し、依存により同一 commit に結合する場合は理由と共同 rollback 範囲を map に記録している。
 - ユーザーの実装採否、本番採用、履歴書き換え、push、PR・Issue 更新、外部送信が必要な場合は、それぞれの既存承認を別途取得している。
 
-PASS 後に epoch identity のいずれか（計画 identity・承認状態、base/target、対象 manifest、除外範囲、実効モデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定・利用可能範囲、またはレビューに固定したゲート統制ファイル（`AGENTS.md`、`SKILL.md`、agent 定義）の版）に意味のある差異、識別不能、または比較不能が生じた場合、レビュー契約が変化した場合、または `effective_user_review=REQUIRED` のユーザー通常レビューの snapshot・提示内容・応答・未解決 feedback・承認状態が変化（新規 feedback、未解決化、承認撤回を含む）した場合、PASS は無効になり、対象 identity・除外範囲・epoch identity・選択された通常レビューの証拠を再検証して最終 target から新しい epoch を開始する。`effective_user_review=NONE` の場合も、その指定の根拠が変化したときは同様に扱う。無関係な環境変更や意味同値の整形は、固定した対象と規範的意味に影響しない根拠を記録できる場合に限り除外する。squash・rebase は別操作として扱い、実行後に対象 identity と差分を検証する。
+plain `PASS` または `PASS_WITH_USER_AUTHORIZATION` 後に epoch identity のいずれか（計画 identity・承認状態、base/target、対象 manifest、除外範囲、実効モデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定・利用可能範囲、またはレビューに固定したゲート統制ファイル（`AGENTS.md`、`SKILL.md`、agent 定義）の版）に意味のある差異、識別不能、または比較不能が生じた場合、レビュー契約が変化した場合、または `effective_user_review=REQUIRED` のユーザー通常レビューの snapshot・提示内容・応答・未解決 feedback・承認状態が変化（新規 feedback、未解決化、承認撤回を含む）した場合、ゲート状態と authorization は無効になり、対象 identity・除外範囲・epoch identity・選択された通常レビューの証拠を再検証して最終 target から新しい epoch を開始する。`effective_user_review=NONE` の場合も、その指定の根拠が変化したときは同様に扱う。無関係な環境変更や意味同値の整形は、固定した対象と規範的意味に影響しない根拠を記録できる場合に限り除外する。squash・rebase は別操作として扱い、実行後に対象 identity と差分を検証する。
 
 ## 停止・確認条件
 
@@ -160,10 +184,10 @@ PASS 後に epoch identity のいずれか（計画 identity・承認状態、ba
 - 既存 dirty 差分を安全に除外できない、対象がレビュー中に変化した、または build・test・生成検証が失敗した。
 - `effective_user_review=REQUIRED` なのに当該 epoch のユーザー通常レビューが完了していない、snapshot に結び付く明示的承認・変更なしまたは feedback 解消確認がない、未解決 feedback が残っている、追加 Advisor checkpoint が `CLEAR` 以外（`BLOCKED` を含む）を返した、または追加 Advisor checkpoint の3回目が必要になった。`effective_user_review=NONE` の場合に `SKIPPED` の根拠を記録できないときも停止する。
 - `user_review` または `review_level` の入力元・値が不明、必須の Advisor 下限と衝突している、明示的な `rigorous-review` 指定を無効化しようとしている、または選択したレビューを `SKIPPED` とする根拠を記録できない。
-- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立`・`不同意確定`・`調整不能` が残っている、または `WAIVED` を選択した。
+- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立`・`不同意確定`・`調整不能` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
 
 これは失敗を隠すための waiver ではない。継続、範囲変更、追加証拠、免除、終了の判断をユーザーに委ねる。
 
 ## 最終報告
 
-比較基準と最終 target の SHA、対象・除外状態、計画 identity、requested/effective `user_review` と `review_level` および各入力元、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、fixup・amend の一覧、Commit map の照合結果、検証結果、未解決の不同意・`WAIVED` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
+比較基準と最終 target の SHA、対象・除外状態、計画 identity、requested/effective `user_review` と `review_level` および各入力元、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、fixup・amend の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の不同意・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
