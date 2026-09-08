@@ -4,7 +4,7 @@
 
 ## 現状（2026-09-05）
 
-Phase A（測定契約・synthetic fixture）は observe-only で完了し、`2342b5e` に固定済み。Phase B〜Dは未適用で、現状はlegacy strict flowを使用する。
+Phase Aの旧測定実装は observe-only の検討成果としてGit履歴 `2342b5e9f251761a117c39a22e51e524e7867fcf` に保存されているが、現行ツリーからは削除した。通常運用は測定なしのlegacy strict flowを使用する。将来Phase A／Eを再開する場合は、旧実装をそのまま復元せず、当時のスキーマ・runtime・ベストプラクティスを再確認してから再設計する。Phase B〜Dは未適用である。
 
 Phase Bを再開するには、全dispatch経路を覆う保証付きruntime境界、または全role dispatchを単一harnessへ限定する設計判断が必要。
 
