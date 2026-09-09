@@ -44,7 +44,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Agent
 - **直接タスクモード**: 計画ファイルが渡されず、変更内容そのものが渡された場合。計画を介さずに実行する。
   execution contract が固定された変更を、計画を介さずに実行するためのモード。複数ファイルや設計変更を含む場合も、固定された scope 内なら扱う。
 
-両モードとも、`.agents/skills/plan-execution-gate/SKILL.md` の execution contract 必須項目を共通 preflight で確認する。計画ファイルの有無や変更規模だけでこの確認を省略しない。
+両モードとも、`.agents/skills/execution-lifecycle-gate/SKILL.md` の execution contract 必須項目を共通 preflight で確認する。計画ファイルの有無や変更規模だけでこの確認を省略しない。
 
 ## 直接タスクモードの contract 要件
 
