@@ -1,6 +1,6 @@
 ---
 name: execution-lifecycle-gate
-description: 承認済み実装計画または確定した execution input / goal に基づく変更を、実行ごとに選択したレビュー契約に従って自走させ、必要な最終確認を固定したコミット範囲に対して行う。計画書は optional input であり、planless の実行も対象とする。#8 で検討する共通 clarification / research / autonomous-execution ルールは含めない。計画書だけの作成・更新や、挙動を変えない説明文書だけの変更には適用しない。
+description: 承認済み実装計画または確定した execution input / goal に基づく変更を、実行ごとに選択したレビュー契約に従って自走させ、必要な最終確認を固定したコミット範囲に対して行う。計画書は optional input であり、planless の実行も対象とする。共通の clarification / research / autonomous-execution ルールはこの Skill の対象外とする。計画書だけの作成・更新や、挙動を変えない説明文書だけの変更には適用しない。
 ---
 
 # Execution Lifecycle Gate
