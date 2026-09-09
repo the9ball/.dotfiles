@@ -1,5 +1,12 @@
 # Copy this file to ~/.gitconfig.local and edit it for this machine.
-
-[user]
-	name = Your Name
-	email = you@example.com
+#
+# Keep user.name and user.email in one file per identity under
+# ~/.dotfiles/git_user/. Add one includeIf rule for each non-overlapping
+# repository tree. A trailing slash selects repositories below that tree.
+# Do not add a direct [user] name/email here.
+#
+# [includeIf "gitdir:~/path/to/public-repositories/"]
+# 	path = ~/.dotfiles/git_user/shaula.gitconfig
+#
+# [includeIf "gitdir:~/path/to/work-repositories/"]
+# 	path = ~/.dotfiles/git_user/shoichi-yasui.gitconfig

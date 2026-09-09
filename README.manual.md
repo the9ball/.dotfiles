@@ -187,6 +187,32 @@ Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example c
 
 コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。`codex-defaults.toml.local`は仕事用、`codex-personal-defaults.toml.local`は個人用Windowsプロファイル専用です。個人用は通常`personal-standard`を選び、GitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスだけを許可します。`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離されるため、必要な作業でだけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）を使います。個人用の絶対パスは共有テンプレートへ入れず、ホスト固有の`.local`へ置きます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、どちらのdefaultsにも書きません。
 
+### Git identityの切り替え
+
+共有の`.gitconfig`には`user.useConfigOnly = true`だけを置き、`user.name`と`user.email`は置きません。identityごとの`user.name`と`user.email`は、リポジトリ直下の[`git_user`](git_user/)に1ファイルずつ保存します。現在の共有プロファイルは[`shaula.gitconfig`](git_user/shaula.gitconfig)、ローカル専用プロファイルは`git_user/shoichi-yasui.gitconfig`です。後者はGit管理対象外なので、実体を追加した各cloneの`.git/info/exclude`にも`git_user/shoichi-yasui.gitconfig`を記載します。
+
+リポジトリごとの対応関係は、ホームの`~/.gitconfig.local`に`includeIf`を追加して管理します。実際の登録内容は各エントリのコメントに対象worktreeとcanonical remoteを記録し、`upstream` remoteがある場合はそれを、なければ`origin`を判定基準にします。`github.com/OrangeCube/`配下なら業務profile、それ以外なら共有profileを読み込みます。新しいcloneやremote変更時は、対象のcanonical remoteを確認してから同じ形式で登録します。新規環境向けの形式は[`.gitconfig.local.example`](.gitconfig.local.example)にコメントで示しています。
+
+```ini
+[includeIf "gitdir:~/path/to/repositories/public/"]
+	path = ~/.dotfiles/git_user/shaula.gitconfig
+
+[includeIf "gitdir:~/path/to/repositories/work/"]
+	path = ~/.dotfiles/git_user/shoichi-yasui.gitconfig
+```
+
+`gitdir:`の条件はGitが認識している`.git`ディレクトリのパスに対して評価されます。リンクworktreeでは作業ディレクトリではなく、worktree専用のgitdirを条件にします。Windows、WSL、POSIX環境ではパスが異なるため、必要なら環境ごとに規則を用意します。条件が重複すると後から読み込んだidentityが有効になるため、対象ツリーを重複させません。既存の`~/.gitconfig.local`にある直接の`[user]`設定は、対応する`includeIf`へ移してから削除します。identityが選択されていないリポジトリではコミットを失敗させ、意図しないidentityを使わない運用にします。
+
+設定後は、リポジトリごとに次で出所と実効値を確認します。
+
+```sh
+git config --show-origin --show-scope --includes --get-regexp '^user\.'
+git config --show-origin --show-scope --includes --get-regexp '^include(if)?\.'
+git check-ignore -v git_user/<local-profile>.gitconfig
+```
+
+履歴上は`Shaula`と`Shoichi Yasui`が主な名前ですが、後者には`shoichi`、`shoichi yasui`、`Shoichi Yasui`の表記揺れがあります。ローカル専用profileのメールアドレスは追跡対象の文書へ書かず、既存コミットも書き換えず、今後使うprofileの表記だけを明示的に選びます。
+
 ## 4. 差分を確認して適用する
 
 まず適用前の差分を確認し、問題がなければ適用します。意図しない差分があれば適用せず停止し、適用後の検証が失敗した場合や差分が残る場合も成功扱いにしません。

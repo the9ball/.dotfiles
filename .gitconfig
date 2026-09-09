@@ -9,6 +9,10 @@
 	quotepath = false
 	ignorecase = false
 	longpaths = true
+[user]
+	# user.name と user.email は git_user のプロファイルを includeIf で選ぶ。
+	# 自動推測による意図しない identity の使用を許可しない。
+	useConfigOnly = true
 [grep]
 	lineNumber = true
 	column = true
