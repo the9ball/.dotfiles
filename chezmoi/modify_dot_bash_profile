@@ -1,0 +1,6 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- if eq .chezmoi.os "linux" -}}
+{{- .chezmoi.stdin | replaceAllRegex `(?m)^([ \t]*)export[ \t]+AQUA_GLOBAL_CONFIG=\$\{HOME\}/\.config/aquaproj-aqua/aqua\.yaml[ \t]*$` `$1# AQUA_GLOBAL_CONFIG is provided by ~/.dotfiles/.bashrc.` -}}
+{{- else -}}
+{{- .chezmoi.stdin -}}
+{{- end -}}
