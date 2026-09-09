@@ -51,7 +51,3 @@ enabled = true
 [permissions.default-permissions.network.domains]
 "api.github.com" = "allow"
 "github.com" = "allow"
-
-[mcp_servers.datadog]
-url = "https://mcp.datadoghq.com/v1/mcp"
-bearer_token_env_var = "DD_ACCESS_TOKEN"
