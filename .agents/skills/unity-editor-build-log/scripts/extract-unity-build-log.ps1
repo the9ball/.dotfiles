@@ -128,7 +128,7 @@ function Get-RedactedLogBlock {
     param(
         [Parameter(Mandatory = $false)]
         [AllowEmptyCollection()]
-        [string[]] $LogLines
+        [System.Collections.IList] $LogLines
     )
 
     $pendingSensitiveValue = $false
@@ -254,15 +254,20 @@ function Get-UnityLogEvent {
         }
     }
 
+    # A bare "Build succeeded" line is only meaningful while an explicit
+    # Player Build context is active. The pairing pass enforces that context;
+    # retaining this event type lets normal Unity output close that context
+    # without allowing an unrelated success line to create a boundary.
     if ($trimmedLine -notmatch '(?i)\bTundra\b' -and
-        ($trimmedLine -match '(?i)^(?:Player\s+)?Build\s+completed\s+with\s+a\s+result\s+of\b' -or
+        ($trimmedLine -match '(?i)^Player\s+Build\s+completed\s+with\s+a\s+result\s+of\b' -or
          $trimmedLine -match '(?i)^Build\s+(?:succeeded|successful|success|failed|failure|cancelled|canceled|error)\b' -or
-         $trimmedLine -match '(?i)^(?:Player\s+)?Build\s+(?:finished|complete|completed)\b')) {
+         $trimmedLine -match '(?i)^Player\s+Build\s+(?:finished|complete|completed)\b')) {
         return [pscustomobject]@{
             Kind = 'Player Build'
             EventType = 'End'
             LineNumber = $LineNumber
             Result = Get-BuildResultState -CompletionLine $trimmedLine
+            IsExplicit = ($trimmedLine -match '(?i)^Player\s+Build\b')
         }
     }
 
@@ -274,9 +279,9 @@ function Get-LogBlockCandidates {
     .SYNOPSIS
     Pairs typed Unity start and end events in one forward scan.
     .DESCRIPTION
-    Maintains one active start for each event kind while scanning lines exactly
-    once. Start order and completion order are retained explicitly, avoiding
-    Hashtable enumeration or cross-kind regular-expression pairing.
+    Maintains a LIFO start stack for each event kind while scanning lines
+    exactly once. This preserves outer intervals when Unity emits nested or
+    repeated starts of the same kind.
     .PARAMETER LogLines
     Editor.log lines, without requiring the complete file to be emitted.
     .OUTPUTS
@@ -285,13 +290,13 @@ function Get-LogBlockCandidates {
     param(
         [Parameter(Mandatory = $false)]
         [AllowEmptyCollection()]
-        [string[]] $LogLines
+        [System.Collections.IList] $LogLines
     )
     # The event classifier below supplies typed events; this function only pairs them.
     $completedCandidates = [System.Collections.Generic.List[object]]::new()
     $startEvents = [System.Collections.Generic.List[object]]::new()
-    $activePlayerStartLine = $null
-    $activeScriptStartLine = $null
+    $activePlayerStartLines = [System.Collections.Generic.List[int]]::new()
+    $activeScriptStartLines = [System.Collections.Generic.List[int]]::new()
     $latestStart = $null
     $latestCompleted = $null
     for ($index = 0; $index -lt $LogLines.Count; $index++) {
@@ -303,14 +308,25 @@ function Get-LogBlockCandidates {
             $startEvents.Add($logEvent)
             $latestStart = $logEvent
             if ($logEvent.Kind -eq 'Player Build') {
-                $activePlayerStartLine = $lineNumber
+                $activePlayerStartLines.Add($lineNumber)
             } elseif ($logEvent.Kind -eq 'Script Compilation') {
-                $activeScriptStartLine = $lineNumber
+                $activeScriptStartLines.Add($lineNumber)
             }
             continue
         }
 
-        if ($logEvent.EventType -eq 'End' -and $logEvent.Kind -eq 'Player Build' -and $null -ne $activePlayerStartLine) {
+        if ($logEvent.EventType -eq 'End' -and $logEvent.Kind -eq 'Player Build' -and $activePlayerStartLines.Count -gt 0) {
+            $latestPlayerStartLine = $activePlayerStartLines[$activePlayerStartLines.Count - 1]
+            $latestActiveKind = 'Player Build'
+            if ($activeScriptStartLines.Count -gt 0 -and
+                $activeScriptStartLines[$activeScriptStartLines.Count - 1] -gt $latestPlayerStartLine) {
+                $latestActiveKind = 'Script Compilation'
+            }
+            if (-not $logEvent.IsExplicit -and $latestActiveKind -ne 'Player Build') {
+                continue
+            }
+            $activePlayerStartLine = $latestPlayerStartLine
+            $activePlayerStartLines.RemoveAt($activePlayerStartLines.Count - 1)
             $completedCandidate = [pscustomobject]@{
                 Kind = 'Player Build'
                 StartLine = $activePlayerStartLine
@@ -320,11 +336,12 @@ function Get-LogBlockCandidates {
             }
             $completedCandidates.Add($completedCandidate)
             $latestCompleted = $completedCandidate
-            $activePlayerStartLine = $null
             continue
         }
 
-        if ($logEvent.EventType -eq 'End' -and $logEvent.Kind -eq 'Script Compilation' -and $null -ne $activeScriptStartLine) {
+        if ($logEvent.EventType -eq 'End' -and $logEvent.Kind -eq 'Script Compilation' -and $activeScriptStartLines.Count -gt 0) {
+            $activeScriptStartLine = $activeScriptStartLines[$activeScriptStartLines.Count - 1]
+            $activeScriptStartLines.RemoveAt($activeScriptStartLines.Count - 1)
             $completedCandidate = [pscustomobject]@{
                 Kind = 'Script Compilation'
                 StartLine = $activeScriptStartLine
@@ -334,7 +351,6 @@ function Get-LogBlockCandidates {
             }
             $completedCandidates.Add($completedCandidate)
             $latestCompleted = $completedCandidate
-            $activeScriptStartLine = $null
         }
     }
 
@@ -346,13 +362,122 @@ function Get-LogBlockCandidates {
     }
 }
 
+function Get-CanonicalLogHash {
+    <#
+    .SYNOPSIS
+    Computes a bounded-content hash for decoded log lines.
+    .DESCRIPTION
+    Hashes UTF-8 encoded lines with a canonical LF separator so a snapshot can
+    be compared with a later read without joining the entire log into one
+    large string.
+    .PARAMETER LogLines
+    Lines to hash in their original order.
+    .OUTPUTS
+    System.String
+    #>
+    param(
+        [Parameter(Mandatory = $false)]
+        [System.Collections.IEnumerable] $LogLines
+    )
+
+    $hashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+    $separatorBytes = [System.Text.Encoding]::UTF8.GetBytes("`n")
+    try {
+        foreach ($logLine in $LogLines) {
+            $lineBytes = [System.Text.Encoding]::UTF8.GetBytes([string] $logLine)
+            [void] $hashAlgorithm.TransformBlock($lineBytes, 0, $lineBytes.Length, $lineBytes, 0)
+            [void] $hashAlgorithm.TransformBlock($separatorBytes, 0, $separatorBytes.Length, $separatorBytes, 0)
+        }
+        [void] $hashAlgorithm.TransformFinalBlock([byte[]]::new(0), 0, 0)
+        return ([System.BitConverter]::ToString($hashAlgorithm.Hash) -replace '-', '').ToLowerInvariant()
+    } finally {
+        $hashAlgorithm.Dispose()
+    }
+}
+
+function Get-CanonicalLogFileHash {
+    <#
+    .SYNOPSIS
+    Computes a bounded-content hash from a shared log file.
+    .DESCRIPTION
+    Re-reads the file line by line with delete sharing and returns its canonical
+    content hash plus metadata. The byte limit prevents the verification pass
+    from bypassing the input safety limit.
+    .PARAMETER Path
+    Log file path to hash.
+    .PARAMETER MaximumBytes
+    Maximum accepted file size in bytes.
+    .OUTPUTS
+    PSCustomObject
+    #>
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Path,
+        [Parameter(Mandatory = $true)]
+        [long] $MaximumBytes
+    )
+
+    $fileStream = $null
+    $streamReader = $null
+    $hashAlgorithm = $null
+    try {
+        $fileInfoBefore = Get-Item -LiteralPath $Path -ErrorAction Stop
+        if ([int64] $fileInfoBefore.Length -gt $MaximumBytes) {
+            throw [System.InvalidOperationException]::new('input-size-limit')
+        }
+        $fileStream = [System.IO.File]::Open(
+            $Path,
+            [System.IO.FileMode]::Open,
+            [System.IO.FileAccess]::Read,
+            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
+        )
+        $streamReader = [System.IO.StreamReader]::new($fileStream, [System.Text.Encoding]::UTF8, $true, 4096, $false)
+        $hashAlgorithm = [System.Security.Cryptography.SHA256]::Create()
+        $separatorBytes = [System.Text.Encoding]::UTF8.GetBytes("`n")
+        while ($null -ne ($logLine = $streamReader.ReadLine())) {
+            $lineBytes = [System.Text.Encoding]::UTF8.GetBytes($logLine)
+            [void] $hashAlgorithm.TransformBlock($lineBytes, 0, $lineBytes.Length, $lineBytes, 0)
+            [void] $hashAlgorithm.TransformBlock($separatorBytes, 0, $separatorBytes.Length, $separatorBytes, 0)
+            if ([int64] $streamReader.BaseStream.Position -gt $MaximumBytes) {
+                throw [System.InvalidOperationException]::new('input-size-limit')
+            }
+        }
+        try {
+            $fileInfoAfter = Get-Item -LiteralPath $Path -ErrorAction Stop
+        }
+        catch {
+            # A rotated or deleted path can still have been read through the
+            # open handle; classify it as a changed snapshot.
+            throw [System.InvalidOperationException]::new('snapshot-changed')
+        }
+        [void] $hashAlgorithm.TransformFinalBlock([byte[]]::new(0), 0, 0)
+        $canonicalHash = ([System.BitConverter]::ToString($hashAlgorithm.Hash) -replace '-', '').ToLowerInvariant()
+        return [pscustomobject]@{
+            Hash = $canonicalHash
+            FileLength = [int64] $fileInfoAfter.Length
+            LastWriteTimeUtc = $fileInfoAfter.LastWriteTimeUtc
+            CreationTimeUtc = $fileInfoAfter.CreationTimeUtc
+        }
+    } finally {
+        if ($null -ne $streamReader) {
+            $streamReader.Dispose()
+        } elseif ($null -ne $fileStream) {
+            $fileStream.Dispose()
+        }
+        if ($null -ne $hashAlgorithm) {
+            $hashAlgorithm.Dispose()
+        }
+    }
+}
+
 function Read-SharedLogSnapshot {
     <#
     .SYNOPSIS
     Reads a bounded, shared Editor.log snapshot line by line.
     .DESCRIPTION
-    Opens the file with FileShare.ReadWrite, enforces a byte-size limit, and
-    records metadata needed to identify the snapshot after extraction.
+    Opens the file with FileShare.ReadWrite and FileShare.Delete, enforces a
+    byte-size limit, and records metadata plus a content hash needed to
+    identify the snapshot after extraction.
     .PARAMETER Path
     Editor.log path.
     .PARAMETER MaximumBytes
@@ -380,7 +505,7 @@ function Read-SharedLogSnapshot {
             $Path,
             [System.IO.FileMode]::Open,
             [System.IO.FileAccess]::Read,
-            [System.IO.FileShare]::ReadWrite
+            [System.IO.FileShare]::ReadWrite -bor [System.IO.FileShare]::Delete
         )
         $streamReader = [System.IO.StreamReader]::new($fileStream, [System.Text.Encoding]::UTF8, $true, 4096, $false)
         $logLines = [System.Collections.Generic.List[string]]::new()
@@ -393,18 +518,32 @@ function Read-SharedLogSnapshot {
             }
         }
 
-        $fileInfoAfter = Get-Item -LiteralPath $Path -ErrorAction Stop
+        try {
+            $fileInfoAfter = Get-Item -LiteralPath $Path -ErrorAction Stop
+        }
+        catch {
+            # A rotated or deleted path can still have been read through the
+            # open handle; classify it as a changed snapshot.
+            throw [System.InvalidOperationException]::new('snapshot-changed')
+        }
         $fileLengthAfter = [int64] $fileInfoAfter.Length
         $lastWriteTimeBefore = $fileInfoBefore.LastWriteTimeUtc
         $lastWriteTimeAfter = $fileInfoAfter.LastWriteTimeUtc
         return [pscustomobject]@{
-            Lines = @($logLines.ToArray())
+            # Keep the list itself so the internal List backing array is not
+            # duplicated into a second full-size string array.
+            Lines = $logLines
             TotalLines = $logLines.Count
             FileLength = $fileLengthBefore
             LastWriteTimeUtc = $lastWriteTimeBefore
+            CreationTimeUtc = $fileInfoBefore.CreationTimeUtc
             FileLengthAfterRead = $fileLengthAfter
             LastWriteTimeUtcAfterRead = $lastWriteTimeAfter
-            IsStable = ($fileLengthBefore -eq $fileLengthAfter -and $lastWriteTimeBefore -eq $lastWriteTimeAfter)
+            CreationTimeUtcAfterRead = $fileInfoAfter.CreationTimeUtc
+            SnapshotHash = Get-CanonicalLogHash -LogLines $logLines
+            IsStable = ($fileLengthBefore -eq $fileLengthAfter -and
+                $lastWriteTimeBefore -eq $lastWriteTimeAfter -and
+                $fileInfoBefore.CreationTimeUtc -eq $fileInfoAfter.CreationTimeUtc)
         }
     } finally {
         if ($null -ne $streamReader) {
@@ -540,7 +679,7 @@ try {
 
     $snapshot = Read-SharedLogSnapshot -Path $LogFilePath -MaximumBytes $MaximumInputBytes
     $hasNonEmptyLine = $false
-    foreach ($snapshotLine in @($snapshot.Lines)) {
+    foreach ($snapshotLine in $snapshot.Lines) {
         if (-not [string]::IsNullOrWhiteSpace($snapshotLine)) {
             $hasNonEmptyLine = $true
             break
@@ -557,6 +696,21 @@ try {
     if ($snapshot.FileLengthAfterRead -gt $MaximumInputBytes) {
         $failureCategory = '入力上限超過'
         throw [System.InvalidOperationException]::new('input-size-limit')
+    }
+    try {
+        $currentIdentity = Get-CanonicalLogFileHash -Path $LogFilePath -MaximumBytes $MaximumInputBytes
+    } catch {
+        if ($_.Exception.Message -eq 'input-size-limit') {
+            throw
+        }
+        throw [System.InvalidOperationException]::new('snapshot-changed')
+    }
+    if ($currentIdentity.FileLength -ne $snapshot.FileLengthAfterRead -or
+        $currentIdentity.LastWriteTimeUtc -ne $snapshot.LastWriteTimeUtcAfterRead -or
+        $currentIdentity.CreationTimeUtc -ne $snapshot.CreationTimeUtcAfterRead -or
+        $currentIdentity.Hash -ne $snapshot.SnapshotHash) {
+        $failureCategory = 'スナップショット変更'
+        throw [System.InvalidOperationException]::new('snapshot-changed')
     }
 
     $boundaryData = Get-LogBlockCandidates -LogLines $snapshot.Lines
@@ -582,8 +736,14 @@ try {
     }
 
     $latest = $boundaryData.LatestCompleted
-    $selectedSourceLines = @($snapshot.Lines[($latest.StartLine - 1)..($latest.EndLine - 1)])
+    $selectedSourceLines = [System.Collections.Generic.List[string]]::new()
+    for ($lineIndex = $latest.StartLine - 1; $lineIndex -lt $latest.EndLine; $lineIndex++) {
+        $selectedSourceLines.Add($snapshot.Lines[$lineIndex])
+    }
+    # The full input list is no longer needed after boundary and block copying.
+    $snapshot.Lines = $null
     $redactedLines = @(Get-RedactedLogBlock -LogLines $selectedSourceLines)
+    $selectedSourceLines = $null
     $lineLimit = Limit-OutputLines -LogLines $redactedLines -MaximumLines $MaximumOutputLines
     $joinedText = $lineLimit.Lines -join "`r`n"
     $characterLimit = Limit-OutputCharacters -Text $joinedText -MaximumCharacters $MaximumOutputCharacters
@@ -598,7 +758,9 @@ try {
     "文字省略数: $($characterLimit.OmittedCount)"
     "総行数: $($snapshot.TotalLines)"
     "読み取り時ファイル長: $($snapshot.FileLength)"
+    "作成UTC: $($snapshot.CreationTimeUtc.ToString('o'))"
     "最終更新UTC: $($snapshot.LastWriteTimeUtc.ToString('o'))"
+    "スナップショットSHA256: $($snapshot.SnapshotHash)"
     "スナップショット安定: $($snapshot.IsStable)"
     '--- 抽出ブロック開始 ---'
     $characterLimit.Text
