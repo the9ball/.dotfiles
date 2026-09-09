@@ -3,11 +3,12 @@
     # as the human-readable record; this file is the executable classification.
     SchemaVersion = 2
     SourceDocument = 'extensions.md'
-    VerifiedOn = '2026-09-07'
+    VerifiedOn = '2026-09-09'
     DefaultProfile = 'VS2026'
 
-    # The script uses the official Marketplace gallery API to resolve the
-    # current version.  It never accepts a third-party mirror as a source.
+    # AutoInstall records must pin ExpectedVersion, ExpectedSha256, and
+    # ExpectedPublisher after a human review of the official Marketplace
+    # metadata and VSIX manifest. The script never accepts a third-party mirror.
     MarketplaceApiUrl = 'https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery'
     MarketplaceAssetType = 'Microsoft.VisualStudio.Ide.Payload'
 
@@ -49,7 +50,10 @@
             AcquireMethod = 'MarketplaceGalleryApi'
             AutoInstall = $true
             InstallScope = 'Any'
-            VersionPolicy = 'LatestCompatible'
+            VersionPolicy = 'Pinned'
+            ExpectedVersion = '1.11'
+            ExpectedSha256 = '0270595f377ff1100d8359e2c7b8f3fe3158796cb105254422b07e51dfb5a083'
+            ExpectedPublisher = 'Krzysztof Buchacz'
             Classification = 'Marketplace'
             CurrentVersion = '1.11'
             MarketplaceTargets = '[15.0,17.0); [17.0,19.0)'

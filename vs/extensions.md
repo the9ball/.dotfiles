@@ -24,6 +24,14 @@ Marketplace対応かどうかと、ユーザー単位でインストールされ
 | Marketplace | Productivity Power Tools 2022 | 17.0 | Microsoft DevLabs | ProductivityPowerPack2022.0d5b9d71-e118-46de-a20c-555176e53900 | https://marketplace.visualstudio.com/items?itemName=VisualStudioProductTeam.ProductivityPowerPack2022 |
 | Marketplace | Match Margin 2022 | 17.0 | Microsoft DevLabs | MatchMargin2022.d85a25b5-f7b3-46a9-997e-a2d669dc2c93 | https://marketplace.visualstudio.com/items?itemName=VisualStudioProductTeam.MatchMargin |
 
+自動導入する `Parallel Builds Monitor` は、Marketplaceの版固定応答と
+VSIX manifest（ID、Publisher、対象範囲）を突合したうえで、次のSHA-256に固定しています。
+
+- Version: `1.11`
+- Publisher: `Krzysztof Buchacz`
+- SHA-256: `0270595f377ff1100d8359e2c7b8f3fe3158796cb105254422b07e51dfb5a083`
+- VerifiedOn: `2026-09-09`
+
 ## 拡張機能固有設定
 
 拡張機能固有の設定は、再利用可能な形で取得できなかったため、今回の成果物には含めていません。
