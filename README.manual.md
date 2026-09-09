@@ -213,6 +213,139 @@ git check-ignore -v git_user/<local-profile>.gitconfig
 
 履歴上は`Shaula`と`Shoichi Yasui`が主な名前ですが、後者には`shoichi`、`shoichi yasui`、`Shoichi Yasui`の表記揺れがあります。ローカル専用profileのメールアドレスは追跡対象の文書へ書かず、既存コミットも書き換えず、今後使うprofileの表記だけを明示的に選びます。
 
+### Gitコミット署名（Shaula）
+
+`chezmoi apply`と通常のセットアップでは、秘密鍵の生成やGitHubへの登録を行いません。秘密鍵は端末ごとに生成し、GitHubには公開鍵だけを登録します。Shaulaプロファイルには、存在する場合だけ`~/.ssh/gitconfig.signing.shaula`を読み込む入口を用意しています。鍵をまだ作っていない端末では、このファイルがなくても既存のGit設定は動作します。
+
+#### 1. 端末専用の署名鍵を作る
+
+既存の認証鍵や仕事用鍵を流用せず、Shaula署名専用のEd25519鍵を作ります。秘密鍵にはパスフレーズを設定してください。次のコマンドは、指定したファイルが既にある場合に上書きしません。パスフレーズなしで自動化する場合は、秘密鍵を直接参照するため、ファイルACLとバックアップ先を別途確認してください。
+
+Windows PowerShell:
+
+```powershell
+$sshDirectory = Join-Path $env:USERPROFILE '.ssh'
+New-Item -ItemType Directory -Force -Path $sshDirectory | Out-Null
+$signingKeyPath = Join-Path $env:USERPROFILE '.ssh\id_ed25519_git_signing_shaula'
+$publicKeyPath = "$signingKeyPath.pub"
+$privateKeyExists = Test-Path -LiteralPath $signingKeyPath -PathType Leaf
+$publicKeyExists = Test-Path -LiteralPath $publicKeyPath -PathType Leaf
+if (-not $privateKeyExists -and -not $publicKeyExists) {
+    ssh-keygen -t ed25519 -f $signingKeyPath -C 'Shaula Git signing'
+}
+elseif ($privateKeyExists -xor $publicKeyExists) {
+    throw 'The Shaula signing key pair is incomplete; inspect it without overwriting either file.'
+}
+ssh-keygen -lf $publicKeyPath
+Get-Content -Raw $publicKeyPath
+```
+
+WSL、Linux、macOS:
+
+```sh
+umask 077
+mkdir -p "$HOME/.ssh"
+signing_key_path="$HOME/.ssh/id_ed25519_git_signing_shaula"
+if [ ! -f "$signing_key_path" ] && [ ! -f "$signing_key_path.pub" ]; then
+    ssh-keygen -t ed25519 -f "$signing_key_path" -C 'Shaula Git signing'
+elif [ ! -f "$signing_key_path" ] || [ ! -f "$signing_key_path.pub" ]; then
+    echo 'The Shaula signing key pair is incomplete; inspect it without overwriting either file.' >&2
+    exit 1
+fi
+ssh-keygen -lf "$signing_key_path.pub"
+cat "$signing_key_path.pub"
+```
+
+表示された指紋を控え、公開鍵の1行全体を確認します。秘密鍵（拡張子`.pub`がないファイル）は表示・貼り付け・コミットしません。
+
+#### 2. 公開鍵をGitHubへ登録する
+
+GitHubのSettings → SSH and GPG keys → New SSH keyで、種類を`Signing Key`にして、直前に表示した`.pub`の内容だけを登録します。タイトルは必ず指定し、端末名と登録日を組み合わせます（例: `Home-2026-09-09`）。タイトルは鍵の用途やローテーション時期を見分けるための表示名なので、同じ端末で鍵を作り直すときは新しい日付にします。[GitHub公式](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)
+
+CLIを使う場合は、認証済みの`gh`で次を実行します。`gh`が追加の管理スコープを求めた場合は、その内容を確認してから承認します。
+
+PowerShell:
+
+```powershell
+$signingKeyTitle = 'Home-{0:yyyy-MM-dd}' -f (Get-Date)
+gh ssh-key add "$env:USERPROFILE\.ssh\id_ed25519_git_signing_shaula.pub" `
+    --type signing `
+    --title $signingKeyTitle
+```
+
+WSL、Linux、macOS:
+
+```sh
+signing_key_title="Home-$(date +%F)"
+gh ssh-key add ~/.ssh/id_ed25519_git_signing_shaula.pub \
+    --type signing \
+    --title "$signing_key_title"
+```
+
+認証用のSSH鍵を自動生成する`gh auth login --git-protocol ssh`とは用途が異なります。この手順では署名用の鍵を明示的に登録します。`gh`が`admin:ssh_signing_key`スコープを求めた場合は、内容を確認してから`gh auth refresh -h github.com -s admin:ssh_signing_key`を実行します。GitHub側の登録が完了するまでは、次のGit設定を有効にしません。
+
+#### 3. Shaulaの署名設定を端末ローカルへ作る
+
+GitHubへの登録後、秘密情報を含まないローカル設定ファイルへ署名方式、公開鍵のパス、コミット時の自動署名を記録します。設定ファイルはGit管理下へ置きません。
+
+Windows PowerShell:
+
+```powershell
+$signingConfigPath = Join-Path $env:USERPROFILE '.ssh\gitconfig.signing.shaula'
+$publicKeyPath = Join-Path $env:USERPROFILE '.ssh\id_ed25519_git_signing_shaula.pub'
+if (-not (Test-Path -LiteralPath $signingConfigPath -PathType Leaf)) {
+    Set-Content -LiteralPath $signingConfigPath -Value '# Shaulaのコミット署名にはid_ed25519_git_signing_shaula鍵を使う。'
+}
+git config --file $signingConfigPath gpg.format ssh
+git config --file $signingConfigPath user.signingKey $publicKeyPath
+git config --file $signingConfigPath commit.gpgsign true
+```
+
+上の設定は、パスフレーズ付き秘密鍵を`ssh-agent`へ追加して使う推奨形です。パスフレーズなしの鍵をagentなしで使う場合は、`user.signingKey`に公開鍵ではなく秘密鍵のパスを指定します。
+
+WSL、Linux、macOS:
+
+```sh
+signing_config_path="$HOME/.ssh/gitconfig.signing.shaula"
+public_key_path="$HOME/.ssh/id_ed25519_git_signing_shaula.pub"
+if [ ! -f "$signing_config_path" ]; then
+    printf '%s\n' '# Shaulaのコミット署名にはid_ed25519_git_signing_shaula鍵を使う。' > "$signing_config_path"
+fi
+git config --file "$signing_config_path" gpg.format ssh
+git config --file "$signing_config_path" user.signingKey "$public_key_path"
+git config --file "$signing_config_path" commit.gpgsign true
+```
+
+パスフレーズなしの鍵をagentなしで使う場合:
+
+Windows PowerShell:
+
+```powershell
+$privateKeyPath = Join-Path $env:USERPROFILE '.ssh\id_ed25519_git_signing_shaula'
+git config --file $signingConfigPath user.signingKey $privateKeyPath
+```
+
+WSL、Linux、macOS:
+
+```sh
+private_key_path="$HOME/.ssh/id_ed25519_git_signing_shaula"
+git config --file "$signing_config_path" user.signingKey "$private_key_path"
+```
+
+パスフレーズ付き鍵を公開鍵パスで使う場合は、コミット前に対応する秘密鍵を`ssh-agent`へ追加します。
+
+Windows PowerShell:
+
+```powershell
+ssh-add (Join-Path $env:USERPROFILE '.ssh\id_ed25519_git_signing_shaula')
+```
+
+```sh
+ssh-add "$HOME/.ssh/id_ed25519_git_signing_shaula"
+```
+
+Shaulaプロファイルを使うリポジトリでは、`git config --show-origin --show-scope --includes --get-regexp '^(gpg\.format|user\.signingkey|commit\.gpgsign)$'`で設定の出所と実効値を確認します。次の通常のShaulaコミットを作成した後、GitHubのコミット画面で`Verified`になったことを確認してください。Shoichi Yasuiの業務profileにはこの署名設定を適用せず、業務アカウントで署名が必要になった時点で別の鍵と登録手順を用意します。
+
 ## 4. 差分を確認して適用する
 
 まず適用前の差分を確認し、問題がなければ適用します。意図しない差分があれば適用せず停止し、適用後の検証が失敗した場合や差分が残る場合も成功扱いにしません。

@@ -45,6 +45,8 @@ chezmoi verify --exclude=scripts
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `.agents`と`.claude/skills`の共有リンクを作成する。
 
+Gitの署名鍵は`chezmoi apply`で自動生成・登録しません。端末ごとに専用鍵を作成し、指紋と公開鍵を確認してからGitHubへ登録する必要があります。Shaulaの署名を有効にする場合は、初回適用後に[`README.manual.md`](README.manual.md)の「Gitコミット署名（Shaula）」を実行してください。
+
 Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）もAquaで導入されます。初回は上記の`aqua install`を`chezmoi apply`より先に実行します。
 これは通常のCLIの導入であり、Remote Control用standalone版の導入やログインは行いません。
 
