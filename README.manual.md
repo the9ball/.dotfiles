@@ -373,6 +373,34 @@ Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yam
 通常の`codex`は`CODEX_HOME`未設定の`~/.codex`を仕事用アカウントとして使います。個人用は`pcodex`、WSL用CLIは`wcodex`を使い、それぞれ`~/.codex-personal`、`~/.codex-wsl`へ`CODEX_HOME`を切り替えます。`wcodex`は全環境へ定義されますが、`~/.codex-wsl`がない場合の実行時エラーは許容し、別ホームへフォールバックしません。
 通常のCodex設定は`modify_`方式で既存の実行時状態を保持し、共有defaultsを上書きします。仕事用の端末固有値は`chezmoi/.chezmoitemplates/codex-defaults.toml.local`、個人用のホスト固有値は`chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local`へ置きます。
 
+### Windows版VS CodeのCodex端末設定
+
+Windows版VS Codeのユーザー設定（`%APPDATA%\Code\User\settings.json`）は、ファイル全体を管理せず、[`chezmoi/AppData/Roaming/Code/User/modify_settings.json`](chezmoi/AppData/Roaming/Code/User/modify_settings.json)で次の3項目だけを管理します。
+
+- `terminal.integrated.profiles.windows["Codex Personal"].source`
+- `terminal.integrated.profiles.windows["Codex Personal"].env.CODEX_HOME`
+- `terminal.integrated.defaultProfile.windows`
+
+`modify_`テンプレートは適用時点のファイルを入力として受け取り、他のトップレベル設定、他のターミナルプロファイル、`Codex Personal`内の追加オプション・環境変数を保持します。`settings.json`はJSONCとして解析するため、コメントや末尾カンマを含む現行ファイルも読み込めます。管理値が既に一致している場合は入力をそのまま返すので、VS Codeや拡張機能が後から加えた無関係な変更と共存しやすくなります。管理値の修正が必要な場合は、JSONとして再出力するため、その適用回だけコメント・空白・改行が正規化される可能性があります。`chezmoi diff`で確認してから適用してください。
+
+共通の既定値は[`chezmoi/.chezmoidata.json`](chezmoi/.chezmoidata.json)の`vscodeDefaultTerminalProfile`（`Codex Personal`）です。仕事用端末で通常のPowerShellを既定にする場合は、その端末のchezmoi設定（通常は`%USERPROFILE%\.config\chezmoi\chezmoi.toml`）に次を追加します。設定ファイルはリポジトリへ保存しないため、端末ごとの値を分離できます。
+
+```toml
+[data]
+vscodeDefaultTerminalProfile = "PowerShell"
+```
+
+どちらの端末でも`Codex Personal`プロファイル自体は維持されます。Windowsで対象だけを適用するには、PowerShellから次を実行します。
+
+```powershell
+chezmoi --source "$env:USERPROFILE\.dotfiles" diff "$env:APPDATA\Code\User\settings.json"
+chezmoi --source "$env:USERPROFILE\.dotfiles" apply "$env:APPDATA\Code\User\settings.json"
+```
+
+VS Codeをまだ起動しておらず`Code\User`ディレクトリ自体がない場合は、先にVS Codeを一度起動してください。管理対象のコンテナーが配列や文字列へ壊れている場合、テンプレートは他の設定を消さずにエラーで停止するため、該当箇所を手動で正しいオブジェクトへ戻してから再適用します。
+
+この方法では、設定全体をテンプレートへコピーしてVS Codeの更新を巻き戻す運用や、`settings.json`をシンボリックリンクへ置き換える運用を採りません。PowerShellの`ConvertFrom-Json`/`ConvertTo-Json`だけで実装する案は、PowerShellのバージョン差、JSONC非対応、深さ制限、ファイル全体の再整形が残るため採用していません。Pythonの標準`json`もJSONCを扱えず、JSONC用パッケージを追加するとWindows端末ごとのランタイム・依存関係の管理が必要になります。chezmoi組み込みの`fromJsonc`と`toPrettyJson`を使うことで追加ランタイムなしにJSONCを扱い、無変更時は元テキストを保持します。管理値が頻繁に書き換えられる運用でコメントや書式を絶対に保持する必要がある場合は、別途JSONC対応の構文編集ツールを導入し、適用前後の差分を必ず確認してください。
+
 WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
 `.codex-wsl`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
