@@ -64,7 +64,7 @@
 - Git の状態取得・変更、index.lock・権限エラー、差分・レビュー範囲の固定、Git の復旧に入る前は `guides/git-operations.md` を読む。
 - JSON を構造として参照・抽出するときは `guides/structured-data.md` を読む。`.NET` の build・test 前は `guides/dotnet-testing.md` を読む。
 - コピー可能なコードや他エージェントへ渡す本文をチャットに出力する前は `guides/agent-output.md` を読む。
-- サブエージェントまたは委譲先を dispatch するとき、モデル固有の調整が必要なら対応する model guide を補助資料として渡す。GPT-6 Astra (`gpt-6-astra`) は `guides/model-gpt-6-astra.md`、GPT-5.6 ファミリー（`gpt-5.6` alias または対応モデルID）は `guides/model-gpt-5.6.md` を使い、通常の repository-wide instruction として自動適用しない。
+- サブエージェントまたは委譲先を dispatch するとき、モデル固有の調整が必要なら `guides/delegation.md` の対応表で選択モデルに対応する model guide を確認し、補助資料として渡す。対応表にないモデルへ推測で適用せず、通常の repository-wide instruction として自動適用しない。
 - GitHub の Issue、Pull Request、レビューコメントなどを操作するときは、`guides/github.md` を実行前に読む。`github.md` はこのファイルの共通安全核と `guides/external-posting.md` を補足し、GitHub 固有の詳細だけを定める。
 - Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときは、ユーザーから明示的な指示がない限りローカル環境固有の事情を記載しない。詳細は `guides/external-posting.md` を投稿前に読む。
 
