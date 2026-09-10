@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/the9ball/.dotfiles/rigorous-review-evaluation/dispatch-receipt.schema.json",
+  "title": "Issue #6 fixture dispatch receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "mode",
+    "run_id",
+    "case_id",
+    "side",
+    "fixture_manifest_sha256",
+    "target_manifest_hash",
+    "epoch_hash",
+    "role_context_ids",
+    "model_identity",
+    "routing_status",
+    "dispatch_count",
+    "runtime_dispatch_attempted",
+    "runtime_dispatch_enforcement_claimed"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "receipt_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+    "mode": { "const": "fixture_only_observe_only" },
+    "run_id": { "type": "string" },
+    "case_id": { "type": "string" },
+    "side": { "enum": ["baseline", "candidate"] },
+    "fixture_manifest_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "target_manifest_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "epoch_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "role_context_ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "respondent"],
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 },
+        "respondent": { "type": "string", "minLength": 1 }
+      }
+    },
+    "model_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "respondent"],
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 },
+        "respondent": { "type": "string", "minLength": 1 }
+      }
+    },
+    "routing_status": { "const": "DECLARED_ONLY" },
+    "dispatch_count": { "type": "integer", "minimum": 0 },
+    "runtime_dispatch_attempted": { "const": false },
+    "runtime_dispatch_enforcement_claimed": { "const": false }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "run_id": "run-unresolved-evidence-candidate",
+  "side": "candidate",
+  "case_id": "unresolved-evidence",
+  "fixture_manifest_sha256": "9dfff6226aa01fe81371e8a5d53b99a8ed95f4a67571ae47dcd435c3dec7a4dd",
+  "target_manifest_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "role_context": {
+    "reviewer_context_id": "ctx-unresolved-candidate-reviewer",
+    "respondent_context_id": "ctx-unresolved-candidate-respondent",
+    "contexts_distinct": true,
+    "joint_record_version": "joint-unresolved-v1",
+    "reviewer_approved": false,
+    "respondent_approved": false
+  },
+  "model_identity": { "reviewer": "candidate-reviewer-fixture", "respondent": "candidate-respondent-fixture" },
+  "routing_status": "DECLARED_ONLY",
+  "deterministic_checks": "PASS",
+  "evidence_status": "NEEDS_EVIDENCE",
+  "coverage_status": "RELIABLE",
+  "gate_status": "BLOCKED",
+  "proceed_status": "NOT_AUTHORIZED",
+  "escalation_step": "evidence_reacquisition",
+  "escalation_trace": ["eligibility", "reviewer", "respondent", "evidence_reacquisition"],
+  "finding_count": 1,
+  "propositions": [
+    { "proposition_id": "high-evidence-001", "severity": "high", "discovery": "FOUND", "rejection": "NOT_APPLICABLE" }
+  ],
+  "packet_sha256": "9c48240791bed0d9d6f6b3f3778cb77e597cf199313aa38c1270ac553a80586b",
+  "dispatch_receipt_sha256": "8702b590d655f46719a9e30e3c29b89280d6d674d19289eabb55c16e2be129a1",
+  "input_tokens": 92,
+  "output_tokens": 38,
+  "dispatch_count": 0,
+  "runtime_dispatch_attempted": false,
+  "runtime_dispatch_enforcement_claimed": false
+}
