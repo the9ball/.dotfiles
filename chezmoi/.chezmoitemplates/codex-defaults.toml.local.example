@@ -2,6 +2,8 @@
 # The .local file is ignored by Git and merged after codex-defaults.toml.
 # A shared checkout reads this file on both Windows and WSL, so keep values
 # valid on both systems; put WSL-only setup under codex-wsl/ instead.
+# Legacy sandbox_mode and sandbox_workspace_write keys are removed by the
+# modify template; Permission Profiles remain authoritative.
 # Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
 
 # Example:
