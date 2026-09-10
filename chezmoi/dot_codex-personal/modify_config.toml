@@ -15,6 +15,9 @@ migration. auth.json is a separate file and is never read or written here.
 {{- if hasKey $config "sandbox_mode" -}}
 {{-   $config = unset $config "sandbox_mode" -}}
 {{- end -}}
+{{- if hasKey $config "sandbox_workspace_write" -}}
+{{-   $config = unset $config "sandbox_workspace_write" -}}
+{{- end -}}
 {{- if hasKey $config "permissions" -}}
 {{-   $permissions := index $config "permissions" -}}
 {{-   if hasKey $permissions "default-permissions" -}}
@@ -34,6 +37,9 @@ migration. auth.json is a separate file and is never read or written here.
 {{- end -}}
 {{- if hasKey $defaults "sandbox_mode" -}}
 {{-   $defaults = unset $defaults "sandbox_mode" -}}
+{{- end -}}
+{{- if hasKey $defaults "sandbox_workspace_write" -}}
+{{-   $defaults = unset $defaults "sandbox_workspace_write" -}}
 {{- end -}}
 {{- if hasKey $defaults "permissions" -}}
 {{-   $defaultPermissions := index $defaults "permissions" -}}

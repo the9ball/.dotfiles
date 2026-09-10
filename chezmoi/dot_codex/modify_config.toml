@@ -5,6 +5,8 @@ Manage only stable, portable work Codex settings. The existing target config
 is parsed first and overlaid with repository defaults, so Codex-managed
 projects, hook state, model availability state, and unknown keys are kept.
 An optional codex-defaults.toml.local file can add host-specific values.
+Legacy sandbox settings are removed because permission profiles and
+sandbox_mode/sandbox_workspace_write are mutually exclusive.
 auth.json is a separate file and is never read or written here.
 
 */ -}}
@@ -13,11 +15,23 @@ auth.json is a separate file and is never read or written here.
 {{- if $stdin -}}
 {{-   $config = fromToml $stdin -}}
 {{- end -}}
+{{- if hasKey $config "sandbox_mode" -}}
+{{-   $config = unset $config "sandbox_mode" -}}
+{{- end -}}
+{{- if hasKey $config "sandbox_workspace_write" -}}
+{{-   $config = unset $config "sandbox_workspace_write" -}}
+{{- end -}}
 {{- $defaults := fromToml (include ".chezmoitemplates/codex-defaults.toml") -}}
 {{- $localDefaultsPath := printf "%s/.chezmoitemplates/codex-defaults.toml.local" .chezmoi.sourceDir -}}
 {{- if (stat $localDefaultsPath) -}}
 {{-   $local := fromToml (include ".chezmoitemplates/codex-defaults.toml.local") -}}
 {{-   $defaults = mergeOverwrite $defaults $local -}}
+{{- end -}}
+{{- if hasKey $defaults "sandbox_mode" -}}
+{{-   $defaults = unset $defaults "sandbox_mode" -}}
+{{- end -}}
+{{- if hasKey $defaults "sandbox_workspace_write" -}}
+{{-   $defaults = unset $defaults "sandbox_workspace_write" -}}
 {{- end -}}
 {{- $config = mergeOverwrite $config $defaults -}}
 {{ $config | toToml }}

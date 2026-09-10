@@ -4,6 +4,8 @@
 #
 # Replace <user> with the Windows account name. These paths are intentionally
 # host-local; keep WSL settings in the separate codex-wsl home instead.
+# Legacy sandbox_mode and sandbox_workspace_write keys are removed by the
+# modify template; Permission Profiles remain authoritative.
 # Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
 
 [permissions.personal-standard.filesystem]
