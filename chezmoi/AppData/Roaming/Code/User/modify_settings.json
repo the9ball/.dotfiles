@@ -1,0 +1,79 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /*
+
+Manage only the Codex-related VS Code user settings. The existing settings are
+parsed first and the managed values are overlaid, so VS Code's other settings,
+profiles, profile options, and environment variables remain untouched.
+
+The target is JSONC in practice: VS Code permits comments and trailing commas
+in settings.json. fromJsonc accepts both JSON and JSONC. When the managed
+values are already correct, return the original input verbatim so an external
+formatter or VS Code itself does not create a formatting-only diff. A change
+to a managed value is rendered as normal pretty JSON; comments and whitespace
+may then be normalized by chezmoi's serializer.
+
+*/ -}}
+{{- $defaultProfile := "Codex Personal" -}}
+{{- if hasKey . "vscodeDefaultTerminalProfile" -}}
+{{-   $configuredProfile := index . "vscodeDefaultTerminalProfile" -}}
+{{-   if not (kindIs "string" $configuredProfile) -}}
+{{-     fail "vscodeDefaultTerminalProfile must be a string" -}}
+{{-   end -}}
+{{-   $configuredProfile = trim $configuredProfile -}}
+{{-   if eq $configuredProfile "" -}}
+{{-     fail "vscodeDefaultTerminalProfile must not be empty" -}}
+{{-   end -}}
+{{-   $defaultProfile = $configuredProfile -}}
+{{- end -}}
+
+{{- $settings := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $settings = fromJsonc .chezmoi.stdin -}}
+{{- end -}}
+{{- if not (kindIs "map" $settings) -}}
+{{-   fail "VS Code settings.json must contain a JSON object" -}}
+{{- end -}}
+{{- $originalSettings := $settings | toJson -}}
+
+{{- $profilesKey := "terminal.integrated.profiles.windows" -}}
+{{- $defaultProfileKey := "terminal.integrated.defaultProfile.windows" -}}
+{{- $profiles := dict -}}
+{{- if hasKey $settings $profilesKey -}}
+{{-   $profilesValue := index $settings $profilesKey -}}
+{{-   if not (kindIs "map" $profilesValue) -}}
+{{-     fail "terminal.integrated.profiles.windows must be a JSON object" -}}
+{{-   end -}}
+{{-   $profiles = $profilesValue -}}
+{{- end -}}
+
+{{- $profile := dict -}}
+{{- if hasKey $profiles "Codex Personal" -}}
+{{-   $profileValue := index $profiles "Codex Personal" -}}
+{{-   if not (kindIs "map" $profileValue) -}}
+{{-     fail "the existing Codex Personal profile must be a JSON object" -}}
+{{-   end -}}
+{{-   $profile = $profileValue -}}
+{{- end -}}
+
+{{- $profileEnvironment := dict -}}
+{{- if hasKey $profile "env" -}}
+{{-   $environmentValue := index $profile "env" -}}
+{{-   if not (kindIs "map" $environmentValue) -}}
+{{-     fail "the existing Codex Personal env value must be a JSON object" -}}
+{{-   end -}}
+{{-   $profileEnvironment = $environmentValue -}}
+{{- end -}}
+
+{{- $_ := set $profile "source" "PowerShell" -}}
+{{- $_ = set $profileEnvironment "CODEX_HOME" "${env:USERPROFILE}\\.codex-personal" -}}
+{{- $_ = set $profile "env" $profileEnvironment -}}
+{{- $_ = set $profiles "Codex Personal" $profile -}}
+{{- $_ = set $settings $profilesKey $profiles -}}
+{{- $_ = set $settings $defaultProfileKey $defaultProfile -}}
+
+{{- $modifiedSettings := $settings | toJson -}}
+{{- if and .chezmoi.stdin (eq $originalSettings $modifiedSettings) -}}
+{{-   .chezmoi.stdin -}}
+{{- else -}}
+{{-   $settings | toPrettyJson -}}
+{{- end -}}
