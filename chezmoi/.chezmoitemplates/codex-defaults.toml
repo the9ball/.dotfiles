@@ -6,7 +6,6 @@
 
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
-sandbox_mode = "workspace-write"
 service_tier = "default"
 model = "gpt-5.6-luna"
 model_reasoning_effort = "max"
@@ -44,6 +43,16 @@ experimental_mode = true
 
 [permissions.default-permissions]
 extends = ":workspace"
+
+# Permission profiles are beta and may change with Codex releases.
+# :root denies broad filesystem access; :minimal keeps the platform/runtime
+# paths required by common tools readable. Revalidate this policy on upgrades.
+# Configuration shape checked with Codex CLI 0.153.4; runtime canary remains
+# part of Issue #16 completion.
+# Reference: https://learn.chatgpt.com/docs/permissions
+[permissions.default-permissions.filesystem]
+":root" = "deny"
+":minimal" = "read"
 
 [permissions.default-permissions.network]
 enabled = true
