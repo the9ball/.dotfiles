@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "case_id": "medium-low-observation",
+  "scenario": "informational_severity_difference",
+  "expected": {
+    "baseline": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [
+    { "proposition_id": "medium-001", "severity": "medium", "metrics": ["discovery", "rejection"] },
+    { "proposition_id": "low-001", "severity": "low", "metrics": ["discovery", "rejection"] }
+  ],
+  "packet_path": "../packets/medium-low-observation.json",
+  "runs": {
+    "baseline": { "result_path": "../results/medium-low-observation.baseline.json", "receipt_path": "../receipts/medium-low-observation.baseline.json" },
+    "candidate": { "result_path": "../results/medium-low-observation.candidate.json", "receipt_path": "../receipts/medium-low-observation.candidate.json" }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/the9ball/.dotfiles/rigorous-review-evaluation/packet.schema.json",
+  "title": "Issue #6 fixture packet",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "packet_id", "case_id", "fixture_manifest_sha256", "target_manifest_hash", "epoch_hash", "payload"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "packet_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+    "case_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+    "fixture_manifest_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "target_manifest_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "epoch_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "payload": { "type": "string", "minLength": 1 }
+  }
+}
