@@ -22,11 +22,11 @@ Git の状態取得、変更、復旧、差分・レビュー範囲の固定に�
 ## 差分・レビュー範囲の固定
 
 - 実質レビューの前に比較基準、終端状態、対象 identity、含める状態、除外する状態を一意に固定する。`HEAD` だけで基準と終端を同時に決めない。
-- PR または URL が指定された場合は、提供元の固定 base/head SHA と差分定義に一致するコミット済み差分を対象とし、移動するローカル base、index、working tree、untracked を暗黙に混ぜない。
-- `staged` は `HEAD` 基準の index、`直近commit` は `HEAD^..HEAD`、`未commit` または `作業ツリー` は `HEAD` 基準の staged・unstaged・非ignored untracked とする。ignored の扱いは明示する。
-- `upstreamとの差分` は、明示がなければ現在 branch の追跡先 `@{u}` から `HEAD` までのコミット済み変更とする。`@{u}` を PR base や release branch と同一視しない。
+- PR または URL が指定された場合は、提供元の固定 base/head SHA と差分定義（通常は `merge-base(base, head)` から head まで）に一致するコミット済み差分を対象とする。提供元の差分定義を取得できない場合だけ、固定 base/head SHA から同じ merge-base 差分を再現する。移動するローカル base、index、working tree、untracked を暗黙に混ぜない。
+- `staged` は `HEAD` 基準の index、`直近commit` は `HEAD^..HEAD`、`未commit` または `作業ツリー` は `HEAD` 基準の staged・unstaged・非ignored untracked とする。ignored は常に除外する。
+- `upstreamとの差分` は、明示がなければ現在 branch の追跡先 `@{u}` から `HEAD` までのコミット済み変更（merge-base 基準）とする。`@{u}` を PR base や release branch と同一視せず、dirty な変更を含めるかは別に確認する。
 - identity には commit/PR の base・target SHA、staged の index snapshot、作業ツリーの index・追跡ファイル snapshot、対象 untracked の path・hash manifest を含める。
-- 「レビューして」などで比較基準や終端が一意でない場合は、branch、追跡先、PR base/head、`HEAD`、dirty 状態を read-only で確認し、原則1問で候補を提示する。確認前にレビューや dispatch を始めない。
+- 「レビューして」などで比較基準や終端が一意でない場合は、branch、追跡先、PR base/head、`HEAD`、dirty 状態を read-only で確認し、原則1問で候補を提示する。main、develop、release 系の branch を暗黙の比較元にせず、確認前にレビューや dispatch を始めない。
 - `@{u}` 解決不能、PR head と local `HEAD` の不一致、対象の変化がある場合は、推測や新旧証拠の混在をせず範囲を再確認する。
 - レビュー結果の冒頭に比較基準、終端 ref/SHA または snapshot identity、含めた状態、除外した状態、untracked の扱いを記載する。
 
