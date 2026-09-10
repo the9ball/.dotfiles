@@ -1,15 +1,13 @@
 # GitHub 操作
 
 Issue、Pull Request、レビューコメントなどの GitHub 操作に入る前に読む。
-このガイドは `.agents/AGENTS.md` の共通契約と `guides/external-posting.md` を補足し、GitHub 固有の対象特定、調査、操作、投稿内容を定める。
+このガイドは `.agents/AGENTS.md` の共通契約と `guides/external-posting.md` を補足し、GitHub 固有の対象特定、操作、投稿内容を定める。
 上位の system、ユーザー、リポジトリ、role、skill の指示と承認範囲を上書きしない。
 
 ## 共通契約との境界
 
-- clarification、bounded research、autonomous execution の前提は `.agents/AGENTS.md` の共通契約に従う。
-- `execution-lifecycle-gate` が所有する execution contract、対象 identity、epoch、承認と権限、review lifecycle、commit、fixup、amend、autosquash、外部操作ゲートをこのガイドで再定義しない。
-- #4 の model guide はモデル固有の傾向や補足、#5 の `commit-message.md` はコミットメッセージの形式と履歴規則を担当する。
-- #2 の Advisor 固有契約と #6 の rigorous-review 固有契約は、各 role の research budget、bounded verification、`NEEDS_EVIDENCE`、独立性、read-only / evidence 制約を維持する。
+- clarification、bounded research、autonomous execution、無応答、scope・permission、不可逆操作、一般的な外部操作承認は `.agents/AGENTS.md` の共通契約に従う。
+- lifecycle、model、Advisor、rigorous-review、commit-message、external-posting の固有契約は各 Skill / guide に従い、このガイドでは GitHub 固有の差分だけを定める。
 
 ## 実行手段と失敗時の停止
 
@@ -28,16 +26,12 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 
 ## Read-only 調査と無応答
 
-- read-only 調査は、対象、範囲、予算、停止条件を固定した bounded research として行う。
-- ユーザー無応答は scope、権限、外部操作の承認とみなさない。
-- 固定時間による fallback は導入せず、経過時間を承認やユーザーの選好、権限判断、設計判断の代替にしない。
-- 対象と範囲が固定され、read-only で安全に事実確認でき、ユーザー判断を代替しない場合に限り、condition-based fallback として調査を継続できる。
-- scope 拡張、新たな権限、不可逆操作、外部操作、ユーザーの選好や設計判断が必要な事項は停止して確認する。
+- 共通の read-only 調査、condition-based fallback、無応答時の扱いは `.agents/AGENTS.md` に従う。
 
 ## 外部操作
 
-- Issue や Pull Request の作成、更新、close、merge、ラベル変更、assign、review request、approve、request changes、返信、コメント投稿は、依頼された操作だけを行う。
-- 外部操作の前に、ユーザーの明示的な指示、対象、操作、実際に送信する内容、反映先、公開範囲、必要な権限を固定する。
+- GitHub の Issue、Pull Request、レビュー操作は、依頼された操作だけを対象にする。
+- 各操作の前に、対象 identity、操作、送信本文、反映先、公開範囲を固定し、`.agents/AGENTS.md` の外部操作承認を適用する。
 - Issue 本文の更新とコメント投稿は別操作として扱い、それぞれの対象、操作、本文、公開範囲を個別に固定する。
 - 計画への同意や Advisor の `CLEAR` は、Issue や Pull Request の外部投稿、更新、実装採用の承認とはみなさない。
 - コメント投稿だけが目的で、状態に依存する条件がなく、対象 identity、投稿本文、公開範囲、権限が固定され、状態確認が本文生成に不要な場合は、不要な状態確認を省略できる。
@@ -59,8 +53,7 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 
 ## 投稿文面
 
-- `guides/external-posting.md` に従い、ユーザーの明示がない限りローカル絶対パス、ローカル配置、一時ファイル、sandbox、workspace、認証情報、内部ログを含めない。
-- 投稿文面に必要なファイル名や行番号は、受け手が利用できるリポジトリ相対パスと公開 URL で示す。
+- 公開文面は `guides/external-posting.md` に従い、GitHub 上で参照可能なリポジトリ相対パスと公開 URL を使う。
 - レビュー結果、未確定事項、ユーザー判断が必要な事項を混同せず、確認済みの事実と判断待ちの内容を分けて書く。
 
 ## 参照先
