@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh.exe -NoProfile -NonInteractive -File C:/path/to/task-complete-notify/scripts/codex-stop-hook.ps1",
+            "timeout": 90
+          }
+        ]
+      }
+    ]
+  }
+}
