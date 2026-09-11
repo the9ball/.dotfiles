@@ -6,7 +6,6 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 
 function Assert-NotificationMessage {
     <#
@@ -179,27 +178,45 @@ function Read-NotificationRequest {
     .NOTES
     Invalid input is reported with a generic error and never echoed.
     #>
-    $RequestText = [Console]::In.ReadToEnd()
-    if ([string]::IsNullOrWhiteSpace($RequestText)) {
-        throw 'request_invalid'
-    }
-
+    $InputStream = $null
+    $InputReader = $null
     try {
-        $Request = $RequestText | ConvertFrom-Json
-    }
-    catch {
-        throw 'request_invalid'
-    }
+        $InputStream = [Console]::OpenStandardInput()
+        $InputReader = [IO.StreamReader]::new(
+            $InputStream,
+            [Text.UTF8Encoding]::new($false),
+            $true
+        )
+        $RequestText = $InputReader.ReadToEnd()
+        if ([string]::IsNullOrWhiteSpace($RequestText)) {
+            throw 'request_invalid'
+        }
 
-    if (-not $Request.PSObject.Properties.Name.Contains('message')) {
-        throw 'request_invalid'
+        try {
+            $Request = $RequestText | ConvertFrom-Json
+        }
+        catch {
+            throw 'request_invalid'
+        }
+
+        if (-not $Request.PSObject.Properties.Name.Contains('message')) {
+            throw 'request_invalid'
+        }
+
+        $Message = [string]$Request.message
+        [void](Assert-NotificationMessage -Message $Message)
+
+        return [pscustomobject]@{
+            Message = $Message
+        }
     }
-
-    $Message = [string]$Request.message
-    [void](Assert-NotificationMessage -Message $Message)
-
-    return [pscustomobject]@{
-        Message = $Message
+    finally {
+        if ($null -ne $InputReader) {
+            $InputReader.Dispose()
+        }
+        if ($null -ne $InputStream) {
+            $InputStream.Dispose()
+        }
     }
 }
 

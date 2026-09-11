@@ -13,7 +13,6 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Invoke-WindowsHelper {

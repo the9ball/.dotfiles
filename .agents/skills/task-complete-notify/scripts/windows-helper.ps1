@@ -6,10 +6,9 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SkillDirectory = Split-Path -Parent $ScriptDirectory
+$NotifierTimeoutMilliseconds = 35000
 
 function Resolve-CodexHome {
     <#
@@ -49,19 +48,22 @@ function Resolve-CodexHome {
 }
 
 $CodexHome = Resolve-CodexHome
-$StateDirectory = if ([string]::IsNullOrWhiteSpace($CodexHome)) {
-    # Keep invalid-home failures from creating any user-visible runtime path.
-    Join-Path $SkillDirectory '.task-complete-notify.invalid'
+$StateDirectory = $null
+$RequestDirectory = $null
+$LockDirectory = $null
+$CheckpointDirectory = $null
+$TerminalDirectory = $null
+$CoordinationLockPath = $null
+$WatcherLockPath = $null
+if (-not [string]::IsNullOrWhiteSpace($CodexHome)) {
+    $StateDirectory = Join-Path $CodexHome '.task-complete-notify'
+    $RequestDirectory = Join-Path $StateDirectory 'requests'
+    $LockDirectory = Join-Path $StateDirectory 'locks'
+    $CheckpointDirectory = Join-Path $StateDirectory 'checkpoints'
+    $TerminalDirectory = Join-Path $StateDirectory 'terminal'
+    $CoordinationLockPath = Join-Path $StateDirectory 'coordination.lock'
+    $WatcherLockPath = Join-Path $StateDirectory 'watcher.lock'
 }
-else {
-    Join-Path $CodexHome '.task-complete-notify'
-}
-$RequestDirectory = Join-Path $StateDirectory 'requests'
-$LockDirectory = Join-Path $StateDirectory 'locks'
-$CheckpointDirectory = Join-Path $StateDirectory 'checkpoints'
-$TerminalDirectory = Join-Path $StateDirectory 'terminal'
-$CoordinationLockPath = Join-Path $StateDirectory 'coordination.lock'
-$WatcherLockPath = Join-Path $StateDirectory 'watcher.lock'
 $NotifyScriptPath = Join-Path $ScriptDirectory 'notify.ps1'
 $WatcherScriptPath = Join-Path $ScriptDirectory 'codex-watcher.ps1'
 
@@ -1023,7 +1025,7 @@ function Invoke-NotificationScript {
             $ErrorTask = $NotifierProcess.StandardError.ReadToEndAsync()
             $NotifierProcess.StandardInput.Write($RequestJson)
             $NotifierProcess.StandardInput.Close()
-            if (-not $NotifierProcess.WaitForExit(30000)) {
+            if (-not $NotifierProcess.WaitForExit($NotifierTimeoutMilliseconds)) {
                 try {
                     $NotifierProcess.Kill($true)
                 }
@@ -1776,8 +1778,16 @@ function Invoke-HelperRequest {
 }
 
 $HelperResult = $null
+$InputStream = $null
+$InputReader = $null
 try {
-    $RequestText = [Console]::In.ReadToEnd()
+    $InputStream = [Console]::OpenStandardInput()
+    $InputReader = [IO.StreamReader]::new(
+        $InputStream,
+        [Text.UTF8Encoding]::new($false),
+        $true
+    )
+    $RequestText = $InputReader.ReadToEnd()
     if ([string]::IsNullOrWhiteSpace($RequestText)) {
         throw 'request_invalid'
     }
@@ -1789,6 +1799,14 @@ catch {
     $HelperResult = [pscustomobject]@{
         Ok = $false
         Status = 'request_invalid'
+    }
+}
+finally {
+    if ($null -ne $InputReader) {
+        $InputReader.Dispose()
+    }
+    if ($null -ne $InputStream) {
+        $InputStream.Dispose()
     }
 }
 

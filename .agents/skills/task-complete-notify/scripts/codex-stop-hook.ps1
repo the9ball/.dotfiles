@@ -6,8 +6,8 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+$HelperTimeoutMilliseconds = 55000
 
 function Get-JsonProperty {
     <#
@@ -95,7 +95,7 @@ function Invoke-WindowsHelper {
         $ErrorTask = $Process.StandardError.ReadToEndAsync()
         $Process.StandardInput.Write($RequestJson)
         $Process.StandardInput.Close()
-        if (-not $Process.WaitForExit(60000)) {
+        if (-not $Process.WaitForExit($HelperTimeoutMilliseconds)) {
             try {
                 $Process.Kill($true)
             }
@@ -119,8 +119,16 @@ function Invoke-WindowsHelper {
 }
 
 $HookInput = $null
+$InputStream = $null
+$InputReader = $null
 try {
-    $HookText = [Console]::In.ReadToEnd()
+    $InputStream = [Console]::OpenStandardInput()
+    $InputReader = [IO.StreamReader]::new(
+        $InputStream,
+        [Text.UTF8Encoding]::new($false),
+        $true
+    )
+    $HookText = $InputReader.ReadToEnd()
     if ([string]::IsNullOrWhiteSpace($HookText)) {
         exit 0
     }
@@ -129,6 +137,14 @@ try {
 }
 catch {
     exit 0
+}
+finally {
+    if ($null -ne $InputReader) {
+        $InputReader.Dispose()
+    }
+    if ($null -ne $InputStream) {
+        $InputStream.Dispose()
+    }
 }
 
 $StopHookActive = Get-JsonProperty -InputObject $HookInput -Name 'stop_hook_active'

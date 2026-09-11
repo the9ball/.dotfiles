@@ -73,6 +73,10 @@ skill path must be resolved to the Windows checkout; WSL must not write
 `.task-complete-notify` directly. If a WSL process does not inherit the active
 session's `CODEX_HOME`, registration fails rather than selecting another home.
 
+All stdin boundaries use an explicit UTF-8 `StreamReader` over the standard
+input stream. The scripts do not mutate global console encoding and do not
+require an attached console.
+
 When the Stop-hook canary is not viable, set `TASK_COMPLETE_NOTIFY_WATCHER=1` in the Windows environment before arming. The Windows helper starts the hidden `codex-watcher.ps1` fallback and the watcher owns an OS-lifetime lock, persistent per-thread rollout offsets, and the same Stop/claim path. If the environment variable is not set, the watcher can be started explicitly with:
 
 ```powershell
@@ -85,7 +89,7 @@ The fallback is detector-only, not a retry worker: it exits after all active req
 
 The hook claims an `armed` generation atomically as `attempting` before making the HTTP request. It holds the same Windows OS-lifetime per-thread lock used by arm until the request reaches a terminal result. The active generation then becomes `success`, `failure`, or `abandoned` and is no longer eligible for a later completion.
 
-Delivery is one-shot best effort: one application-level send attempt per generation, with no retry, no detached worker, and no automatic resend on the next hook. A final HTTP 200-299 is success; non-2xx, timeout, connection/TLS/DNS error, missing topic, and unknown result are terminal failure. A failure may be silent; the hook must not block or alter the Codex turn. Optional diagnostics must use fixed text and must never include message, topic, URI, prompt, response, repository, or log data.
+Delivery is one-shot best effort: one application-level send attempt per generation, with no retry, no detached worker, and no automatic resend on the next hook. A final HTTP 200-299 is success; non-2xx, timeout, connection/TLS/DNS error, missing topic, and unknown result are terminal failure. A failure may be silent and the hook never changes the Codex turn result. The Stop hook is synchronous by design: an armed event may wait up to 55 seconds for the helper. The helper allows up to 10 seconds for the per-thread lock and 35 seconds for the notifier child; the notifier requests a 10-second connection timeout and a 20-second operation inactivity timeout, so the wrapper retains a small cleanup margin. The hook configuration keeps a 90-second ceiling. Unarmed or rejected events return without a notification attempt. Optional diagnostics must use fixed text and must never include message, topic, URI, prompt, response, repository, or log data.
 
 The ntfy server is fixed at `https://ntfy.sh`. `NTFY_TOPIC` is read from the process environment only at send time; this skill neither sets nor persists it. The production sender puts the notification text in the ntfy message body and omits the title header, because the message body is the only display contract.
 

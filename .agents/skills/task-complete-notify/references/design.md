@@ -11,6 +11,8 @@
 - arm前に、現在のプロセスが選択しているCodex homeの `session_index.jsonl` と、同homeのactive rollout先頭 `session_meta` を照合する。`id == session_id == target`、`thread_source == user`、親なしを満たさなければstateを作らない。
 - runtime stateは実行時に解決した `$CODEX_HOME\.task-complete-notify` に置く。`CODEX_HOME`未設定時だけユーザープロファイルの`.codex`を使う。
 - Stop hookを第一検出器、JSONL watcherを明示的なfallbackとし、両方を独立senderとして有効化しない。
+- Stop hookは同期呼出しだが、thread lock 10秒＋notifier child 35秒＋後処理マージン5秒＜helper wrapper 55秒＜hook設定上限90秒の階層に固定する。notifierのHTTP設定はconnect timeout 10秒とoperation inactivity timeout 20秒であり、HTTP全体の上限とは扱わない。失敗してもturn結果は変更せず、非同期workerは導入しない。
+- stdinは各境界で標準入力ストリームを明示的なUTF-8 `StreamReader`として読み、`Console.InputEncoding`の変更やコンソール接続を前提にしない。
 - 1 generationにつき送信APIを1回だけ試行し、結果はterminal stateへ消費する。retryや自動再送は行わない。
 - state、stdout/stderr、hook outputにはtopic、秘密、raw arm input、prompt/response、thread title、repository pathを保存・出力しない。
 - hookやwatcherを有効化する前に、対象セッションで実際に選択されるpermission profileとsandboxの組み合わせをcanaryで確認する。必要な権限は同homeのsession index/transcript読取、同home state rootへの限定書込、`ntfy.sh`へのHTTPS通信に絞り、skillはCodex設定を自動変更しない。

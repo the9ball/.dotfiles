@@ -6,7 +6,6 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 
 $SkillDirectory = Split-Path -Parent $PSScriptRoot
 $ScriptDirectory = Join-Path $SkillDirectory 'scripts'
@@ -314,6 +313,31 @@ try {
         Assert-Condition ($Errors.Count -eq 0) "parser_$($ScriptFile.BaseName)"
     }
 
+    $StopHookText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'codex-stop-hook.ps1')
+    $ArmText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'arm-notification.ps1')
+    $NotifyText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'notify.ps1')
+    $HelperText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'windows-helper.ps1')
+    $WatcherText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'codex-watcher.ps1')
+    Assert-Condition (-not ($StopHookText -match '\[Console\]::InputEncoding')) 'stop_no_console_encoding_mutation'
+    Assert-Condition (-not ($ArmText -match '\[Console\]::InputEncoding')) 'arm_no_console_encoding_mutation'
+    Assert-Condition (-not ($NotifyText -match '\[Console\]::InputEncoding')) 'notify_no_console_encoding_mutation'
+    Assert-Condition (-not ($HelperText -match '\[Console\]::InputEncoding')) 'helper_no_console_encoding_mutation'
+    Assert-Condition (-not ($WatcherText -match '\[Console\]::InputEncoding')) 'watcher_no_console_encoding_mutation'
+    Assert-Condition ($StopHookText -match '\[Console\]::OpenStandardInput\(\)' -and
+        $NotifyText -match '\[Console\]::OpenStandardInput\(\)' -and
+        $HelperText -match '\[Console\]::OpenStandardInput\(\)') 'explicit_utf8_stdin_readers'
+    Assert-Condition ($StopHookText -match '\$HelperTimeoutMilliseconds\s*=\s*55000' -and
+        $StopHookText -match 'WaitForExit\(\$HelperTimeoutMilliseconds\)') 'stop_timeout_headroom'
+    Assert-Condition ($HelperText -match '\$NotifierTimeoutMilliseconds\s*=\s*35000' -and
+        $HelperText -match 'WaitForExit\(\$NotifierTimeoutMilliseconds\)' -and
+        $NotifyText -match '-ConnectionTimeoutSeconds\s+10' -and
+        $NotifyText -match '-OperationTimeoutSeconds\s+20' -and
+        $StopHookText -match '\$HelperTimeoutMilliseconds\s*=\s*55000' -and
+        (10000 + 35000 + 5000) -lt 55000 -and
+        55000 -lt 90000) 'notification_timeout_hierarchy'
+    Assert-Condition (-not ($WatcherText -match '\.task-complete-notify\.invalid') -and
+        -not ($HelperText -match '\.task-complete-notify\.invalid')) 'no_invalid_home_fallback_path'
+
     $NotifyPath = Join-Path $ScriptDirectory 'notify.ps1'
     $NotifyResult = Invoke-NativeWithInput -ScriptPath $NotifyPath -InputText '{"message":"Task completed"}'
     $NotifyJson = $NotifyResult.Stdout.Trim() | ConvertFrom-Json
@@ -323,6 +347,17 @@ try {
     $ArmPath = Join-Path $ScriptDirectory 'arm-notification.ps1'
     $StopPath = Join-Path $ScriptDirectory 'codex-stop-hook.ps1'
     $WatcherPath = Join-Path $ScriptDirectory 'codex-watcher.ps1'
+    $InvalidHomePath = Join-Path $SkillDirectory '.task-complete-notify.invalid'
+    $InvalidHomeValue = Join-Path $FixtureRoot 'missing-codex-home'
+    [Environment]::SetEnvironmentVariable('CODEX_HOME', $InvalidHomeValue, 'Process')
+    $InvalidHomeOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $TestId
+    $InvalidHomeJson = ($InvalidHomeOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -ne 0 -and $InvalidHomeJson.Ok -eq $false) 'invalid_home_rejected'
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidHomePath -PathType Container)) 'invalid_home_no_skill_state'
+    $InvalidWatcherOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once 2>$null
+    Assert-Condition ($LASTEXITCODE -ne 0) 'invalid_watcher_home_rejected'
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidHomePath -PathType Container)) 'invalid_watcher_no_skill_state'
+    [Environment]::SetEnvironmentVariable('CODEX_HOME', $FixtureRoot, 'Process')
     $StatePath = Join-Path $StateDirectory "requests\$TestId.json"
     $CheckpointPath = Join-Path $StateDirectory "checkpoints\$TestId.json"
     $TerminalPath = Join-Path $StateDirectory "terminal\$TestId.json"

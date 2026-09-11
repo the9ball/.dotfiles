@@ -13,10 +13,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-[Console]::InputEncoding = [Text.UTF8Encoding]::new($false)
 
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SkillDirectory = Split-Path -Parent $ScriptDirectory
 
 function Resolve-CodexHome {
     <#
@@ -56,18 +54,22 @@ function Resolve-CodexHome {
 }
 
 $CodexHome = Resolve-CodexHome
-$StateDirectory = if ([string]::IsNullOrWhiteSpace($CodexHome)) {
-    Join-Path $SkillDirectory '.task-complete-notify.invalid'
+$StateDirectory = $null
+$RequestDirectory = $null
+$LockDirectory = $null
+$CheckpointDirectory = $null
+$TerminalDirectory = $null
+$WatcherLockPath = $null
+$CoordinationLockPath = $null
+if (-not [string]::IsNullOrWhiteSpace($CodexHome)) {
+    $StateDirectory = Join-Path $CodexHome '.task-complete-notify'
+    $RequestDirectory = Join-Path $StateDirectory 'requests'
+    $LockDirectory = Join-Path $StateDirectory 'locks'
+    $CheckpointDirectory = Join-Path $StateDirectory 'checkpoints'
+    $TerminalDirectory = Join-Path $StateDirectory 'terminal'
+    $WatcherLockPath = Join-Path $StateDirectory 'watcher.lock'
+    $CoordinationLockPath = Join-Path $StateDirectory 'coordination.lock'
 }
-else {
-    Join-Path $CodexHome '.task-complete-notify'
-}
-$RequestDirectory = Join-Path $StateDirectory 'requests'
-$LockDirectory = Join-Path $StateDirectory 'locks'
-$CheckpointDirectory = Join-Path $StateDirectory 'checkpoints'
-$TerminalDirectory = Join-Path $StateDirectory 'terminal'
-$WatcherLockPath = Join-Path $StateDirectory 'watcher.lock'
-$CoordinationLockPath = Join-Path $StateDirectory 'coordination.lock'
 $HelperPath = if ([string]::IsNullOrWhiteSpace($HelperScriptPath)) {
     Join-Path $ScriptDirectory 'windows-helper.ps1'
 }
@@ -1189,7 +1191,12 @@ function Get-ActiveRequestCount {
 
 $WatcherStream = $null
 $WatchContext = $null
-Initialize-WatcherDirectories
+try {
+    Initialize-WatcherDirectories
+}
+catch {
+    exit 1
+}
 $WatcherStream = Acquire-WatcherLock
 if ($null -eq $WatcherStream) {
     exit 0
