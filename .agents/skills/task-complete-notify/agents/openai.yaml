@@ -1,0 +1,4 @@
+interface:
+  display_name: "Task-complete notification"
+  short_description: "Arm a one-shot completion notification"
+  default_prompt: "Use $task-complete-notify only after the user explicitly asks to arm a completion notification."
