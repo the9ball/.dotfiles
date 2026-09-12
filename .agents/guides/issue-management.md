@@ -115,11 +115,13 @@ ResolvedやOutdatedは状態判断の補助情報であり、それだけで自�
 
 Outdatedは対応済みを意味しない。
 
-Hide対象はPRのreview comment / review threadに限定する。
+Hide対象はPRのreview commentに限定する。
+
+review threadはResolve対象であり、Hide対象にはしない。
 
 Issueのトップレベル通常コメント、PRのトップレベル通常コメント、HANDOFFコメント、REVIEW-SUMMARYコメントはHide対象外とする。
 
-Issue/PR共通のREVIEW-SUMMARYと、PR固有のreview threadのResolve / Hideを混同しない。
+Issue/PR共通のREVIEW-SUMMARYと、PR固有のreview threadのResolveおよびreview commentのHideを混同しない。
 
 一覧提示と一括承認で対象集合を固定する。
 
