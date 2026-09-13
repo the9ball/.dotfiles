@@ -21,7 +21,7 @@
 - host integration、AGENTS.md、または Skill が instruction root を解決するときは、読み込まれたファイルまたは Skill の symlink / junction を実体パスへ解決してから、その実体パスの祖先をたどって`.agents/reference-map.json`を見つけ、map所在ディレクトリから JSON の`repository_root`を解決する。mapが見つからない、JSONを構造として読めない、または解決先が存在しない場合は停止する。現在の作業ディレクトリやホスト固有の絶対パスを暗黙の基準にしない。
 - instruction-root 相対パスを Markdown のリンク先にする場合は、リンク元から実際に解決できるファイル相対先を使う。論理パスを表示するだけの場合は code span を使い、ネストしたファイルから解決不能な root-relative destination を作らない。
 - `.agents/tools/validate-reference-map.py`を明示的な Python 3 実行で呼び出し、参照先不存在、caller 0件、循環参照を検出する。検証に失敗した状態で参照経路を移行しない。
-- reference map の edge は既定で読み込み依存として循環検査する。単なる手動ナビゲーションリンクは`acyclic: false`を付け、読み込み依存と混同しない。
+- reference map の edge は既定で読み込み依存として循環検査する。`acyclic: false` は、validator が allowlist する非依存 edge にだけ、`acyclic_reason` と併せて指定する。現在許可する組み合わせは、`reference-index` / `manual-navigation`、`host-reference` / `manual-navigation`、および常時適用 kernel への優先関係を記録する `policy-reference` / `policy-precedence` である。`workflow-reference`、`contract-reference`、`policy-routing`、`conditional-reference` などの読み込み依存は除外せず、循環があれば依存関係を整理する。
 
 ## 分類の用途
 

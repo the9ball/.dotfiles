@@ -55,17 +55,27 @@ def write_fixture(root: Path, edges: list[dict[str, str | bool]]) -> Path:
 
 
 def edge(
-    source: str, target: str, *, source_reference: bool = False
+    source: str,
+    target: str,
+    *,
+    kind: str = "test",
+    source_reference: bool = False,
+    acyclic: bool = True,
+    acyclic_reason: str | None = None,
 ) -> dict[str, str | bool]:
     result: dict[str, str | bool] = {
         "from": source,
         "to": target,
-        "kind": "test",
+        "kind": kind,
         "when": "test",
         "purpose": "test",
     }
     if source_reference:
         result["source_reference"] = True
+    if not acyclic:
+        result["acyclic"] = False
+    if acyclic_reason is not None:
+        result["acyclic_reason"] = acyclic_reason
     return result
 
 
@@ -118,6 +128,47 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             result = self.run_validator(map_path)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("reference cycle", result.stderr)
+
+    def test_acyclic_false_on_workflow_dependency_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            map_path = write_fixture(
+                root,
+                [
+                    edge(".agents/caller.md", ".agents/guides/example.md"),
+                    edge(
+                        ".agents/caller.md",
+                        ".agents/target.md",
+                        kind="workflow-reference",
+                        acyclic=False,
+                        acyclic_reason="manual-navigation",
+                    ),
+                ],
+            )
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "acyclic=false is not allowed for edge kind", result.stderr
+            )
+
+    def test_acyclic_false_requires_an_allowlisted_reason(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            map_path = write_fixture(
+                root,
+                [
+                    edge(".agents/caller.md", ".agents/guides/example.md"),
+                    edge(
+                        ".agents/caller.md",
+                        ".agents/target.md",
+                        kind="reference-index",
+                        acyclic=False,
+                    ),
+                ],
+            )
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("acyclic_reason must be one of", result.stderr)
 
     def test_missing_node_path_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -199,9 +250,12 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
             navigation_edge = edge(
-                ".agents/caller.md", ".agents/target.md"
+                ".agents/caller.md",
+                ".agents/target.md",
+                kind="reference-index",
+                acyclic=False,
+                acyclic_reason="manual-navigation",
             )
-            navigation_edge["acyclic"] = False
             map_path = write_fixture(
                 root,
                 [

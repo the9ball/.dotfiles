@@ -33,6 +33,15 @@ SOURCE_SCAN_EXCLUDED_KINDS = {
     "validation-test",
 }
 
+# `acyclic: false` is reserved for edges that document a non-dependency.  The
+# reason is part of the allowlist so a real workflow or contract dependency
+# cannot silently opt out of cycle detection.
+NON_DEPENDENCY_EDGE_REASONS: dict[str, frozenset[str]] = {
+    "reference-index": frozenset({"manual-navigation"}),
+    "host-reference": frozenset({"manual-navigation"}),
+    "policy-reference": frozenset({"policy-precedence"}),
+}
+
 
 class ValidationError(Exception):
     """A user-facing map validation failure."""
@@ -178,6 +187,32 @@ def validate_edges(
         acyclic = edge.get("acyclic", True)
         if not isinstance(acyclic, bool):
             raise ValidationError(f"edges[{index}].acyclic must be boolean")
+        acyclic_reason = edge.get("acyclic_reason")
+        if acyclic_reason is not None and (
+            not isinstance(acyclic_reason, str) or not acyclic_reason
+        ):
+            raise ValidationError(
+                f"edges[{index}].acyclic_reason must be a non-empty string"
+            )
+        if acyclic:
+            if acyclic_reason is not None:
+                raise ValidationError(
+                    f"edges[{index}].acyclic_reason requires acyclic=false"
+                )
+        else:
+            allowed_reasons = NON_DEPENDENCY_EDGE_REASONS.get(kind, frozenset())
+            if not allowed_reasons:
+                raise ValidationError(
+                    "edges[{}].acyclic=false is not allowed for edge kind {!r}; "
+                    "only explicitly allowlisted non-dependency edges may opt "
+                    "out of cycle detection".format(index, kind)
+                )
+            if acyclic_reason not in allowed_reasons:
+                allowed = ", ".join(sorted(allowed_reasons))
+                raise ValidationError(
+                    f"edges[{index}].acyclic_reason must be one of {allowed!r} "
+                    f"for edge kind {kind!r}"
+                )
         source_reference = edge.get("source_reference", False)
         if not isinstance(source_reference, bool):
             raise ValidationError(
