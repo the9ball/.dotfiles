@@ -66,7 +66,7 @@
 - コピー可能なコードや他エージェントへ渡す本文をチャットに出力する前は `guides/agent-output.md` を読む。
 - サブエージェントまたは委譲先を dispatch するとき、モデル固有の調整が必要なら `guides/delegation.md` の対応表で選択モデルに対応する model guide を確認し、補助資料として渡す。対応表にないモデルへ推測で適用せず、通常の repository-wide instruction として自動適用しない。
 - GitHub の Issue、Pull Request、レビューコメントなどを操作するときは、`guides/github.md` を実行前に読む。`github.md` はこのファイルの共通安全核と `guides/external-posting.md` を補足し、GitHub 固有の詳細だけを定める。
-- Issue または Pull Request の要件、通常コメント、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合だけ、`guides/issue-management.md` を読み、情報の責務分離、明示的な再開、HANDOFF の生成と投稿の区別を適用する。
+- Issue または Pull Request の要件・仕様管理、レビュー対応、通常コメント、REVIEW-SUMMARY、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合だけ、`guides/issue-management.md` を読み、Issue/PR共通の情報責務とPR固有の処理、明示的な再開、HANDOFF の生成と投稿の区別を適用する。
 - Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときは、ユーザーから明示的な指示がない限りローカル環境固有の事情を記載しない。詳細は `guides/external-posting.md` を投稿前に読む。
 
 ## ファイル変更前の範囲確認
