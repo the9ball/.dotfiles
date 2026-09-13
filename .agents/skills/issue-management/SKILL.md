@@ -14,8 +14,8 @@ description: Issue または Pull Request の要件、レビュー対応、REVIE
 
 ## 実行
 
-1. Skill tree の祖先から`.agents/reference-map.json`を見つけ、JSONの`repository_root`をmap所在ディレクトリから解決して repository root を固定する。現在の作業ディレクトリやホスト固有の絶対パスを基準にしない。
-2. repository-root 相対の`.agents/guides/issue-management.md`を全文で読み、GitHub 固有の操作が必要なら`.agents/guides/github.md`を、公開文面が必要なら`.agents/guides/external-posting.md`を追加で読む。
+1. 読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から`.agents/reference-map.json`を見つけ、JSONの`repository_root`をmap所在ディレクトリから解決して instruction root を固定する。この root は共有 instruction の参照専用であり、work root や Git 対象は依頼から別途固定する。現在の作業ディレクトリやホスト固有の絶対パスを基準にしない。
+2. instruction-root 相対の`.agents/guides/issue-management.md`を全文で読み、GitHub 固有の操作が必要なら`.agents/guides/github.md`を、公開文面が必要なら`.agents/guides/external-posting.md`を追加で読む。
 3. 共通 policy kernel の対象固定、承認、秘密情報、外部操作、Git 安全をこの Skill の手順より先に適用する。
 4. guide に記録された状態・不確実性・未解決事項を維持し、推測で別の Issue / PR や投稿経路へ読み替えない。
 

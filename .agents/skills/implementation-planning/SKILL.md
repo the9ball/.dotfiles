@@ -14,8 +14,8 @@ description: 実装計画または runbook を作成、更新、レビューす�
 
 ## 実行
 
-1. Skill tree の祖先から`.agents/reference-map.json`を見つけ、JSONの`repository_root`をmap所在ディレクトリから解決して repository root を固定する。現在の作業ディレクトリやホスト固有の絶対パスを基準にしない。
-2. repository-root 相対の`.agents/guides/implementation-planning.md`を全文で読み、計画レビューと実装後レビューの境界、見積り、超過時の停止、履歴条件を適用する。
+1. 読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から`.agents/reference-map.json`を見つけ、JSONの`repository_root`をmap所在ディレクトリから解決して instruction root を固定する。この root は共有 instruction の参照専用であり、work root や Git 対象は依頼から別途固定する。現在の作業ディレクトリやホスト固有の絶対パスを基準にしない。
+2. instruction-root 相対の`.agents/guides/implementation-planning.md`を全文で読み、計画レビューと実装後レビューの境界、見積り、超過時の停止、履歴条件を適用する。
 3. 共通 policy kernel と execution lifecycle の承認・対象・レビュー契約を維持する。
 4. 計画の実行可否、外部操作、採否は別の承認ゲートとして記録する。
 

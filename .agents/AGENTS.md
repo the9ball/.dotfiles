@@ -35,7 +35,7 @@
 
 ## サブエージェントへの委譲
 
-- サブエージェントまたは委譲先を使う場合は、`delegation` Skill を優先して使用する。Skill を発見できない場合は、repository-root 相対の`.agents/guides/delegation.md`を読む。
+- サブエージェントまたは委譲先を使う場合は、`delegation` Skill を優先して使用する。Skill を発見できない場合は、instruction-root 相対の`.agents/guides/delegation.md`を読む。
 - 委譲は権限も承認範囲も広げない。「スレッド取り違えの確認」を先に済ませ、「ファイル変更前の範囲確認」の承認前に委譲してよいのは読み取り専用の作業だけ。委譲先による変更も承認済みの範囲に限る。「一つずつ」「順番に」の指定がある作業は並行させない。
 - 同じ作業ツリーに書き込む場合は、ファイル単位で編集の担当を一つに限る。分けられないなら、委譲先の完了まで主スレッドは同じ範囲を触らない。
 - 委譲先の報告を鵜呑みにしない。ファイル変更や検証結果など事実に関わる結論は、自分で差分やログを確認して裏を取る。
@@ -58,7 +58,8 @@
 
 ## 用途別ガイドの参照
 
-- repository-root 相対の`.agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`.agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
+- 本ファイルでいう`instruction root`は、本ファイルの symlink / junction を実体へ解決した canonical source を含む`.dotfiles` repository の root であり、作業対象 repository の`work root`とは区別する。共有ガイドの解決にだけ使い、Git 操作や変更対象の決定には使わない。具体的な実体パス基準の手順は`.agents/guides/README.md`に従う。
+- instruction-root 相対の`.agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`.agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
 - 用途別ガイドは本ファイルを補足するものとして扱う。本ファイルと矛盾する場合は本ファイルを優先する。
 - サブエージェントの dispatch・再利用、長い handoff、session・epoch・Evidence child の扱いでは、`delegation` Skill を優先して使用する。Skill を発見できない場合は`.agents/guides/delegation.md`を読む。
 - Git の状態取得・変更、index.lock・権限エラー、差分・レビュー範囲の固定、Git の復旧に入る前は、`git-operations` Skill を優先して使用する。Skill を発見できない場合は`.agents/guides/git-operations.md`を読む。
@@ -101,24 +102,24 @@
 
 - branch は、作業上必要な場合、ユーザーの明示指示がある場合、またはリポジトリ固有ルールで要求される場合に作成できる。worktree は追加の作業ディレクトリや状態管理を伴うため、エージェントの判断だけでは作成せず、ユーザーの明示的な指示または承認を必要とする。リポジトリ固有の branch 運用、master 直接運用、明示的 push 規則を優先する。
 - 破壊的な Git 操作、履歴書き換え、force push は明示的な指示なしに行わない。
-- コミットメッセージを新規作成または編集するとき（`--amend` を含む）は、repository-root 相対の`.agents/guides/commit-message.md`を読む。適用範囲と規約・履歴の判定単位は、現在コミットしようとしている Git リポジトリとし、親リポジトリとサブモジュールの情報を混在させない。
+- コミットメッセージを新規作成または編集するとき（`--amend` を含む）は、instruction-root 相対の`.agents/guides/commit-message.md`を読む。適用範囲と規約・履歴の判定単位は、現在コミットしようとしている Git リポジトリとし、親リポジトリとサブモジュールの情報を混在させない。
 - メッセージ形式・履歴の確認順序、直近20件から最大50件への拡張、明確でない場合の fallback は`.agents/guides/commit-message.md`の定義に従う。
 - merge / revert / fixup / squash / cherry-pick などの特殊なメッセージは、明示的な別指示がない限り形式を保持する（詳細は`.agents/guides/commit-message.md`）。
 - コミットの修正・取り消し・別ブランチへの移植では、目的に合う `--fixup`、revert、cherry-pick などを検討する。
-- Git、formatter、lint が scope 外の大量変更を生成した場合は自動的に含めず、repository-root 相対の`.agents/guides/git-operations.md`の範囲制御に従う。
+- Git、formatter、lint が scope 外の大量変更を生成した場合は自動的に含めず、instruction-root 相対の`.agents/guides/git-operations.md`の範囲制御に従う。
 - Git、commit、検証に関するこの共通ルールは変更範囲、操作権限、検証の境界を扱い、コミットメッセージの形式や履歴規則は`.agents/guides/commit-message.md`に委ねる。
 
 ## 権限エラーと代替手段
 
-- 権限・認証・sandbox が原因のエラーでは、別の経路へ黙って切り替えず、必要な操作・対象・理由を示して確認を得る。Git の `index.lock` 例外、read-only 原因確認、同一コマンドの権限昇格、ロック削除条件は repository-root 相対の`.agents/guides/git-operations.md`を読む。
+- 権限・認証・sandbox が原因のエラーでは、別の経路へ黙って切り替えず、必要な操作・対象・理由を示して確認を得る。Git の `index.lock` 例外、read-only 原因確認、同一コマンドの権限昇格、ロック削除条件は instruction-root 相対の`.agents/guides/git-operations.md`を読む。
 
 ## AIレビューの読み取り範囲
 
-- Gitかどうかを問わず、AIレビューでファイルを指定するときは、`advisor-review` Skill を優先して使用する。Skill を発見できない場合は、詳細な契約として repository-root 相対の`.agents/guides/advisor-review.md`を読む。
+- Advisor、rigorous-review、または明示的な読み取りスコープ契約を伴う AI レビューでファイルを指定するときは、`advisor-review` Skill を優先して使用する。Skill を発見できない場合は、詳細な契約として instruction-root 相対の`.agents/guides/advisor-review.md`を読む。通常レビュー、短時間の確認、文章校正にはこの Skill を暗黙発動させない。
 
 ## 実装計画と runbook
 
-- 実装計画または runbook を作成・更新・レビューする前に、`implementation-planning` Skill を優先して使用する。Skill を発見できない場合は repository-root 相対の`.agents/guides/implementation-planning.md`を読む。見積り、超過時の停止、履歴管理は同ガイドの所有範囲とする。
+- 実装計画または runbook を作成・更新・レビューする前に、`implementation-planning` Skill を優先して使用する。Skill を発見できない場合は instruction-root 相対の`.agents/guides/implementation-planning.md`を読む。見積り、超過時の停止、履歴管理は同ガイドの所有範囲とする。
 
 ## スレッド取り違えの確認
 

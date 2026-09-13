@@ -65,7 +65,7 @@ Agent を継続利用する場合、調整者は engagement と epoch を確定�
 - 各指摘を反証可能な主張として、対象箇所、発生条件、根拠、影響とともに提示する。
 - 回答者の反証を検討し、根拠が崩れた指摘を修正または撤回する。
 - 表現上の好みや未確認の将来懸念を、確定した欠陥として扱わない。
-- 計画を対象にする場合は、repository-root 相対の`.agents/guides/implementation-planning.md` の「計画レビューと実装後レビューの境界」を適用し、同節で計画段階の指摘対象外とした詳細を、完全性だけを理由に候補化しない。
+- 計画を対象にする場合は、読み込まれた Skill の symlink / junction を実体パスへ解決して導出した instruction root 基準の`.agents/guides/implementation-planning.md`の「計画レビューと実装後レビューの境界」を適用する。instruction root は共有 guide の参照専用であり、work root とレビュー対象は別途固定する。同節で計画段階の指摘対象外とした詳細を、完全性だけを理由に候補化しない。
 
 ### 回答者
 
@@ -133,7 +133,7 @@ Agent を継続利用する場合は、次も台帳へ記録する。
 
 ### Advisor依頼のファイルスコープ
 
-Advisorを起動するときは、repository-root 相対の`.agents/guides/advisor-review.md` の読み取りスコープ契約に従い、各対象ファイルを読み取りスコープ宣言として渡す。共有台帳のcoverage manifestには、少なくともpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを記録する。部分参照では1始まり・両端含みの行範囲と安定アンカーを必須とし、全文・差分・構造指定はそのmodeと対象identityを固定する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は、レビュー全体を`PASS`として確定してはならない。
+Advisorを起動するときは、読み込まれた Skill の symlink / junction を実体パスへ解決して導出した instruction root 基準の`.agents/guides/advisor-review.md`の読み取りスコープ契約に従い、各対象ファイルを読み取りスコープ宣言として渡す。instruction root は共有 guide の参照専用であり、work root とレビュー対象は別途固定する。共有台帳のcoverage manifestには、少なくともpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを記録する。部分参照では1始まり・両端含みの行範囲と安定アンカーを必須とし、全文・差分・構造指定はそのmodeと対象identityを固定する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は、レビュー全体を`PASS`として確定してはならない。
 
 ### レビュー範囲の事前確定
 
