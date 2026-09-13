@@ -28,8 +28,8 @@ description: >
 
 WSLの通常CLI、専用 `CODEX_HOME`、Aqua設定、ディストリビューションの前提は、次の文書を正とします。
 
-- [`codex-wsl/SETUP.md`](../../../codex-wsl/SETUP.md)
-- [`codex-wsl/CODEX_HOME.md`](../../../codex-wsl/CODEX_HOME.md)
+- repository-root 相対の`codex-wsl/SETUP.md`
+- repository-root 相対の`codex-wsl/CODEX_HOME.md`
 
 このSkillのラッパーは実行時にMarkdownを解析せず、これらの文書で定めた値を検証して使用します。
 `CODEX_HOME`、Aquaの配置、リポジトリの場所、または対象ディストリビューションを変更するときは、ラッパーと前提文書を同時に更新してください。

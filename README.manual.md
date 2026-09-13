@@ -424,7 +424,7 @@ chezmoi apply
 chezmoi verify --exclude=scripts
 ```
 
-セットアップの詳細な挙動を確認したい場合は、[`SETUP.md`](SETUP.md)と`chezmoi/.chezmoiscripts/`を参照してください。
+セットアップの詳細な挙動を確認したい場合は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)と`chezmoi/.chezmoiscripts/`を参照してください。
 
 ## Agent Skillsの導入
 

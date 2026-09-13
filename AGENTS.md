@@ -8,7 +8,7 @@
 
 ## Issue・Pull Request 運用
 
-- Issue または Pull Request の要件、通常コメント、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合は、`.agents/guides/issue-management.md` を実行前に読む。
+- Issue または Pull Request の要件、通常コメント、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合は、`issue-management` Skill を優先して使用する。Skill を発見できない場合は、`.agents/guides/issue-management.md` を実行前に読む。
 
 ## ブランチ運用
 

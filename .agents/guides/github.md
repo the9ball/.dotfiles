@@ -1,7 +1,7 @@
 # GitHub 操作
 
 Issue、Pull Request、レビューコメントなどの GitHub 操作に入る前に読む。
-このガイドは `.agents/AGENTS.md` の共通契約と `guides/external-posting.md` を補足し、GitHub 固有の対象特定、操作、投稿内容を定める。
+このガイドは `.agents/AGENTS.md` の共通契約と repository-root 相対の`.agents/guides/external-posting.md` を補足し、GitHub 固有の対象特定、操作、投稿内容を定める。
 上位の system、ユーザー、リポジトリ、role、skill の指示と承認範囲を上書きしない。
 
 ## 共通契約との境界
@@ -55,11 +55,11 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 
 ## 投稿文面
 
-- 公開文面は `guides/external-posting.md` に従い、GitHub 上で参照可能なリポジトリ相対パスと公開 URL を使う。
+- 公開文面は`.agents/guides/external-posting.md` に従い、GitHub 上で参照可能なリポジトリ相対パスと公開 URL を使う。
 - レビュー結果、未確定事項、ユーザー判断が必要な事項を混同せず、確認済みの事実と判断待ちの内容を分けて書く。
 
 ## 参照先
 
 - 共通の clarification、bounded research、autonomy、Git 安全、外部操作承認は `.agents/AGENTS.md` を参照する。
-- 外部公開文面のローカル環境情報の扱いは `guides/external-posting.md` を参照する。
-- コミットメッセージの形式と履歴規則は `guides/commit-message.md` を参照する。
+- 外部公開文面のローカル環境情報の扱いは`.agents/guides/external-posting.md` を参照する。
+- コミットメッセージの形式と履歴規則は`.agents/guides/commit-message.md` を参照する。
