@@ -38,7 +38,7 @@ ensure_link() {
     ln -s "$target" "$link"
 }
 
-ensure_link "$HOME/.agents" "$repo_root/.agents"
-ensure_link "$HOME/.claude/skills" "$repo_root/.agents/skills"
-ensure_link "$HOME/.claude/agents" "$repo_root/.claude/agents"
+ensure_link "$HOME/.agents" "$repo_root/link-targets/agents"
+ensure_link "$HOME/.claude/skills" "$repo_root/link-targets/agents/skills"
+ensure_link "$HOME/.claude/agents" "$repo_root/link-targets/claude/agents"
 {{- end }}

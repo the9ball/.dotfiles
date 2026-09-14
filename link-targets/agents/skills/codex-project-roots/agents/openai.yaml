@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex project roots"
+  short_description: "Safely edit Codex project root paths"
+  default_prompt: "Use $codex-project-roots to update the requested Codex project root paths."
+
+policy:
+  allow_implicit_invocation: false

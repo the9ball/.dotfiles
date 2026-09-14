@@ -1,0 +1,7 @@
+interface:
+  display_name: "Codex利用枠確認"
+  short_description: "Codexの利用枠とリセット権の期限を日本時間で確認"
+  default_prompt: "Use $codex-rate-limits to read Codex usage resets and reset-credit expirations in Japan time."
+
+policy:
+  allow_implicit_invocation: false

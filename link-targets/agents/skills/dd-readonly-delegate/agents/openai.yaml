@@ -1,0 +1,4 @@
+interface:
+  display_name: "Datadog参照の委譲"
+  short_description: "Datadogのメトリクスやログの読み取り調査を安全に委譲する"
+  default_prompt: "Use $dd-readonly-delegate to route a read-only Datadog investigation."

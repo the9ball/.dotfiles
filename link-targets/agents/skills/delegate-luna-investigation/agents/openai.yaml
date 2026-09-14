@@ -1,0 +1,4 @@
+interface:
+  display_name: "Delegate Luna Investigation (Codex)"
+  short_description: "Codex-only routing for reusable Luna research tasks"
+  default_prompt: "Use $delegate-luna-investigation to delegate this bounded investigation to a reusable Luna Max task."

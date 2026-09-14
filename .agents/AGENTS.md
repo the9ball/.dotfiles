@@ -1,8 +1,9 @@
-## Canonical source
+# OBSOLETE
 
-このディレクトリの実体（canonical source）は `~/.dotfiles/.agents/` にあります。
-このディレクトリは `~/.agents/` から symlink / junction 経由で利用されています。
-変更する場合は、可能な限り `~/.dotfiles/.agents/` 側の実体を変更してください。
+このファイルは移行期間の互換用です。正本は `~/.dotfiles/link-targets/agents/` に移動しました。
+このツリーは参照切れを防ぐために一時的に残しているだけなので、変更せず、修正は移動先へ加えてください。
+
+旧 `~/.agents/` の symlink / junction は、移行手順に従って `link-targets/agents/` へ張り直します。
 
 ## Local project instructions
 

@@ -1,0 +1,7 @@
+interface:
+  display_name: "徹底的にレビュー"
+  short_description: "二者で指摘を反対検証し、認識が一致するまで徹底的にレビューする"
+  default_prompt: "Use $rigorous-review to review this target thoroughly until the reviewer and respondent approve a shared record."
+
+policy:
+  allow_implicit_invocation: true
