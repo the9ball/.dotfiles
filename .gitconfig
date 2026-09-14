@@ -42,6 +42,12 @@
 [fetch]
 	prune = true
 	showForcedUpdates = true
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
 [log]
 	date = iso-local
 [advice]

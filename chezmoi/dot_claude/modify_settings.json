@@ -60,4 +60,4 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{- $_ = set $enabledPlugins "dotnet@dotnet-agent-skills" true -}}
 {{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
 
-{{ $settings | toPrettyJson }}
+{{- $settings | toPrettyJson -}}
