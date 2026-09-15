@@ -8,6 +8,7 @@ link-targets/
 ├── agents/
 │   ├── AGENTS.md     # ~/.agents/AGENTS.md
 │   ├── guides/
+│   ├── reference-map.json
 │   ├── skills/       # ~/.agents/skills と ~/.claude/skills で共有
 │   └── tools/
 └── claude/
@@ -25,14 +26,14 @@ link-targets/
 
 配置、公開先、移行手順などのリポジトリ固有の説明はこの README に置き、共有 `AGENTS.md` には常時必要な作業ルールだけを置きます。
 
-- 移行時にコピーするのは Git で追跡しているファイルだけです。旧ツリーにあるローカル設定や第三者スキルは移行対象に含めず、必要なら各スキルの導入手順で復元します。
-
 以後の修正はこのディレクトリ配下だけに行います。旧 `.agents/` および `.claude/agents/` は移行完了に伴い削除済みです。
 
 ## 移行時の注意
 
 chezmoi の junction / symlink 管理スクリプトは、既存リンクの target mismatch を自動修復せず停止します。
 そのため、管理スクリプトを更新した後は、各 OS の runtime link / junction を先に張り直してから `chezmoi apply` を実行してください。
+旧 target のディレクトリが既に削除されていても、リンクが旧正本のパスを指していれば移行対象として受け入れます。
+移行時にコピーするのは Git で追跡しているファイルだけです。旧ツリーにあるローカル設定や第三者スキルは移行対象に含めず、必要なら各スキルの導入手順で復元します。
 
 ### POSIX（Linux / macOS / WSL）
 
@@ -44,18 +45,32 @@ repository_root=/path/to/.dotfiles
 canonical_directory() {
     (cd "$1" && pwd -P)
 }
+link_target() {
+    if target_path=$(canonical_directory "$1" 2>/dev/null); then
+        printf '%s\n' "$target_path"
+        return
+    fi
+    target_path=$(readlink "$1")
+    case "$target_path" in
+        /*) printf '%s\n' "$target_path" ;;
+        *) printf '%s/%s\n' "$(dirname "$1")" "$target_path" ;;
+    esac
+}
 ensure_migratable_link() {
     link_path=$1
     legacy_target_path=$2
     target_path=$3
     test -d "$target_path" || { printf 'target does not exist: %s\n' "$target_path" >&2; exit 1; }
     test -L "$link_path" || { printf 'not a symlink: %s\n' "$link_path" >&2; exit 1; }
-    actual_target_path=$(canonical_directory "$link_path")
+    actual_target_path=$(link_target "$link_path")
     target_path=$(canonical_directory "$target_path")
     if test "$actual_target_path" = "$target_path"; then
         return
     fi
     if test -d "$legacy_target_path" && test "$actual_target_path" = "$(canonical_directory "$legacy_target_path")"; then
+        return
+    fi
+    if test "$actual_target_path" = "$legacy_target_path"; then
         return
     fi
     printf 'symlink target mismatch: %s (expected legacy or new target)\n' "$link_path" >&2
@@ -92,9 +107,6 @@ foreach ($link in $links) {
     $expectedTarget = [IO.Path]::GetFullPath($link.Target)
     if ($actualTarget.Equals($expectedTarget, [StringComparison]::OrdinalIgnoreCase)) {
         continue
-    }
-    if (-not (Test-Path -LiteralPath $link.LegacyTarget -PathType Container)) {
-        throw "legacy target does not exist: $($link.LegacyTarget)"
     }
     $legacyTarget = [IO.Path]::GetFullPath($link.LegacyTarget)
     if (-not $actualTarget.Equals($legacyTarget, [StringComparison]::OrdinalIgnoreCase)) {
