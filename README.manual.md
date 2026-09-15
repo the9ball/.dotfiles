@@ -364,7 +364,9 @@ chezmoi verify --exclude=scripts
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
 - Windowsでは`winget.json`に定義されたAWS CLIとaws-vaultのインストール
 - `prek`のGit hook設定
-- `~/.agents`、`~/.claude/skills`、`~/.claude/agents`の共有リンク作成（Windowsではジャンクション）
+- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開（Windowsではジャンクション）
+
+既存環境から移行する場合は、[`link-targets/README.md`](link-targets/README.md)の手順でruntime link / junctionを張り直してから`chezmoi apply`を実行してください。管理スクリプトはtarget mismatchを自動修復しません。
 
 Linux/macOS/WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）を初回の`chezmoi apply`より前にAquaで導入し、`codex`コマンドをPATHから使える状態にします。
 Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yaml`を更新し、差分を確認してコミットした後に`aqua install`を実行します。
@@ -432,7 +434,7 @@ chezmoi verify --exclude=scripts
 
 ### Codex pluginの導入
 
-公式の`dotnet/skills`は、plugin本体を`.dotfiles`へvendorせず、Codex marketplaceから取得します。取得元、commit、対象pluginのversionとハッシュは[`.agents/.plugin-lock.json`](.agents/.plugin-lock.json)に記録します。
+公式の`dotnet/skills`は、plugin本体を`.dotfiles`へvendorせず、Codex marketplaceから取得します。取得元、commit、対象pluginのversionとハッシュは[`link-targets/agents/.plugin-lock.json`](link-targets/agents/.plugin-lock.json)に記録します。
 
 現在は、安定版の`dotnet` pluginだけを導入します。次のコマンドで、ロックされたcommitから復元できます。
 
@@ -476,7 +478,7 @@ chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/settings.json"
 
 更新は、upstreamの新しいcommitとの差分（manifest、hooks、scripts、agents、commands、LSP、skills）を確認してから、ロック情報と復元手順を同時に更新します。
 
-`gh-stack`は`.agents/.skill-lock.json`に出所を記録し、次のコマンドで復元します。
+`gh-stack`は`link-targets/agents/.skill-lock.json`に出所を記録し、次のコマンドで復元します。
 
 ```sh
 gh skill install github/gh-stack gh-stack
@@ -488,9 +490,9 @@ Datadogの`dd-pup`、`dd-logs`、`dd-docs`は、リポジトリのルートで�
 npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill dd-docs --full-depth -y
 ```
 
-このコマンドは、`.agents/skills`に3つのスキルを配置し、ルートの`skills-lock.json`を更新します。
+このコマンドは、`link-targets/agents/skills`に3つのスキルを配置し、ルートの`skills-lock.json`を更新します。
 
-`.agents/skills/dd-readonly-delegate`は、このリポジトリで管理する共有スキルです。第三者スキルの導入コマンドでは復元しません。
+`link-targets/agents/skills/dd-readonly-delegate`は、このリポジトリで管理する共有スキルです。第三者スキルの導入コマンドでは復元しません。
 
 このスキルはDatadogのメトリクス、ログ、ダッシュボード、ドキュメントの参照に使用します。単発の読み取り調査はサブエージェントへ委譲し、継続的な調査ではメインスレッドが関連スキルとMCPの文脈を保持します。
 
@@ -504,4 +506,4 @@ https://mcp.datadoghq.com/v1/mcp
 
 Codexは`~/.codex/config.toml`で`bearer_token_env_var = "DD_ACCESS_TOKEN"`を設定し、環境変数からSATを参照します。Claudeは`~/.claude.json`で`Authorization`ヘッダを設定します。SATの実値は、どちらの設定にもリポジトリにも保存しません。
 
-現在のCodex設定では、`.agents/skills`の共有スキルを認識します。Windowsでは`~/.claude/skills`も`.agents/skills`を参照します。
+現在のCodex設定では、`link-targets/agents/skills`の共有スキルを認識します。Windowsでは`~/.claude/skills`も同じ実体を参照します。

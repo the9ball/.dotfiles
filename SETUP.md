@@ -43,7 +43,9 @@ chezmoi verify --exclude=scripts
 - Windows：`winget import`で`winget.json`に定義されたAWS CLIとaws-vaultを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
-- `.agents`と`.claude/skills`の共有リンクを作成する。
+- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開する。
+
+既存環境から移行する場合は、`chezmoi apply`の前に[`link-targets/README.md`](link-targets/README.md)の手順でruntime link / junctionを張り直してください。管理スクリプトはtarget mismatchを自動修復しません。
 
 Gitの署名鍵は`chezmoi apply`で自動生成・登録しません。端末ごとに専用鍵を作成し、指紋と公開鍵を確認してからGitHubへ登録する必要があります。Shaulaの署名を有効にする場合は、初回適用後に[`README.manual.md`](README.manual.md)の「Gitコミット署名（Shaula）」を実行してください。
 
