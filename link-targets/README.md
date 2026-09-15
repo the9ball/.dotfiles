@@ -1,20 +1,30 @@
 # link-targets
 
-このディレクトリには、リポジトリ固有であり、symlink / junction によってホストの外部パスへ公開する実体を置きます。
+このディレクトリには、リポジトリ固有の共有設定を置きます。
+ホスト側では、symlink / junction を通じて各公開先から参照します。
 
 ```text
 link-targets/
 ├── agents/
-│   └── skills/       # ~/.agents/skills と ~/.claude/skills で共有
+│   ├── AGENTS.md     # ~/.agents/AGENTS.md
+│   ├── guides/
+│   ├── skills/       # ~/.agents/skills と ~/.claude/skills で共有
+│   └── tools/
 └── claude/
     └── agents/       # ~/.claude/agents
 ```
 
 ## 正本と公開先
 
-- `agents/` が `~/.agents` の正本です。
-- `agents/skills/` は `~/.agents/skills` と `~/.claude/skills` から共有します。
-- `claude/agents/` が `~/.claude/agents` の正本です。
+`link-targets/agents/` が `~/.agents/` の正本です。
+`link-targets/agents/skills/` は `~/.agents/skills/` と `~/.claude/skills/` から共有します。
+`link-targets/claude/agents/` が `~/.claude/agents/` の正本です。
+
+公開先は正本の内容を参照するためのリンクです。
+公開先のパスを直接編集せず、正本側を編集します。
+
+配置、公開先、移行手順などのリポジトリ固有の説明はこの README に置き、共有 `AGENTS.md` には常時必要な作業ルールだけを置きます。
+
 - 移行時にコピーするのは Git で追跡しているファイルだけです。旧ツリーにあるローカル設定や第三者スキルは移行対象に含めず、必要なら各スキルの導入手順で復元します。
 
 以後の修正はこのディレクトリ配下だけに行い、移行期間中の旧 `.agents/` および `.claude/agents/` とは同期しません。

@@ -1,9 +1,3 @@
-## Canonical source
-
-このディレクトリの実体（canonical source）は `~/.dotfiles/link-targets/agents/` にあります。
-このディレクトリは `~/.agents/` から symlink / junction 経由で利用されています。
-変更する場合は、可能な限り `~/.dotfiles/link-targets/agents/` 側の実体を変更してください。
-
 ## Local project instructions
 
 - When an `AGENTS.md` exists in a directory, read `AGENTS.local.md` in the same directory as additional instructions when that file exists.
@@ -58,8 +52,8 @@
 
 ## 用途別ガイドの参照
 
-- 本ファイルでいう`instruction root`は、本ファイルの symlink / junction を実体へ解決した canonical source を含む`.dotfiles` repository の root であり、作業対象 repository の`work root`とは区別する。共有ガイドの解決にだけ使い、Git 操作や変更対象の決定には使わない。具体的な実体パス基準の手順は`link-targets/agents/guides/README.md`に従う。
-- instruction-root 相対の`link-targets/agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`link-targets/agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
+- 本ファイルの実体を含む共有 instruction tree の root を`instruction root`と呼び、作業対象 repository の`work root`と区別する。`instruction root`は共有ガイドの解決にだけ使い、Git 操作や変更対象の決定には使わない。具体的な配置規則は`link-targets/agents/guides/README.md`に従う。
+- `instruction root` 相対の`link-targets/agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`link-targets/agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
 - 用途別ガイドは本ファイルを補足するものとして扱う。本ファイルと矛盾する場合は本ファイルを優先する。
 - サブエージェントの dispatch・再利用、長い handoff、session・epoch・Evidence child の扱いでは、`delegation` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/delegation.md`を読む。
 - Git の状態取得・変更、index.lock・権限エラー、差分・レビュー範囲の固定、Git の復旧に入る前は、`git-operations` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/git-operations.md`を読む。
