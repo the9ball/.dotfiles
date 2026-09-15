@@ -27,14 +27,12 @@ link-targets/
 
 - 移行時にコピーするのは Git で追跡しているファイルだけです。旧ツリーにあるローカル設定や第三者スキルは移行対象に含めず、必要なら各スキルの導入手順で復元します。
 
-以後の修正はこのディレクトリ配下だけに行い、移行期間中の旧 `.agents/` および `.claude/agents/` とは同期しません。
+以後の修正はこのディレクトリ配下だけに行います。旧 `.agents/` および `.claude/agents/` は移行完了に伴い削除済みです。
 
 ## 移行時の注意
 
 chezmoi の junction / symlink 管理スクリプトは、既存リンクの target mismatch を自動修復せず停止します。
 そのため、管理スクリプトを更新した後は、各 OS の runtime link / junction を先に張り直してから `chezmoi apply` を実行してください。
-
-旧ツリーに残る README の移行手順も参照してください。
 
 ### POSIX（Linux / macOS / WSL）
 

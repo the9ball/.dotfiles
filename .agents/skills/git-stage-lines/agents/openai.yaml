@@ -1,4 +1,0 @@
-interface:
-  display_name: "Git Stage Lines"
-  short_description: "Stage selected Git changes safely"
-  default_prompt: "Use $git-stage-lines to stage only the requested working-tree changes safely."
