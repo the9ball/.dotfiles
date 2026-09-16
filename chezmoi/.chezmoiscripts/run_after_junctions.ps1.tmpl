@@ -5,15 +5,15 @@ $repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
 $links = @(
     @{
         Path = Join-Path $env:USERPROFILE '.agents'
-        Target = Join-Path $repoRoot '.agents'
+        Target = Join-Path $repoRoot 'link-targets\agents'
     },
     @{
         Path = Join-Path $env:USERPROFILE '.claude\skills'
-        Target = Join-Path $repoRoot '.agents\skills'
+        Target = Join-Path $repoRoot 'link-targets\agents\skills'
     },
     @{
         Path = Join-Path $env:USERPROFILE '.claude\agents'
-        Target = Join-Path $repoRoot '.claude\agents'
+        Target = Join-Path $repoRoot 'link-targets\claude\agents'
     }
 )
 
