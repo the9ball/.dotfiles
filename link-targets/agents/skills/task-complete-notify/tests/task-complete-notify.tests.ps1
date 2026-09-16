@@ -705,6 +705,20 @@ try {
         $CancelBusyOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelBusyTestId
         $CancelBusyJson = ($CancelBusyOutput -join "`n") | ConvertFrom-Json
         Assert-Condition ($LASTEXITCODE -ne 0 -and $CancelBusyJson.Ok -eq $false -and $CancelBusyJson.Status -eq 'busy') 'cancel_lock_contention_busy'
+
+        # The lock-free fallback must use the same raw timestamp parser as the
+        # normal path. An offset-less value is unverifiable and therefore
+        # idempotently expired, even while the per-thread lock is held.
+        $OffsetlessFutureTimestamp = [DateTime]::UtcNow.AddHours(1).ToString('yyyy-MM-ddTHH:mm:ss')
+        Set-TestArmedTimestamps `
+            -RequestPath $CancelBusyStatePath `
+            -CheckpointPath $CancelBusyCheckpointPath `
+            -RequestArmedAtUtc $OffsetlessFutureTimestamp `
+            -CheckpointArmedAtUtc $OffsetlessFutureTimestamp
+        $CancelOffsetlessOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelBusyTestId
+        $CancelOffsetlessJson = ($CancelOffsetlessOutput -join "`n") | ConvertFrom-Json
+        Assert-Condition ($LASTEXITCODE -eq 0 -and $CancelOffsetlessJson.Ok -eq $true -and
+            $CancelOffsetlessJson.Status -eq 'not_armed') 'cancel_offsetless_timestamp_fails_closed'
     }
     finally {
         if ($null -ne $BusyLockStream) {

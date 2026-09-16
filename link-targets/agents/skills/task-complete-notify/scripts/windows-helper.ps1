@@ -469,6 +469,52 @@ function Enter-ThreadLock {
     return $null
 }
 
+function Convert-JsonDocumentText {
+    <#
+    .SYNOPSIS
+    Parses one JSON string while preserving the request-owned timestamp text.
+
+    .PARAMETER JsonText
+    The JSON document text to parse.
+
+    .OUTPUTS
+    System.Object. Returns the parsed document with `armedAtUtc` retained as
+    a string on PowerShell versions that otherwise coerce ISO values.
+
+    .NOTES
+    The stable cancel fallback and file reads must share this conversion path;
+    otherwise an offset-less timestamp can be accepted only during lock
+    contention. The timestamp contract is ASCII ISO text, so restoring the
+    captured JSON characters is sufficient on older PowerShell versions.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$JsonText
+    )
+
+    $ConvertFromJsonCommand = Get-Command ConvertFrom-Json
+    $PreservesDateKind = $ConvertFromJsonCommand.Parameters.ContainsKey('DateKind')
+    $Document = if ($PreservesDateKind) {
+        $JsonText | ConvertFrom-Json -DateKind String
+    }
+    else {
+        $JsonText | ConvertFrom-Json
+    }
+
+    # PowerShell versions without -DateKind may eagerly convert ISO date
+    # strings to local DateTime values. Restore the request-owned raw
+    # timestamp so TTL validation cannot shift it by the host time zone.
+    if (-not $PreservesDateKind -and
+        $JsonText -match '(?s)"armedAtUtc"\s*:\s*"((?:\\.|[^"\\])*)"') {
+        if ($null -ne $Document) {
+            $Document.armedAtUtc = $Matches[1]
+        }
+    }
+
+    return $Document
+}
+
 function Read-JsonDocument {
     <#
     .SYNOPSIS
@@ -494,27 +540,7 @@ function Read-JsonDocument {
 
     try {
         $JsonText = Get-Content -Raw -LiteralPath $Path
-        $ConvertFromJsonCommand = Get-Command ConvertFrom-Json
-        $PreservesDateKind = $ConvertFromJsonCommand.Parameters.ContainsKey('DateKind')
-        $Document = if ($PreservesDateKind) {
-            $JsonText | ConvertFrom-Json -DateKind String
-        }
-        else {
-            $JsonText | ConvertFrom-Json
-        }
-
-        # PowerShell versions without -DateKind may eagerly convert ISO date
-        # strings to local DateTime values. Restore the request-owned raw
-        # timestamp so TTL validation cannot shift it by the host time zone.
-        if (-not $PreservesDateKind -and
-            $JsonText -match '(?s)"armedAtUtc"\s*:\s*"((?:\\.|[^"\\])*)"') {
-            # The timestamp contract is ASCII ISO text, so preserving the
-            # captured JSON characters is sufficient and avoids another eager
-            # DateTime conversion on older PowerShell versions.
-            $Document.armedAtUtc = $Matches[1]
-        }
-
-        return $Document
+        return (Convert-JsonDocumentText -JsonText $JsonText)
     }
     catch {
         throw 'state_invalid'
@@ -988,7 +1014,7 @@ function Read-StableRequestSnapshot {
             }
         }
 
-        $State = $FirstText | ConvertFrom-Json
+        $State = Convert-JsonDocumentText -JsonText $FirstText
         return [pscustomobject]@{
             Stable = $true
             Exists = $true
