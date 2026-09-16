@@ -127,6 +127,15 @@ cannot extend the lifetime. Arm, Stop, and watcher paths perform lazy cleanup
 by deleting the request first and the checkpoint best-effort. `attempting`,
 terminal, and already-consumed states are not expired by this rule.
 
+The JSONL fallback treats a line-feed (`LF`) as the record commit boundary. A
+newline-terminated line that fails strict UTF-8 decoding or JSON parsing is
+classified as permanent corruption and the persistent cursor advances past it;
+the raw line is neither retained nor emitted. Only an unterminated final line
+is retried on a later scan. This policy relies on the rollout writer's
+append-only contract: an already LF-terminated byte range must not be rewritten.
+If that producer contract is disproved, the retry/discard policy must be
+revisited before changing the checkpoint schema.
+
 The hook claims an `armed` generation atomically as `attempting` before making the HTTP request. It holds the same Windows OS-lifetime per-thread lock used by arm until the request reaches a terminal result. The active generation then becomes `success`, `failure`, or `abandoned` and is no longer eligible for a later completion.
 
 Delivery is one-shot best effort: one application-level send attempt per generation, with no retry, no detached worker, and no automatic resend on the next hook. A final HTTP 200-299 is success; non-2xx, timeout, connection/TLS/DNS error, missing topic, and unknown result are terminal failure. A failure may be silent and the hook never changes the Codex turn result. The Stop hook is synchronous by design: an armed event may wait up to 55 seconds for the helper. The helper allows up to 10 seconds for the per-thread lock and 35 seconds for the notifier child; the notifier requests a 10-second connection timeout and a 20-second operation inactivity timeout, so the wrapper retains a small cleanup margin. The hook configuration keeps a 90-second ceiling. Unarmed or rejected events return without a notification attempt. Optional diagnostics must use fixed text and must never include message, topic, URI, prompt, response, repository, or log data.

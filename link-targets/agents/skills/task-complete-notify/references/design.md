@@ -14,6 +14,11 @@
 - `attempting`はTTL掃除の対象外で、Stopの送信・terminal化を妨げない。期限切れrequestは通知処理へ渡さず、ロック競合時は次回scanで再試行する。
 - cancelは明示対象のthreadに対してcoordination lock→per-thread lockの順で状態を再読込し、`armed`だけをrequest先・checkpoint後の順に削除する。`attempting`は削除せず`too_late`、ロックまたは状態が不確定なら`busy`、不在・期限切れ・消費済みなら`Ok=true, Status=not_armed`を返し、terminal/tombstoneは作らない。cancelはactive ownershipを再検証せず、実行時点のgenerationに対する操作とする。
 - Stop hookを第一検出器、JSONL watcherを明示的なfallbackとし、両方を独立senderとして有効化しない。
+- JSONL watcherはLFをrecordのcommit boundaryとして扱う。LF済み行のstrict
+  UTF-8/JSON解析失敗はappend-only writer契約下の恒久破損としてcursorを
+  `NextOffset`まで進め、破損内容を保持・出力しない。LFのない末尾partial
+  lineだけを次回scanへ残す。writerがLF後に同じbyte rangeを書き換える証拠が
+  得られた場合は、この方針を再評価してからcheckpoint schemaを変更する。
 - Stop hookは同期呼出しだが、thread lock 10秒＋notifier child 35秒＋後処理マージン5秒＜helper wrapper 55秒＜hook設定上限90秒の階層に固定する。notifierのHTTP設定はconnect timeout 10秒とoperation inactivity timeout 20秒であり、HTTP全体の上限とは扱わない。失敗してもturn結果は変更せず、非同期workerは導入しない。
 - stdinは各境界で標準入力ストリームを明示的なUTF-8 `StreamReader`として読み、`Console.InputEncoding`の変更やコンソール接続を前提にしない。
 - 1 generationにつき送信APIを1回だけ試行し、結果はterminal stateへ消費する。retryや自動再送は行わない。
@@ -44,6 +49,20 @@ stateディレクトリはインストール時には作らず、対象が現在
 
 予約が未来のturnを待つ間も、常駐workerや再送機構を追加せずに上限を設けるため、arm時刻から24時間の絶対TTLを採用します。requestの `armedAtUtc` だけを判定に使い、checkpointのコピーや欠落した時刻を補助値として扱うと、古いcheckpointによる延命や不明な時刻からの送信を防げます。期限判定はarm・Stop・watcherの既存実行点に限定し、期限切れのrequestを論理的に無効化したうえで物理削除します。削除はrequestを先に行うため、checkpointの残骸だけではwatcherが通知対象を再構成できません。
 
+### LF済みmalformed行の扱い
+
+JSONL fallbackは単調な単一cursorでrolloutを走査する。LFをrecordのcommit
+boundaryと定義するappend-only writerでは、LF済みでstrict UTF-8またはJSON
+解析に失敗した行は恒久破損であり、直ちに破棄して後続recordの検出を妨げない。
+解析失敗位置を永遠に再試行すると、その行の後ろにある正常な
+`task_complete`までstarveさせるため、retry-foreverは採用しない。raw bytesや
+decoded textをstateに保存せず、checkpointには既存のpath/offsetだけを残す。
+
+この判断はrollout writerがLF済み範囲を更新しないことを前提とする。もし
+writerの実装またはtraceがその前提を否定する場合は、同一範囲・失敗回数を
+再起動後も保持するbounded retry/discardへ再設計する。その場合も、破損内容を
+保存・出力せず、失敗回数を観測回数として明示する。
+
 ### cancelの線形化
 
 cancelは新しい状態機械を作らず、arm/Stop/watcherが既に共有するcoordination lockとthread lockを同じ順序で取得します。ロック下で `armed` を再確認してからrequestを削除するため、Stopの`attempting` claimと無条件のファイル削除が交差しません。ロック取得が間に合わない場合はrequest本文を二度読みして安定性を確認しますが、安定した `attempting` 以外は安全側に`busy`とします。thread単位の明示cancelなので、呼び出し間の再armを世代トークンで拘束せず、後続のcancelがその時点のgenerationを対象にする制約を契約として残します。
@@ -73,6 +92,9 @@ cancelは新しい状態機械を作らず、arm/Stop/watcherが既に共有す�
 5. GitHub Issue #3の本文と判断履歴コメント
 
 最低限、入力抽出の曖昧性、wrong-home拒否とstate未作成、homeごとのlock分離、Stop/watcherの一回性、24時間TTLと不正時刻のfail-closed掃除、cancelとStopの競合、watcherの自然終了、秘密値非漏洩を再検証します。
+JSONL watcherの完全行破損については、invalid JSON/UTF-8の後続にある正常な
+`task_complete`、checkpointの再起動永続性、破損内容の非出力、LFなしpartial
+lineの再試行を受入テストで確認します。
 
 ## 根拠リンク
 

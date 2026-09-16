@@ -29,6 +29,8 @@ $CancelExpiredTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $CancelAttemptingTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $CancelBusyTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $CancelResidentTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$MalformedJsonTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$MalformedUtf8TestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $FixtureRoot = Join-Path ([IO.Path]::GetTempPath()) "task-complete-notify-tests-$([Guid]::NewGuid().ToString('N'))"
 $StateDirectory = Join-Path $FixtureRoot '.task-complete-notify'
 $CreatedStatePaths = [Collections.Generic.List[string]]::new()
@@ -379,7 +381,9 @@ try {
             $CancelExpiredTestId,
             $CancelAttemptingTestId,
             $CancelBusyTestId,
-            $CancelResidentTestId)) {
+            $CancelResidentTestId,
+            $MalformedJsonTestId,
+            $MalformedUtf8TestId)) {
         $InitialTranscriptPath = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$InitialThreadId.jsonl"
         New-TestTranscript -Path $InitialTranscriptPath -ThreadId $InitialThreadId
         Add-TestSessionIndexEntry -ThreadId $InitialThreadId
@@ -925,6 +929,83 @@ try {
     & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
     Assert-Condition (-not (Test-Path -LiteralPath $WatcherStatePath -PathType Leaf)) 'watcher_consumes_complete_line'
     Assert-Condition ((Read-JsonFile -Path $WatcherTerminalPath).status -eq 'failure') 'watcher_terminal_failure'
+
+    $MalformedJsonRollout = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$MalformedJsonTestId.jsonl"
+    New-TestTranscript -Path $MalformedJsonRollout -ThreadId $MalformedJsonTestId
+    Add-TestSessionIndexEntry -ThreadId $MalformedJsonTestId
+    $MalformedJsonStatePath = Join-Path $StateDirectory "requests\$MalformedJsonTestId.json"
+    $MalformedJsonCheckpointPath = Join-Path $StateDirectory "checkpoints\$MalformedJsonTestId.json"
+    $MalformedJsonTerminalPath = Join-Path $StateDirectory "terminal\$MalformedJsonTestId.json"
+    foreach ($Path in @($MalformedJsonStatePath, $MalformedJsonCheckpointPath, $MalformedJsonTerminalPath, (Join-Path $StateDirectory "locks\$MalformedJsonTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $MalformedJsonTestId -Message 'malformed JSON policy' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'malformed_json_arm'
+    $MalformedJsonBefore = Read-JsonFile -Path $MalformedJsonCheckpointPath
+    $MalformedJsonBeforeEntry = @($MalformedJsonBefore.files | Where-Object { $_.path -eq $MalformedJsonRollout })[0]
+    Assert-Condition ($null -ne $MalformedJsonBeforeEntry) 'malformed_json_baseline_entry'
+    $MalformedJsonBaselineOffset = [long]$MalformedJsonBeforeEntry.offset
+    $MalformedJsonLine = '{"type":"event_msg","payload":"malformed-json-sentinel"'
+    $MalformedJsonBytes = [Text.UTF8Encoding]::new($false).GetBytes("$MalformedJsonLine`n")
+    [IO.File]::AppendAllBytes($MalformedJsonRollout, $MalformedJsonBytes)
+    $MalformedJsonFirstScan = & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once
+    Assert-Condition ($LASTEXITCODE -eq 0 -and
+        -not (($MalformedJsonFirstScan -join "`n") -match 'malformed-json-sentinel')) 'malformed_json_no_output'
+    Assert-Condition (Test-Path -LiteralPath $MalformedJsonStatePath -PathType Leaf) 'malformed_json_keeps_active'
+    $MalformedJsonAfter = Read-JsonFile -Path $MalformedJsonCheckpointPath
+    $MalformedJsonAfterEntry = @($MalformedJsonAfter.files | Where-Object { $_.path -eq $MalformedJsonRollout })[0]
+    Assert-Condition ([long]$MalformedJsonAfterEntry.offset -eq ($MalformedJsonBaselineOffset + $MalformedJsonBytes.Length)) 'malformed_json_checkpoint_advanced'
+    $MalformedJsonRecoveryEvent = [ordered]@{
+        timestamp = [DateTimeOffset]::UtcNow.ToString('o')
+        type = 'event_msg'
+        payload = [ordered]@{
+            type = 'task_complete'
+            turn_id = $MalformedJsonTestId
+        }
+    } | ConvertTo-Json -Compress
+    [IO.File]::AppendAllText($MalformedJsonRollout, "$MalformedJsonRecoveryEvent`n", [Text.UTF8Encoding]::new($false))
+    $MalformedJsonRecoveryScan = & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once
+    Assert-Condition ($LASTEXITCODE -eq 0 -and
+        -not (($MalformedJsonRecoveryScan -join "`n") -match 'malformed-json-sentinel')) 'malformed_json_recovery_scan'
+    Assert-Condition (-not (Test-Path -LiteralPath $MalformedJsonStatePath -PathType Leaf)) 'malformed_json_later_completion_consumed'
+    Assert-Condition ((Read-JsonFile -Path $MalformedJsonTerminalPath).status -eq 'failure') 'malformed_json_terminal_failure'
+
+    $MalformedUtf8Rollout = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$MalformedUtf8TestId.jsonl"
+    New-TestTranscript -Path $MalformedUtf8Rollout -ThreadId $MalformedUtf8TestId
+    Add-TestSessionIndexEntry -ThreadId $MalformedUtf8TestId
+    $MalformedUtf8StatePath = Join-Path $StateDirectory "requests\$MalformedUtf8TestId.json"
+    $MalformedUtf8CheckpointPath = Join-Path $StateDirectory "checkpoints\$MalformedUtf8TestId.json"
+    $MalformedUtf8TerminalPath = Join-Path $StateDirectory "terminal\$MalformedUtf8TestId.json"
+    foreach ($Path in @($MalformedUtf8StatePath, $MalformedUtf8CheckpointPath, $MalformedUtf8TerminalPath, (Join-Path $StateDirectory "locks\$MalformedUtf8TestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $MalformedUtf8TestId -Message 'malformed UTF8 policy' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'malformed_utf8_arm'
+    $MalformedUtf8Before = Read-JsonFile -Path $MalformedUtf8CheckpointPath
+    $MalformedUtf8BeforeEntry = @($MalformedUtf8Before.files | Where-Object { $_.path -eq $MalformedUtf8Rollout })[0]
+    Assert-Condition ($null -ne $MalformedUtf8BeforeEntry) 'malformed_utf8_baseline_entry'
+    $MalformedUtf8BaselineOffset = [long]$MalformedUtf8BeforeEntry.offset
+    $MalformedUtf8Bytes = [byte[]]@(0xC3, 0x28, 0x0A)
+    [IO.File]::AppendAllBytes($MalformedUtf8Rollout, $MalformedUtf8Bytes)
+    $MalformedUtf8FirstScan = & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once
+    Assert-Condition ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace(($MalformedUtf8FirstScan -join "`n"))) 'malformed_utf8_no_output'
+    Assert-Condition (Test-Path -LiteralPath $MalformedUtf8StatePath -PathType Leaf) 'malformed_utf8_keeps_active'
+    $MalformedUtf8After = Read-JsonFile -Path $MalformedUtf8CheckpointPath
+    $MalformedUtf8AfterEntry = @($MalformedUtf8After.files | Where-Object { $_.path -eq $MalformedUtf8Rollout })[0]
+    Assert-Condition ([long]$MalformedUtf8AfterEntry.offset -eq ($MalformedUtf8BaselineOffset + $MalformedUtf8Bytes.Length)) 'malformed_utf8_checkpoint_advanced'
+    $MalformedUtf8RecoveryEvent = [ordered]@{
+        timestamp = [DateTimeOffset]::UtcNow.ToString('o')
+        type = 'event_msg'
+        payload = [ordered]@{
+            type = 'task_complete'
+            turn_id = $MalformedUtf8TestId
+        }
+    } | ConvertTo-Json -Compress
+    [IO.File]::AppendAllText($MalformedUtf8Rollout, "$MalformedUtf8RecoveryEvent`n", [Text.UTF8Encoding]::new($false))
+    $MalformedUtf8RecoveryScan = & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once
+    Assert-Condition ($LASTEXITCODE -eq 0 -and [string]::IsNullOrWhiteSpace(($MalformedUtf8RecoveryScan -join "`n"))) 'malformed_utf8_recovery_scan'
+    Assert-Condition (-not (Test-Path -LiteralPath $MalformedUtf8StatePath -PathType Leaf)) 'malformed_utf8_later_completion_consumed'
+    Assert-Condition ((Read-JsonFile -Path $MalformedUtf8TerminalPath).status -eq 'failure') 'malformed_utf8_terminal_failure'
 
     $ResidentRollout = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$ResidentTestId.jsonl"
     New-TestTranscript -Path $ResidentRollout -ThreadId $ResidentTestId

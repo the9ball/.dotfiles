@@ -913,8 +913,10 @@ function Read-CompleteJsonLines {
     malformed complete line) and the next safe byte offset.
 
     .NOTES
-    A partial final line is retained by leaving the checkpoint at its prior
-    offset. UTF-8 decoding is strict for complete lines.
+    A line-feed is the JSONL record commit boundary. A complete line that fails
+    strict UTF-8 decoding or JSON parsing is treated as permanent corruption;
+    callers may advance past it without retaining its content. Only a partial
+    final line is retained by leaving the checkpoint at its prior offset.
     #>
     param(
         [Parameter(Mandatory)]
@@ -1231,6 +1233,10 @@ function Process-ActiveRequest {
             $LineStartOffset = $CurrentOffset
             $NextOffset = [long]$Line.NextOffset
             if ($null -eq $Line.Record) {
+                # LF is the producer's record commit boundary. A complete
+                # line that cannot be decoded or parsed is permanent
+                # corruption under the append-only JSONL contract, so advance
+                # the cursor to avoid starving later completion records.
                 $Checkpoint.Offsets[$RolloutFile.FullName] = $NextOffset
                 $CurrentOffset = $NextOffset
                 continue
