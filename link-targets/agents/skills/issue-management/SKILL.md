@@ -9,8 +9,8 @@ description: Issue または Pull Request の要件、レビュー対応、REVIE
 
 ## 発動条件
 
-- ユーザーまたは対象タスクが Issue / Pull Request の要件、通常コメント、REVIEW-SUMMARY、HANDOFF、レビュー対応を採用したときに使う。
-- 単なるローカル調査では発動させず、外部投稿を行う場合は外部操作の承認を別に確認する。
+- ユーザーまたは対象タスクが Issue / Pull Request の要件、通常コメント、REVIEW-SUMMARY、HANDOFF、レビュー対応、obsolete なトップレベル通常コメントの保守（Hideを含む）を採用したときに使う。
+- 単なるローカル調査では発動させず、外部操作を行う場合は外部操作の承認を別に確認する。
 
 ## 実行
 
