@@ -9,6 +9,7 @@ $ProgressPreference = 'SilentlyContinue'
 
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 $NotifierTimeoutMilliseconds = 35000
+$ArmedRequestLifetime = [TimeSpan]::FromHours(24)
 
 function Resolve-CodexHome {
     <#
@@ -492,10 +493,119 @@ function Read-JsonDocument {
     }
 
     try {
-        return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)
+        $JsonText = Get-Content -Raw -LiteralPath $Path
+        $ConvertFromJsonCommand = Get-Command ConvertFrom-Json
+        $PreservesDateKind = $ConvertFromJsonCommand.Parameters.ContainsKey('DateKind')
+        $Document = if ($PreservesDateKind) {
+            $JsonText | ConvertFrom-Json -DateKind String
+        }
+        else {
+            $JsonText | ConvertFrom-Json
+        }
+
+        # PowerShell versions without -DateKind may eagerly convert ISO date
+        # strings to local DateTime values. Restore the request-owned raw
+        # timestamp so TTL validation cannot shift it by the host time zone.
+        if (-not $PreservesDateKind -and
+            $JsonText -match '(?s)"armedAtUtc"\s*:\s*"((?:\\.|[^"\\])*)"') {
+            # The timestamp contract is ASCII ISO text, so preserving the
+            # captured JSON characters is sufficient and avoids another eager
+            # DateTime conversion on older PowerShell versions.
+            $Document.armedAtUtc = $Matches[1]
+        }
+
+        return $Document
     }
     catch {
         throw 'state_invalid'
+    }
+}
+
+function Get-ArmedExpiryStatus {
+    <#
+    .SYNOPSIS
+    Evaluates the fixed lifetime of an armed request.
+
+    .PARAMETER State
+    The request state whose request-owned `armedAtUtc` value is authoritative.
+
+    .OUTPUTS
+    PSCustomObject. Returns validity, expiry, and the parsed UTC timestamp.
+
+    .NOTES
+    Missing, malformed, and overflowing timestamps are treated as expired so
+    that no notification can be sent from an unverifiable request.
+    #>
+    param(
+        [AllowNull()]
+        [object]$State
+    )
+
+    $ArmedAtUtc = [DateTimeOffset]::MinValue
+    $ArmedAtValue = Get-ObjectPropertyValue -InputObject $State -PropertyName 'armedAtUtc'
+    $TimestampParsed = $false
+    if ($ArmedAtValue -is [DateTimeOffset]) {
+        $ArmedAtUtc = $ArmedAtValue.ToUniversalTime()
+        $TimestampParsed = $true
+    }
+    elseif ($ArmedAtValue -is [DateTime]) {
+        try {
+            $ArmedAtUtc = if ($ArmedAtValue.Kind -eq [DateTimeKind]::Unspecified) {
+                [DateTimeOffset]::new($ArmedAtValue, [TimeSpan]::Zero)
+            }
+            else {
+                ([DateTimeOffset]$ArmedAtValue).ToUniversalTime()
+            }
+            $TimestampParsed = $true
+        }
+        catch {
+            $TimestampParsed = $false
+        }
+    }
+    elseif ($ArmedAtValue -is [string]) {
+        $ArmedAtText = [string]$ArmedAtValue
+        [string[]]$TimestampFormats = @(
+            'yyyy-MM-ddTHH:mm:ss.FFFFFFFK',
+            'yyyy-MM-ddTHH:mm:ssK'
+        )
+        $ParseStyles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
+        if (-not [string]::IsNullOrWhiteSpace($ArmedAtText) -and
+            [DateTimeOffset]::TryParseExact(
+                $ArmedAtText,
+                $TimestampFormats,
+                [Globalization.CultureInfo]::InvariantCulture,
+                $ParseStyles,
+                [ref]$ArmedAtUtc)) {
+            $TimestampParsed = $true
+        }
+    }
+
+    if (-not $TimestampParsed) {
+        return [pscustomobject]@{
+            IsValid = $false
+            IsExpired = $true
+            ArmedAtUtc = $null
+            ExpiresAtUtc = $null
+        }
+    }
+
+    try {
+        $ExpiresAtUtc = $ArmedAtUtc.Add($ArmedRequestLifetime)
+    }
+    catch {
+        return [pscustomobject]@{
+            IsValid = $false
+            IsExpired = $true
+            ArmedAtUtc = $null
+            ExpiresAtUtc = $null
+        }
+    }
+
+    return [pscustomobject]@{
+        IsValid = $true
+        IsExpired = ([DateTimeOffset]::UtcNow -ge $ExpiresAtUtc)
+        ArmedAtUtc = $ArmedAtUtc
+        ExpiresAtUtc = $ExpiresAtUtc
     }
 }
 
@@ -796,6 +906,180 @@ function Remove-Checkpoint {
     }
     catch {
         return $false
+    }
+}
+
+function Remove-ActiveRequestAndCheckpoint {
+    <#
+    .SYNOPSIS
+    Removes an active request first and then its checkpoint best-effort.
+
+    .PARAMETER ThreadId
+    A normalized lowercase UUID.
+
+    .OUTPUTS
+    System.Boolean. Returns false only when the request itself could not be
+    removed; checkpoint cleanup errors are intentionally tolerated.
+
+    .NOTES
+    Deleting the request is the cleanup linearization point. The checkpoint is
+    removed afterward so a stale offset can never make an active request live.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$ThreadId
+    )
+
+    if (-not (Remove-ActiveRequest -ThreadId $ThreadId)) {
+        return $false
+    }
+
+    [void](Remove-Checkpoint -ThreadId $ThreadId)
+    return $true
+}
+
+function Read-StableRequestSnapshot {
+    <#
+    .SYNOPSIS
+    Reads two identical request-file snapshots without taking the thread lock.
+
+    .PARAMETER ThreadId
+    A normalized lowercase UUID.
+
+    .OUTPUTS
+    PSCustomObject. Returns stability, existence, and the parsed state without
+    emitting request contents.
+
+    .NOTES
+    Cancel uses this bounded fallback only after a lock timeout. An unstable or
+    unparsable snapshot is deliberately reported as indeterminate.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$ThreadId
+    )
+
+    $RequestPath = Get-RequestPath -ThreadId $ThreadId
+    if (-not (Test-Path -LiteralPath $RequestPath -PathType Leaf)) {
+        return [pscustomobject]@{
+            Stable = $true
+            Exists = $false
+            State = $null
+        }
+    }
+
+    try {
+        $FirstText = [IO.File]::ReadAllText($RequestPath)
+        if (-not (Test-Path -LiteralPath $RequestPath -PathType Leaf)) {
+            return [pscustomobject]@{
+                Stable = $false
+                Exists = $false
+                State = $null
+            }
+        }
+
+        $SecondText = [IO.File]::ReadAllText($RequestPath)
+        if ($FirstText -ne $SecondText) {
+            return [pscustomobject]@{
+                Stable = $false
+                Exists = $true
+                State = $null
+            }
+        }
+
+        $State = $FirstText | ConvertFrom-Json
+        return [pscustomobject]@{
+            Stable = $true
+            Exists = $true
+            State = $State
+        }
+    }
+    catch {
+        return [pscustomobject]@{
+            Stable = $false
+            Exists = $true
+            State = $null
+        }
+    }
+}
+
+function Get-CancelSnapshotResult {
+    <#
+    .SYNOPSIS
+    Converts a lock-free stable request snapshot into a cancel result.
+
+    .PARAMETER ThreadId
+    A normalized lowercase UUID.
+
+    .OUTPUTS
+    PSCustomObject. Returns only the sanitized `Ok` and `Status` fields.
+
+    .NOTES
+    A stable `attempting` snapshot is the only lock-timeout case that can be
+    classified as `too_late`; an expired armed snapshot is an idempotent
+    `not_armed`, and all other uncertain states remain `busy`.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$ThreadId
+    )
+
+    $Snapshot = Read-StableRequestSnapshot -ThreadId $ThreadId
+    if (-not $Snapshot.Stable) {
+        return [pscustomobject]@{
+            Ok = $false
+            Status = 'busy'
+        }
+    }
+
+    if (-not $Snapshot.Exists) {
+        return [pscustomobject]@{
+            Ok = $true
+            Status = 'not_armed'
+        }
+    }
+
+    $State = $Snapshot.State
+    if ([string](Get-ObjectPropertyValue -InputObject $State -PropertyName 'provider') -ne 'codex') {
+        return [pscustomobject]@{
+            Ok = $false
+            Status = 'busy'
+        }
+    }
+
+    $Target = Get-ObjectPropertyValue -InputObject $State -PropertyName 'target'
+    if ([string](Get-ObjectPropertyValue -InputObject $Target -PropertyName 'threadId') -ne $ThreadId) {
+        return [pscustomobject]@{
+            Ok = $false
+            Status = 'busy'
+        }
+    }
+
+    $Status = [string](Get-ObjectPropertyValue -InputObject $State -PropertyName 'status')
+    if ($Status -eq 'attempting') {
+        return [pscustomobject]@{
+            Ok = $false
+            Status = 'too_late'
+        }
+    }
+
+    if ($Status -eq 'armed' -and (Get-ArmedExpiryStatus -State $State).IsExpired) {
+        return [pscustomobject]@{
+            Ok = $true
+            Status = 'not_armed'
+        }
+    }
+
+    if ($Status -in @('success', 'failure', 'abandoned')) {
+        return [pscustomobject]@{
+            Ok = $true
+            Status = 'not_armed'
+        }
+    }
+
+    return [pscustomobject]@{
+        Ok = $false
+        Status = 'busy'
     }
 }
 
@@ -1502,14 +1786,25 @@ function Invoke-ArmOperation {
             if ($null -ne $ExistingState) {
                 $ExistingStatus = [string](Get-ObjectPropertyValue -InputObject $ExistingState -PropertyName 'status')
                 if ($ExistingStatus -eq 'armed') {
-                    Start-FallbackWatcher
-                    return [pscustomobject]@{
-                        Ok = $true
-                        Status = 'already_armed'
+                    $ExistingExpiry = Get-ArmedExpiryStatus -State $ExistingState
+                    if ($ExistingExpiry.IsExpired) {
+                        if (-not (Remove-ActiveRequestAndCheckpoint -ThreadId $ThreadId)) {
+                            return [pscustomobject]@{
+                                Ok = $false
+                                Status = 'busy'
+                            }
+                        }
+                    }
+                    else {
+                        Start-FallbackWatcher
+                        return [pscustomobject]@{
+                            Ok = $true
+                            Status = 'already_armed'
+                        }
                     }
                 }
 
-                if ($ExistingStatus -eq 'attempting') {
+                elseif ($ExistingStatus -eq 'attempting') {
                     $ExistingTurnId = Get-SafeTurnId -InputValue (Get-ObjectPropertyValue -InputObject (Get-ObjectPropertyValue -InputObject $ExistingState -PropertyName 'event') -PropertyName 'turnId')
                     Write-TerminalResult -ThreadId $ThreadId -State $ExistingState -Status 'abandoned' -TurnId $ExistingTurnId
                     if (-not (Remove-ActiveRequest -ThreadId $ThreadId)) {
@@ -1681,6 +1976,23 @@ function Invoke-StopOperation {
             }
         }
 
+        $ExpiryStatus = Get-ArmedExpiryStatus -State $ArmedState
+        if ($ExpiryStatus.IsExpired) {
+            if (-not (Remove-ActiveRequestAndCheckpoint -ThreadId $ThreadId)) {
+                return [pscustomobject]@{
+                    Ok = $false
+                    Handled = $false
+                    Status = 'busy'
+                }
+            }
+
+            return [pscustomobject]@{
+                Ok = $true
+                Handled = $false
+                Status = 'not_armed'
+            }
+        }
+
         $ClaimedState = New-AttemptingState -ThreadId $ThreadId -State $ArmedState -TurnId $TurnId
         Write-AtomicJsonDocument -Path $RequestPath -Document $ClaimedState
         $Claimed = $true
@@ -1736,6 +2048,146 @@ function Invoke-StopOperation {
     }
 }
 
+function Invoke-CancelOperation {
+    <#
+    .SYNOPSIS
+    Cancels the current armed request without creating terminal history.
+
+    .PARAMETER Request
+    The parsed cancel envelope containing an explicit thread value.
+
+    .OUTPUTS
+    PSCustomObject. Returns sanitized `Ok` and `Status` fields.
+
+    .NOTES
+    Cancellation is serialized as coordination lock followed by per-thread
+    lock. The request deletion is the linearization point; an `attempting`
+    claim is never removed, and lock contention falls back to a stable snapshot.
+    This operation intentionally does not revalidate active session ownership.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [object]$Request
+    )
+
+    $CoordinationStream = $null
+    $LockStream = $null
+    try {
+        $ThreadId = Extract-ArmThreadId -InputValue ([string](Get-ObjectPropertyValue -InputObject $Request -PropertyName 'thread'))
+        if ([string]::IsNullOrWhiteSpace($CodexHome) -or
+            -not (Test-Path -LiteralPath $CodexHome -PathType Container)) {
+            return [pscustomobject]@{
+                Ok = $false
+                Status = 'codex_home_invalid'
+            }
+        }
+
+        $RequestPath = Get-RequestPath -ThreadId $ThreadId
+        if (-not (Test-Path -LiteralPath $RequestPath -PathType Leaf)) {
+            return [pscustomobject]@{
+                Ok = $true
+                Status = 'not_armed'
+            }
+        }
+
+        $CoordinationStream = Enter-CoordinationLock
+        if ($null -eq $CoordinationStream) {
+            return (Get-CancelSnapshotResult -ThreadId $ThreadId)
+        }
+
+        $LockStream = Enter-ThreadLock -ThreadId $ThreadId
+        if ($null -eq $LockStream) {
+            return (Get-CancelSnapshotResult -ThreadId $ThreadId)
+        }
+
+        try {
+            if (-not (Test-Path -LiteralPath $RequestPath -PathType Leaf)) {
+                return [pscustomobject]@{
+                    Ok = $true
+                    Status = 'not_armed'
+                }
+            }
+
+            $State = Read-JsonDocument -Path $RequestPath
+            if ($null -eq $State -or
+                [string](Get-ObjectPropertyValue -InputObject $State -PropertyName 'provider') -ne 'codex') {
+                return [pscustomobject]@{
+                    Ok = $false
+                    Status = 'busy'
+                }
+            }
+
+            $Target = Get-ObjectPropertyValue -InputObject $State -PropertyName 'target'
+            if ([string](Get-ObjectPropertyValue -InputObject $Target -PropertyName 'threadId') -ne $ThreadId) {
+                return [pscustomobject]@{
+                    Ok = $false
+                    Status = 'busy'
+                }
+            }
+
+            $Status = [string](Get-ObjectPropertyValue -InputObject $State -PropertyName 'status')
+            if ($Status -eq 'attempting') {
+                return [pscustomobject]@{
+                    Ok = $false
+                    Status = 'too_late'
+                }
+            }
+
+            if ($Status -eq 'armed') {
+                if (-not (Remove-ActiveRequestAndCheckpoint -ThreadId $ThreadId)) {
+                    return [pscustomobject]@{
+                        Ok = $false
+                        Status = 'busy'
+                    }
+                }
+
+                return [pscustomobject]@{
+                    Ok = $true
+                    Status = 'not_armed'
+                }
+            }
+
+            if ($Status -in @('success', 'failure', 'abandoned')) {
+                return [pscustomobject]@{
+                    Ok = $true
+                    Status = 'not_armed'
+                }
+            }
+
+            return [pscustomobject]@{
+                Ok = $false
+                Status = 'busy'
+            }
+        }
+        finally {
+            $LockStream.Dispose()
+            $LockStream = $null
+        }
+    }
+    catch {
+        $FailureStatus = [string]$_.Exception.Message
+        if ($FailureStatus -in @('thread_invalid', 'thread_ambiguous', 'codex_home_invalid')) {
+            return [pscustomobject]@{
+                Ok = $false
+                Status = $FailureStatus
+            }
+        }
+
+        return [pscustomobject]@{
+            Ok = $false
+            Status = 'busy'
+        }
+    }
+    finally {
+        if ($null -ne $LockStream) {
+            $LockStream.Dispose()
+        }
+        if ($null -ne $CoordinationStream) {
+            $CoordinationStream.Dispose()
+        }
+    }
+}
+
 function Invoke-HelperRequest {
     <#
     .SYNOPSIS
@@ -1767,6 +2219,9 @@ function Invoke-HelperRequest {
             }
 
             return (Invoke-StopOperation -HookInput $HookInput)
+        }
+        'cancel' {
+            return (Invoke-CancelOperation -Request $Request)
         }
         default {
             return [pscustomobject]@{

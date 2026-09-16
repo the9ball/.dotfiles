@@ -19,10 +19,21 @@ $ResidentTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $TransientTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $GenerationTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $NotHandledTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$ArmExpiryTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$StopExpiryTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$WatcherExpiryTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$InvalidTimestampTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CheckpointTimestampTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CancelTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CancelExpiredTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CancelAttemptingTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CancelBusyTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
+$CancelResidentTestId = [Guid]::NewGuid().ToString('D').ToLowerInvariant()
 $FixtureRoot = Join-Path ([IO.Path]::GetTempPath()) "task-complete-notify-tests-$([Guid]::NewGuid().ToString('N'))"
 $StateDirectory = Join-Path $FixtureRoot '.task-complete-notify'
 $CreatedStatePaths = [Collections.Generic.List[string]]::new()
 $ResidentProcess = $null
+$CancelResidentProcess = $null
 
 function Assert-Condition {
     <#
@@ -190,6 +201,59 @@ function Read-JsonFile {
     return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)
 }
 
+function Set-TestArmedTimestamps {
+    <#
+    .SYNOPSIS
+    Rewrites request and checkpoint timestamps for deterministic TTL fixtures.
+
+    .PARAMETER RequestPath
+    The explicit request JSON path.
+
+    .PARAMETER CheckpointPath
+    The explicit checkpoint JSON path.
+
+    .PARAMETER RequestArmedAtUtc
+    The timestamp to place in the request, which is the TTL authority.
+
+    .PARAMETER CheckpointArmedAtUtc
+    The independent checkpoint timestamp used to verify it cannot extend TTL.
+
+    .OUTPUTS
+    None. Only the supplied fixture files are rewritten.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$RequestPath,
+
+        [Parameter(Mandatory)]
+        [string]$CheckpointPath,
+
+        [Parameter(Mandatory)]
+        [string]$RequestArmedAtUtc,
+
+        [Parameter(Mandatory)]
+        [string]$CheckpointArmedAtUtc
+    )
+
+    $State = Read-JsonFile -Path $RequestPath
+    $State.armedAtUtc = $RequestArmedAtUtc
+    [IO.File]::WriteAllText(
+        $RequestPath,
+        ($State | ConvertTo-Json -Depth 20 -Compress),
+        [Text.UTF8Encoding]::new($false)
+    )
+
+    if (Test-Path -LiteralPath $CheckpointPath -PathType Leaf) {
+        $Checkpoint = Read-JsonFile -Path $CheckpointPath
+        $Checkpoint.armedAtUtc = $CheckpointArmedAtUtc
+        [IO.File]::WriteAllText(
+            $CheckpointPath,
+            ($Checkpoint | ConvertTo-Json -Depth 20 -Compress),
+            [Text.UTF8Encoding]::new($false)
+        )
+    }
+}
+
 function New-TestTranscript {
     <#
     .SYNOPSIS
@@ -300,7 +364,22 @@ try {
     [Environment]::SetEnvironmentVariable('CODEX_HOME', $FixtureRoot, 'Process')
     [Environment]::SetEnvironmentVariable('TASK_COMPLETE_NOTIFY_WATCHER', $null, 'Process')
 
-    foreach ($InitialThreadId in @($TestId, $SecondTestId, $ThirdTestId, $FourthTestId, $StopActiveTestId)) {
+    foreach ($InitialThreadId in @(
+            $TestId,
+            $SecondTestId,
+            $ThirdTestId,
+            $FourthTestId,
+            $StopActiveTestId,
+            $ArmExpiryTestId,
+            $StopExpiryTestId,
+            $WatcherExpiryTestId,
+            $InvalidTimestampTestId,
+            $CheckpointTimestampTestId,
+            $CancelTestId,
+            $CancelExpiredTestId,
+            $CancelAttemptingTestId,
+            $CancelBusyTestId,
+            $CancelResidentTestId)) {
         $InitialTranscriptPath = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$InitialThreadId.jsonl"
         New-TestTranscript -Path $InitialTranscriptPath -ThreadId $InitialThreadId
         Add-TestSessionIndexEntry -ThreadId $InitialThreadId
@@ -318,6 +397,7 @@ try {
     $NotifyText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'notify.ps1')
     $HelperText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'windows-helper.ps1')
     $WatcherText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'codex-watcher.ps1')
+    $CancelText = Get-Content -Raw -LiteralPath (Join-Path $ScriptDirectory 'cancel-notification.ps1')
     Assert-Condition (-not ($StopHookText -match '\[Console\]::InputEncoding')) 'stop_no_console_encoding_mutation'
     Assert-Condition (-not ($ArmText -match '\[Console\]::InputEncoding')) 'arm_no_console_encoding_mutation'
     Assert-Condition (-not ($NotifyText -match '\[Console\]::InputEncoding')) 'notify_no_console_encoding_mutation'
@@ -337,6 +417,14 @@ try {
         55000 -lt 90000) 'notification_timeout_hierarchy'
     Assert-Condition (-not ($WatcherText -match '\.task-complete-notify\.invalid') -and
         -not ($HelperText -match '\.task-complete-notify\.invalid')) 'no_invalid_home_fallback_path'
+    Assert-Condition ($HelperText -match '\$ArmedRequestLifetime\s*=\s*\[TimeSpan\]::FromHours\(24\)' -and
+        $WatcherText -match '\$ArmedRequestLifetime\s*=\s*\[TimeSpan\]::FromHours\(24\)' -and
+        $HelperText -match 'Get-ArmedExpiryStatus' -and
+        $WatcherText -match 'Get-ArmedExpiryStatus') 'armed_ttl_contract'
+    Assert-Condition ($CancelText -match "operation\s*=\s*'cancel'" -and
+        $HelperText -match "'cancel'\s*\{" -and
+        $CancelText -match 'Status\s*=\s*\[string\]\$Result\.Status') 'cancel_surface_contract'
+    Assert-Condition (-not ($WatcherText -match '\$ArmedAtUtc\s*=\s*\$CheckpointArmedAt')) 'checkpoint_cannot_extend_ttl'
 
     $NotifyPath = Join-Path $ScriptDirectory 'notify.ps1'
     $NotifyResult = Invoke-NativeWithInput -ScriptPath $NotifyPath -InputText '{"message":"Task completed"}'
@@ -345,6 +433,7 @@ try {
     Assert-Condition ([string]::IsNullOrWhiteSpace($NotifyResult.Stderr)) 'notify_no_stderr'
 
     $ArmPath = Join-Path $ScriptDirectory 'arm-notification.ps1'
+    $CancelPath = Join-Path $ScriptDirectory 'cancel-notification.ps1'
     $StopPath = Join-Path $ScriptDirectory 'codex-stop-hook.ps1'
     $WatcherPath = Join-Path $ScriptDirectory 'codex-watcher.ps1'
     $InvalidHomePath = Join-Path $SkillDirectory '.task-complete-notify.invalid'
@@ -382,6 +471,287 @@ try {
     $RearmJson = ($RearmOutput -join "`n") | ConvertFrom-Json
     Assert-Condition ($RearmJson.Ok -eq $true -and $RearmJson.Status -eq 'already_armed') 'rearm_idempotent'
     Assert-Condition ((Read-JsonFile -Path $StatePath).notification.message -eq '初回本文') 'rearm_preserves_message'
+
+    $ArmExpiryStatePath = Join-Path $StateDirectory "requests\$ArmExpiryTestId.json"
+    $ArmExpiryCheckpointPath = Join-Path $StateDirectory "checkpoints\$ArmExpiryTestId.json"
+    $ArmExpiryTerminalPath = Join-Path $StateDirectory "terminal\$ArmExpiryTestId.json"
+    foreach ($Path in @($ArmExpiryStatePath, $ArmExpiryCheckpointPath, $ArmExpiryTerminalPath, (Join-Path $StateDirectory "locks\$ArmExpiryTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $ArmExpiryTestId -Message '期限前世代' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'arm_expiry_initial'
+    Set-TestArmedTimestamps `
+        -RequestPath $ArmExpiryStatePath `
+        -CheckpointPath $ArmExpiryCheckpointPath `
+        -RequestArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-25).ToString('o')) `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    $ArmExpiryRearmOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $ArmExpiryTestId -Message '期限後の再登録'
+    $ArmExpiryRearmJson = ($ArmExpiryRearmOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -eq 0 -and $ArmExpiryRearmJson.Ok -eq $true -and $ArmExpiryRearmJson.Status -eq 'armed') 'arm_expiry_rearms'
+    $ArmExpiryAfter = Read-JsonFile -Path $ArmExpiryStatePath
+    Assert-Condition ($ArmExpiryAfter.status -eq 'armed' -and $ArmExpiryAfter.notification.message -eq '期限後の再登録') 'arm_expiry_replaces_state'
+    Assert-Condition (Test-Path -LiteralPath $ArmExpiryCheckpointPath -PathType Leaf) 'arm_expiry_recreates_checkpoint'
+    Assert-Condition (-not (Test-Path -LiteralPath $ArmExpiryTerminalPath -PathType Leaf)) 'arm_expiry_no_terminal'
+    Set-TestArmedTimestamps `
+        -RequestPath $ArmExpiryStatePath `
+        -CheckpointPath $ArmExpiryCheckpointPath `
+        -RequestArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-24).ToString('o')) `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition (-not (Test-Path -LiteralPath $ArmExpiryStatePath -PathType Leaf)) 'arm_expiry_boundary'
+    Remove-Item -LiteralPath $ArmExpiryStatePath, $ArmExpiryCheckpointPath -Force -ErrorAction SilentlyContinue
+
+    $StopExpiryStatePath = Join-Path $StateDirectory "requests\$StopExpiryTestId.json"
+    $StopExpiryCheckpointPath = Join-Path $StateDirectory "checkpoints\$StopExpiryTestId.json"
+    $StopExpiryTerminalPath = Join-Path $StateDirectory "terminal\$StopExpiryTestId.json"
+    $StopExpiryTranscriptPath = Join-Path $FixtureRoot "sessions\2026\01\rollout-2026-01-01T00-00-00-$StopExpiryTestId.jsonl"
+    foreach ($Path in @($StopExpiryStatePath, $StopExpiryCheckpointPath, $StopExpiryTerminalPath, (Join-Path $StateDirectory "locks\$StopExpiryTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $StopExpiryTestId -Message '期限切れStop' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'stop_expiry_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $StopExpiryStatePath `
+        -CheckpointPath $StopExpiryCheckpointPath `
+        -RequestArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-25).ToString('o')) `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    $StopExpiryInput = [ordered]@{
+        hook_event_name = 'Stop'
+        session_id = $StopExpiryTestId
+        transcript_path = $StopExpiryTranscriptPath
+        turn_id = $TestId
+        stop_hook_active = $false
+    } | ConvertTo-Json -Compress
+    $StopExpiryResult = Invoke-NativeWithInput -ScriptPath $StopPath -InputText $StopExpiryInput
+    Assert-Condition ($StopExpiryResult.ExitCode -eq 0 -and [string]::IsNullOrWhiteSpace($StopExpiryResult.Stdout)) 'stop_expiry_silent'
+    Assert-Condition (-not (Test-Path -LiteralPath $StopExpiryStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $StopExpiryCheckpointPath -PathType Leaf)) 'stop_expiry_cleans_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $StopExpiryTerminalPath -PathType Leaf)) 'stop_expiry_no_terminal'
+
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $StopExpiryTestId -Message '不正時刻Stop' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'stop_invalid_time_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $StopExpiryStatePath `
+        -CheckpointPath $StopExpiryCheckpointPath `
+        -RequestArmedAtUtc 'not-a-time' `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    $StopInvalidTimeResult = Invoke-NativeWithInput -ScriptPath $StopPath -InputText $StopExpiryInput
+    Assert-Condition ($StopInvalidTimeResult.ExitCode -eq 0 -and [string]::IsNullOrWhiteSpace($StopInvalidTimeResult.Stdout)) 'stop_invalid_time_silent'
+    Assert-Condition (-not (Test-Path -LiteralPath $StopExpiryStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $StopExpiryCheckpointPath -PathType Leaf)) 'stop_invalid_time_cleans_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $StopExpiryTerminalPath -PathType Leaf)) 'stop_invalid_time_no_terminal'
+
+    $WatcherExpiryStatePath = Join-Path $StateDirectory "requests\$WatcherExpiryTestId.json"
+    $WatcherExpiryCheckpointPath = Join-Path $StateDirectory "checkpoints\$WatcherExpiryTestId.json"
+    $WatcherExpiryTerminalPath = Join-Path $StateDirectory "terminal\$WatcherExpiryTestId.json"
+    foreach ($Path in @($WatcherExpiryStatePath, $WatcherExpiryCheckpointPath, $WatcherExpiryTerminalPath, (Join-Path $StateDirectory "locks\$WatcherExpiryTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $WatcherExpiryTestId -Message '期限切れwatcher' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'watcher_expiry_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $WatcherExpiryStatePath `
+        -CheckpointPath $WatcherExpiryCheckpointPath `
+        -RequestArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-25).ToString('o')) `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'watcher_expiry_scan'
+    Assert-Condition (-not (Test-Path -LiteralPath $WatcherExpiryStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $WatcherExpiryCheckpointPath -PathType Leaf)) 'watcher_expiry_cleans_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $WatcherExpiryTerminalPath -PathType Leaf)) 'watcher_expiry_no_terminal'
+
+    $InvalidTimestampStatePath = Join-Path $StateDirectory "requests\$InvalidTimestampTestId.json"
+    $InvalidTimestampCheckpointPath = Join-Path $StateDirectory "checkpoints\$InvalidTimestampTestId.json"
+    $InvalidTimestampTerminalPath = Join-Path $StateDirectory "terminal\$InvalidTimestampTestId.json"
+    foreach ($Path in @($InvalidTimestampStatePath, $InvalidTimestampCheckpointPath, $InvalidTimestampTerminalPath, (Join-Path $StateDirectory "locks\$InvalidTimestampTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $InvalidTimestampTestId -Message '不正時刻watcher' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'invalid_time_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $InvalidTimestampStatePath `
+        -CheckpointPath $InvalidTimestampCheckpointPath `
+        -RequestArmedAtUtc 'not-a-time' `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'invalid_time_watcher_scan'
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidTimestampStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $InvalidTimestampCheckpointPath -PathType Leaf)) 'invalid_time_cleans_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidTimestampTerminalPath -PathType Leaf)) 'invalid_time_no_terminal'
+
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $InvalidTimestampTestId -Message '欠落時刻watcher' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'missing_time_arm'
+    $MissingTimestampState = Read-JsonFile -Path $InvalidTimestampStatePath
+    [void]$MissingTimestampState.PSObject.Properties.Remove('armedAtUtc')
+    [IO.File]::WriteAllText($InvalidTimestampStatePath, ($MissingTimestampState | ConvertTo-Json -Depth 20 -Compress), [Text.UTF8Encoding]::new($false))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidTimestampStatePath -PathType Leaf)) 'missing_time_cleans_state'
+
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $InvalidTimestampTestId -Message 'overflow時刻watcher' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'overflow_time_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $InvalidTimestampStatePath `
+        -CheckpointPath $InvalidTimestampCheckpointPath `
+        -RequestArmedAtUtc '9999-12-31T23:59:59.9999999+00:00' `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition (-not (Test-Path -LiteralPath $InvalidTimestampStatePath -PathType Leaf)) 'overflow_time_cleans_state'
+
+    $CheckpointTimestampStatePath = Join-Path $StateDirectory "requests\$CheckpointTimestampTestId.json"
+    $CheckpointTimestampPath = Join-Path $StateDirectory "checkpoints\$CheckpointTimestampTestId.json"
+    $CheckpointTimestampTerminalPath = Join-Path $StateDirectory "terminal\$CheckpointTimestampTestId.json"
+    foreach ($Path in @($CheckpointTimestampStatePath, $CheckpointTimestampPath, $CheckpointTimestampTerminalPath, (Join-Path $StateDirectory "locks\$CheckpointTimestampTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CheckpointTimestampTestId -Message 'request時刻基準' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'checkpoint_timestamp_arm'
+    $RequestTimestamp = [DateTimeOffset]::UtcNow.ToString('o')
+    Set-TestArmedTimestamps `
+        -RequestPath $CheckpointTimestampStatePath `
+        -CheckpointPath $CheckpointTimestampPath `
+        -RequestArmedAtUtc $RequestTimestamp `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-25).ToString('o'))
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $WatcherPath -Once | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $CheckpointTimestampStatePath -PathType Leaf)) 'checkpoint_timestamp_keeps_request'
+    $CheckpointAfterMismatch = Read-JsonFile -Path $CheckpointTimestampPath
+    Assert-Condition ($CheckpointAfterMismatch.armedAtUtc -eq $RequestTimestamp) 'checkpoint_timestamp_not_authoritative'
+    Assert-Condition (-not (Test-Path -LiteralPath $CheckpointTimestampTerminalPath -PathType Leaf)) 'checkpoint_timestamp_no_terminal'
+    Remove-Item -LiteralPath $CheckpointTimestampStatePath, $CheckpointTimestampPath -Force -ErrorAction Stop
+
+    $CancelStatePath = Join-Path $StateDirectory "requests\$CancelTestId.json"
+    $CancelCheckpointPath = Join-Path $StateDirectory "checkpoints\$CancelTestId.json"
+    $CancelTerminalPath = Join-Path $StateDirectory "terminal\$CancelTestId.json"
+    foreach ($Path in @($CancelStatePath, $CancelCheckpointPath, $CancelTerminalPath, (Join-Path $StateDirectory "locks\$CancelTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelTestId -Message 'cancel対象A' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_arm_a'
+    $CancelOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelTestId
+    $CancelExitCode = $LASTEXITCODE
+    $CancelJson = ($CancelOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($CancelExitCode -eq 0 -and $CancelJson.Ok -eq $true -and $CancelJson.Status -eq 'not_armed') 'cancel_armed_success'
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $CancelCheckpointPath -PathType Leaf)) 'cancel_deletes_active_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelTerminalPath -PathType Leaf)) 'cancel_no_terminal'
+    $CancelAbsentOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelTestId
+    $CancelAbsentJson = ($CancelAbsentOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -eq 0 -and $CancelAbsentJson.Ok -eq $true -and $CancelAbsentJson.Status -eq 'not_armed') 'cancel_absent_idempotent'
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelTestId -Message 'cancel対象B' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_rearm_b'
+    $CancelRearmOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelTestId
+    $CancelRearmJson = ($CancelRearmOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -eq 0 -and $CancelRearmJson.Ok -eq $true -and $CancelRearmJson.Status -eq 'not_armed' -and
+        -not (Test-Path -LiteralPath $CancelStatePath -PathType Leaf)) 'cancel_targets_current_generation'
+
+    $CancelExpiredStatePath = Join-Path $StateDirectory "requests\$CancelExpiredTestId.json"
+    $CancelExpiredCheckpointPath = Join-Path $StateDirectory "checkpoints\$CancelExpiredTestId.json"
+    $CancelExpiredTerminalPath = Join-Path $StateDirectory "terminal\$CancelExpiredTestId.json"
+    foreach ($Path in @($CancelExpiredStatePath, $CancelExpiredCheckpointPath, $CancelExpiredTerminalPath, (Join-Path $StateDirectory "locks\$CancelExpiredTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelExpiredTestId -Message '期限切れcancel' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_expired_arm'
+    Set-TestArmedTimestamps `
+        -RequestPath $CancelExpiredStatePath `
+        -CheckpointPath $CancelExpiredCheckpointPath `
+        -RequestArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(-25).ToString('o')) `
+        -CheckpointArmedAtUtc ([DateTimeOffset]::UtcNow.AddHours(1).ToString('o'))
+    $CancelExpiredOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelExpiredTestId
+    $CancelExpiredJson = ($CancelExpiredOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -eq 0 -and $CancelExpiredJson.Ok -eq $true -and $CancelExpiredJson.Status -eq 'not_armed') 'cancel_expired_idempotent'
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelExpiredStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $CancelExpiredCheckpointPath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $CancelExpiredTerminalPath -PathType Leaf)) 'cancel_expired_cleans_without_terminal'
+
+    $CancelAttemptingStatePath = Join-Path $StateDirectory "requests\$CancelAttemptingTestId.json"
+    $CancelAttemptingCheckpointPath = Join-Path $StateDirectory "checkpoints\$CancelAttemptingTestId.json"
+    $CancelAttemptingTerminalPath = Join-Path $StateDirectory "terminal\$CancelAttemptingTestId.json"
+    foreach ($Path in @($CancelAttemptingStatePath, $CancelAttemptingCheckpointPath, $CancelAttemptingTerminalPath, (Join-Path $StateDirectory "locks\$CancelAttemptingTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelAttemptingTestId -Message '送信中保持' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_attempting_arm'
+    $CancelAttemptingArmed = Read-JsonFile -Path $CancelAttemptingStatePath
+    $CancelAttemptingDocument = [ordered]@{
+        schemaVersion = $CancelAttemptingArmed.schemaVersion
+        provider = $CancelAttemptingArmed.provider
+        generation = $CancelAttemptingArmed.generation
+        status = 'attempting'
+        target = [ordered]@{ threadId = $CancelAttemptingTestId }
+        event = [ordered]@{ turnId = $TestId }
+        claimedAtUtc = [DateTimeOffset]::UtcNow.ToString('o')
+    }
+    [IO.File]::WriteAllText($CancelAttemptingStatePath, ($CancelAttemptingDocument | ConvertTo-Json -Depth 20 -Compress), [Text.UTF8Encoding]::new($false))
+    $CancelAttemptingOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelAttemptingTestId
+    $CancelAttemptingJson = ($CancelAttemptingOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -ne 0 -and $CancelAttemptingJson.Ok -eq $false -and $CancelAttemptingJson.Status -eq 'too_late') 'cancel_attempting_too_late'
+    Assert-Condition ((Read-JsonFile -Path $CancelAttemptingStatePath).status -eq 'attempting' -and
+        (Test-Path -LiteralPath $CancelAttemptingCheckpointPath -PathType Leaf)) 'cancel_attempting_preserves_state'
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelAttemptingTerminalPath -PathType Leaf)) 'cancel_attempting_no_terminal'
+    Remove-Item -LiteralPath $CancelAttemptingStatePath, $CancelAttemptingCheckpointPath -Force -ErrorAction Stop
+
+    $CancelBusyStatePath = Join-Path $StateDirectory "requests\$CancelBusyTestId.json"
+    $CancelBusyCheckpointPath = Join-Path $StateDirectory "checkpoints\$CancelBusyTestId.json"
+    $CancelBusyTerminalPath = Join-Path $StateDirectory "terminal\$CancelBusyTestId.json"
+    $CancelBusyLockPath = Join-Path $StateDirectory "locks\$CancelBusyTestId.lock"
+    foreach ($Path in @($CancelBusyStatePath, $CancelBusyCheckpointPath, $CancelBusyTerminalPath, $CancelBusyLockPath)) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelBusyTestId -Message 'lock競合' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_busy_arm'
+    $BusyLockStream = $null
+    try {
+        $BusyLockStream = [IO.File]::Open($CancelBusyLockPath, [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
+        $CancelBusyOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelBusyTestId
+        $CancelBusyJson = ($CancelBusyOutput -join "`n") | ConvertFrom-Json
+        Assert-Condition ($LASTEXITCODE -ne 0 -and $CancelBusyJson.Ok -eq $false -and $CancelBusyJson.Status -eq 'busy') 'cancel_lock_contention_busy'
+    }
+    finally {
+        if ($null -ne $BusyLockStream) {
+            $BusyLockStream.Dispose()
+        }
+    }
+    Assert-Condition (Test-Path -LiteralPath $CancelBusyStatePath -PathType Leaf) 'cancel_lock_contention_preserves_state'
+    Remove-Item -LiteralPath $CancelBusyStatePath, $CancelBusyCheckpointPath -Force -ErrorAction Stop
+
+    $CancelResidentStatePath = Join-Path $StateDirectory "requests\$CancelResidentTestId.json"
+    $CancelResidentCheckpointPath = Join-Path $StateDirectory "checkpoints\$CancelResidentTestId.json"
+    $CancelResidentTerminalPath = Join-Path $StateDirectory "terminal\$CancelResidentTestId.json"
+    foreach ($Path in @($CancelResidentStatePath, $CancelResidentCheckpointPath, $CancelResidentTerminalPath, (Join-Path $StateDirectory "locks\$CancelResidentTestId.lock"))) {
+        [void]$CreatedStatePaths.Add($Path)
+    }
+    # Isolate the natural-exit assertion from the original request, which is
+    # intentionally kept alive for the Stop-hook scenarios below.
+    $SavedTestStateText = [IO.File]::ReadAllText($StatePath)
+    $SavedTestCheckpointText = [IO.File]::ReadAllText($CheckpointPath)
+    Remove-Item -LiteralPath $StatePath, $CheckpointPath -Force -ErrorAction Stop
+    & $PowerShellExecutable -NoProfile -NonInteractive -File $ArmPath -Thread $CancelResidentTestId -Message 'watcher自然終了' | Out-Null
+    Assert-Condition ($LASTEXITCODE -eq 0) 'cancel_resident_arm'
+    $CancelResidentProcess = Start-DetachedPowerShell -ScriptPath $WatcherPath -Arguments @('-PollIntervalMilliseconds', '100')
+    Start-Sleep -Milliseconds 500
+    $CancelResidentProcess.Refresh()
+    Assert-Condition (-not $CancelResidentProcess.HasExited) 'cancel_resident_watcher_waits'
+    $CancelResidentOutput = & $PowerShellExecutable -NoProfile -NonInteractive -File $CancelPath -Thread $CancelResidentTestId
+    $CancelResidentJson = ($CancelResidentOutput -join "`n") | ConvertFrom-Json
+    Assert-Condition ($LASTEXITCODE -eq 0 -and $CancelResidentJson.Ok -eq $true -and $CancelResidentJson.Status -eq 'not_armed') 'cancel_resident_success'
+    $CancelResidentDeadline = [DateTimeOffset]::UtcNow.AddSeconds(10)
+    while ($true) {
+        $CancelResidentProcess.Refresh()
+        if ($CancelResidentProcess.HasExited -or [DateTimeOffset]::UtcNow -ge $CancelResidentDeadline) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    }
+    $CancelResidentProcess.Refresh()
+    Assert-Condition $CancelResidentProcess.HasExited 'cancel_resident_natural_exit'
+    [void]$CancelResidentProcess.WaitForExit()
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelResidentStatePath -PathType Leaf) -and
+        -not (Test-Path -LiteralPath $CancelResidentCheckpointPath -PathType Leaf)) 'cancel_resident_state_removed'
+    Assert-Condition (-not (Test-Path -LiteralPath $CancelResidentTerminalPath -PathType Leaf)) 'cancel_resident_no_terminal'
+    $CancelResidentProcess.Dispose()
+    $CancelResidentProcess = $null
+    [IO.File]::WriteAllText($StatePath, $SavedTestStateText, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($CheckpointPath, $SavedTestCheckpointText, [Text.UTF8Encoding]::new($false))
 
     $StopActiveStatePath = Join-Path $StateDirectory "requests\\$StopActiveTestId.json"
     $StopActiveCheckpointPath = Join-Path $StateDirectory "checkpoints\\$StopActiveTestId.json"
@@ -717,6 +1087,22 @@ catch {
     exit 1
 }
 finally {
+    if ($null -ne $CancelResidentProcess) {
+        try {
+            $CancelResidentProcess.Refresh()
+            if (-not $CancelResidentProcess.HasExited) {
+                $CancelResidentProcess.Kill($true)
+                [void]$CancelResidentProcess.WaitForExit()
+            }
+        }
+        catch {
+            # The cancel natural-exit child may already have exited or been cleaned up.
+        }
+        finally {
+            $CancelResidentProcess.Dispose()
+            $CancelResidentProcess = $null
+        }
+    }
     if ($null -ne $ResidentProcess) {
         try {
             $ResidentProcess.Refresh()

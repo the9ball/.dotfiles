@@ -1,11 +1,11 @@
 ---
 name: task-complete-notify
-description: Use when the user explicitly asks to arm a one-shot ntfy notification for a selected Codex thread.
+description: Use when the user explicitly asks to arm or cancel a one-shot ntfy notification for a selected Codex thread.
 ---
 
 # Task-complete notification
 
-Use this skill only when the user explicitly asks to arm a task-completion notification. It is a best-effort notification for one explicitly selected Codex thread; it does not infer the current thread and it does not inspect prompts or logs to compose notification text.
+Use this skill only when the user explicitly asks to arm or cancel a task-completion notification. It is a best-effort notification for one explicitly selected Codex thread; it does not infer the current thread and it does not inspect prompts or logs to compose notification text.
 
 ## Scope
 
@@ -59,7 +59,7 @@ create `.task-complete-notify`.
 
 `-Message` is optional. When omitted, the exact body is `Task completed`. An explicit message is a literal, single-line string of at most 256 UTF-8 bytes. Empty or whitespace-only values, leading/trailing whitespace, CR/LF/NUL, Unicode control characters, U+2028/U+2029, and unpaired surrogates are rejected. The literal is stored in the active request and becomes an external-send authorization when arm succeeds; do not put secrets or sensitive business data in it.
 
-Re-arming an existing `armed` or `attempting` request is idempotent and does not replace its generation or message. An orphaned `attempting` request can be consumed by a later explicit arm and replaced by a new generation.
+Re-arming an existing `armed` request is idempotent and does not replace its generation or message. An orphaned `attempting` request can be consumed by a later explicit arm and replaced by a new generation.
 
 For a WSL caller, do not pass the message as a Windows process argument. Send an operation envelope through stdin:
 
@@ -72,6 +72,37 @@ The helper's result is sanitized and never echoes the message or topic. The
 skill path must be resolved to the Windows checkout; WSL must not write
 `.task-complete-notify` directly. If a WSL process does not inherit the active
 session's `CODEX_HOME`, registration fails rather than selecting another home.
+
+For WSL cancellation, send the cancel envelope through the same Windows
+helper boundary:
+
+```bash
+printf '%s\n' '{"operation":"cancel","thread":"codex://threads/<UUID>"}' \
+  | pwsh.exe -NoProfile -NonInteractive -File '<windows-skill-path>\\scripts\\windows-helper.ps1'
+```
+
+## Cancel a notification
+
+When the user explicitly asks to cancel a reservation, the skill uses the
+dedicated internal cancel wrapper while keeping the public skill entry and arm
+command unchanged. From Windows PowerShell, run:
+
+```powershell
+pwsh.exe -NoProfile -NonInteractive -File "<skill-dir>\scripts\cancel-notification.ps1" `
+  -Thread "codex://threads/<UUID>"
+```
+
+Cancel requires the same explicit thread target but does not re-check active
+session ownership or create the runtime state directory when no request exists.
+Under the existing coordination-then-thread locks, an `armed` request is
+deleted first and its checkpoint is removed best-effort. It writes no terminal
+record, tombstone, message, topic, or cancellation history. An observed
+`attempting` claim returns `too_late` and is never deleted; lock contention or
+an indeterminate state returns `busy`. Absent, expired, or already-consumed
+state returns the idempotent result `Ok=true, Status=not_armed`. The operation
+is current-generation-relative: a later re-arm can be cancelled by a later
+explicit cancel. A running fallback watcher exits naturally on its next scan
+after the active request disappears.
 
 All stdin boundaries use an explicit UTF-8 `StreamReader` over the standard
 input stream. The scripts do not mutate global console encoding and do not
@@ -86,6 +117,15 @@ pwsh.exe -NoProfile -NonInteractive -File "<skill-dir>\scripts\codex-watcher.ps1
 The fallback is detector-only, not a retry worker: it exits after all active requests are consumed and never resends an `attempting` generation.
 
 ## Completion and delivery semantics
+
+Each `armed` request carries an `armedAtUtc` timestamp assigned at arm time and
+has a fixed 24-hour absolute lifetime. Expiry is defined as
+`UtcNow >= armedAtUtc + 24h`; only `armed` state is subject to this TTL.
+Missing, malformed, or overflowing timestamps fail closed and are treated as
+expired. The request's timestamp is authoritative; a checkpoint timestamp
+cannot extend the lifetime. Arm, Stop, and watcher paths perform lazy cleanup
+by deleting the request first and the checkpoint best-effort. `attempting`,
+terminal, and already-consumed states are not expired by this rule.
 
 The hook claims an `armed` generation atomically as `attempting` before making the HTTP request. It holds the same Windows OS-lifetime per-thread lock used by arm until the request reaches a terminal result. The active generation then becomes `success`, `failure`, or `abandoned` and is no longer eligible for a later completion.
 
@@ -102,6 +142,7 @@ Before enabling the hook, verify with a captured non-production hook input that:
 3. The hook process can read/write `$CODEX_HOME\.task-complete-notify`, acquire the Windows lock, and inherit `NTFY_TOPIC`.
 4. Existing Stop hooks do not request continuation that would make this hook an early-stop detector.
 5. A mocked or controlled ntfy result exercises 2xx, non-2xx, timeout, connection error, and result-unknown paths; every path consumes the generation and later Stop input does not resend.
+6. Expired or invalid-time requests are cleaned without a send, and an explicit cancel removes only `armed` request/checkpoint state while preserving an observed `attempting` claim.
 
 If the Stop hook cannot satisfy these checks, use the JSONL watcher fallback with persistent cursors, periodic rescan, complete-line parsing, and the same pre-send claim and one-shot state semantics. The watcher validates `session_meta` before scanning a rollout, treats `FileSystemWatcher`-style wakeups as optional (the shipped fallback uses periodic rescan), and closes its lifetime lock while holding the coordination lock before exit so a concurrent arm can start a replacement watcher without a lost wake-up.
 
@@ -116,8 +157,9 @@ process `NTFY_TOPIC` and perform a real ntfy publish.
 ## Privacy and state
 
 State files are under the resolved `$CODEX_HOME\.task-complete-notify`, outside
-the skill checkout. Active requests may contain the explicit message; lock,
-attempting, and terminal records must not. Do not put `NTFY_TOPIC`, server
+the skill checkout. Active requests may contain the explicit message and the
+authoritative `armedAtUtc`; lock, attempting, and terminal records must not.
+Do not put `NTFY_TOPIC`, server
 credentials, prompt/response text, thread titles, repository paths, raw arm
 input, or ntfy response bodies in state, stdout, stderr, or hook output. The
 public Windows arm command accepts `-Message`, so its caller's command line

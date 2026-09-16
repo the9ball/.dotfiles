@@ -15,6 +15,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ArmedRequestLifetime = [TimeSpan]::FromHours(24)
 
 function Resolve-CodexHome {
     <#
@@ -334,10 +335,119 @@ function Read-JsonDocument {
     }
 
     try {
-        return (Get-Content -Raw -LiteralPath $Path | ConvertFrom-Json)
+        $JsonText = Get-Content -Raw -LiteralPath $Path
+        $ConvertFromJsonCommand = Get-Command ConvertFrom-Json
+        $PreservesDateKind = $ConvertFromJsonCommand.Parameters.ContainsKey('DateKind')
+        $Document = if ($PreservesDateKind) {
+            $JsonText | ConvertFrom-Json -DateKind String
+        }
+        else {
+            $JsonText | ConvertFrom-Json
+        }
+
+        # PowerShell versions without -DateKind may eagerly convert ISO date
+        # strings to local DateTime values. Restore the request-owned raw
+        # timestamp so TTL validation cannot shift it by the host time zone.
+        if (-not $PreservesDateKind -and
+            $JsonText -match '(?s)"armedAtUtc"\s*:\s*"((?:\\.|[^"\\])*)"') {
+            # The timestamp contract is ASCII ISO text, so preserving the
+            # captured JSON characters is sufficient and avoids another eager
+            # DateTime conversion on older PowerShell versions.
+            $Document.armedAtUtc = $Matches[1]
+        }
+
+        return $Document
     }
     catch {
         return $null
+    }
+}
+
+function Get-ArmedExpiryStatus {
+    <#
+    .SYNOPSIS
+    Evaluates the fixed lifetime of an armed request.
+
+    .PARAMETER State
+    The request state whose `armedAtUtc` value is the sole TTL source.
+
+    .OUTPUTS
+    PSCustomObject. Returns validity, expiry, and the parsed UTC timestamp.
+
+    .NOTES
+    Missing, malformed, and overflowing timestamps fail closed as expired so
+    the watcher cannot notify from an unverifiable request.
+    #>
+    param(
+        [AllowNull()]
+        [object]$State
+    )
+
+    $ArmedAtUtc = [DateTimeOffset]::MinValue
+    $ArmedAtValue = Get-JsonProperty -InputObject $State -Name 'armedAtUtc'
+    $TimestampParsed = $false
+    if ($ArmedAtValue -is [DateTimeOffset]) {
+        $ArmedAtUtc = $ArmedAtValue.ToUniversalTime()
+        $TimestampParsed = $true
+    }
+    elseif ($ArmedAtValue -is [DateTime]) {
+        try {
+            $ArmedAtUtc = if ($ArmedAtValue.Kind -eq [DateTimeKind]::Unspecified) {
+                [DateTimeOffset]::new($ArmedAtValue, [TimeSpan]::Zero)
+            }
+            else {
+                ([DateTimeOffset]$ArmedAtValue).ToUniversalTime()
+            }
+            $TimestampParsed = $true
+        }
+        catch {
+            $TimestampParsed = $false
+        }
+    }
+    elseif ($ArmedAtValue -is [string]) {
+        $ArmedAtText = [string]$ArmedAtValue
+        [string[]]$TimestampFormats = @(
+            'yyyy-MM-ddTHH:mm:ss.FFFFFFFK',
+            'yyyy-MM-ddTHH:mm:ssK'
+        )
+        $ParseStyles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
+        if (-not [string]::IsNullOrWhiteSpace($ArmedAtText) -and
+            [DateTimeOffset]::TryParseExact(
+                $ArmedAtText,
+                $TimestampFormats,
+                [Globalization.CultureInfo]::InvariantCulture,
+                $ParseStyles,
+                [ref]$ArmedAtUtc)) {
+            $TimestampParsed = $true
+        }
+    }
+
+    if (-not $TimestampParsed) {
+        return [pscustomobject]@{
+            IsValid = $false
+            IsExpired = $true
+            ArmedAtUtc = $null
+            ExpiresAtUtc = $null
+        }
+    }
+
+    try {
+        $ExpiresAtUtc = $ArmedAtUtc.Add($ArmedRequestLifetime)
+    }
+    catch {
+        return [pscustomobject]@{
+            IsValid = $false
+            IsExpired = $true
+            ArmedAtUtc = $null
+            ExpiresAtUtc = $null
+        }
+    }
+
+    return [pscustomobject]@{
+        IsValid = $true
+        IsExpired = ([DateTimeOffset]::UtcNow -ge $ExpiresAtUtc)
+        ArmedAtUtc = $ArmedAtUtc
+        ExpiresAtUtc = $ExpiresAtUtc
     }
 }
 
@@ -395,6 +505,123 @@ function Write-AtomicJsonDocument {
     }
 }
 
+function Remove-Checkpoint {
+    <#
+    .SYNOPSIS
+    Removes one fallback-watcher checkpoint best-effort.
+
+    .PARAMETER ThreadId
+    A normalized lowercase UUID.
+
+    .OUTPUTS
+    System.Boolean. Returns true when the checkpoint is absent after the call.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [string]$ThreadId
+    )
+
+    $CheckpointPath = Join-Path $CheckpointDirectory "$ThreadId.json"
+    if (-not (Test-Path -LiteralPath $CheckpointPath -PathType Leaf)) {
+        return $true
+    }
+
+    try {
+        Remove-Item -LiteralPath $CheckpointPath -Force -ErrorAction Stop
+        return $true
+    }
+    catch {
+        return $false
+    }
+}
+
+function Remove-ActiveRequestAndCheckpoint {
+    <#
+    .SYNOPSIS
+    Removes an expired request before its checkpoint under the watcher locks.
+
+    .PARAMETER Request
+    The active request metadata returned by Get-ActiveRequests.
+
+    .OUTPUTS
+    System.Boolean. Returns true when the request is no longer active and the
+    checkpoint cleanup has been attempted.
+
+    .NOTES
+    The coordination lock and per-thread lock match arm/cancel ordering. The
+    request deletion is the linearization point; checkpoint removal is best-effort.
+    The request generation is revalidated so a stale scan cannot delete a
+    later re-arm.
+    #>
+    param(
+        [Parameter(Mandatory)]
+        [object]$Request
+    )
+
+    $CoordinationStream = $null
+    $ThreadLockStream = $null
+    try {
+        $CoordinationStream = Acquire-CoordinationLock -TimeoutMilliseconds 1000
+        if ($null -eq $CoordinationStream) {
+            return $false
+        }
+
+        $ThreadLockStream = Acquire-ThreadLock -ThreadId $Request.ThreadId -TimeoutMilliseconds 1000
+        if ($null -eq $ThreadLockStream) {
+            return $false
+        }
+
+        if (-not (Test-Path -LiteralPath $Request.RequestPath -PathType Leaf)) {
+            [void](Remove-Checkpoint -ThreadId $Request.ThreadId)
+            return $true
+        }
+
+        $CurrentState = Read-JsonDocument -Path $Request.RequestPath
+        if ($null -eq $CurrentState) {
+            return $false
+        }
+
+        $CurrentProvider = [string](Get-JsonProperty -InputObject $CurrentState -Name 'provider')
+        $CurrentStatus = [string](Get-JsonProperty -InputObject $CurrentState -Name 'status')
+        $CurrentGeneration = [string](Get-JsonProperty -InputObject $CurrentState -Name 'generation')
+        $SnapshotGeneration = [string](Get-JsonProperty -InputObject $Request.State -Name 'generation')
+        $CurrentTarget = Get-JsonProperty -InputObject $CurrentState -Name 'target'
+        $CurrentThreadId = Normalize-CodexThreadId -InputValue (Get-JsonProperty -InputObject $CurrentTarget -Name 'threadId')
+        if ($CurrentProvider -ne 'codex' -or
+            $CurrentStatus -ne 'armed' -or
+            $CurrentGeneration -ne $SnapshotGeneration -or
+            $CurrentThreadId -ne $Request.ThreadId) {
+            return $false
+        }
+
+        $CurrentExpiry = Get-ArmedExpiryStatus -State $CurrentState
+        if (-not $CurrentExpiry.IsExpired) {
+            return $false
+        }
+
+        try {
+            Remove-Item -LiteralPath $Request.RequestPath -Force -ErrorAction Stop
+        }
+        catch {
+            return $false
+        }
+
+        [void](Remove-Checkpoint -ThreadId $Request.ThreadId)
+        return $true
+    }
+    catch {
+        return $false
+    }
+    finally {
+        if ($null -ne $ThreadLockStream) {
+            $ThreadLockStream.Dispose()
+        }
+        if ($null -ne $CoordinationStream) {
+            $CoordinationStream.Dispose()
+        }
+    }
+}
+
 function Get-ActiveRequests {
     <#
     .SYNOPSIS
@@ -425,12 +652,23 @@ function Get-ActiveRequests {
             continue
         }
 
-        $Requests += [pscustomobject]@{
+        $Request = [pscustomobject]@{
             ThreadId = $ThreadId
             State = $State
             RequestPath = $RequestFile.FullName
             CheckpointPath = Join-Path $CheckpointDirectory "$ThreadId.json"
         }
+
+        $ExpiryStatus = Get-ArmedExpiryStatus -State $State
+        if ($ExpiryStatus.IsExpired) {
+            # Expired or unverifiable requests are never handed to the
+            # notification path. Cleanup is retried by the next scan when a
+            # competing writer temporarily owns either lock.
+            [void](Remove-ActiveRequestAndCheckpoint -Request $Request)
+            continue
+        }
+
+        $Requests += $Request
     }
 
     return $Requests
@@ -439,7 +677,7 @@ function Get-ActiveRequests {
 function Read-Checkpoint {
     <#
     .SYNOPSIS
-    Reads one thread's persistent rollout offsets and arm timestamp.
+    Reads one thread's persistent rollout offsets and request arm timestamp.
 
     .PARAMETER Request
     An active request object from Get-ActiveRequests.
@@ -466,11 +704,6 @@ function Read-Checkpoint {
         if ($CheckpointProvider -eq 'codex' -and
             $CheckpointGeneration -eq $Generation -and
             $CheckpointThreadId -eq $Request.ThreadId) {
-            $CheckpointArmedAt = [string](Get-JsonProperty -InputObject $Checkpoint -Name 'armedAtUtc')
-            if (-not [string]::IsNullOrWhiteSpace($CheckpointArmedAt)) {
-                $ArmedAtUtc = $CheckpointArmedAt
-            }
-
             foreach ($FileEntry in @((Get-JsonProperty -InputObject $Checkpoint -Name 'files'))) {
                 $FilePath = [string](Get-JsonProperty -InputObject $FileEntry -Name 'path')
                 $OffsetValue = Get-JsonProperty -InputObject $FileEntry -Name 'offset'
@@ -962,15 +1195,16 @@ function Process-ActiveRequest {
         [object]$Request
     )
 
-    $Checkpoint = Read-Checkpoint -Request $Request
-    $ArmedAt = [DateTimeOffset]::MinValue
-    if (-not [DateTimeOffset]::TryParse(
-            $Checkpoint.ArmedAtUtc,
-            [Globalization.CultureInfo]::InvariantCulture,
-            [Globalization.DateTimeStyles]::AssumeUniversal,
-            [ref]$ArmedAt)) {
-        $ArmedAt = [DateTimeOffset]::UtcNow
+    $ExpiryStatus = Get-ArmedExpiryStatus -State $Request.State
+    if ($ExpiryStatus.IsExpired) {
+        [void](Remove-ActiveRequestAndCheckpoint -Request $Request)
+        return $false
     }
+
+    # The request document is the sole TTL and event-baseline authority;
+    # checkpoint timestamps are retained only for compatibility and offsets.
+    $ArmedAt = $ExpiryStatus.ArmedAtUtc
+    $Checkpoint = Read-Checkpoint -Request $Request
 
     $SessionsDirectory = Get-CodexSessionsDirectory
     if ([string]::IsNullOrWhiteSpace($SessionsDirectory) -or

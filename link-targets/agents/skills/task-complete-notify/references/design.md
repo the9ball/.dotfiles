@@ -10,6 +10,9 @@
 - relaxedなUUID抽出は外部arm入力だけに適用し、hook・transcript metadata・state・watcherの内部値はstrict parserで完全一致検証する。
 - arm前に、現在のプロセスが選択しているCodex homeの `session_index.jsonl` と、同homeのactive rollout先頭 `session_meta` を照合する。`id == session_id == target`、`thread_source == user`、親なしを満たさなければstateを作らない。
 - runtime stateは実行時に解決した `$CODEX_HOME\.task-complete-notify` に置く。`CODEX_HOME`未設定時だけユーザープロファイルの`.codex`を使う。
+- `armedAtUtc` はarm時にrequestへ記録する唯一の有効期限基準で、`armed`だけに固定24時間TTLを適用する。欠落・不正・オーバーフローはfail closedで期限切れとし、arm・Stop・watcherの関連経路がlazyにrequestを先に削除し、checkpointをbest-effortで後処理する。checkpoint側の時刻でTTLを延長しない。
+- `attempting`はTTL掃除の対象外で、Stopの送信・terminal化を妨げない。期限切れrequestは通知処理へ渡さず、ロック競合時は次回scanで再試行する。
+- cancelは明示対象のthreadに対してcoordination lock→per-thread lockの順で状態を再読込し、`armed`だけをrequest先・checkpoint後の順に削除する。`attempting`は削除せず`too_late`、ロックまたは状態が不確定なら`busy`、不在・期限切れ・消費済みなら`Ok=true, Status=not_armed`を返し、terminal/tombstoneは作らない。cancelはactive ownershipを再検証せず、実行時点のgenerationに対する操作とする。
 - Stop hookを第一検出器、JSONL watcherを明示的なfallbackとし、両方を独立senderとして有効化しない。
 - Stop hookは同期呼出しだが、thread lock 10秒＋notifier child 35秒＋後処理マージン5秒＜helper wrapper 55秒＜hook設定上限90秒の階層に固定する。notifierのHTTP設定はconnect timeout 10秒とoperation inactivity timeout 20秒であり、HTTP全体の上限とは扱わない。失敗してもturn結果は変更せず、非同期workerは導入しない。
 - stdinは各境界で標準入力ストリームを明示的なUTF-8 `StreamReader`として読み、`Console.InputEncoding`の変更やコンソール接続を前提にしない。
@@ -37,6 +40,14 @@ stateディレクトリはインストール時には作らず、対象が現在
 
 `CODEX_HOME`はプロセス環境からのみ選びます。別homeを入力値から推測したり、WSL envelopeで任意homeを上書きしたりしません。WSL側が現在のセッション環境を継承できない場合は、誤ったhomeへの登録を避けるため失敗させます。
 
+### request-owned TTLとlazy cleanup
+
+予約が未来のturnを待つ間も、常駐workerや再送機構を追加せずに上限を設けるため、arm時刻から24時間の絶対TTLを採用します。requestの `armedAtUtc` だけを判定に使い、checkpointのコピーや欠落した時刻を補助値として扱うと、古いcheckpointによる延命や不明な時刻からの送信を防げます。期限判定はarm・Stop・watcherの既存実行点に限定し、期限切れのrequestを論理的に無効化したうえで物理削除します。削除はrequestを先に行うため、checkpointの残骸だけではwatcherが通知対象を再構成できません。
+
+### cancelの線形化
+
+cancelは新しい状態機械を作らず、arm/Stop/watcherが既に共有するcoordination lockとthread lockを同じ順序で取得します。ロック下で `armed` を再確認してからrequestを削除するため、Stopの`attempting` claimと無条件のファイル削除が交差しません。ロック取得が間に合わない場合はrequest本文を二度読みして安定性を確認しますが、安定した `attempting` 以外は安全側に`busy`とします。thread単位の明示cancelなので、呼び出し間の再armを世代トークンで拘束せず、後続のcancelがその時点のgenerationを対象にする制約を契約として残します。
+
 ### indexとtranscriptを二重に確認する
 
 `session_index.jsonl`は同じhomeの候補を高速に絞るために使いますが、indexだけではrolloutの正当性を確認できません。最終判定はactive rolloutの先頭 `session_meta` とし、root user sessionであることを確認します。filename一致だけの判定や、archived rolloutの受理は行いません。
@@ -61,7 +72,7 @@ stateディレクトリはインストール時には作らず、対象が現在
 4. この設計記録の不変条件・判断理由
 5. GitHub Issue #3の本文と判断履歴コメント
 
-最低限、入力抽出の曖昧性、wrong-home拒否とstate未作成、homeごとのlock分離、Stop/watcherの一回性、秘密値非漏洩を再検証します。
+最低限、入力抽出の曖昧性、wrong-home拒否とstate未作成、homeごとのlock分離、Stop/watcherの一回性、24時間TTLと不正時刻のfail-closed掃除、cancelとStopの競合、watcherの自然終了、秘密値非漏洩を再検証します。
 
 ## 根拠リンク
 
