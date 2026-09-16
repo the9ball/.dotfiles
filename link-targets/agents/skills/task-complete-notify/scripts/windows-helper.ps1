@@ -570,6 +570,7 @@ function Get-ArmedExpiryStatus {
         )
         $ParseStyles = [Globalization.DateTimeStyles]::AssumeUniversal -bor [Globalization.DateTimeStyles]::AdjustToUniversal
         if (-not [string]::IsNullOrWhiteSpace($ArmedAtText) -and
+            $ArmedAtText -match '(?:Z|[+-]\d{2}:\d{2})$' -and
             [DateTimeOffset]::TryParseExact(
                 $ArmedAtText,
                 $TimestampFormats,
