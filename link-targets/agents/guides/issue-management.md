@@ -2,7 +2,9 @@
 
 このガイドは、GitHubのIssueおよびPull Request（PR）に共通する要件・仕様管理、レビュー対応、REVIEW-SUMMARY、HANDOFFを扱う。
 
-Issue/PR共通の規則は一つのガイドとして定義し、PR本文・review comment・review thread・Resolve / Hide・minimized review commentなどPR固有の処理だけを該当節で区別する。
+Issue/PR共通の規則は一つのガイドとして定義し、PR本文・review comment・review thread・ResolveなどPR固有の処理だけを該当節で区別する。
+
+Issue/PR保守の詳細な正本はこのガイドとする。`issue-management` Skillはこのガイドへの入口、`AGENTS.md`は発動条件だけを担い、HideとResolveの区別もこのガイドで一元的に定義する。
 
 対象リポジトリの `AGENTS.md` または対象タスクへの明示指示から、このガイドのパスと、必要な場合は参照リビジョンを指定した場合だけ適用する。
 
@@ -74,6 +76,9 @@ IssueまたはPRのレビューで提案を明示的に検討した結果、意�
 
 少なくとも対応内容、判断理由、変更箇所、検証結果を含める。
 
+保守実行のREVIEW-SUMMARYには、現在の状態、完了した対応、判断理由、変更箇所、検証結果、未解決事項または次の作業、参照先を含める。
+Hide候補は`Hide予定`として対象URL、`OUTDATED`または`RESOLVED`、置き換え先を記載し、実際の結果は実行報告で示す。
+
 REVIEW-SUMMARYコメントは、本文の先頭に次のマーカーを完全一致で置く。
 
 ```md
@@ -110,46 +115,62 @@ REVIEW-SUMMARYは要件・仕様の正本ではなく、本文へ反映する場
 
 その場合も、検証前の判断を検証済みとしてREVIEW-SUMMARYへ記録しない。
 
-### PR固有のResolve / Hide
+### IssueとPRの保守実行
 
-次の手順はPR固有であり、Issueには適用しない。
+`Issueを保守して`という指示は、同じタスクで対象を一つに固定できる場合に限り、その対象への一回の保守実行として扱う。
+対象が未確定または複数ある場合は、対象を確認するまで外部操作を行わない。
 
-6. 対応済みのreview threadをResolveする。
-7. Hide候補を抽出する。
-8. Hide対象をURLまたは識別可能な情報、簡潔な要約、Hide可能と判断した理由付きで一覧提示し、その一群について一括承認を得る。
-9. 承認済み対象だけをHideする。
+保守実行では、本文、トップレベル通常コメント、必要なレビュー内容を読み、確認済みのレビュー対応を適用する。
+重要な未解決事項、相反する判断、取得できない情報が残る場合は、本文更新、REVIEW-SUMMARY投稿、Hideを開始しない。
+ユーザーが代行して投稿したChatGPTやClaudeのレビューも、投稿者だけを理由に除外しない。
 
-ResolveとHideは、それぞれ別のGitHub上の外部操作である。
+本文を更新する必要がある場合は、現在の確認済み仕様へ追従させ、更新結果を確認してからREVIEW-SUMMARYを新規投稿する。
+REVIEW-SUMMARYは投稿した保守実行自身が読み返して確認する。
+追加の結果コメントは作成せず、Hideの結果は実行報告で示す。
+実行報告では各候補の成功または失敗と、失敗した場合の理由を対象URLごとに示す。
 
-実行前に既存の外部操作と承認ルールへ従い、権限不足、API非対応、認証失敗などがあれば停止する。
+REVIEW-SUMMARYの確認後、保守開始時点で取得したトップレベル通常コメントのうち、次の条件をすべて満たすものだけをHide候補とする。
 
-勝手にブラウザ操作、別CLI、別API、別アカウントなどへfallbackしない。
+* 内容が新しい本文、REVIEW-SUMMARY、または後続コメントへ移されている。
+* 未解決の反論、現在有効な判断、固有の検証結果などが残っていない。
+* Hide理由に、情報を置き換えた具体的な場所（本文の節、REVIEW-SUMMARYの項目、後続コメントのURLなど）を記載できる。
 
-具体的なGitHub操作手段はgithub.mdの責務と整合させる。
+Hide理由には、置き換えによる`OUTDATED`、または対応完了による`RESOLVED`を明記する。
+古いという理由だけではHideしない。
+最新のHANDOFFと新しいREVIEW-SUMMARYは保護する。
+古いHANDOFFやREVIEW-SUMMARYをHideする場合は、必要な情報を新しい記録へ移したことを確認する。
+未解決の人間による反論や固有情報を含むコメントは、投稿者にかかわらずHideしない。
 
-Hideの必須条件は、次のすべてを満たすことである。
+保守実行中に追加または編集されたコメントは、その実行の候補へ自動追加しない。
+IssueまたはPR本文、またはREVIEW-SUMMARYの更新に失敗した場合は後続のHideを行わない。
+Hideの一部が失敗しても既に完了した本文更新やREVIEW-SUMMARYを取り消さず、失敗した対象を報告する。
+自動的な再試行、Unhide、削除、別のCLI・API・アカウントへの切替は行わない。
+権限不足の場合は失敗として報告し、別の経路へfallbackしない。
 
-* 指摘自体が実質的に解決済みである。
-* 今後参照が必要な情報が、「本文の責務とPR固有情報の定義」に従った本文またはREVIEW-SUMMARYへ集約済みである。
-* 未解決、再確認中、本文またはまとめへの反映待ちではない。
+別環境から再開する場合は、IssueまたはPRの本文、最新の検証済みREVIEW-SUMMARY、現在のコメント状態を読み直す。
+REVIEW-SUMMARYは確認済みの記録であり、権限や新しい保守実行の承認を与えるものではない。
 
-ResolvedやOutdatedは状態判断の補助情報であり、それだけで自動的にHideしない。
+この保守実行でHideするのはIssueまたはPRのトップレベル通常コメントである。
+PRのreview commentとreview threadはこの実装の対象外とし、review threadのResolveとreview commentの個別Hideは、下記のPR固有操作として別途明示された場合だけ扱う。
 
+### PR固有のResolveとreview commentの個別操作
+
+次の操作はPR固有であり、Issueには適用しない。
+
+1. 対応済みのreview threadをResolveする。
+2. 明示的に対象を固定して承認を得たreview commentだけを個別にHideする。
+
+Issue #36の共通保守では、PRのreview commentとreview threadをHide候補へ含めない。
+review threadのResolveとreview commentの個別Hideを、トップレベル通常コメントの保守と同じ操作として扱わない。
+
+個別のreview commentをHideする場合も、指摘が実質的に解決済みであり、参照が必要な情報が本文またはREVIEW-SUMMARYへ集約済みで、未解決または反映待ちでないことを確認する。
+ResolvedやOutdatedだけを理由に自動でHideしない。
 Outdatedは対応済みを意味しない。
 
-Hide対象はPRのreview commentに限定する。
-
-review threadはResolve対象であり、Hide対象にはしない。
-
-Issueのトップレベル通常コメント、PRのトップレベル通常コメント、HANDOFFコメント、REVIEW-SUMMARYコメントはHide対象外とする。
-
-Issue/PR共通のREVIEW-SUMMARYと、PR固有のreview threadのResolveおよびreview commentのHideを混同しない。
-
-一覧提示と一括承認で対象集合を固定する。
-
-一括Hideは、一覧提示した対象集合を一つの操作単位として実行し、その一回の操作だけに承認を適用する。
-
-承認後に対象を追加または変更する場合や、失敗後に別の対象または別の内容で再試行する場合は、追加の承認を得る。
+ResolveとHideは、それぞれ別のGitHub上の外部操作である。
+実行前に既存の外部操作と承認ルールへ従い、権限不足、API非対応、認証失敗などがあれば停止する。
+勝手にブラウザ操作、別CLI、別API、別アカウントなどへfallbackしない。
+具体的なGitHub操作手段は`github.md`の責務と整合させる。
 
 ## HANDOFFコメント
 
@@ -327,7 +348,7 @@ Issue本文またはPR本文を更新する場合は、変更理由を通常コ�
 
 ## 既存の引継ぎ機構との境界
 
-このガイドは、GitHubのIssueおよびPRにおける要件・仕様管理、レビュー対応、コメント・PR本文の責務整理、REVIEW-SUMMARY、HANDOFF、PR固有のResolve / Hide運用を定義する。
+このガイドは、GitHubのIssueおよびPRにおける要件・仕様管理、レビュー対応、コメント・PR本文の責務整理、REVIEW-SUMMARY、HANDOFF、Issue/PR共通のトップレベルコメント保守、PR固有のResolveとreview commentの個別操作を定義する。
 
 会話を新しいセッションへ移すhandoff、ローカルのtask-continuityメモ、サブエージェント間のhandoffを置き換えない。
 
@@ -339,7 +360,7 @@ Issue本文またはPR本文を更新する場合は、変更理由を通常コ�
 
 このガイドはopt-inとし、共有またはグローバルな場所にファイルが存在するだけでは適用しない。
 
-このopt-inはREVIEW-SUMMARYおよびPR固有のResolve / Hide運用にも適用する。
+このopt-inはREVIEW-SUMMARY、Issue/PR共通保守のHide、PR固有のResolveと個別Hideの運用にも適用する。
 
 ガイドの適用が明示されていないタスクへ自動適用しない。
 
@@ -358,5 +379,9 @@ Issue本文またはPR本文を更新する場合は、変更理由を通常コ�
 - 最新候補の形式、必要フィールド、順序を検証できない。
 - 現在のIssue、PR、repository stateを再確認できない。
 - 適用するガイドのパス、リビジョン、対象範囲を確認できない。
+- 保守実行の対象を一つに固定できない。
+- REVIEW-SUMMARYを作成する前に、取得したトップレベル通常コメントの未確認事項または相反する判断を解消できない。
+- 本文またはREVIEW-SUMMARYの更新に失敗した。
+- スナップショット後の変更を保守対象から除外できない。
 
 停止後に作業を続ける場合は、現在のユーザー指示で対象と確認方法を明示する。
