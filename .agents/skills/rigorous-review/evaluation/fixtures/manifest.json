@@ -1,0 +1,67 @@
+{
+  "$schema": "../schema/manifest.schema.json",
+  "schema_version": "1.0",
+  "manifest_id": "issue6-evaluation-v1",
+  "harness_mode": "fixture_only_observe_only",
+  "default_path_changed": false,
+  "runtime_dispatch_attempted": false,
+  "runtime_dispatch_enforcement_claimed": false,
+  "target": {
+    "repository": "the9ball/.dotfiles",
+    "commit": "aead4f97b6089bf8c07c7a84dfd7769291a67a92",
+    "identity_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+    "files": [
+      {
+        "path": ".agents/skills/rigorous-review/SKILL.md",
+        "sha256": "5b9d5970cd9757b780cd285ff70f49dccf5bc2b0fb7b4ece44896ad8f2a3979c",
+        "line_count": 275
+      },
+      {
+        "path": ".agents/skills/rigorous-review/COST-OPTIMIZATION-FOLLOWUP.md",
+        "sha256": "73a9ff2a15df5f1de8e4b4511a08fe8705a5bc2f4c8863d8d82ac1f313e4ebe6",
+        "line_count": 17
+      },
+      {
+        "path": ".agents/skills/rigorous-review/agents/openai.yaml",
+        "sha256": "226ed38218b5c20c40eb7343b106c7636123c0a7be7facbb178c70d99f5df774",
+        "line_count": 7
+      },
+      {
+        "path": ".agents/skills/execution-lifecycle-gate/SKILL.md",
+        "sha256": "9dbbe4067fc15de79eb12d7d0d2589f16eab7a2cd6575ce35557e8ef9ba96ed9",
+        "line_count": 238
+      },
+      {
+        "path": ".agents/guides/advisor-review.md",
+        "sha256": "4a20c161f8dfcc87431da477471a2706b597ace92c5d5b1dc7710c124c0dee5c",
+        "line_count": 31
+      },
+      {
+        "path": ".agents/AGENTS.md",
+        "sha256": "89bb91e34316b79fe4c62847c641ded872527cbadf2d31c5b97c009157cb1cc3",
+        "line_count": 132
+      },
+      {
+        "path": "AGENTS.md",
+        "sha256": "ea1e10b1f25c74c754ced738b97a8951cdf9f2687ec1b2bc7d5b564c02ab8780",
+        "line_count": 14
+      }
+    ]
+  },
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "quality_policy": {
+    "exact_structural_metrics": ["gate", "evidence", "coverage", "deterministic_checks", "proceed"],
+    "exact_discovery_severities": ["high", "critical"],
+    "informational_severities": ["medium", "low"],
+    "informational_metrics": ["discovery", "rejection"],
+    "invalid_input_status": "BLOCKED"
+  },
+  "cases": [
+    { "case_id": "zero-findings", "path": "cases/zero-findings.json", "expected_status": "PASS" },
+    { "case_id": "high-critical-findings", "path": "cases/high-critical-findings.json", "expected_status": "PASS" },
+    { "case_id": "medium-low-observation", "path": "cases/medium-low-observation.json", "expected_status": "PASS" },
+    { "case_id": "false-positive-rejection", "path": "cases/false-positive-rejection.json", "expected_status": "PASS" },
+    { "case_id": "unresolved-evidence", "path": "cases/unresolved-evidence.json", "expected_status": "PASS" },
+    { "case_id": "unreliable-coverage", "path": "cases/unreliable-coverage.json", "expected_status": "PASS" }
+  ]
+}
