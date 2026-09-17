@@ -75,6 +75,7 @@
 - コピー可能なコードや他エージェントへ渡す本文をチャットに出力する前は`link-targets/agents/guides/agent-output.md`を読む。
 - サブエージェントまたは委譲先を dispatch するときは、`delegation` Skill を優先して使用し、モデル固有の調整が必要な場合だけ対応表で選択モデルの補助資料を追加する。Skill を発見できない場合は`link-targets/agents/guides/delegation.md`を読み、対応表にないモデルへ推測で適用しない。
 - GitHub の Issue、Pull Request、レビューコメントなどを操作するときは`link-targets/agents/guides/github.md`を実行前に読む。`github.md`はこのファイルの共通安全核と`link-targets/agents/guides/external-posting.md`を補足し、GitHub 固有の詳細だけを定める。
+- Codex で GitHub のサービス/API（Issue、Pull Request、コメント、ラベル、リリース、repository metadata など）を操作するときは、read-only / write を問わず `gh` または `gh api` を使用する。GitHub Connector、MCP、app integration は利用可能でも使用・試行・fallback・代替経路にせず、`gh` の問題時は `link-targets/agents/guides/github.md` に従って停止し状態を報告する。
 - Issue または Pull Request の要件・仕様管理、レビュー対応、通常コメント、REVIEW-SUMMARY、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合は、`issue-management` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/issue-management.md`を読み、Issue/PR共通の情報責務とPR固有の処理、明示的な再開、HANDOFF の生成と投稿の区別を適用する。
 - Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときは、ユーザーから明示的な指示がない限りローカル環境固有の事情を記載しない。詳細は`link-targets/agents/guides/external-posting.md`を投稿前に読む。
 
