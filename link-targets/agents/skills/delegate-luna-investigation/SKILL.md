@@ -41,15 +41,15 @@ Use observed degradation rather than turn count alone. Examples include repeated
 ## Find an Existing Delegated Task
 
 1. Prefer a previously retained `threadId` and `hostId` from the current primary task.
-2. If those identifiers are unavailable, list recent tasks and look for the title prefix `[Luna調査]`.
-3. Read each plausible candidate and verify its initial delegation marker and workstream identity.
+2. If those identifiers are unavailable, list recent tasks and examine candidates with the title prefix `Subagent: [Luna調査]`; after verifying those candidates, also inspect the legacy title prefix `[Luna調査]` when no verified reusable candidate remains among the new-prefix candidates.
+3. Read each plausible candidate and verify its initial delegation marker and workstream identity before reusing it.
 4. Never reuse a task based on title alone, and never reuse an unrelated user-created task.
 
 ## Create the Luna Task
 
 1. List available projects and select the project matching the primary task.
 2. Use that project's saved local environment so Luna reads the same checkout as Sol. Do not request a new worktree.
-3. Create a task with model `gpt-5.6-luna`, reasoning effort `max`, and title `[Luna調査] <short workstream>`.
+3. Create a task with model `gpt-5.6-luna`, reasoning effort `max`, and title `Subagent: [Luna調査] <short workstream>`.
 4. If creation still returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Resolve the ready task through the recent-task list and verify its delegation marker before continuing.
 5. Retain the ready task's `threadId` and `hostId` for follow-ups.
 
