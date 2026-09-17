@@ -11,9 +11,12 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 
 ## 実行手段と失敗時の停止
 
-- GitHub CLI が利用可能な場合は `gh` を既定の操作手段とする。
-- `gh` の未導入、未認証、権限不足、接続失敗が発生した場合は停止し、必要な操作、対象、理由を示してユーザーへ確認する。
-- 前項の失敗時に、ブラウザ、別 CLI、別 API、別アカウントへ黙って切り替えない。
+- GitHub CLI が利用可能な場合は、このガイドを使用するエージェントの既定の操作手段を `gh`（必要に応じて `gh api`）とする。以下のConnector/MCP/app integration禁止と失敗時の強化された停止規則は、CodexのGitHubサービス/API操作に適用する。
+- Codex では、Issue、Pull Request、review/comment、label、release、repository metadata などのGitHubサービス/API操作を、read-only / writeを問わず `gh` または `gh api` に統一する。
+- Codex は GitHub Connector、MCP、app integration を、利用可能であっても試行・fallback・代替経路として使用しない。`gh` が未導入、未認証、権限不足、接続失敗した場合は対象操作を停止し、対象、現在の状態、失敗理由をユーザーへ報告する。
+- Codex で前項の状態を確認するための `gh` の存在確認や `gh auth status` などの read-only 診断は行ってよいが、Connector、browser/computer-use、直接HTTP API、別 CLI/API、別アカウントへ自動切替しない。インストール、認証・資格情報の変更、再試行は、別途ユーザーの明示指示と既存の承認規則に従う。
+- `git clone`、`git fetch`、`git push` などの Git transport はこのGitHubサービス/API経路ルールの対象外とし、既存のGit規則と外部操作承認を適用する。
+- このルールはこの指示を読むエージェントのGitHub操作経路だけを対象とし、ChatGPTから利用するGitHub Connectorの設定・接続には影響しない。
 - 権限エラーの原因を特定する読み取り専用の確認は行ってよいが、資格情報の変更や別の保存先への切替は確認なしに行わない。
 
 ## 対象の固定
