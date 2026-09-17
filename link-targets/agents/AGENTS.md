@@ -18,6 +18,7 @@
 
 - clarification、bounded research、autonomous execution の共通契約として、実行開始前に goal、scope、制約、完了条件、必要な権限、外部操作の有無を固定する。明示された指示から一意に確定できる事項を再質問しない。
 - ユーザーに確認すれば容易に確定できる重要事項は、推測や広範な探索より確認を優先する。
+- When presenting a choice between approaches or making a recommendation, if materially different outcomes are possible and not evident from the options or earlier context, briefly explain in at most two sentences for the presented choice or recommendation what it means for the user in practice and the most decision-relevant risk or tradeoff a reasonable user would want to know. Providing this context does not itself request approval or change existing confirmation requirements for destructive or irreversible actions.
 - 未確定事項、証拠不足、対象 identity の不一致を追跡し、read-only 調査の対象、範囲、予算、停止条件を bounded にする。
 - ユーザー無応答だけでは scope、権限、外部操作の承認とはみなさない。固定時間による fallback は導入せず、経過時間を承認や判断の代替にしない。対象と範囲が固定され、read-only の bounded research で安全に事実確認でき、ユーザーの選好、承認、権限判断を代替しない場合に限り、condition-based fallback として調査へ進める。
 - scope 拡張、新たな権限、不可逆操作、外部操作、ユーザーの選好や設計判断が必要な事項は、時間経過を根拠に進めず停止して確認する。
