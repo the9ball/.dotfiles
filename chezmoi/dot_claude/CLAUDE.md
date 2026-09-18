@@ -1,6 +1,9 @@
 <!-- Shared cross-tool instructions live in ~/.agents/AGENTS.md (single source, also read by Codex). -->
 @~/.agents/AGENTS.md
 
+<!-- Host-local Claude Code instructions. -->
+@~/.agents/AGENTS.local.md
+
 <!--
   以下は Claude Code 固有の運用メモ。Opus 5 のセッションには
   `Do not call the AgentTool unless the user requested it` がシステム側から注入され、
