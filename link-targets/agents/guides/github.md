@@ -14,7 +14,7 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 - GitHub CLI が利用可能な場合は、このガイドを使用するエージェントの既定の操作手段を `gh`（必要に応じて `gh api`）とする。以下のConnector/MCP/app integration禁止と失敗時の強化された停止規則は、CodexのGitHubサービス/API操作に適用する。
 - Codex では、Issue、Pull Request、review/comment、label、release、repository metadata などのGitHubサービス/API操作を、read-only / writeを問わず `gh` または `gh api` に統一する。
 - Codex は GitHub Connector、MCP、app integration を、利用可能であっても試行・fallback・代替経路として使用しない。`gh` が未導入、未認証、権限不足、接続失敗した場合は対象操作を停止し、対象、現在の状態、失敗理由をユーザーへ報告する。
-- Codex で前項の状態を確認するための `gh` の存在確認や `gh auth status` などの read-only 診断は行ってよいが、Connector、browser/computer-use、直接HTTP API、別 CLI/API、別アカウントへ自動切替しない。インストール、認証・資格情報の変更、再試行は、別途ユーザーの明示指示と既存の承認規則に従う。
+- Codex で前項の状態を確認するための `gh` の存在確認や `gh auth status` などの read-only 診断は行ってよいが、Connector、browser/computer-use、直接HTTP API、別 CLI/API、別アカウントへ自動切替しない。インストール、認証・資格情報の変更、経路変更、外部効果を確認できない状態での再送は、別途ユーザーの明示指示と既存の承認規則に従う。同一操作・同一主体・同一権限で外部効果なしを確認した有限 retry は、`external-operation-authorization.md` の契約に従う。
 - `git clone`、`git fetch`、`git push` などの Git transport はこのGitHubサービス/API経路ルールの対象外とし、既存のGit規則と外部操作承認を適用する。
 - このルールはこの指示を読むエージェントのGitHub操作経路だけを対象とし、ChatGPTから利用するGitHub Connectorの設定・接続には影響しない。
 - 権限エラーの原因を特定する読み取り専用の確認は行ってよいが、資格情報の変更や別の保存先への切替は確認なしに行わない。
@@ -39,6 +39,15 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 - 計画への同意や Advisor の `CLEAR` は、Issue や Pull Request の外部投稿、更新、実装採用の承認とはみなさない。
 - コメント投稿だけが目的で、状態に依存する条件がなく、対象 identity、投稿本文、公開範囲、権限が固定され、状態確認が本文生成に不要な場合は、不要な状態確認を省略できる。
 - 状態確認を省略しても、対象 identity、投稿本文、公開範囲、権限の固定は省略しない。
+
+## 認可境界と実行結果
+
+- 外部操作の一般契約は `link-targets/agents/guides/external-operation-authorization.md` に従う。GitHub上の具体的な本文、コメント、ラベル、Hide、Resolve、pushは、それぞれ別の論理操作として記録する。
+- 送信本文やCLI引数が変わっただけでは再承認を要求せず、対象、操作、副作用、反映先、公開範囲、主体、権限が boundary 内であるかを実行直前に再検証する。
+- 成否不明の投稿、更新、Hide、Resolveは `OUTCOME_AMBIGUOUS` として扱い、対象の本文、状態、ID、remote stateをread-backして未適用を確認するまで再送しない。
+- read-backで未適用を確認できない場合は停止する。別CLI、別API、別アカウント、資格情報変更、scope追加、別remote/refへの切替をretryやfallbackとして行わない。
+- GitHubのレスポンスが成功を示した操作は、同一内容でも再送せず、外部artifactのIDとread-back結果を記録する。
+- HideまたはResolveを試行する前に、選択した`gh`または`gh api`経路で対象ID、現在の状態、本文をread-backできることを事前確認する。能力が利用不能または確認不能なら `NEEDS_EVIDENCE` として記録し、Hide/Resolveを実行しない。
 
 ## Pull Request Template
 
