@@ -1,6 +1,7 @@
 # Global instruction bootstrap
 
 - Read and follow `~/.agents/AGENTS.md`.
+- When `AGENTS.local.md` exists in the same directory as this file, read and follow it as additional host-local instructions. It supplements this file and does not change normal instruction precedence.
 
 ## Canonical source
 
