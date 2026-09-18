@@ -165,6 +165,56 @@ chezmoi --source "$HOME/.dotfiles" init
 
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
 
+Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
+
+Personal Codexの通常読み取りは、Personalプロファイルでユーザーがローカルプロジェクトへ明示的に関連付けたフォルダーと、その配下に限定します。現ホストで確認できる`.codex-global-state.json`の`local-projects.*.rootPaths`は関連付けの観測値として使いますが、公開された設定契約とはみなしません。Personal側の登録が空・不明・読み取り不能な場合は、通常版の登録を流用せず、通常読み取りを許可しません。`.dotfiles`をPersonal Codexで通常読み取りするには、Personalプロファイル側へ明示的に関連付けます。
+
+ただし、Personal Codexへ共有命令を適用するため、管理済みの`~/.agents`がこのリポジトリの`link-targets/agents`を指していることを確認できる場合は、命令読み取り専用の例外があります。共有`AGENTS.md`、同じディレクトリの`AGENTS.local.md`、共有命令が現在の作業で直接指定する`guides/`・`skills/`の命令本文、および命令解決に必要な参照メタデータだけを読めます。これは`.dotfiles`全体を通常読取許可ルートにするものではなく、リンク先が不明または一致しない場合は例外を適用しません。
+
+関連付けられていない業務ディレクトリでも、ユーザーが作業ディレクトリまたは対象リポジトリと正確なコマンドを明示した場合に限り、そのコマンドを一回だけ実行し、コマンド・終了コード・stdout/stderrを同じユーザーへ報告できます。これは`git commit -a`や`git push`などのコマンド固有の内部処理を許可するだけで、`status`、`diff`、`log`、検索、再帰走査、内容推測、診断、変更したコマンド、再試行などの追加読み取りを許可しません。失敗や認証要求はそのまま報告して停止します。
+
+`AGENTS.md`は`create_`属性のため、配置先が存在しない場合だけ生成し、既存ファイルの内容を`chezmoi apply`で自動上書きしません。そのため、既存ファイルとの内容一致を確認する用途に`chezmoi diff`だけを使うことはできません。現在の生成元は非テンプレートのファイルなので、生成元と配置先をバイト単位で直接比較してください。POSIX系では次のように確認できます。
+
+```sh
+set -eu
+repository_root="$HOME/.dotfiles"
+normal_source="$repository_root/chezmoi/dot_codex/create_AGENTS.md"
+personal_source="$repository_root/chezmoi/dot_codex-personal/create_AGENTS.md"
+
+cmp -- "$normal_source" "$personal_source"
+cmp -- "$normal_source" "$HOME/.codex/AGENTS.md"
+cmp -- "$personal_source" "$HOME/.codex-personal/AGENTS.md"
+```
+
+Windows PowerShellでは、次のようにSHA-256を比較できます。
+
+```powershell
+$repositoryRoot = Join-Path $env:USERPROFILE '.dotfiles'
+$normalSource = Join-Path $repositoryRoot 'chezmoi\dot_codex\create_AGENTS.md'
+$personalSource = Join-Path $repositoryRoot 'chezmoi\dot_codex-personal\create_AGENTS.md'
+$normalDestination = Join-Path $env:USERPROFILE '.codex\AGENTS.md'
+$personalDestination = Join-Path $env:USERPROFILE '.codex-personal\AGENTS.md'
+
+$normalSourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $normalSource).Hash
+$personalSourceHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $personalSource).Hash
+$normalDestinationHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $normalDestination).Hash
+$personalDestinationHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $personalDestination).Hash
+
+if ($normalSourceHash -cne $personalSourceHash) {
+  throw 'The normal and Personal AGENTS.md sources differ.'
+}
+if ($normalSourceHash -cne $normalDestinationHash) {
+  throw 'The normal AGENTS.md destination is out of sync.'
+}
+if ($personalSourceHash -cne $personalDestinationHash) {
+  throw 'The Personal AGENTS.md destination is out of sync.'
+}
+```
+
+将来、生成元を`.tmpl`へ変更した場合だけ、`chezmoi execute-template --file`で一時ファイルへレンダリングし、その結果と配置先をバイト単位で比較する手順へ切り替えます。
+
+Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
+
 ## 3. マシン固有の設定を作る
 
 POSIX系のシェルでは次を実行します。
