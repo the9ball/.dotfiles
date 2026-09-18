@@ -165,7 +165,11 @@ chezmoi --source "$HOME/.dotfiles" init
 
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
 
-Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と読み取り範囲は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
+Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
+
+Personal Codexの通常読み取りは、Personalプロファイルでユーザーがローカルプロジェクトへ明示的に関連付けたフォルダーと、その配下に限定します。現ホストで確認できる`.codex-global-state.json`の`local-projects.*.rootPaths`は関連付けの観測値として使いますが、公開された設定契約とはみなしません。Personal側の登録が空・不明・読み取り不能な場合は、通常版の登録を流用せず、通常読み取りを許可しません。`.dotfiles`をPersonal Codexで通常読み取りするには、Personalプロファイル側へ明示的に関連付けます。
+
+関連付けられていない業務ディレクトリでも、ユーザーが作業ディレクトリまたは対象リポジトリと正確なコマンドを明示した場合に限り、そのコマンドを一回だけ実行し、コマンド・終了コード・stdout/stderrを同じユーザーへ報告できます。これは`git commit -a`や`git push`などのコマンド固有の内部処理を許可するだけで、`status`、`diff`、`log`、検索、再帰走査、内容推測、診断、変更したコマンド、再試行などの追加読み取りを許可しません。失敗や認証要求はそのまま報告して停止します。
 
 `AGENTS.md`は`create_`属性のため、既存ファイルの内容を`chezmoi apply`で自動上書きしません。初回移行時や内容を揃える場合は、`chezmoi diff`で確認したうえで、両プロファイルの配置先を生成元と一致させます。Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
 
