@@ -165,6 +165,10 @@ chezmoi --source "$HOME/.dotfiles" init
 
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
 
+Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と読み取り範囲は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
+
+`AGENTS.md`は`create_`属性のため、既存ファイルの内容を`chezmoi apply`で自動上書きしません。初回移行時や内容を揃える場合は、`chezmoi diff`で確認したうえで、両プロファイルの配置先を生成元と一致させます。Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
+
 ## 3. マシン固有の設定を作る
 
 POSIX系のシェルでは次を実行します。
