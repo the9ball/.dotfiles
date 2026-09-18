@@ -44,6 +44,8 @@ description: 承認済み実装計画または確定した execution input / goa
 ## 権限と役割
 
 - 計画、範囲、実装承認、外部操作の既存ゲートを弱めない。レビュー結果は実装・本番採用・外部送信の承認ではない。
+- 外部操作の authorization boundary は `link-targets/agents/guides/external-operation-authorization.md` で扱う別契約であり、target/epoch evidence、`USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、fail-closed 判定の代わりにならない。
+- この参照は既存の review contract、identity lifecycle、ledger、通常レビュー要件の判定を変更しない。
 - 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。レビュー者と回答者は対象と台帳を読み取り、台帳の更新案だけを返す。
 - Implementer は確定した contract の範囲で変更と検証だけを担当し、commit、fixup、amend、rebase、autosquash、push を行わない。Advisor と `rigorous-review` は read-only のレビューを行い、Git 操作や採否判断を担当しない。
 - `effective_user_review=REQUIRED` のユーザー通常レビューは、ユーザーへ候補差分と計画済み検証結果を提示し、提示した snapshot identity に結び付いたユーザーの明示的なレビュー完了・承認（変更なしを含む）、または各 feedback の解消確認を含む応答と、未解決 feedback がないことを台帳へ記録する工程である。無応答、計画承認だけ、または snapshot と結び付かない曖昧・無関係な応答を通常レビュー完了の証拠にしない。`effective_user_review=NONE` の場合は、この工程を `SKIPPED` として記録する。通常レビューは独立したレビュー者・回答者による `rigorous-review` の代替ではない。
