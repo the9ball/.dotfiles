@@ -67,7 +67,7 @@ description: 承認済み実装計画または確定した execution input / goa
 ### Advisor の実行時期と追加 checkpoint
 
 - Advisorをdispatchする依頼は、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先の map から導出した instruction root 基準の`link-targets/agents/guides/advisor-review.md`の読み取りスコープ契約に従う。instruction root は共有 guide の参照専用であり、work root、target identity、比較基準は別途固定する。各対象ファイルのpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを依頼文と台帳へ固定し、部分参照では1始まり・両端含みの行範囲と安定アンカーを明示する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は`CLEAR`として扱わない。
-- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice Advisor は、その後に slice manifest を固定して各 slice 単位で dispatch し、指摘修正と必要な再レビューが収束するまで反復する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、厳密レビュー開始と `PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
+- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice Advisor は、その後に slice manifest を固定して各 slice 単位で dispatch し、指摘修正と必要な再レビューが収束するまで反復する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、`PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
 - 実装前または途中に、最終まで待つと安全に継続できない重要な判断点（セキュリティ・信頼境界、不可逆なデータ変更・移行、公開 API・互換性、分散整合性・rollout、または計画外の重大な設計・リスク受容）がある場合は、当該判断を通過・確定・commit・実施する前に Advisor の追加 checkpoint を必ず dispatch し、結果が `CLEAR` になるまでその判断点と作業の継続を停止する。実行不能、`BLOCKED`、`REQUIRES_USER_DECISION`、またはその他の `CLEAR` 以外の結果でも停止してユーザーへ報告する。各 checkpoint は判断目的、具体的な質問、対象 scope/epoch、理由、結果、次の判断を台帳へ記録し、最終 Advisor 判定の代替にしない。
 - 追加 checkpoint は一つのゲート実行全体（fixup・amend による全 epoch を含む）で最大2回とし、epoch が変わっても上限をリセットしない。3回目が必要になった場合は Advisor を黙って追加せず、ユーザーへ停止・確認を報告する。通常の実装手順、単なる進捗確認、同じ判断の反復には dispatch しない。
 
@@ -98,7 +98,7 @@ description: 承認済み実装計画または確定した execution input / goa
 ### Epoch identity の再検証
 
 - epoch identity は、計画または execution contract identity、base/target、対象 identity manifest、除外範囲に加え、ゲートに関係する実行環境・統制面の識別子で構成する。後者には、利用するモデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定と利用可能範囲、ゲートに影響する `AGENTS.md`・`SKILL.md`・agent 定義の版を含め、何をどの方法で識別したかを台帳へ記録する。
-- 調整者は、Advisor を実行する場合はその dispatch 直前、レビュー者・回答者の各役割を開始する直前、共同最終記録を確定する直前、`PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧役割承認と共同記録を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
+- 調整者は、Advisor を実行する場合はその dispatch 直前、および `PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧 Advisor 判定やレビュー結果を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
 - 無関係または意味同値の環境変更だけを除外する場合も、対象の独立性、read-only 保証、モデル・tool 条件、ゲートの規範的意味に影響しない根拠を台帳へ記録する。これは `PASS` 後の変更を扱う無効化規則とは別に、`PASS` 前の再検証として適用する。
 
 ## コミット単位
@@ -179,7 +179,7 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 
 ### 7. 指摘の修正
 
-- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。レビュー者・回答者に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
+- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。Advisor に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
 - 修正後に計画または contract で定めた build・test・生成検証を実行する。計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は停止して再承認を得る。
 - 修正、fixup、amend の後は、変更後 snapshot に対する旧 epoch の通常レビュー結果を再利用せず、まず新しいレビュー epoch を開始する。新 epoch でレビュー契約を再解決し、その `effective_user_review=REQUIRED` なら変更後 snapshot に対するユーザー通常レビューを実施して提示内容、ユーザー応答、未解決 feedback がないことを台帳へ記録し、`NONE` なら通常レビューを実施せず `SKIPPED` 記録を更新してから、次の Advisor 判定へ進む。
 - 修正を対応する実装コミットへの fixup として記録する。計画またはユーザーが操作名 `amend` と対象コミットを明示して承認した場合だけ、そのコミットを amend してよい。「一つのコミットを維持する」という指定だけでは amend してはならない。
