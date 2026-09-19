@@ -14,6 +14,19 @@ if ($LASTEXITCODE -ne 0) {
     throw "aqua install failed (exit code: $LASTEXITCODE)"
 }
 
+$gh = Get-Command gh -ErrorAction SilentlyContinue
+if ($null -ne $gh) {
+    gh auth status | Out-Null
+    $ghAuthExitCode = $LASTEXITCODE
+    $gitProtocol = (gh config get git_protocol -h github.com | Out-String).Trim()
+    if ($ghAuthExitCode -eq 0 -and $gitProtocol -eq 'https') {
+        gh auth setup-git
+        if ($LASTEXITCODE -ne 0) {
+            throw "gh auth setup-git failed (exit code: $LASTEXITCODE)"
+        }
+    }
+}
+
 # Install the Python runtime and validator dependency used by the bundled
 # skill tooling. Resolve the managed interpreter's junction before passing it
 # back to uv; uv's installer cannot target the junction path on Windows.

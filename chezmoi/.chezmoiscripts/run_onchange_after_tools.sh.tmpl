@@ -31,6 +31,9 @@ resolve_aqua_command() {
 
 aqua_command=$(resolve_aqua_command aqua)
 "$aqua_command" install --config "$repo_root/aqua.yaml"
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 && [ "$(gh config get git_protocol -h github.com 2>/dev/null)" = https ]; then
+    gh auth setup-git
+fi
 uv_command=$(resolve_aqua_command uv)
 prek_command=$(resolve_aqua_command prek)
 
