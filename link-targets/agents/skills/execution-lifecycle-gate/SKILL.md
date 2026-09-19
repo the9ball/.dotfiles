@@ -44,7 +44,7 @@ description: 承認済み実装計画または確定した execution input / goa
 - 計画、範囲、実装承認、外部操作の既存ゲートを弱めない。レビュー結果は実装・本番採用・外部送信の承認ではない。
 - 外部操作の authorization boundary は `link-targets/agents/guides/external-operation-authorization.md` で扱う別契約であり、target/epoch evidence、`USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、fail-closed 判定の代わりにならない。
 - この参照は既存の review contract、identity lifecycle、ledger、通常レビュー要件の判定を変更しない。
-- 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。レビュー者と回答者は対象と台帳を読み取り、台帳の更新案だけを返す。
+- 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。Advisor は固定された対象と台帳を read-only で確認し、所見と判定だけを返す。
 - Implementer は確定した contract の範囲で変更と検証だけを担当し、commit、fixup、amend、rebase、autosquash、push を行わない。Advisor は read-only のレビューを行い、Git 操作や採否判断を担当しない。
 - `effective_user_review=REQUIRED` のユーザー通常レビューは、ユーザーへ候補差分と計画済み検証結果を提示し、提示した snapshot identity に結び付いたユーザーの明示的なレビュー完了・承認（変更なしを含む）、または各 feedback の解消確認を含む応答と、未解決 feedback がないことを台帳へ記録する工程である。無応答、計画承認だけ、または snapshot と結び付かない曖昧・無関係な応答を通常レビュー完了の証拠にしない。`effective_user_review=NONE` の場合は、この工程を `SKIPPED` として記録する。通常レビューは Advisor review の代替ではない。
 - Advisor は一般的な品質レビュー担当ではなく、設計、セキュリティ、互換性、データ整合性、破壊的移行、重大な計画逸脱などの判断を助言する。Advisor が利用できない場合に別のモデルを黙って代用しない。
@@ -124,7 +124,7 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 実装ゲートでは、所見の結論、証拠の充足、レビューゲート、実装へ進む許可を
 別々に記録する。実装ゲートで使用する定義は次のとおりである。
 
-- `finding_outcome`: `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` のいずれか。
+- `finding_outcome`: Advisor finding ごとに `指摘成立` または `指摘撤回` のいずれか。Advisor がユーザー判断を要求する論点は `REQUIRES_USER_DECISION`、証拠や対象 identity を確立できない場合は `BLOCKED` として別軸で記録する。
 - `evidence_status`: `SUFFICIENT` または `NEEDS_EVIDENCE`。後者は情報不足・対象
   identity 不足・再現不能などの未完了状態で、通常は `review_gate=BLOCKED` とする。
   必要証拠、確認方法、許可範囲、終了条件を記録し、指摘の撤回や承認とはみなさない。
@@ -179,7 +179,7 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 
 ### 7. 指摘の修正
 
-- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。Advisor に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
+- すべての `指摘成立` は gate-blocking として扱い、承認済み範囲内で coordinator がまとめて修正する。修正要否やリスク受容にユーザー判断が必要な場合は `REQUIRES_USER_DECISION` として停止する。Advisor に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
 - 修正後に計画または contract で定めた build・test・生成検証を実行する。計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は停止して再承認を得る。
 - 修正、fixup、amend の後は、変更後 snapshot に対する旧 epoch の通常レビュー結果を再利用せず、まず新しいレビュー epoch を開始する。新 epoch でレビュー契約を再解決し、その `effective_user_review=REQUIRED` なら変更後 snapshot に対するユーザー通常レビューを実施して提示内容、ユーザー応答、未解決 feedback がないことを台帳へ記録し、`NONE` なら通常レビューを実施せず `SKIPPED` 記録を更新してから、次の Advisor 判定へ進む。
 - 修正を対応する実装コミットへの fixup として記録する。計画またはユーザーが操作名 `amend` と対象コミットを明示して承認した場合だけ、そのコミットを amend してよい。「一つのコミットを維持する」という指定だけでは amend してはならない。
@@ -224,7 +224,7 @@ plain `PASS` または `PASS_WITH_USER_AUTHORIZATION` 後に epoch identity の�
 - 必須または選択済みの spot review が未実施・未収束、slice coverage に gap / 重複 / 未定義境界がある、または cross-slice dependency の review context が固定できない。
 - `effective_user_review=REQUIRED` なのに当該 epoch のユーザー通常レビューが完了していない、snapshot に結び付く明示的承認・変更なしまたは feedback 解消確認がない、未解決 feedback が残っている、追加 Advisor checkpoint が `CLEAR` 以外（`BLOCKED` を含む）を返した、または追加 Advisor checkpoint の3回目が必要になった。`effective_user_review=NONE` の場合に `SKIPPED` の根拠を記録できないときも停止する。
 - `user_review` または `review_level` の入力元・値が不明、必須の Advisor 下限と衝突している、または選択したレビューを `SKIPPED` とする根拠を記録できない。
-- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立`・`不同意確定`・`調整不能` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
+- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
 
 これは失敗を隠すための waiver ではない。継続、範囲変更、追加証拠、免除、終了の判断をユーザーに委ねる。
 
