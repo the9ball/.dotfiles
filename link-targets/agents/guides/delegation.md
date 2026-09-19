@@ -49,6 +49,8 @@
 - 同一 engagement・role の dispatch は直列化する。同じ handle は runtime が同じ target・epoch で再開成功を明示した場合だけ使い、再開失敗や epoch 変更を台帳へ記録して旧判断を再利用しない。
 - Advisor、Reviewer、Respondent へは root ID、engagement ID、role、台帳版、target identity、epoch identity を渡し、epoch 変更時は旧判断の再利用状態を現物から再検証する。
 - Reviewer、Respondent、Advisor は role ごとに独立した context を持ち、互いの handle を共有しない。Advisor の出力は出所付きの助言であり、root の最終判断を代行しない。
+- revision が変わった場合、coordinator は `review_delta_classification` と source/destination の完全な manifest/hash を台帳へ記録する。`REVIEW_PRESERVING` でも継承できるのは source revision に紐付く `CLEAR` の Advisor evidence を append-only edge で参照することだけであり、既存 verdict を destination に付け替えない。
+- packet、child context、Reviewer/Respondent judgment は revision-bound とし、preserving でも自動継承しない。ledger が現在の execution context で検証できない、edge または hash が欠落する、または source verdict が `CLEAR` 以外の場合は再利用せず、必要な role を destination revision で再 dispatch する。
 
 ## Evidence child
 
@@ -56,4 +58,5 @@
 - `scount` はファイル、workspace、台帳を変更せず、子を起動せず、権限拡張、外部変更、外部送信、判断やレビュー状態の確定を行わない。
 - packet には固定した request、取得元、版または source hash、確認方法、取得できなかった証拠、不確実性を含める。root は target・epoch と現物を照合してから採用する。
 - 同じ target・epoch で runtime が再開成功を明示した場合だけ child context を再利用する。target または epoch が変われば packet・context・判断を無効化し、自動移送・自動 retry をしない。
+- preserving の inheritance を行う場合も、source evidence id、source/destination revision、delta manifest/hash、分類理由、検証結果を edge として記録し、packet の再利用条件とは分離する。runtime の再開成功だけでは revision-bound packet/context/judgment の再利用根拠にならない。
 - 判断 role が `NEEDS_EVIDENCE` を返した場合は、root が request、許可範囲、予算、終了条件を固定して証拠取得を再 dispatch する。照合不能なら `NEEDS_EVIDENCE` または gate の `BLOCKED` を維持する。
