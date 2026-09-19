@@ -67,7 +67,7 @@ description: 承認済み実装計画または確定した execution input / goa
 ### Advisor の実行時期と追加 checkpoint
 
 - Advisorをdispatchする依頼は、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先の map から導出した instruction root 基準の`link-targets/agents/guides/advisor-review.md`の読み取りスコープ契約に従う。instruction root は共有 guide の参照専用であり、work root、target identity、比較基準は別途固定する。各対象ファイルのpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを依頼文と台帳へ固定し、部分参照では1始まり・両端含みの行範囲と安定アンカーを明示する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は`CLEAR`として扱わない。
-- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice Advisor は、その後に slice manifest を固定して各 slice 単位で dispatch し、指摘修正と必要な再レビューが収束するまで反復する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、`PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
+- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice manifest はその後に固定し、`effective_review_level=ADVISOR` の場合だけ各 slice 単位で Advisor を dispatch して、指摘修正と必要な再レビューが収束するまで反復する。`NONE` の場合は slice coverage を確認して Advisor review を `SKIPPED` と記録する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、`PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
 - 実装前または途中に、最終まで待つと安全に継続できない重要な判断点（セキュリティ・信頼境界、不可逆なデータ変更・移行、公開 API・互換性、分散整合性・rollout、または計画外の重大な設計・リスク受容）がある場合は、当該判断を通過・確定・commit・実施する前に Advisor の追加 checkpoint を必ず dispatch し、結果が `CLEAR` になるまでその判断点と作業の継続を停止する。実行不能、`BLOCKED`、`REQUIRES_USER_DECISION`、またはその他の `CLEAR` 以外の結果でも停止してユーザーへ報告する。各 checkpoint は判断目的、具体的な質問、対象 scope/epoch、理由、結果、次の判断を台帳へ記録し、最終 Advisor 判定の代替にしない。
 - 追加 checkpoint は一つのゲート実行全体（fixup・amend による全 epoch を含む）で最大2回とし、epoch が変わっても上限をリセットしない。3回目が必要になった場合は Advisor を黙って追加せず、ユーザーへ停止・確認を報告する。通常の実装手順、単なる進捗確認、同じ判断の反復には dispatch しない。
 
@@ -80,9 +80,9 @@ description: 承認済み実装計画または確定した execution input / goa
 ## Review slice contract
 
 - 実装と計画済み検証が完了したら、変更全体を論理的な review slice へ分割する。slice は commit と同一視せず、仕様・責務、dependency closure、変更目的、commit boundary、他 slice との境界を基準に構成する。
-- slice manifest には、slice ID、目的、対象ファイルと hunk / commit 範囲、依存先、cross-slice dependency / boundary edge、検証方法、Advisor の結果、再レビュー対象を記録する。
+- slice manifest には、slice ID、目的、対象ファイルと hunk / commit 範囲、依存先、cross-slice dependency / boundary edge、検証方法を記録する。`effective_review_level=ADVISOR` の場合は Advisor の結果と再レビュー対象も記録し、`NONE` の場合は Advisor review の `SKIPPED` 理由を記録する。
 - 全変更の各ファイル・hunk・commit は少なくとも1つの slice に所属し、cross-slice dependency と boundary edge はいずれかの slice の review context に明示する。coverage gap、重複、未定義の境界がある場合は `BLOCKED` とし、レビューを完了扱いにしない。
-- slice Advisor は各 slice の primary scope と dependency closure を固定して read-only で実行する。指摘修正は coordinator が承認済み範囲内で行い、対応する slice と依存境界を再レビューする。全 slice が収束するまで final review や autosquash へ進まない。
+- `effective_review_level=ADVISOR` の場合、slice Advisor は各 slice の primary scope と dependency closure を固定して read-only で実行する。指摘修正は coordinator が承認済み範囲内で行い、対応する slice と依存境界を再レビューする。全 slice が収束するまで final review や autosquash へ進まない。`NONE` の場合は slice manifest と coverage を維持したまま Advisor review を実行せず、必須 Advisor トリガーがすべて false である根拠と `SKIPPED` 理由を記録する。
 
 ## 事前固定
 
@@ -156,11 +156,11 @@ Implementer は contract の範囲で変更と検証を行い、coordinator が 
 
 spot review を選択またはトリガーした場合は、実装と初回の計画済み検証後、spot manifest を固定して高リスク・代表範囲を Advisor に read-only で確認させる。指摘があれば coordinator が修正し、影響する spot と依存境界を再レビューする。spot を選択しない場合は、選択条件が false である根拠と `SKIPPED` 理由を台帳へ記録する。spot review は全変更の coverage、slice review、user checkpoint、final review の代替にしない。
 
-### 3. Review slice の構成、Advisor review、修正
+### 3. Review slice の構成、Advisor review（選択時）、修正
 
 実装と計画済み検証の完了後、slice manifest を作成して全変更を review slice に割り当てる。各 slice の primary scope、dependency closure、cross-slice dependency / boundary edge、検証方法を固定し、coverage gap、重複、未定義の境界がないことを確認する。
 
-各 slice を Advisor に read-only でレビューさせ、指摘があれば coordinator が対応する `fixup!`、明示承認済みの `amend`、または新規 commit を作成する。修正後は影響する slice と依存境界を再レビューし、全 slice が収束するまで反復する。slice review の結果を final review や user checkpoint の代替にしない。
+`effective_review_level=ADVISOR` の場合は、各 slice を Advisor に read-only でレビューさせ、指摘があれば coordinator が対応する `fixup!`、明示承認済みの `amend`、または新規 commit を作成する。修正後は影響する slice と依存境界を再レビューし、全 slice が収束するまで反復する。slice review の結果を final review や user checkpoint の代替にしない。`NONE` の場合は slice Advisor を実行せず、必須 Advisor トリガーがすべて false である根拠と `SKIPPED` 理由を台帳へ記録する。
 
 ### 4. ユーザー通常レビュー（選択時）
 
@@ -204,7 +204,7 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 - 計画または execution contract identity、承認済み範囲、対象 manifest、最終 target、最終化直前に再検証した epoch identity が一致している。
 - 計画または contract に定めた検証が成功している。
 - spot review を選択またはトリガーした場合は、spot manifest の全対象が `CLEAR` または修正後に再レビュー済みである。選択しない場合は、選択条件が false である根拠と `SKIPPED` 理由が記録されている。
-- slice manifest の coverage が完全で、全 slice と cross-slice dependency / boundary edge の Advisor review が収束している。
+- slice manifest の coverage が完全である。`effective_review_level=ADVISOR` の場合は全 slice と cross-slice dependency / boundary edge の Advisor review が収束している。`NONE` の場合は必須 Advisor トリガーがすべて根拠付きで false であり、slice Advisor の `SKIPPED` 理由が記録されている。
 - `effective_user_review=REQUIRED` の場合は、最終 candidate target に結び付くユーザー通常レビューの snapshot、提示内容、明示的な承認・変更なし、または feedback 解消確認を含む応答、未解決 feedback がないことを台帳で確認できる。`NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳で確認できる。
 - `effective_review_level` が Advisor を含む場合は、最終 Advisor の実行結果が `CLEAR` である（比較証拠付きの `assessment_mode: revalidated-reuse` による `CLEAR` の再検証を含む）。Advisor を含まない場合は、必須トリガーがすべて根拠付きで false であり、Advisor を `SKIPPED` とした理由が記録されている。
 - 追加 Advisor checkpoint の累計がゲート全体で最大2回以内で、各 checkpoint の理由・判断質問・対象・結果が記録されている。
