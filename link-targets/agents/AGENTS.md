@@ -70,6 +70,7 @@
 - 実質的な調査（対象の探索、仕様・挙動・依存関係の確認、再現、証拠収集）は、原則として `scount` Evidence child へ委譲する。root は対象 identity、epoch、台帳の最小確認と packet の現物照合に専念し、Reviewer／Respondent が独立性のために対象を直接検証することは例外とする。
 - `scount` は読み取り専用の別 role とし、ファイル、workspace、台帳を変更せず、子を起動せず、権限拡張、外部変更、外部送信を行わない。固定した request の取得元、版または source hash、確認方法、取得できなかった証拠、不確実性を packet に返し、判断やレビュー状態を確定しない。
 - 同じ target／epoch で runtime が再開成功を明示した場合だけ child context を再利用する。target または epoch が変われば旧 packet／context／判断を無効化し、自動移送・自動 retry をしない。runtime がない段階では、この再利用を将来 adapter の契約として扱う。
+- revision の変更は coordinator が `review_delta_classification` で分類し、`REVIEW_PRESERVING` の場合も source revision に紐付く `CLEAR` の Advisor evidence だけを append-only inheritance edge で参照する。packet／context／判断は revision-bound のまま再取得し、分類・edge・hash・ledger を現実行コンテキストで検証できない場合は invalidating とする。
 - 判断 role が `NEEDS_EVIDENCE` を返した場合は、root が request、許可範囲、予算、終了条件を固定し、scount → root の照合・台帳記録 → 同じ epoch の要求元 role への明示的再 dispatchを行う。証拠不足・照合不能なら `NEEDS_EVIDENCE` または gate の `BLOCKED` を維持する。
 
 ## 作業範囲
