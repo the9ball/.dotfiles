@@ -230,4 +230,4 @@ plain `PASS` または `PASS_WITH_USER_AUTHORIZATION` 後に epoch identity の�
 
 ## 最終報告
 
-比較基準と最終 target の SHA、対象・除外状態、計画または execution contract identity、requested/effective `user_review` と `review_level` および各入力元、spot / slice manifest と coverage、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、lifecycle-owned range、fixup・amend・autosquash の実行または `SKIPPED` 理由と tree identity 検証の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の不同意・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
+比較基準と最終 target の SHA、対象・除外状態、計画または execution contract identity、requested/effective `user_review` と `review_level` および各入力元、spot / slice manifest と coverage、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、lifecycle-owned range、fixup・amend・autosquash の実行または `SKIPPED` 理由と tree identity 検証の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の `指摘成立`・`REQUIRES_USER_DECISION`・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
