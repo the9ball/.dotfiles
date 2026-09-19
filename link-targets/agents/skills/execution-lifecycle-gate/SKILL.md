@@ -11,19 +11,17 @@ description: 承認済み実装計画または確定した execution input / goa
 
 ## レビュー契約
 
-- `user_review` と `review_level` は一つの計画または goal run ごとに独立して指定できる。前者はユーザー通常レビューの要否、後者は Advisor と `rigorous-review` という独立した AI レビューの強度だけを制御する。計画済み検証、既存の承認・権限ゲート、他の上位規則は、いずれの値でも省略しない。
+- `user_review` と `review_level` は一つの計画または goal run ごとに独立して指定できる。前者はユーザー通常レビューの要否、後者は Advisor による AI レビューの要否を制御する。計画済み検証、既存の承認・権限ゲート、他の上位規則は、いずれの値でも省略しない。
 - 両方の指定元は、明示的なユーザーまたは goal の契約、計画書の対応する指定、既定値の順で個別に解決する。計画書にレビュー手順や起動文を繰り返し書く必要はない。`PASS` 後の successor run はレビュー契約を自動継承せず、新たに解決する。
 - `user_review` の値は次のいずれかとする。
   - `REQUIRED`: 最終 candidate target に結び付くユーザー通常レビューを必ず実施する。snapshot identity、提示内容、ユーザーの明示的な承認・変更なし、または各 feedback の解消確認を証拠として記録する。
   - `NONE`: ユーザー通常レビューを実施せず、`SKIPPED` とした理由、根拠、指定元を記録する。既存の上位規則が同じ candidate target のユーザー通常レビューを要求している場合は、この指定だけで無効化せず、競合として停止して確認を求める。編集承認、実装採否、履歴書き換え、push、外部送信など別種の承認ゲートは通常レビューと独立して履行する。
   - `AUTO`: 既定値。計画・goal・ユーザー・上位規則にユーザー通常レビューの要否が明示されていればそれに従い、明示がなければ `NONE` として扱う。競合または判断不能なら推測せず停止して確認する。Skill の発動だけを理由に `REQUIRED` と推定してはならない。
 - `review_level` の値は次のいずれかとする。
-  - `NONE`: Advisor と `rigorous-review` を実行しない。すべての必須 Advisor トリガーが根拠付きで false で、計画・goal・上位規則にレビュー必須指定がない場合だけ有効とする。
-  - `ADVISOR`: 最終 Advisor を実行し、`rigorous-review` は実行しない。
-  - `RIGOROUS`: `rigorous-review` を実行し、Advisor は必須トリガーがある場合だけ実行する。
-  - `FULL`: 最終 Advisor と `rigorous-review` の両方を実行する。
-  - `AUTO`: 既定値。通常の実装ゲートでは `ADVISOR` を選ぶ。明示的な `RIGOROUS` 指定、または高リスク、重大な曖昧さ、既存契約上の必須条件、対象 identity の不確定、同じ問題への修正失敗など、明文化した escalation 条件が成立した場合だけ `RIGOROUS` へ引き上げる。必須 Advisor トリガーがある場合は `ADVISOR` を下限として適用する。
-- `NONE` や `RIGOROUS` が必須 Advisor トリガーと衝突する場合、選択値を黙って優先せず、`effective_review_level` を少なくとも `FULL` へ引き上げる。ユーザーが必須下限を拒否した場合は停止して確認を求め、レビューなしで `PASS` にしてはならない。明示的な `rigorous-review` 指定も `RIGOROUS` の下限として扱う。
+  - `NONE`: Advisor を実行しない。すべての必須 Advisor トリガーが根拠付きで false で、計画・goal・上位規則にレビュー必須指定がない場合だけ有効とする。
+  - `ADVISOR`: 最終 Advisor を実行する。
+  - `AUTO`: 既定値。通常の実装ゲートでは `ADVISOR` を選ぶ。必須 Advisor トリガーがある場合は `ADVISOR` を下限として適用する。
+- `NONE` が必須 Advisor トリガーと衝突する場合、選択値を黙って優先せず、`effective_review_level=ADVISOR` へ引き上げる。ユーザーが必須下限を拒否した場合は停止して確認を求め、レビューなしで `PASS` にしてはならない。
 - preflight と最終 candidate 固定時に `requested_user_review`、`effective_user_review`、`requested_review_level`、`effective_review_level`、それぞれの入力元、必須下限、選択理由、実行または `SKIPPED` の理由を台帳へ記録する。`NONE` は選択したレビュー工程を省略する意味に限られ、品質確認全体の免除ではない。
 
 ## Execution contract
@@ -31,7 +29,7 @@ description: 承認済み実装計画または確定した execution input / goa
 - execution input は、承認済み実装計画、ユーザーの明示的な変更依頼、または会話中に確定した goal / implementation scope から解決する。計画書の有無と変更規模を分離し、planless でも複数ファイル変更・設計変更を許可する。
 - 実装開始前に、少なくとも `goal`、`scope`、制約、完了条件、承認状態、対象 identity、`user_review`、`review_level`、検証方法、外部操作の有無を execution contract として固定する。計画書や goal からこれらを一意に確定できない場合は停止し、計画書を暗黙生成して不足を補わない。
 - execution ledger には、contract identity、入力元と hash / commit、対象・除外 manifest、base / target、epoch identity、レビュー契約、検証結果、spot / slice manifest、commit range、fixup / amend / autosquash の記録を残す。入力の競合、対象 identity の変化、範囲外の要件は gate を停止する。
-- `execution_status` は少なくとも `INPUT_FIXED`、`EXECUTING`、`REVIEWING`、`USER_CHECKPOINT`、`FINALIZING`、`COMPLETED`、`BLOCKED` を区別する。execution 状態と Advisor / rigorous-review の所見・gate 状態を同じ値で表さない。
+- `execution_status` は少なくとも `INPUT_FIXED`、`EXECUTING`、`REVIEWING`、`USER_CHECKPOINT`、`FINALIZING`、`COMPLETED`、`BLOCKED` を区別する。execution 状態と Advisor の所見・gate 状態を同じ値で表さない。
 
 ## 発動条件
 
@@ -46,9 +44,9 @@ description: 承認済み実装計画または確定した execution input / goa
 - 計画、範囲、実装承認、外部操作の既存ゲートを弱めない。レビュー結果は実装・本番採用・外部送信の承認ではない。
 - 外部操作の authorization boundary は `link-targets/agents/guides/external-operation-authorization.md` で扱う別契約であり、target/epoch evidence、`USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、fail-closed 判定の代わりにならない。
 - この参照は既存の review contract、identity lifecycle、ledger、通常レビュー要件の判定を変更しない。
-- 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。レビュー者と回答者は対象と台帳を読み取り、台帳の更新案だけを返す。
-- Implementer は確定した contract の範囲で変更と検証だけを担当し、commit、fixup、amend、rebase、autosquash、push を行わない。Advisor と `rigorous-review` は read-only のレビューを行い、Git 操作や採否判断を担当しない。
-- `effective_user_review=REQUIRED` のユーザー通常レビューは、ユーザーへ候補差分と計画済み検証結果を提示し、提示した snapshot identity に結び付いたユーザーの明示的なレビュー完了・承認（変更なしを含む）、または各 feedback の解消確認を含む応答と、未解決 feedback がないことを台帳へ記録する工程である。無応答、計画承認だけ、または snapshot と結び付かない曖昧・無関係な応答を通常レビュー完了の証拠にしない。`effective_user_review=NONE` の場合は、この工程を `SKIPPED` として記録する。通常レビューは独立したレビュー者・回答者による `rigorous-review` の代替ではない。
+- 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。Advisor は固定された対象と台帳を read-only で確認し、所見と判定だけを返す。
+- Implementer は確定した contract の範囲で変更と検証だけを担当し、commit、fixup、amend、rebase、autosquash、push を行わない。Advisor は read-only のレビューを行い、Git 操作や採否判断を担当しない。
+- `effective_user_review=REQUIRED` のユーザー通常レビューは、ユーザーへ候補差分と計画済み検証結果を提示し、提示した snapshot identity に結び付いたユーザーの明示的なレビュー完了・承認（変更なしを含む）、または各 feedback の解消確認を含む応答と、未解決 feedback がないことを台帳へ記録する工程である。無応答、計画承認だけ、または snapshot と結び付かない曖昧・無関係な応答を通常レビュー完了の証拠にしない。`effective_user_review=NONE` の場合は、この工程を `SKIPPED` として記録する。通常レビューは Advisor review の代替ではない。
 - Advisor は一般的な品質レビュー担当ではなく、設計、セキュリティ、互換性、データ整合性、破壊的移行、重大な計画逸脱などの判断を助言する。Advisor が利用できない場合に別のモデルを黙って代用しない。
 
 ### Advisor 要否の判定
@@ -69,7 +67,7 @@ description: 承認済み実装計画または確定した execution input / goa
 ### Advisor の実行時期と追加 checkpoint
 
 - Advisorをdispatchする依頼は、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先の map から導出した instruction root 基準の`link-targets/agents/guides/advisor-review.md`の読み取りスコープ契約に従う。instruction root は共有 guide の参照専用であり、work root、target identity、比較基準は別途固定する。各対象ファイルのpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを依頼文と台帳へ固定し、部分参照では1始まり・両端含みの行範囲と安定アンカーを明示する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は`CLEAR`として扱わない。
-- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice Advisor は、その後に slice manifest を固定して各 slice 単位で dispatch し、指摘修正と必要な再レビューが収束するまで反復する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、厳密レビュー開始と `PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
+- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice Advisor は、その後に slice manifest を固定して各 slice 単位で dispatch し、指摘修正と必要な再レビューが収束するまで反復する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、`PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
 - 実装前または途中に、最終まで待つと安全に継続できない重要な判断点（セキュリティ・信頼境界、不可逆なデータ変更・移行、公開 API・互換性、分散整合性・rollout、または計画外の重大な設計・リスク受容）がある場合は、当該判断を通過・確定・commit・実施する前に Advisor の追加 checkpoint を必ず dispatch し、結果が `CLEAR` になるまでその判断点と作業の継続を停止する。実行不能、`BLOCKED`、`REQUIRES_USER_DECISION`、またはその他の `CLEAR` 以外の結果でも停止してユーザーへ報告する。各 checkpoint は判断目的、具体的な質問、対象 scope/epoch、理由、結果、次の判断を台帳へ記録し、最終 Advisor 判定の代替にしない。
 - 追加 checkpoint は一つのゲート実行全体（fixup・amend による全 epoch を含む）で最大2回とし、epoch が変わっても上限をリセットしない。3回目が必要になった場合は Advisor を黙って追加せず、ユーザーへ停止・確認を報告する。通常の実装手順、単なる進捗確認、同じ判断の反復には dispatch しない。
 
@@ -77,7 +75,7 @@ description: 承認済み実装計画または確定した execution input / goa
 
 - spot review は、変更全体ではなく、最もリスクが高い判断点・境界・代表的な hunk を早期に Advisor が read-only で確認する工程とする。実装規模だけで無条件に必須化せず、契約・計画・Advisor 要否判定で選択またはトリガーされた場合に実施する。
 - spot manifest には、spot ID、選定理由、対象ファイルと hunk / stable anchor、primary scope、dependency closure、確認質問、検証方法、Advisor の結果、指摘修正と再レビュー対象を記録する。対象を選ばない場合も、リスク評価と `SKIPPED` 理由を記録する。
-- spot Advisor は read-only で実行し、spot の指摘は coordinator が承認済み範囲内で修正する。修正後は影響する spot と依存境界を再レビューし、収束するまで slice review へ進まない。spot の `CLEAR` は最終 Advisor、rigorous-review、user checkpoint の完了を意味しない。
+- spot Advisor は read-only で実行し、spot の指摘は coordinator が承認済み範囲内で修正する。修正後は影響する spot と依存境界を再レビューし、収束するまで slice review へ進まない。spot の `CLEAR` は最終 Advisor、user checkpoint の完了を意味しない。
 
 ## Review slice contract
 
@@ -100,12 +98,12 @@ description: 承認済み実装計画または確定した execution input / goa
 ### Epoch identity の再検証
 
 - epoch identity は、計画または execution contract identity、base/target、対象 identity manifest、除外範囲に加え、ゲートに関係する実行環境・統制面の識別子で構成する。後者には、利用するモデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定と利用可能範囲、ゲートに影響する `AGENTS.md`・`SKILL.md`・agent 定義の版を含め、何をどの方法で識別したかを台帳へ記録する。
-- 調整者は、Advisor を実行する場合はその dispatch 直前、レビュー者・回答者の各役割を開始する直前、共同最終記録を確定する直前、`PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧役割承認と共同記録を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
+- 調整者は、Advisor を実行する場合はその dispatch 直前、および `PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。意味のある差異、識別不能、または比較不能があれば、旧 Advisor 判定やレビュー結果を再利用せず、対象変化として現在の epoch を無効化して新しい epoch を開始する。
 - 無関係または意味同値の環境変更だけを除外する場合も、対象の独立性、read-only 保証、モデル・tool 条件、ゲートの規範的意味に影響しない根拠を台帳へ記録する。これは `PASS` 後の変更を扱う無効化規則とは別に、`PASS` 前の再検証として適用する。
 
 ## コミット単位
 
-- semantic commit の判断と Git 操作は coordinator が行う。Implementer は変更と検証結果を返し、Advisor / `rigorous-review` は commit 操作を行わない。
+- semantic commit の判断と Git 操作は coordinator が行う。Implementer は変更と検証結果を返し、Advisor は commit 操作を行わない。
 - 既定は、一つの一貫した、レビュー可能で revert 可能な意図を一つのコミットにする。ファイルやレイヤーだけを理由に分割しない。
 - 対象実装と、その検証に必要なテストは機械的に分離しない。生成物を生成元から分離する場合も、プロジェクト固有の生成手順と依存順序を優先する。
 - 複数の独立機能、独立 rollback 単位、DB の additive change・backfill・切替、複数サービスの互換性展開、複雑な生成元と生成物の対応、または fixup 先が曖昧な場合のいずれかに該当するときは、計画書に `Commit map` を必須化する。map には各単位の識別子、意図、対象ファイル（共有ファイルは変更範囲）、依存順序、検証方法、rollback 範囲、想定する初回コミットと fixup target を記載する。単純な作業で毎回定型文を書く必要はないが、該当性が判断できなければユーザーへ確認する。
@@ -124,9 +122,9 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 ### 状態軸とユーザー許可
 
 実装ゲートでは、所見の結論、証拠の充足、レビューゲート、実装へ進む許可を
-別々に記録する。`rigorous-review` と共有する定義は次のとおりである。
+別々に記録する。実装ゲートで使用する定義は次のとおりである。
 
-- `finding_outcome`: `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` のいずれか。
+- `finding_outcome`: Advisor finding ごとに `指摘成立` または `指摘撤回` のいずれか。Advisor がユーザー判断を要求する論点は `REQUIRES_USER_DECISION`、証拠や対象 identity を確立できない場合は `BLOCKED` として別軸で記録する。
 - `evidence_status`: `SUFFICIENT` または `NEEDS_EVIDENCE`。後者は情報不足・対象
   identity 不足・再現不能などの未完了状態で、通常は `review_gate=BLOCKED` とする。
   必要証拠、確認方法、許可範囲、終了条件を記録し、指摘の撤回や承認とはみなさない。
@@ -145,7 +143,6 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 保持してよいが、新規記録では特定の証拠・チェックを免除した意味に限定し、指摘を cleared
 とは扱わない。
 
-`rigorous-review` の「完了」は、そのまま実装ゲートの plain `PASS` ではない。共同最終記録を作成できる場合は現在のepochの共同最終記録へ、調整不能または必要条件不足により共同最終記録へ到達できない場合は調整者の停止記録へ、レビュー全体の `gate_status: PASS | PASS_WITH_USER_AUTHORIZATION | BLOCKED` を記録する。ここでいう `gate-blocking` は、現在のepochに残る未修正の `指摘成立`、`不同意確定`、`調整不能`、または許可のない `NEEDS_EVIDENCE` を指し、これらが一つでも残る場合は `gate_status=BLOCKED` とする。未解決の `NEEDS_EVIDENCE` に有効な `USER_AUTHORIZED` があり、同じ記録に scope・受容影響・残る確認事項・`proceed_status` を固定できる場合だけ `PASS_WITH_USER_AUTHORIZATION` を使う。非 blocking の不同意は設けない。ゲートの plain `PASS` は、固定した最終 target に対して gate-blocking が一つも残らず、双方の最終記録が同じ対象版を承認している状態とする。`指摘撤回` だけは残っていてよい。指摘候補が0件の場合は、対象 identity、範囲、証拠、双方の no-findings の立場を含む空の共同最終記録を作成し、その同じ版を双方が承認する。全候補が撤回された場合は空の記録で代用せず、全固定IDと撤回理由、双方の withdrawal の立場を列挙した共同最終記録を双方が承認する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。
 
 ## 実行順序
 
@@ -153,7 +150,7 @@ Advisor を実行した場合は次のいずれかを返す。実行前の要否
 
 計画書または確定した execution input から contract、対象 manifest、除外範囲、epoch、lifecycle-owned range の開始境界、レビュー契約を固定する。計画書がないことや変更が複数ファイルにまたがることだけを理由に停止しないが、goal、scope、制約、完了条件、検証方法を一意に確定できない場合は停止する。
 
-Implementer は contract の範囲で変更と検証を行い、coordinator が semantic commit を作成する。計画または contract で定めた build・test・生成検証を行い、計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は、通常レビューや Advisor の前に停止して再承認を得る。Implementer、Advisor、`rigorous-review` に commit / fixup / amend / autosquash を行わせない。
+Implementer は contract の範囲で変更と検証を行い、coordinator が semantic commit を作成する。計画または contract で定めた build・test・生成検証を行い、計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は、通常レビューや Advisor の前に停止して再承認を得る。Implementer、Advisor に commit / fixup / amend / autosquash を行わせない。
 
 ### 2. Spot review（選択時）
 
@@ -167,38 +164,35 @@ spot review を選択またはトリガーした場合は、実装と初回の�
 
 ### 4. ユーザー通常レビュー（選択時）
 
-`effective_user_review=REQUIRED` の場合だけ候補差分と検証結果をユーザーへ提示し、ユーザーの feedback を反映する。レビューした snapshot の identity、提示内容、snapshot に結び付いたユーザーの明示的な承認・変更なし、または各 feedback の解消確認を含む応答、未解決 feedback がないことを台帳へ記録し、内容変更後は検証と通常レビューの証拠を更新する。計画範囲、設計、リスク、見積りを変える feedback は既存の承認ゲートへ戻す。`effective_user_review=REQUIRED` で通常レビュー完了の証拠がないまま Advisor や `rigorous-review` を開始してはならない。`effective_user_review=NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳へ記録する。
+`effective_user_review=REQUIRED` の場合だけ候補差分と検証結果をユーザーへ提示し、ユーザーの feedback を反映する。レビューした snapshot の identity、提示内容、snapshot に結び付いたユーザーの明示的な承認・変更なし、または各 feedback の解消確認を含む応答、未解決 feedback がないことを台帳へ記録し、内容変更後は検証と通常レビューの証拠を更新する。計画範囲、設計、リスク、見積りを変える feedback は既存の承認ゲートへ戻す。`effective_user_review=REQUIRED` で通常レビュー完了の証拠がないまま Advisor を開始してはならない。`effective_user_review=NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳へ記録する。
 
 `effective_user_review=REQUIRED` の通常レビュー完了、または `effective_user_review=NONE` の `SKIPPED` 記録後に candidate target を固定する。レビュー済み snapshot（`REQUIRED` の場合）と target の内容が同一であることを base SHA、tree/commit identity、hunk または Commit map manifest で検証し、commit topology 自体が意味を持つ場合は、`REQUIRED` なら commit 後の target を通常レビュー対象として再確認し、`NONE` なら通常レビューを復活させず target identity と topology の照合だけを行う。
 
 ### 5. レビュー強度の確定
 
-candidate target を固定した直後に、`requested_review_level` と必須トリガーを照合して `effective_review_level` を確定する。`effective_user_review` は preflight で解決した値を引き継ぎ、選択値が `NONE` でも、必須 Advisor トリガーまたは明示的な `rigorous-review` 指定があれば AI レビュー側の下限を適用する。Advisor または `rigorous-review` を含まない場合は、当該レビューを `SKIPPED` とした理由、根拠、ユーザーまたは goal の契約を台帳へ記録する。`SKIPPED` は検証、選択された通常レビュー、承認の完了を意味しない。
+candidate target を固定した直後に、`requested_review_level` と必須トリガーを照合して `effective_review_level` を確定する。`effective_user_review` は preflight で解決した値を引き継ぎ、選択値が `NONE` でも、必須 Advisor トリガーがあれば AI レビュー側の下限を適用する。Advisor を含まない場合は、当該レビューを `SKIPPED` とした理由、根拠、ユーザーまたは goal の契約を台帳へ記録する。`SKIPPED` は検証、選択された通常レビュー、承認の完了を意味しない。
 
 ### 6. 最終 Advisor 判定
 
-`effective_review_level` が `ADVISOR` または `FULL` の場合、`effective_user_review=REQUIRED` なら通常レビュー後、`NONE` なら通常レビューを省略して固定した candidate target に対して、Advisor を dispatch する直前に epoch identity を再検証してから固定した計画と対象を渡す。必須トリガーがある場合は `REQUIRED` として扱い、`REQUIRES_USER_DECISION` または `BLOCKED` なら停止する。`UNRESOLVED` で Advisor を実行できない場合も停止してユーザーへ報告する。`effective_review_level` に Advisor が含まれない場合、全トリガーが根拠付きで false であることを確認し、Advisor を `SKIPPED` と記録する。最終 Advisor の結果は、追加 checkpoint の結果やユーザー通常レビューの承認で代用してはならない。
+`effective_review_level` が `ADVISOR` の場合、`effective_user_review=REQUIRED` なら通常レビュー後、`NONE` なら通常レビューを省略して固定した candidate target に対して、Advisor を dispatch する直前に epoch identity を再検証してから固定した計画と対象を渡す。必須トリガーがある場合は `REQUIRED` として扱い、`REQUIRES_USER_DECISION` または `BLOCKED` なら停止する。`UNRESOLVED` で Advisor を実行できない場合も停止してユーザーへ報告する。`effective_review_level` に Advisor が含まれない場合、全トリガーが根拠付きで false であることを確認し、Advisor を `SKIPPED` と記録する。最終 Advisor の結果は、追加 checkpoint の結果やユーザー通常レビューの承認で代用してはならない。
 
-### 7. 厳密レビュー
 
-`effective_review_level` が `RIGOROUS` または `FULL` の場合、`effective_user_review=REQUIRED` なら通常レビューと必要な最終 Advisor 判定を記録し、`NONE` なら通常レビューを `SKIPPED` と記録したうえで、固定した当該 epoch の candidate target に対して `rigorous-review` を明示的に呼び出す。レビュー者と回答者を同時実行せず、同じ対象 identity と台帳を使う。`effective_review_level` に rigorous-review が含まれない場合、厳密レビューを `SKIPPED` とした理由、根拠、契約を台帳へ記録する。厳密レビュー自身の台帳、確認点、停止条件を上書きしない。
+### 7. 指摘の修正
 
-### 8. 指摘の修正
-
-- すべての `指摘成立` は、影響度や修正要否に不同意が残っていても gate-blocking として扱い、承認済み範囲内でまとめて修正する。レビュー者・回答者に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
+- すべての `指摘成立` は gate-blocking として扱い、承認済み範囲内で coordinator がまとめて修正する。修正要否やリスク受容にユーザー判断が必要な場合は `REQUIRES_USER_DECISION` として停止する。Advisor に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
 - 修正後に計画または contract で定めた build・test・生成検証を実行する。計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は停止して再承認を得る。
-- 修正、fixup、amend の後は、変更後 snapshot に対する旧 epoch の通常レビュー結果を再利用せず、まず新しいレビュー epoch を開始する。新 epoch でレビュー契約を再解決し、その `effective_user_review=REQUIRED` なら変更後 snapshot に対するユーザー通常レビューを実施して提示内容、ユーザー応答、未解決 feedback がないことを台帳へ記録し、`NONE` なら通常レビューを実施せず `SKIPPED` 記録を更新してから、次の Advisor 判定または `rigorous-review` へ進む。
+- 修正、fixup、amend の後は、変更後 snapshot に対する旧 epoch の通常レビュー結果を再利用せず、まず新しいレビュー epoch を開始する。新 epoch でレビュー契約を再解決し、その `effective_user_review=REQUIRED` なら変更後 snapshot に対するユーザー通常レビューを実施して提示内容、ユーザー応答、未解決 feedback がないことを台帳へ記録し、`NONE` なら通常レビューを実施せず `SKIPPED` 記録を更新してから、次の Advisor 判定へ進む。
 - 修正を対応する実装コミットへの fixup として記録する。計画またはユーザーが操作名 `amend` と対象コミットを明示して承認した場合だけ、そのコミットを amend してよい。「一つのコミットを維持する」という指定だけでは amend してはならない。
 
-### 9. 新しいレビュー epoch
+### 8. 新しいレビュー epoch
 
-修正、fixup、amend、履歴整理、または epoch identity の意味のある変更のいずれでも、旧 epoch の厳密レビュー結果を再利用してはならない。対象 manifest、SHA、計画 identity、epoch identity を再検証して新しい epoch を開始し、旧 epoch の通常レビュー結果や契約を新しい target に先に適用してはならない。新 epoch のレビュー契約を解決した後は、`effective_user_review=REQUIRED` なら変更後 snapshot の通常レビューを完了し、`NONE` ならその `SKIPPED` 記録を更新する。`effective_review_level` が rigorous-review を含む場合は、既知の指摘の解消確認だけで済ませず、変更後のコミット範囲全体を `rigorous-review` で再確認する。Advisor は下記の比較条件を満たす場合を除き、最終 candidate target に対して再実行する。
+修正、fixup、amend、履歴整理、または epoch identity の意味のある変更では、対象 manifest、SHA、計画 identity、epoch identity を再検証して新しい epoch を開始し、旧 epoch の通常レビュー結果や契約を新しい target に先に適用してはならない。新 epoch のレビュー契約を解決した後は、`effective_user_review=REQUIRED` なら変更後 snapshot の通常レビューを完了し、`NONE` ならその `SKIPPED` 記録を更新する。Advisor は下記の比較条件を満たす場合を除き、最終 candidate target に対して再実行する。
 
 新しい epoch ではレビュー契約と Advisor の要否トリガーを必ず再評価する。前回の `NOT_REQUIRED` または最終 Advisor の `REQUIRED/CLEAR` を再利用する場合は、計画または execution contract の hash/commit、承認状態・範囲・制約、requested/effective `user_review` と `review_level`、旧 target と新 target の差分が記録済み指摘の修正だけであること、新規パスや無関係な hunk がないこと、epoch identity に含まれる全実行・統制要素（実効モデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定・利用可能範囲、関連する `AGENTS.md`・`SKILL.md`・agent 定義の版）が old/new で同一、または各要素について比較証拠付きで意味同値であること、統制規則・権限・データ・互換性・rollout・rollback・役割独立性に関する前提が不変であることを比較証拠付きで確認し、要否と結果を新 target に対して再検証する。前回の Advisor 状態を再利用する場合も、台帳へ `assessment_mode: revalidated-reuse`、参照元 epoch、old/new target、delta manifest、比較結果、追加 checkpoint の累計回数を記録する。一つでも不一致、識別不能、比較不能、レビュー契約の変更、または前提・対象範囲・規範的意味の変化がある場合は、最終 candidate target に対して必要なレビューを再実行し、Advisorを省略できない場合に実行できなければ `BLOCKED` またはユーザー確認で停止する。旧状態を無検証でコピーして `NOT_REQUIRED`、`CLEAR`、または `SKIPPED` としてはならない。
 
 ## Lifecycle-owned autosquash
 
-- autosquash は slice review、必要な user checkpoint、final Advisor / `rigorous-review`、計画済み検証がすべて完了した後にだけ、coordinator が実行する。Implementer、Advisor、`rigorous-review` は実行しない。
+- autosquash は slice review、必要な user checkpoint、final Advisor、計画済み検証がすべて完了した後にだけ、coordinator が実行する。Implementer、Advisor は実行しない。
 - 対象は実行開始時から range manifest が所有している commit range 内の `fixup!` commit に限定する。既存 commit、無関係な並行変更、range 外の fixup、対象不明の amend は含めない。range identity、対象 SHA、除外範囲、fixup 対応表を実行前後に照合する。
 - 履歴整理は `git-history-rewrite` の非対話制約に従い、`git rebase -i` や sequence editor の自動書き換えを使わない。書き換え後は pre/post tree identity、commit topology、range / diff、fixup 解消、計画済み検証を確認する。
 - autosquash 前後で tree identity が同一なら、substantive review は再実行せず、履歴変換の正当性と post-autosquash verification を記録する。tree identity が変化した場合は現在の gate を無効化して新しい epoch を開始し、必要な slice / user checkpoint / final review へ戻る。
@@ -214,7 +208,6 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 - `effective_user_review=REQUIRED` の場合は、最終 candidate target に結び付くユーザー通常レビューの snapshot、提示内容、明示的な承認・変更なし、または feedback 解消確認を含む応答、未解決 feedback がないことを台帳で確認できる。`NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳で確認できる。
 - `effective_review_level` が Advisor を含む場合は、最終 Advisor の実行結果が `CLEAR` である（比較証拠付きの `assessment_mode: revalidated-reuse` による `CLEAR` の再検証を含む）。Advisor を含まない場合は、必須トリガーがすべて根拠付きで false であり、Advisor を `SKIPPED` とした理由が記録されている。
 - 追加 Advisor checkpoint の累計がゲート全体で最大2回以内で、各 checkpoint の理由・判断質問・対象・結果が記録されている。
-- `effective_review_level` が rigorous-review を含む場合は、`rigorous-review` の現在epochにおける `指摘成立`、`指摘撤回`、`不同意確定`、`調整不能` の全固定IDが共同最終記録で確定し、共同最終記録の `gate_status` が plain `PASS` または有効な scoped authorization を伴う `PASS_WITH_USER_AUTHORIZATION` である。現在epochの `指摘成立`、`不同意確定`、`調整不能`、または許可のない `NEEDS_EVIDENCE` が残る場合は、共同最終記録または調整者の停止記録に `gate_status=BLOCKED` として記録し、実装へ進めない。`PASS_WITH_USER_AUTHORIZATION` を使う場合は、`USER_AUTHORIZED` と `proceed_status=AUTHORIZED_TO_PROCEED` を同じ固定ID・target/epochへ結び付け、残る確認事項を報告する。過去epochの記録は履歴として保持するが、現在の `gate_status` 判定には使用しない。rigorous-review を含まない場合は、厳密レビューを `SKIPPED` とした理由が記録されている。実行した場合、指摘ゼロの場合は対象 identity に結び付いた空の共同最終記録を、全撤回の場合は全固定IDと撤回理由を含む記録を双方が同じ版で承認している。
 - 初回コミットと fixup・amend・autosquash の範囲が、計画または contract で承認された lifecycle-owned range の変更だけで構成されている。autosquash を実行した場合は前後の tree identity・topology・range / diff・post-verification を記録し、実行しない場合は `SKIPPED` 理由を記録する。
 - Commit map が必須の計画では、actual commit/hunk manifest と map を双方向に完全照合し、全 commit/hunk がちょうど一つの単位へ割り当てられ、map にない変更や重複がない。独立 rollback 単位は commit 境界で分離し、依存により同一 commit に結合する場合は理由と共同 rollback 範囲を map に記録している。
 - ユーザーの実装採否、本番採用、履歴書き換え、push、PR・Issue 更新、外部送信が必要な場合は、それぞれの既存承認を別途取得している。
@@ -225,16 +218,16 @@ plain `PASS` または `PASS_WITH_USER_AUTHORIZATION` 後に epoch identity の�
 
 次の場合は自動継続せず、状態、証拠、残っている指摘、次の選択肢をユーザーへ報告する。
 
-- 同じ指摘への修正が2回失敗した、epoch が3回に達した、または `rigorous-review` の確認点に達した。
+- 同じ指摘への修正が2回失敗した、または epoch が3回に達した。
 - 計画または contract の範囲・identity、見積り上限、対象 manifest、fixup target、lifecycle-owned range が一意でなくなった。
 - 既存 dirty 差分を安全に除外できない、対象がレビュー中に変化した、または build・test・生成検証が失敗した。
 - 必須または選択済みの spot review が未実施・未収束、slice coverage に gap / 重複 / 未定義境界がある、または cross-slice dependency の review context が固定できない。
 - `effective_user_review=REQUIRED` なのに当該 epoch のユーザー通常レビューが完了していない、snapshot に結び付く明示的承認・変更なしまたは feedback 解消確認がない、未解決 feedback が残っている、追加 Advisor checkpoint が `CLEAR` 以外（`BLOCKED` を含む）を返した、または追加 Advisor checkpoint の3回目が必要になった。`effective_user_review=NONE` の場合に `SKIPPED` の根拠を記録できないときも停止する。
-- `user_review` または `review_level` の入力元・値が不明、必須の Advisor 下限と衝突している、明示的な `rigorous-review` 指定を無効化しようとしている、または選択したレビューを `SKIPPED` とする根拠を記録できない。
-- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立`・`不同意確定`・`調整不能` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
+- `user_review` または `review_level` の入力元・値が不明、必須の Advisor 下限と衝突している、または選択したレビューを `SKIPPED` とする根拠を記録できない。
+- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
 
 これは失敗を隠すための waiver ではない。継続、範囲変更、追加証拠、免除、終了の判断をユーザーに委ねる。
 
 ## 最終報告
 
-比較基準と最終 target の SHA、対象・除外状態、計画または execution contract identity、requested/effective `user_review` と `review_level` および各入力元、spot / slice manifest と coverage、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、lifecycle-owned range、fixup・amend・autosquash の実行または `SKIPPED` 理由と tree identity 検証の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の不同意・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
+比較基準と最終 target の SHA、対象・除外状態、計画または execution contract identity、requested/effective `user_review` と `review_level` および各入力元、spot / slice manifest と coverage、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、lifecycle-owned range、fixup・amend・autosquash の実行または `SKIPPED` 理由と tree identity 検証の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の `指摘成立`・`REQUIRES_USER_DECISION`・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。

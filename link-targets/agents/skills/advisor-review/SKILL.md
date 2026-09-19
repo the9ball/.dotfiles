@@ -1,6 +1,6 @@
 ---
 name: advisor-review
-description: execution-lifecycle-gate、rigorous-review、または明示的な読み取りスコープ契約が独立した Advisor の設計・安全・互換性レビューを要求したときに使う。通常の確認や文章校正には使わない。
+description: execution-lifecycle-gate または明示的な読み取りスコープ契約が独立した Advisor の設計・安全・互換性レビューを要求したときに使う。通常の確認や文章校正には使わない。
 ---
 
 # Advisor review workflow
@@ -9,7 +9,7 @@ description: execution-lifecycle-gate、rigorous-review、または明示的な�
 
 ## 発動条件
 
-- execution-lifecycle-gate / rigorous-review の契約、または明示された Advisor review が読み取りスコープの固定を要求したときに使う。
+- execution-lifecycle-gate の契約、または明示された Advisor review が読み取りスコープの固定を要求したときに使う。
 - 通常のレビュー、短時間の確認、文章校正には発動させない。
 
 ## 実行

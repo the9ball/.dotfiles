@@ -7,7 +7,7 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 ## 共通契約との境界
 
 - clarification、bounded research、autonomous execution、無応答、scope・permission、不可逆操作、一般的な外部操作承認は `link-targets/agents/AGENTS.md` の共通契約に従う。
-- lifecycle、model、Advisor、rigorous-review、commit-message、external-posting の固有契約は各 Skill / guide に従い、このガイドでは GitHub 固有の差分だけを定める。
+- lifecycle、model、Advisor、commit-message、external-posting の固有契約は各 Skill / guide に従い、このガイドでは GitHub 固有の差分だけを定める。
 
 ## 実行手段と失敗時の停止
 
