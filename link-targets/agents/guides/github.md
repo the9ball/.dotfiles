@@ -34,7 +34,7 @@ Issue、Pull Request、レビューコメントなどの GitHub 操作に入る�
 ## 外部操作
 
 - GitHub の Issue、Pull Request、レビュー操作は、依頼された操作だけを対象にする。
-- 各操作の前に、対象 identity、操作、送信本文、反映先、公開範囲を固定し、`link-targets/agents/AGENTS.md` の外部操作承認を適用する。
+- 各操作の前に、対象 identity、操作、送信本文、反映先、公開範囲を固定し、`link-targets/agents/AGENTS.md` の外部操作承認を適用する。現在必要な複数の承認要求をまとめて提示する場合も、`link-targets/agents/guides/approval-request-workflow.md` に従って各 logical operation と authorization boundary を独立のまま維持する。
 - Issue 本文の更新とコメント投稿は別操作として扱い、それぞれの対象、操作、本文、公開範囲を個別に固定する。
 - 計画への同意や Advisor の `CLEAR` は、Issue や Pull Request の外部投稿、更新、実装採用の承認とはみなさない。
 - コメント投稿だけが目的で、状態に依存する条件がなく、対象 identity、投稿本文、公開範囲、権限が固定され、状態確認が本文生成に不要な場合は、不要な状態確認を省略できる。
