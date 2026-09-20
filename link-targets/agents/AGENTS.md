@@ -55,7 +55,7 @@
 
 - 共通契約は clarification、bounded research、autonomy の前提を定める。`execution-lifecycle-gate` の execution contract、対象 identity、epoch、承認、review、commit、fixup、amend、autosquash、外部操作ゲートは同 Skill の所有範囲として維持する。
 - モデル別ガイドはモデル固有の傾向や補足だけを扱い、共通契約と同じ clarification 規則を再定義しない。system、ユーザー、role 固有契約、skill の必須条件を上書きする意味でも使わない。
-- Advisor の research budget、bounded research、`NEEDS_EVIDENCE`、親エージェントが最終判断を持つ契約、および rigorous-review の bounded verification、`NEEDS_EVIDENCE`、独立性、read-only / evidence 契約を共通契約で上書きしない。
+- Advisor の research budget、bounded research、`NEEDS_EVIDENCE`、親エージェントが最終判断を持つ契約を共通契約で上書きしない。
 
 ## サブエージェントへの委譲
 
@@ -142,7 +142,7 @@
 
 ## AIレビューの読み取り範囲
 
-- Advisor、rigorous-review、または明示的な読み取りスコープ契約を伴う AI レビューでファイルを指定するときは、`advisor-review` Skill を優先して使用する。Skill を発見できない場合は、詳細な契約として instruction-root 相対の`link-targets/agents/guides/advisor-review.md`を読む。通常レビュー、短時間の確認、文章校正にはこの Skill を暗黙発動させない。
+- Advisor または明示的な読み取りスコープ契約を伴う AI レビューでファイルを指定するときは、`advisor-review` Skill を優先して使用する。Skill を発見できない場合は、詳細な契約として instruction-root 相対の`link-targets/agents/guides/advisor-review.md`を読む。通常レビュー、短時間の確認、文章校正にはこの Skill を暗黙発動させない。
 
 ## 実装計画と runbook
 
