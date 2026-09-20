@@ -207,10 +207,10 @@ candidate target を固定した直後に、`requested_review_level` と必須�
 
 ## Lifecycle-owned autosquash
 
-- autosquash は slice review、必要な user checkpoint、final Advisor、計画済み検証がすべて完了した後にだけ、coordinator が実行する。Implementer、Advisor は実行しない。
+- autosquash は slice manifest / coverage、必要な user checkpoint、計画済み検証がすべて完了し、`effective_review_level=ADVISOR` の場合は final Advisor が完了、`NONE` の場合は必須 Advisor トリガーがすべて根拠付きで false で final Advisor の `SKIPPED` 理由が記録された後にだけ、coordinator が実行する。Implementer、Advisor は実行しない。
 - 対象は実行開始時から range manifest が所有している commit range 内の `fixup!` commit に限定する。既存 commit、無関係な並行変更、range 外の fixup、対象不明の amend は含めない。range identity、対象 SHA、除外範囲、fixup 対応表を実行前後に照合する。
 - 履歴整理は `git-history-rewrite` の非対話制約に従い、`git rebase -i` や sequence editor の自動書き換えを使わない。書き換え後は pre/post tree identity、commit topology、range / diff、fixup 解消、計画済み検証を確認する。
-- autosquash 前後で tree identity が同一なら、履歴変換を `REVIEW_PRESERVING` として分類し、`review_evidence_inheritance` edge、履歴変換の正当性、post-autosquash verification を記録する。Advisor evidence 以外の packet、context、judgment は自動継承せず。tree identity が変化した場合は `REVIEW_INVALIDATING` として現在の gate を無効化し、新しい epoch と必要な slice / user checkpoint / final review へ戻る。
+- autosquash 前後で tree identity が同一なら、履歴変換を `REVIEW_PRESERVING` として分類し、`review_evidence_inheritance` edge、履歴変換の正当性、post-autosquash verification を記録する。Advisor evidence 以外の packet、context、judgment は自動継承しない。tree identity が変化した場合は `REVIEW_INVALIDATING` として現在の gate を無効化し、新しい epoch と必要な slice / user checkpoint / final review へ戻る。
 
 ## 完了条件
 
