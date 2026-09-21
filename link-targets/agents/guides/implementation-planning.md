@@ -25,7 +25,7 @@
 - identifier namespace は plan artifact 単位とする。同じ artifact の revision では namespace を維持し、単なる大幅改訂では reset しない。別 artifact として新しい plan を作る場合だけ `?1` から開始してよい。
 - 同じ将来の approval need と合理的に判断できる限り revision 後も ID を維持し、不明なら新しい ID を発行する。並び替えによる renumber はしない。
 - 廃止した ID は再利用せず、同じ plan artifact 内に retired ID reservation として保持する。これは candidate lineage / history / approval state ではなく、再利用防止に必要な ID の集合だけを保持するものとする。新規 ID は active / retired の双方に未使用でなければならず、active と retired を重複させない。reservation の presentation format は固定しない。
-- split / merge により 1:1 の semantic identity が失われる場合は旧 ID を retire し、結果の候補には必要に応じて新 ID を発行する。candidate 固有の lineage は記録しない。
+- split / merge により 1:1 の semantic identity が失われる場合は旧 ID を retire し、結果の候補には新しい ID を発行する。candidate 固有の lineage は記録しない。
 - plan candidate ID と runtime approval item ID は別概念であり、一致・継承を要求しない。
 
 ### Maintenance
