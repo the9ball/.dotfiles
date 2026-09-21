@@ -23,6 +23,7 @@ GitHub service/API 上の Issue、Pull Request、review、comment、label、rele
 - Issue / Pull Request の番号など、repository を欠く識別子を単独で完全な resource identity として扱わない。
 - 番号だけでは repository、resource type、対象を一意に固定できない場合、推測で補完しない。
 - review comment と review thread は別 resource として扱う。comment の Hide と thread の Resolve を相互の代替操作として扱わない。
+- review comment の Hide または review thread の Resolve を試行する前に、選択した標準経路で対象 ID、現在の状態、本文を read-back できることを確認する。read-back 能力が利用不能または確認不能な場合は `NEEDS_EVIDENCE` として停止し、操作を試行しない。
 
 ## Pull Request template
 
