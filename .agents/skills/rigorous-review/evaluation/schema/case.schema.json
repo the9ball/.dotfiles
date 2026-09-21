@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/the9ball/.dotfiles/rigorous-review-evaluation/case.schema.json",
+  "title": "Issue #6 paired evaluation case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "scenario", "expected", "propositions", "packet_path", "runs"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "case_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+    "scenario": { "type": "string", "minLength": 1 },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "candidate"],
+      "properties": {
+        "baseline": { "$ref": "#/$defs/runExpectation" },
+        "candidate": { "$ref": "#/$defs/runExpectation" }
+      }
+    },
+    "propositions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["proposition_id", "severity", "metrics"],
+        "properties": {
+          "proposition_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]+$" },
+          "severity": { "enum": ["critical", "high", "medium", "low"] },
+          "metrics": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "enum": ["discovery", "rejection", "gate", "evidence", "coverage"] }
+          }
+        }
+      }
+    },
+    "packet_path": { "type": "string", "pattern": "^\\.\\./packets/[a-z0-9][a-z0-9-]+\\.json$" },
+    "runs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseline", "candidate"],
+      "properties": {
+        "baseline": { "$ref": "#/$defs/runDescriptor" },
+        "candidate": { "$ref": "#/$defs/runDescriptor" }
+      }
+    }
+  },
+  "$defs": {
+    "runExpectation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate_status", "evidence_status", "coverage_status", "deterministic_checks"],
+      "properties": {
+        "gate_status": { "enum": ["PASS", "BLOCKED"] },
+        "evidence_status": { "enum": ["SUFFICIENT", "NEEDS_EVIDENCE", "INVALID", "MISSING"] },
+        "coverage_status": { "enum": ["RELIABLE", "UNRELIABLE", "MISSING"] },
+        "deterministic_checks": { "enum": ["PASS", "BLOCKED"] }
+      }
+    },
+    "runDescriptor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result_path", "receipt_path"],
+      "properties": {
+        "result_path": { "type": "string", "pattern": "^\\.\\./results/[a-z0-9][a-z0-9-]+\\.(baseline|candidate)\\.json$" },
+        "receipt_path": { "type": "string", "pattern": "^\\.\\./receipts/[a-z0-9][a-z0-9-]+\\.(baseline|candidate)\\.json$" },
+        "joint_record_path": { "type": "string", "pattern": "^\\.\\./records/zero-findings\\.(baseline|candidate)\\.json$" }
+      }
+    }
+  }
+}
