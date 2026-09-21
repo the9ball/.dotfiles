@@ -9,6 +9,7 @@
 - ファイル名は ASCII の kebab-case にする。
 - shared reference として維持する各ファイルは、`link-targets/agents/reference-map.json` に分類、参照元、参照目的、解決パスを登録する。`inbound_required` が true のファイルは、少なくとも一つの AGENTS.md、Skill、または host integration から参照されていなければならない。
 - 各ファイルは AGENTS.md、Skill、または host integration のいずれかから発動経路を持つこと。参照のないファイルは読まれない。
+- `*.design.md` は対応する normative / runtime guide の複製や変更履歴ではなく、将来の選択肢、再検討材料・条件、責務境界などの非規範 design companion とする。通常 runtime ではロードせず、companion を持つ guide を変更・再設計・review するときは companion も参照する。対応 guide には companion への maintenance link を残す。
 - AGENTS.md と矛盾する内容を書かない。矛盾する場合は AGENTS.md が優先される。
 - AGENTS.md 側には、このディレクトリのファイルを読まなくても最低限機能する核を残す。読み込みが行われなかった場合に効果がゼロになる構成にしない。
 
