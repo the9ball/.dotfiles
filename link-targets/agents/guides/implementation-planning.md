@@ -11,6 +11,31 @@
 
 実装後レビューでは、計画の記載密度ではなく、固定した実装対象の要件適合、実際の挙動、回帰、危険、検証結果を判定する。実装後レビューの存在を、実装前に必要な判断や重大な不確実性を先送りする理由にしてはならない。
 
+## 承認候補
+
+すべての plan は、種類・規模によらず専用の `承認候補` section を持つ。planning 時点の情報から合理的に予見できる approval need を候補化し、単なる speculative な可能性は含めない。作成・更新中に自然に発覚した候補を記録し、plan 完成時に承認候補の観点から plan 全体を一度確認する。候補発見だけを目的とした追加の深掘り調査は要求しない。
+
+候補が 0 件でも section を省略せず `なし` と明示する。これは確認済みで候補がないことだけを表し、runtime で approval need が発生しないことを保証しない。
+
+各候補には少なくとも **対象・操作・起因** を記載する。条件付き候補では正確な trigger の確定までは要求せず、approval need が何に起因して生じそうかを説明する。条件・時期・理由等は理解・識別・runtime での再評価に有用な場合だけ補足し、詳細が plan の別箇所にあれば参照してよい。bullet、table 等の presentation format は固定しない。
+
+### Identifier
+
+- すべての active candidate に plan-local identifier `?1`, `?2`, ... を付け、candidate に割り当てる active ID は current plan 内で一意にする。
+- identifier namespace は plan artifact 単位とする。同じ artifact の revision では namespace を維持し、単なる大幅改訂では reset しない。別 artifact として新しい plan を作る場合だけ `?1` から開始してよい。
+- 同じ将来の approval need と合理的に判断できる限り revision 後も ID を維持し、不明なら新しい ID を発行する。並び替えによる renumber はしない。
+- 廃止した ID は再利用せず、同じ plan artifact 内に retired ID reservation として保持する。これは candidate lineage / history / approval state ではなく、再利用防止に必要な ID の集合だけを保持するものとする。新規 ID は active / retired の双方に未使用でなければならず、active と retired を重複させない。reservation の presentation format は固定しない。
+- split / merge により 1:1 の semantic identity が失われる場合は旧 ID を retire し、結果の候補には新しい ID を発行する。candidate 固有の lineage は記録しない。
+- plan candidate ID と runtime approval item ID は別概念であり、一致・継承を要求しない。
+
+### Maintenance
+
+- plan 更新時は、変更内容から候補への影響が合理的に疑われる場合に候補を更新する。細かな編集のたびに plan 全体を機械的に再走査しない。大きく改訂した plan を完成させる時点では、通常の完成時チェックとして plan 全体を確認する。
+- approval need 自体がなくなった候補は `承認候補` section から削除して ID を retire する。重要な変更履歴は既存の plan history 規則に委ね、candidate 独自の state / history store は作らない。
+- ID を削除・split・mergeで retire するときは、current plan の current-state content 全体をその literal token（例: `?3`）で検索する。retired ID reservation と明示的な過去 history を除き dangling reference が残っていないことを確認し、残っていれば同じ更新で修正または削除する。過去 history は書き換えない。
+- `承認候補` section の更新時と plan 完成時に、active candidate ID の割り当てが一意であること、および active / retired ID が重複していないことを確認する。
+- runtime で対応する approval を取得したこと自体では candidate を削除せず、`承認済み` 等へ状態変更しない。candidate は runtime approval state、execution permission、authorization state のいずれでもなく、それらを生成・拡張・復活させない。runtime では現在状態から approval need と既存 authorization contract を別途評価する。
+
 ## なぜ推定コード量を書くのか
 
 「シンプルに実装する」は検証不能な指示で、実装中に自分が違反しているか判定できない。推定行数は生成中に自己照合できる代理指標になる。目的は行数を減らすことではなく、計画から逸脱した時点でそれを検知できるようにすること。
