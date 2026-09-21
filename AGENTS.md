@@ -14,7 +14,7 @@
 
 ## Issue・Pull Request 運用
 
-- Issue または Pull Request の要件、通常コメント、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合は、`issue-management` Skill を優先して使用する。Skill を発見できない場合は、`link-targets/agents/guides/issue-management.md` を実行前に読む。
+- Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ `review-consolidation` Skill を使用する。通常の Issue / PR 操作から自動発動させない。
 
 ## ブランチ運用
 

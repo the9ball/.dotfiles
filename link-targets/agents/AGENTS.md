@@ -94,7 +94,7 @@
 - 現在の実行を進めるために一つ以上の明示的な permission / judgment が必要になった場合は、`link-targets/agents/guides/approval-request-workflow.md`を読み、次の自走区間に現在必要な承認だけを discovery・集約する。guide を利用できない場合は既存/default の承認規則へフォールバックし、collection、ID、`回答対象`等の詳細をこのファイルで代替実装しない。
 - GitHub service/API の Issue、Pull Request、review、comment、label、release、repository metadata などを read / write するときは`link-targets/agents/guides/github.md`を実行前に読む。Git repository / Git transport / local checkout はこの routing の対象外とし、操作の意味で分類する。
 - GitHub service/API 操作では、実行環境によらず `gh` または `gh api` を標準経路とする。authorization は外部効果を伴う操作の実行権限が必要なとき、approval-request workflow は明示的な permission / judgment の取得が必要なとき、external-posting は user-visible な外部投稿テキストを扱うときに、それぞれ独立して条件付きで読む。GitHub write だけを理由に approval-request を必須ロードしない。
-- Issue または Pull Request の要件・仕様管理、レビュー対応、通常コメント、REVIEW-SUMMARY、HANDOFF の運用を採用するとユーザーまたは対象タスクが明示した場合は、`issue-management` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/issue-management.md`を読み、Issue/PR共通の情報責務とPR固有の処理、明示的な再開、HANDOFF の生成と投稿の区別を適用する。
+- Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ同 Skill を使用する。通常の Issue / PR 操作、レビュー対応、HANDOFF から自動発動させない。authoritative semantics は Skill 内の Contract に置き、別 Guide へ fallback しない。
 - Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときは、ユーザーから明示的な指示がない限りローカル環境固有の事情を記載しない。詳細は`link-targets/agents/guides/external-posting.md`を投稿前に読む。
 
 ## ファイル変更前の範囲確認
