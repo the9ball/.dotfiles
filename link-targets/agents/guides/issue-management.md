@@ -184,7 +184,6 @@ Outdatedは対応済みを意味しない。
 
 ResolveとHideは、それぞれ別のGitHub上の外部操作である。
 実行前に既存の外部操作と承認ルールへ従い、権限不足、API非対応、認証失敗などがあれば停止する。
-HideまたはResolveの試行前に、`github.md`の事前read-back能力確認を完了できない場合は `NEEDS_EVIDENCE` として実行しない。
 対象を追加または変更する場合は新たな承認を得る。失敗後は、外部効果なしを確認した同一操作だけを認可境界のretry budget内で再試行し、成否不明ならread-backで解消するまで停止する。
 勝手にブラウザ操作、別CLI、別API、別アカウントなどへfallbackしない。
 具体的なGitHub操作手段は`github.md`の責務と整合させる。
