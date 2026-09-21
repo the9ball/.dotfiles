@@ -44,7 +44,7 @@ REVIEW-SUMMARY を review maintenance の永続 checkpoint とする。有効な
 
 ### Checkpoint and history recovery
 
-- checkpoint は「最新の有効な REVIEW-SUMMARY」とする。marker / 見出しだけで機械判定せず、状態復元に信頼できるかを意味的に判断する。
+- checkpoint 候補を決める前に top-level comments の必要な全件取得を完了し、取得完全性を確認する。完全性を確認できなければ checkpoint を確定せず停止・報告する。checkpoint はその取得集合にある「最新の有効な REVIEW-SUMMARY」とし、marker / 見出しだけで機械判定せず、状態復元に信頼できるかを意味的に判断する。invalid / minimized な候補はそれ自体を checkpoint に採用せず、信頼できる地点まで遡って recovery する。
 - checkpoint がある通常処理では、そこから後のレビューを差分として扱う。ただし visible な top-level comments は確認し、過去の取りこぼしや cleanup 候補を検出する。
 - checkpoint がない場合は、hidden / minimized 済み top-level comments と PR inline review comments / threads を含むレビュー関連履歴を確認し、現在状態を再構築する。Hide 状態を処理済みの証明にしない。
 - 新しい conversation / thread で十分な事前読込がなければ full history audit を基本とし、必要な履歴を既に読んでいる場合は差分でよい。
@@ -81,7 +81,7 @@ REVIEW-SUMMARY を review maintenance の永続 checkpoint とする。有効な
 6. top-level comments を必要に応じて Hide する。
 7. snapshot 後の新規レビューを確認して最終報告する。
 - Summary 成立後に body 更新や cleanup が失敗しても rollback しない。Summary 成功 + body 失敗でも checkpoint は有効とし、後続 maintenance で body を self-heal できるようにする。
-- body は状態変化がある場合だけ更新する。
+- body は状態変化がある場合だけ更新する。write 直前に body を再取得し、snapshot 時点から意味ある変更があれば書き込まず停止・報告する。
 - 失敗、部分失敗、意図した処理を完了できなかった事項は必ずユーザーへ通知する。
 
 ## Orchestration and context management
