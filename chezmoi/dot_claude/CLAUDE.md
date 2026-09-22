@@ -2,6 +2,7 @@
 @~/.agents/AGENTS.md
 
 <!-- Host-local Claude Code instructions. -->
+@~/.agents/AGENTS.local.md
 
 Claude Code hosts may expose shared Skills through explicit slash invocation
 without automatically discovering every Skill from natural-language requests.
