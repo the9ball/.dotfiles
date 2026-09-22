@@ -16,6 +16,8 @@ description: Git の状態取得、差分・レビュー範囲固定、index.loc
 
 この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
 
+実行前に、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から `link-targets/agents/reference-map.json` を見つけて JSON の `repository_root` から instruction root を固定する。map が見つからない、構造として解釈できない、または解決先が存在しない場合は、work root や比較基準を推測せず fail-safe に停止する。Git の work root、比較基準、終端、対象 identity、除外範囲は依頼と現在の Git 状態から別途固定する。
+
 ## Guide
 
 Git の状態取得、変更、復旧、差分・レビュー範囲の固定に入る前に読む詳細ガイド。

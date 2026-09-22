@@ -327,12 +327,20 @@ class ReferenceMapValidatorTests(unittest.TestCase):
                 "link-targets/agents/AGENTS.md",
             ),
             (
+                "link-targets/agents/skills/delegation/SKILL.md",
+                "link-targets/agents/reference-map.json",
+            ),
+            (
                 "link-targets/agents/skills/external-posting/SKILL.md",
                 "link-targets/agents/guides/external-operation-authorization.md",
             ),
             (
                 "link-targets/agents/skills/git-operations/SKILL.md",
                 "link-targets/agents/AGENTS.md",
+            ),
+            (
+                "link-targets/agents/skills/git-operations/SKILL.md",
+                "link-targets/agents/reference-map.json",
             ),
             (
                 "link-targets/agents/skills/git-operations/SKILL.md",

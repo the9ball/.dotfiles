@@ -16,6 +16,8 @@ description: サブエージェントの dispatch、再利用、handoff、Eviden
 
 この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
 
+実行前に、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から `link-targets/agents/reference-map.json` を見つけて JSON の `repository_root` から instruction root を固定する。map が見つからない、構造として解釈できない、または解決先が存在しない場合は、work root を推測せず fail-safe に停止する。work root と Git 対象は依頼から別途固定する。
+
 ## Guide
 
 サブエージェントを dispatch または再利用する前に読む詳細ガイド。
