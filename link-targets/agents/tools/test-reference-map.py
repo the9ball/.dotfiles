@@ -112,6 +112,52 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             result = self.run_validator(map_path)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_external_consumer_does_not_satisfy_inbound_caller(self) -> None:
+        """External consumption must not masquerade as repository activation."""
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            map_path = write_fixture(
+                root, [edge(".agents/caller.md", ".agents/guides/example.md")]
+            )
+            document = json.loads(map_path.read_text(encoding="utf-8"))
+            document["external_consumers"] = [
+                {
+                    "consumer": "GPT-Chat",
+                    "target": ".agents/target.md",
+                    "purpose": "external reference",
+                }
+            ]
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no inbound caller", result.stderr)
+
+    def test_external_consumer_target_must_be_a_node(self) -> None:
+        """External consumers must point at a tracked reference-map node."""
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            map_path = write_fixture(
+                root,
+                [
+                    edge(".agents/caller.md", ".agents/guides/example.md"),
+                    edge(".agents/caller.md", ".agents/target.md"),
+                ],
+            )
+            document = json.loads(map_path.read_text(encoding="utf-8"))
+            document["external_consumers"] = [
+                {
+                    "consumer": "GPT-Chat",
+                    "target": ".agents/missing.md",
+                    "purpose": "external reference",
+                }
+            ]
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("target is not a node", result.stderr)
+
     def test_missing_inbound_caller_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)

@@ -9,8 +9,9 @@ Skill discovery 後に読み込む詳細な指針と、Skill が条件付きで�
 ## 置き方の規約
 
 - ファイル名は ASCII の kebab-case にする。
-- shared reference として維持する各ファイルは、`link-targets/agents/reference-map.json` に分類、参照元、参照目的、解決パスを登録する。`inbound_required` が true のファイルは、少なくとも一つの AGENTS.md、Skill、または host integration から参照されていなければならない。
-- 各ファイルは AGENTS.md、Skill、または host integration のいずれかから発動経路を持つこと。参照のないファイルは読まれない。Skill の runtime contract は Skill 自体に完結させ、Skill から旧 guide をロードする構造は残さない。移行期間の host fallback shim は、逆方向に Skill を指す compatibility edge として明示する。
+- shared reference として維持する各ファイルは、`link-targets/agents/reference-map.json` に分類、参照元、参照目的、解決パスを登録する。`inbound_required` が true のファイルは、少なくとも一つの repository 内 caller から参照されていなければならない。repository 外の consumer は `external_consumers` に分離して登録し、repository 内 activation path の代用にしない。
+- repository runtime から読むファイルは AGENTS.md、Skill、または host integration のいずれかから発動経路を持つこと。repository 外だけから利用する shared reference は `external_consumers` に登録し、`inbound_required: false` として repository activation requirement と分離する。Skill の runtime contract は Skill 自体に完結させ、Skill から旧 guide をロードする構造は残さない。移行期間の host fallback shim は、逆方向に Skill を指す compatibility edge として明示する。
+- [`github-cli-without-clone.md`](github-cli-without-clone.md) は GPT-Chat から参照される外部向け shared reference として維持する。GPT-Chat の利用は `reference-map.json` の `external_consumers` に登録し、repository 内 runtime caller と混同しない。
 - `*.design.md` は対応する normative / runtime contract の複製や変更履歴ではなく、将来の選択肢、再検討材料・条件、責務境界などの非規範 design companion とする。通常 runtime ではロードせず、companion を持つ Skill の contract を変更・再設計・review するときだけ参照する。
 - AGENTS.md と矛盾する内容を書かない。矛盾する場合は AGENTS.md が優先される。
 - AGENTS.md 側には、このディレクトリのファイルを読まなくても最低限機能する核を残す。読み込みが行われなかった場合に効果がゼロになる構成にしない。
