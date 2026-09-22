@@ -1,8 +1,6 @@
-# 構造化データの参照
+# Claude Code compatibility shim: structured-data
 
-JSON ファイルの値を調べる・抽出する前に読む。
-
-- JSON の構造を解釈できるツールを使い、テキスト検索だけで値や階層を判定しない。
-- PowerShell が使える環境では `ConvertFrom-Json` を優先し、Unix 系で `jq` が使える場合は `jq` を使う。両方使える場合は環境に適した方を選ぶ。
-- grep、ripgrep、Select-String はキー名や構造を横断する検索で取りこぼし・誤ヒットが起きるため、原則として JSON の値の抽出に使わない。
-- ファイル全体をテキストとして眺める、構造化ツールの入力を絞るなど、目的が明確な場合だけテキスト検索を補助的に使う。
+This temporary host fallback exists for Issue #75. The normative runtime
+contract is `link-targets/agents/skills/structured-data/SKILL.md`. Read that
+Skill and apply its `## Guide` section; this shim defines no runtime rules of
+its own. If the Skill cannot be resolved, stop and report.

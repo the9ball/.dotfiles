@@ -1,7 +1,7 @@
 # GitHub service contract — design notes
 
 companion runtime guide の将来の設計判断に必要な選択肢、再検討材料、責務境界を記録する。
-通常の GitHub 操作では不要で、`github.md` の編集・再設計・不確実な境界判断・review 時に参照する。本書は非規範的であり、runtime guide と矛盾する場合は runtime guide を優先する。
+通常の GitHub 操作では不要で、`github` Skill の編集・再設計・不確実な境界判断・review 時に参照する。本書は非規範的であり、runtime contract と矛盾する場合は Skill の `## Guide` section を優先する。
 
 ## 設計意図
 
@@ -19,7 +19,7 @@ authorization、approval request、external posting、write retry 等を GitHub 
 
 ## 責務境界
 
-`github.md` は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
+`github` Skill は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
 
 一方、以下は所有しない。
 
@@ -38,7 +38,7 @@ authorization、approval request、external posting、write retry 等を GitHub 
 
 ### Skill entrypoint への routing 移行
 
-GitHub 操作時の常時 load と責務発生時の conditional load は現在 `AGENTS.md` / `reference-map.json` が保証する。将来 progressive disclosure を Skill entrypoint へ移す場合も、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
+GitHub 操作時の Skill discovery と責務発生時の conditional load は現在 `github` Skill / `reference-map.json` が保証する。今後も progressive disclosure を維持し、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
 
 ### GitHub 固有規則の追加条件
 

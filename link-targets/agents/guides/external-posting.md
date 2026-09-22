@@ -1,31 +1,6 @@
-# 外部投稿の指針
+# Claude Code compatibility shim: external-posting
 
-Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときの指針。投稿内容を作成・送信する前に読む。
-
-## ローカル環境情報の扱い
-
-他ユーザーから見える場所へ投稿するテキストには、ユーザーから明示的な指示がない限り、ローカル環境固有の事情を記載しない。
-
-対象には次を含む。
-
-- ローカルファイルやディレクトリの絶対パス
-- ローカルのリポジトリ配置場所
-- 一時ファイルや作業ディレクトリ
-- sandbox、workspace などエージェント実行環境固有のパス
-- 投稿内容の理解に不要なローカル環境依存情報
-
-必要に応じて、リポジトリルートからの相対パスなど、受け手にとって意味のある表現へ置き換える。
-
-問題の理解・再現・解決のためにローカル環境固有の情報を記載する必要があると判断した場合は、投稿前にユーザーへ確認する。
-
-## ユーザーの立場として作成する内容
-
-外部投稿の具体化は、`link-targets/agents/guides/external-operation-authorization.md` の認可境界内で行う。
-
-確認済み事実、実施作業、検証結果、既存判断の忠実な要約、通常の文章品質や表現調整は、意味的範囲内で決定できる。
-
-約束、期限、サポート責任、リスク受容、法務・コンプライアンス・金銭・セキュリティ方針、対外評価、推薦、非難、プロジェクト方針、優先順位、終了判断を新しくユーザーの立場で作る場合は確認を要する。
-
-未公開情報、個人の経験・意図・感情、未検証の事実も、ユーザーが示していない限り投稿内容へ追加しない。
-
-レビュー所見では、判断の出所をユーザー本人の意思表示と混同させない。
+This temporary host fallback exists for Issue #75. The normative runtime
+contract is `link-targets/agents/skills/external-posting/SKILL.md`. Read that
+Skill and apply its `## Guide` section; this shim defines no runtime rules of
+its own. If the Skill cannot be resolved, stop and report.
