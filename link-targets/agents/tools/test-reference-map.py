@@ -367,15 +367,19 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-gpt-6-astra.md",
+                "link-targets/agents/guides/model-gpt-6.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-gpt-6-sol.md",
+                "link-targets/agents/guides/model-astra.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-gpt-6-luna.md",
+                "link-targets/agents/guides/model-sol.md",
+            ),
+            (
+                "link-targets/agents/skills/delegation/SKILL.md",
+                "link-targets/agents/guides/model-luna.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
@@ -446,6 +450,53 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             self.assertIn("no runtime rules", " ".join(fallback_text.lower().split()))
             self.assertEqual(router, "chezmoi/dot_claude/CLAUDE.md")
         self.assertEqual(document["retired_paths"], [])
+
+    def test_gpt6_model_composition_is_explicit(self) -> None:
+        """Require GPT-6 family and current variant dependencies to stay separate."""
+
+        map_path = (SCRIPT.parent.parent / "reference-map.json").resolve()
+        document = json.loads(map_path.read_text(encoding="utf-8"))
+        delegation = "link-targets/agents/skills/delegation/SKILL.md"
+        family = "link-targets/agents/guides/model-gpt-6.md"
+        edges = [
+            edge
+            for edge in document["edges"]
+            if edge["from"] == delegation
+            and edge["kind"] == "conditional-reference"
+        ]
+
+        family_edges = [edge for edge in edges if edge["to"] == family]
+        self.assertEqual(len(family_edges), 1)
+        self.assertIn("GPT-6 family", family_edges[0]["when"])
+
+        expected_variants = {
+            "gpt-6-astra": "link-targets/agents/guides/model-astra.md",
+            "gpt-6-sol": "link-targets/agents/guides/model-sol.md",
+            "gpt-6-luna": "link-targets/agents/guides/model-luna.md",
+        }
+        for model_id, variant_guide in expected_variants.items():
+            matching = [
+                edge
+                for edge in edges
+                if model_id in edge["when"] and edge["to"] == variant_guide
+            ]
+            self.assertEqual(len(matching), 1)
+
+        variant_paths = set(expected_variants.values())
+        self.assertFalse(
+            any(
+                edge["from"] in variant_paths and edge["to"] == family
+                for edge in document["edges"]
+            ),
+            "variant guides must remain generation-independent",
+        )
+        retired_generation_specific_paths = {
+            "link-targets/agents/guides/model-gpt-6-astra.md",
+            "link-targets/agents/guides/model-gpt-6-sol.md",
+            "link-targets/agents/guides/model-gpt-6-luna.md",
+        }
+        node_paths = {node["path"] for node in document["nodes"]}
+        self.assertTrue(retired_generation_specific_paths.isdisjoint(node_paths))
 
     def test_edge_count_split_is_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
