@@ -464,6 +464,79 @@ def validate_skill_discovery(
             )
 
 
+def validate_compatibility_fallbacks(
+    root: Path,
+    nodes: dict[str, dict[str, Any]],
+    document: dict[str, Any],
+) -> None:
+    """Validate temporary host shims and their single Skill owners."""
+
+    fallbacks = document.get("compatibility_fallbacks", [])
+    if not isinstance(fallbacks, list):
+        raise ValidationError("compatibility_fallbacks must be an array")
+
+    edges = document.get("edges", [])
+    edge_keys = {
+        (edge.get("from"), edge.get("to"), edge.get("kind"))
+        for edge in edges
+        if isinstance(edge, dict)
+    }
+    seen_paths: set[str] = set()
+    for index, fallback in enumerate(fallbacks):
+        if not isinstance(fallback, dict):
+            raise ValidationError(f"compatibility_fallbacks[{index}] must be an object")
+        path = fallback.get("path")
+        owner = fallback.get("owner")
+        router = fallback.get("router")
+        host = fallback.get("host")
+        retire_after = fallback.get("retire_after")
+        parse_relative_path(path, f"compatibility_fallbacks[{index}].path")
+        parse_relative_path(owner, f"compatibility_fallbacks[{index}].owner")
+        parse_relative_path(router, f"compatibility_fallbacks[{index}].router")
+        for field, value in (("host", host), ("retire_after", retire_after)):
+            if not isinstance(value, str) or not value.strip():
+                raise ValidationError(
+                    f"compatibility_fallbacks[{index}].{field} must be non-empty"
+                )
+        if path in seen_paths:
+            raise ValidationError(f"duplicate compatibility fallback: {path}")
+        seen_paths.add(path)
+        if path not in nodes:
+            raise ValidationError(f"compatibility fallback is not a node: {path}")
+        if nodes[path].get("kind") != "compatibility-fallback":
+            raise ValidationError(
+                f"compatibility fallback node has wrong kind: {path}"
+            )
+        if owner not in nodes:
+            raise ValidationError(f"compatibility fallback owner is not a node: {owner}")
+        if nodes[owner].get("kind") != "skill-entrypoint":
+            raise ValidationError(
+                f"compatibility fallback owner is not a Skill entrypoint: {owner}"
+            )
+        if router not in nodes:
+            raise ValidationError(f"compatibility fallback router is not a node: {router}")
+        fallback_text = source_text(root, path)
+        if fallback_text is None:
+            raise ValidationError(f"compatibility fallback is unreadable: {path}")
+        if owner not in fallback_text:
+            raise ValidationError(
+                f"compatibility fallback does not name its Skill owner: {path} -> {owner}"
+            )
+        normalized_fallback = " ".join(fallback_text.lower().split())
+        if "no runtime rules" not in normalized_fallback:
+            raise ValidationError(
+                f"compatibility fallback must declare that it has no runtime rules: {path}"
+            )
+        if (router, path, "host-fallback") not in edge_keys:
+            raise ValidationError(
+                f"compatibility fallback router edge is missing: {router} -> {path}"
+            )
+        if (path, owner, "compatibility-fallback") not in edge_keys:
+            raise ValidationError(
+                f"compatibility fallback owner edge is missing: {path} -> {owner}"
+            )
+
+
 def tracked_paths(root: Path) -> list[Path]:
     """Return tracked repository paths, falling back to files for fixture roots."""
 
@@ -550,6 +623,7 @@ def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, P
     detect_cycles(nodes, edges)
     validate_source_references(root, nodes, document)
     validate_skill_discovery(root, nodes)
+    validate_compatibility_fallbacks(root, nodes, document)
     validate_retired_paths(root, map_path, document)
     return len(nodes), declared_edge_count, len(edges), root
 

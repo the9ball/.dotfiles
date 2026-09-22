@@ -369,12 +369,27 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         }
         for dependency in expected_dependencies:
             self.assertIn(dependency, edges)
+        fallback_paths = {
+            fallback["path"] for fallback in document["compatibility_fallbacks"]
+        }
         self.assertEqual(
-            set(document["retired_paths"]),
-            {
-                f"link-targets/agents/guides/{name}.md" for name in first_wave
-            },
+            fallback_paths,
+            {f"link-targets/agents/guides/{name}.md" for name in first_wave},
         )
+        for fallback in document["compatibility_fallbacks"]:
+            path = fallback["path"]
+            owner = fallback["owner"]
+            router = fallback["router"]
+            fallback_text = (map_path.parent.parent.parent / path).read_text(
+                encoding="utf-8"
+            )
+            self.assertEqual(nodes[path]["kind"], "compatibility-fallback")
+            self.assertEqual(fallback["host"], "Claude Code")
+            self.assertIn((router, path), edges)
+            self.assertIn((path, owner), edges)
+            self.assertIn(owner, fallback_text)
+            self.assertIn("no runtime rules", " ".join(fallback_text.lower().split()))
+        self.assertEqual(document["retired_paths"], [])
 
     def test_edge_count_split_is_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -537,6 +552,84 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             result = self.run_validator(map_path)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("fail-safe", result.stderr)
+
+    def test_compatibility_fallback_requires_a_single_skill_owner(self) -> None:
+        """Reject a host shim that does not identify its Skill owner."""
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            map_path = write_fixture(
+                root,
+                [
+                    edge(".agents/caller.md", ".agents/guides/example.md"),
+                    edge(".agents/caller.md", ".agents/target.md"),
+                ],
+            )
+            router_path = root / ".agents" / "CLAUDE.md"
+            router_path.write_text(
+                "Use `.agents/guides/example.md` as the fallback.\n",
+                encoding="utf-8",
+            )
+            skill_directory = root / ".agents" / "skills" / "example"
+            skill_directory.mkdir(parents=True)
+            owner_path = skill_directory / "SKILL.md"
+            owner_path.write_text("# example skill\n", encoding="utf-8")
+            shim_path = root / ".agents" / "guides" / "example.md"
+            shim_path.write_text(
+                "The owner is `.agents/skills/example/SKILL.md`; "
+                "this shim defines no runtime rules.\n",
+                encoding="utf-8",
+            )
+            document = json.loads(map_path.read_text(encoding="utf-8"))
+            document["nodes"].append(
+                {
+                    "path": ".agents/CLAUDE.md",
+                    "kind": "host-integration",
+                    "classification": "host integration",
+                    "inbound_required": False,
+                }
+            )
+            document["nodes"][0]["kind"] = "compatibility-fallback"
+            document["nodes"].append(
+                {
+                    "path": ".agents/skills/example/SKILL.md",
+                    "kind": "skill-entrypoint",
+                    "classification": "task-specific workflow",
+                    "inbound_required": True,
+                }
+            )
+            document["edges"].extend(
+                [
+                    edge(
+                        ".agents/CLAUDE.md",
+                        ".agents/guides/example.md",
+                        kind="host-fallback",
+                        source_reference=True,
+                    ),
+                    edge(
+                        ".agents/guides/example.md",
+                        ".agents/skills/example/SKILL.md",
+                        kind="compatibility-fallback",
+                    ),
+                ]
+            )
+            document["compatibility_fallbacks"] = [
+                {
+                    "path": ".agents/guides/example.md",
+                    "owner": ".agents/skills/example/SKILL.md",
+                    "router": ".agents/CLAUDE.md",
+                    "host": "Claude Code",
+                    "retire_after": "Issue #75",
+                }
+            ]
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            shim_path.write_text("fallback without owner\n", encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("does not name its Skill owner", result.stderr)
 
     def test_retired_path_literal_fails(self) -> None:
         """Reject a retired path that remains in a non-exempt tracked source."""
