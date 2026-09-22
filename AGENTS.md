@@ -15,10 +15,3 @@
 ## Issue・Pull Request 運用
 
 - Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ `review-consolidation` Skill を使用する。通常の Issue / PR 操作から自動発動させない。
-
-## ブランチ運用
-
-- 個人用設定リポジトリなので、余計なブランチは使わず master へ直接コミットする。
-  デフォルトブランチであることを理由に作業用ブランチを切らない。
-- 作業用ブランチを切るのは、ユーザーが明示的に指示した場合だけ。
-- push はユーザーから指示があったときだけ行う。
