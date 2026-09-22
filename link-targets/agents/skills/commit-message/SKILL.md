@@ -1,9 +1,27 @@
-# コミットメッセージ
+---
+name: commit-message
+description: Git commit message を新規作成または編集するときに形式と履歴規則を適用する。無関係な作業では発動しない。
+---
+
+# Commit message workflow
+
+## Discovery contract
+
+- Positive trigger: 新しい commit message または amend 対象の message を作成・編集する。
+- Negative trigger: commit message を作成せず、既存履歴を読み取るだけである。
+- Conditional dependency: 追加の依存契約はなく、現在の Git repository の履歴を直接確認する。
+- Failure mode: 形式または履歴の根拠を確定できない場合は既定を推測せず、確認して停止する。
+
+## Runtime contract
+
+この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+
+## Guide
 
 コミットメッセージを新規作成または編集するときに、このガイドを読む。
 `--amend` によるメッセージの編集も対象に含める。
 
-## 適用範囲
+### 適用範囲
 
 規約と履歴を確認する単位は、現在コミットしようとしている Git リポジトリとする。
 サブモジュール内でコミットする場合はサブモジュールを対象リポジトリとし、親リポジトリの
@@ -13,7 +31,7 @@ merge、revert、fixup、squash、cherry-pick など、Git または既存コミ
 特殊なコミットメッセージは、形式自体に意味があるため保持する。これらは以下の形式判定の
 対象にせず、明示的な別指示がない限りデフォルト形式へ書き換えない。
 
-## 適用順序
+### 適用順序
 
 上位の指示やユーザーの明示指定がある場合は、それを優先する。それ以外は次の順で確認する。
 
@@ -36,7 +54,7 @@ merge、revert、fixup、squash、cherry-pick など、Git または既存コミ
 
 特殊な生成・継承メッセージは、履歴の慣習を判定するときも除外する。
 
-## デフォルト形式
+### デフォルト形式
 
 ```text
 <type>(<scope>): <subject>
@@ -53,14 +71,14 @@ merge、revert、fixup、squash、cherry-pick など、Git または既存コミ
 - `test`: テストの追加・修正
 - `chore`: ビルドや補助ツールなどの保守変更
 
-## Subject
+### Subject
 
 - 簡潔に書く。
 - 命令形・現在形を基本とする。
 - 末尾にピリオドを付けない。
 - Subject 単体で何を変更したか理解できる表現にする。
 
-## Body
+### Body
 
 変更理由や背景の説明が必要な場合に使用する。Subject の繰り返しではなく、必要に応じて次を
 記載する。
@@ -69,11 +87,11 @@ merge、revert、fixup、squash、cherry-pick など、Git または既存コミ
 - 以前の挙動や状態との違い
 - 判断上重要な前提
 
-## Footer
+### Footer
 
 必要に応じて、関連 Issue や Breaking Change など、本文とは別に記録する情報を記載する。
 
-## 例
+### 例
 
 ```text
 docs(agents): add commit message guide

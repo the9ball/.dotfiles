@@ -1,8 +1,26 @@
-# 外部投稿の指針
+---
+name: external-posting
+description: Issue、Pull Request、レビューコメントなど外部の可視場所へ本文を投稿するときに使う。外部投稿を伴わない作業では発動しない。
+---
+
+# External posting workflow
+
+## Discovery contract
+
+- Positive trigger: 他ユーザーから見える外部 location へテキストを作成または送信する。
+- Negative trigger: ローカル検証や内部メモだけで、外部へ本文を送信しない。
+- Conditional dependency: 外部 operation authorization contract を投稿の認可境界が必要な場合だけ解決する。
+- Failure mode: 認可境界または投稿条件を解決できない場合は投稿内容を推測せず、fail-safe に停止する。
+
+## Runtime contract
+
+この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+
+## Guide
 
 Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときの指針。投稿内容を作成・送信する前に読む。
 
-## ローカル環境情報の扱い
+### ローカル環境情報の扱い
 
 他ユーザーから見える場所へ投稿するテキストには、ユーザーから明示的な指示がない限り、ローカル環境固有の事情を記載しない。
 
@@ -18,7 +36,7 @@ Issue、Pull Request、レビューコメントなど、他ユーザーから見
 
 問題の理解・再現・解決のためにローカル環境固有の情報を記載する必要があると判断した場合は、投稿前にユーザーへ確認する。
 
-## ユーザーの立場として作成する内容
+### ユーザーの立場として作成する内容
 
 外部投稿の具体化は、`link-targets/agents/guides/external-operation-authorization.md` の認可境界内で行う。
 

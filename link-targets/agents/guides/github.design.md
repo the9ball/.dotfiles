@@ -1,7 +1,7 @@
 # GitHub service contract — design notes
 
 companion runtime guide の将来の設計判断に必要な選択肢、再検討材料、責務境界を記録する。
-通常の GitHub 操作では不要で、`github.md` の編集・再設計・不確実な境界判断・review 時に参照する。本書は非規範的であり、runtime guide と矛盾する場合は runtime guide を優先する。
+通常の GitHub 操作では不要で、`github` Skill の編集・再設計・不確実な境界判断・review 時に参照する。本書は非規範的であり、runtime contract と矛盾する場合は Skill の `## Guide` section を優先する。
 
 ## 設計意図
 
@@ -19,7 +19,7 @@ authorization、approval request、external posting、write retry 等を GitHub 
 
 ## 責務境界
 
-`github.md` は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
+`github` Skill は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
 
 一方、以下は所有しない。
 

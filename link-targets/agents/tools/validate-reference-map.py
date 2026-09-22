@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -377,6 +378,158 @@ def validate_source_references(
         )
 
 
+def frontmatter_value(text: str, key: str) -> str | None:
+    """Return one simple frontmatter value from a Skill document."""
+
+    if not text.startswith("---\n"):
+        return None
+    closing_marker = text.find("\n---", 4)
+    if closing_marker == -1:
+        return None
+    frontmatter = text[4:closing_marker]
+    prefix = f"{key}:"
+    for line in frontmatter.splitlines():
+        if line.startswith(prefix):
+            value = line[len(prefix) :].strip()
+            return value or None
+    return None
+
+
+def validate_skill_discovery(
+    root: Path, nodes: dict[str, dict[str, Any]]
+) -> None:
+    """Validate discovery metadata and runtime Guide sections for migrated Skills."""
+
+    required_metadata = {"positive", "negative", "conditional", "failure"}
+    required_sections = {
+        "## Discovery contract",
+        "Positive trigger:",
+        "Negative trigger:",
+        "Conditional dependency:",
+        "Failure mode:",
+        "## Runtime contract",
+        "## Guide",
+    }
+    for node_path, node in nodes.items():
+        metadata = node.get("discovery")
+        if metadata is None:
+            continue
+        if node.get("kind") != "skill-entrypoint":
+            raise ValidationError(
+                f"discovery metadata requires a skill-entrypoint node: {node_path}"
+            )
+        if not isinstance(metadata, dict):
+            raise ValidationError(f"discovery metadata must be an object: {node_path}")
+        if set(metadata) != required_metadata:
+            missing = sorted(required_metadata - set(metadata))
+            extra = sorted(set(metadata) - required_metadata)
+            details: list[str] = []
+            if missing:
+                details.append("missing " + ", ".join(missing))
+            if extra:
+                details.append("unexpected " + ", ".join(extra))
+            raise ValidationError(
+                f"discovery metadata keys invalid for {node_path}: "
+                + "; ".join(details)
+            )
+        for key, value in metadata.items():
+            if not isinstance(value, str) or not value.strip():
+                raise ValidationError(
+                    f"discovery metadata {key!r} must be non-empty: {node_path}"
+                )
+        if "fail-safe" not in metadata["failure"].lower():
+            raise ValidationError(
+                f"discovery failure metadata must require fail-safe handling: {node_path}"
+            )
+
+        skill_path = root / Path(*parse_relative_path(node_path, "Skill path").parts)
+        skill_text = source_text(root, node_path)
+        if skill_text is None:
+            raise ValidationError(f"Skill source is unreadable: {node_path}")
+        expected_name = skill_path.parent.name
+        if frontmatter_value(skill_text, "name") != expected_name:
+            raise ValidationError(
+                f"Skill frontmatter name must match directory {expected_name!r}: "
+                f"{node_path}"
+            )
+        if frontmatter_value(skill_text, "description") is None:
+            raise ValidationError(f"Skill description is missing: {node_path}")
+        missing_sections = sorted(
+            section for section in required_sections if section not in skill_text
+        )
+        if missing_sections:
+            raise ValidationError(
+                f"Skill discovery/runtime sections missing from {node_path}: "
+                + ", ".join(missing_sections)
+            )
+
+
+def tracked_paths(root: Path) -> list[Path]:
+    """Return tracked repository paths, falling back to files for fixture roots."""
+
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z"],
+            check=False,
+            capture_output=True,
+        )
+    except OSError:
+        result = None
+    if result is not None and result.returncode == 0:
+        return [
+            root / Path(*PurePosixPath(path).parts)
+            for path in result.stdout.decode("utf-8").split("\0")
+            if path
+        ]
+    return [path for path in root.rglob("*") if path.is_file() and ".git" not in path.parts]
+
+
+def validate_retired_paths(
+    root: Path, map_path: Path, document: dict[str, Any]
+) -> None:
+    """Ensure retired guide paths are absent from tracked source references."""
+
+    retired = document.get("retired_paths", [])
+    if not isinstance(retired, list):
+        raise ValidationError("retired_paths must be an array")
+    retired_paths: list[str] = []
+    for index, value in enumerate(retired):
+        parse_relative_path(value, f"retired_paths[{index}]")
+        if (root / Path(*PurePosixPath(value).parts)).exists():
+            raise ValidationError(f"retired path still exists: {value}")
+        retired_paths.append(value)
+
+    exclusions = document.get("retired_path_exclusions", [])
+    if not isinstance(exclusions, list):
+        raise ValidationError("retired_path_exclusions must be an array")
+    exclusion_paths = {map_path.resolve().relative_to(root).as_posix()}
+    for index, value in enumerate(exclusions):
+        parse_relative_path(value, f"retired_path_exclusions[{index}]")
+        resolve_repository_path(root, value, f"retired_path_exclusions[{index}]")
+        exclusion_paths.add(value)
+
+    if not retired_paths:
+        return
+    for candidate in tracked_paths(root):
+        if not candidate.is_file():
+            continue
+        try:
+            relative = candidate.resolve().relative_to(root).as_posix()
+        except ValueError:
+            continue
+        if relative in exclusion_paths:
+            continue
+        try:
+            content = candidate.read_bytes()
+        except OSError as error:
+            raise ValidationError(f"cannot read tracked source {relative!r}: {error}") from error
+        for retired_path in retired_paths:
+            if retired_path.encode("utf-8") in content:
+                raise ValidationError(
+                    f"retired path remains in tracked source {relative}: {retired_path}"
+                )
+
+
 def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, Path]:
     if document.get("schema_version") != SCHEMA_VERSION:
         raise ValidationError(
@@ -390,6 +543,8 @@ def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, P
     edges, declared_edge_count = validate_edges(document, root, nodes)
     detect_cycles(nodes, edges)
     validate_source_references(root, nodes, document)
+    validate_skill_discovery(root, nodes)
+    validate_retired_paths(root, map_path, document)
     return len(nodes), declared_edge_count, len(edges), root
 
 

@@ -59,7 +59,7 @@
 
 ## サブエージェントへの委譲
 
-- サブエージェントまたは委譲先を使う場合は、`delegation` Skill を優先して使用する。Skill を発見できない場合は、instruction-root 相対の`link-targets/agents/guides/delegation.md`を読む。
+- 個別 workflow の詳細は Skill discovery 後に対応する Skill の runtime contract を適用する。Skill を解決できない場合は推測で代替せず、必要な作業を停止して報告する。
 - 委譲は権限も承認範囲も広げない。「スレッド取り違えの確認」を先に済ませ、「ファイル変更前の範囲確認」の承認前に委譲してよいのは読み取り専用の作業だけ。委譲先による変更も承認済みの範囲に限る。「一つずつ」「順番に」の指定がある作業は並行させない。
 - 同じ作業ツリーに書き込む場合は、ファイル単位で編集の担当を一つに限る。分けられないなら、委譲先の完了まで主スレッドは同じ範囲を触らない。
 - 委譲先の報告を鵜呑みにしない。ファイル変更や検証結果など事実に関わる結論は、自分で差分やログを確認して裏を取る。
@@ -86,16 +86,8 @@
 - 本ファイルの実体を含む共有 instruction tree の root を`instruction root`と呼び、作業対象 repository の`work root`と区別する。`instruction root`は共有ガイドの解決にだけ使い、Git 操作や変更対象の決定には使わない。具体的な配置規則は`link-targets/agents/guides/README.md`に従う。
 - `instruction root` 相対の`link-targets/agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`link-targets/agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
 - 用途別ガイドは本ファイルを補足するものとして扱う。本ファイルと矛盾する場合は本ファイルを優先する。
-- サブエージェントの dispatch・再利用、長い handoff、session・epoch・Evidence child の扱いでは、`delegation` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/delegation.md`を読む。
-- Git の状態取得・変更、index.lock・権限エラー、差分・レビュー範囲の固定、Git の復旧に入る前は、`git-operations` Skill を優先して使用する。Skill を発見できない場合は`link-targets/agents/guides/git-operations.md`を読む。
-- JSON を構造として参照・抽出するときは`link-targets/agents/guides/structured-data.md`を読む。`.NET` の build・test 前は`link-targets/agents/guides/dotnet-testing.md`を読む。
-- コピー可能なコードや他エージェントへ渡す本文をチャットに出力する前は`link-targets/agents/guides/agent-output.md`を読む。
-- サブエージェントまたは委譲先を dispatch するときは、`delegation` Skill を優先して使用し、モデル固有の調整が必要な場合だけ対応表で選択モデルの補助資料を追加する。Skill を発見できない場合は`link-targets/agents/guides/delegation.md`を読み、対応表にないモデルへ推測で適用しない。
-- 現在の実行を進めるために一つ以上の明示的な permission / judgment が必要になった場合は、`link-targets/agents/guides/approval-request-workflow.md`を読み、次の自走区間に現在必要な承認だけを discovery・集約する。guide を利用できない場合は既存/default の承認規則へフォールバックし、collection、ID、`回答対象`等の詳細をこのファイルで代替実装しない。
-- GitHub service/API の Issue、Pull Request、review、comment、label、release、repository metadata などを read / write するときは`link-targets/agents/guides/github.md`を実行前に読む。Git repository / Git transport / local checkout はこの routing の対象外とし、操作の意味で分類する。
 - GitHub service/API 操作では、実行環境によらず `gh` または `gh api` を標準経路とする。authorization は外部効果を伴う操作の実行権限が必要なとき、approval-request workflow は明示的な permission / judgment の取得が必要なとき、external-posting は user-visible な外部投稿テキストを扱うときに、それぞれ独立して条件付きで読む。GitHub write だけを理由に approval-request を必須ロードしない。
-- Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ同 Skill を使用する。通常の Issue / PR 操作、レビュー対応、HANDOFF から自動発動させない。authoritative semantics は Skill 内の Contract に置き、別 Guide へ fallback しない。
-- Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときは、ユーザーから明示的な指示がない限りローカル環境固有の事情を記載しない。詳細は`link-targets/agents/guides/external-posting.md`を投稿前に読む。
+- 条件付き依存を含む Skill の runtime contract を解決できない場合は、依存を省略せず fail-safe に停止する。
 
 ## ファイル変更前の範囲確認
 
@@ -130,16 +122,15 @@
 
 - branch は、作業上必要な場合、ユーザーの明示指示がある場合、またはリポジトリ固有ルールで要求される場合に作成できる。worktree は追加の作業ディレクトリや状態管理を伴うため、エージェントの判断だけでは作成せず、ユーザーの明示的な指示または承認を必要とする。リポジトリ固有の branch 運用、master 直接運用、明示的 push 規則を優先する。
 - 破壊的な Git 操作、履歴書き換え、force push は明示的な指示なしに行わない。
-- コミットメッセージを新規作成または編集するとき（`--amend` を含む）は、instruction-root 相対の`link-targets/agents/guides/commit-message.md`を読む。適用範囲と規約・履歴の判定単位は、現在コミットしようとしている Git リポジトリとし、親リポジトリとサブモジュールの情報を混在させない。
-- メッセージ形式・履歴の確認順序、直近20件から最大50件への拡張、明確でない場合の fallback は`link-targets/agents/guides/commit-message.md`の定義に従う。
-- merge / revert / fixup / squash / cherry-pick などの特殊なメッセージは、明示的な別指示がない限り形式を保持する（詳細は`link-targets/agents/guides/commit-message.md`）。
+- コミットメッセージを新規作成または編集するとき（`--amend` を含む）は、`commit-message` Skill を discovery し、その runtime contract を適用する。適用範囲と規約・履歴の判定単位は、現在コミットしようとしている Git リポジトリとし、親リポジトリとサブモジュールの情報を混在させない。
+- メッセージ形式・履歴の確認順序、直近20件から最大50件への拡張、明確でない場合の fail-safe は `commit-message` Skill の Guide section に従う。
 - コミットの修正・取り消し・別ブランチへの移植では、目的に合う `--fixup`、revert、cherry-pick などを検討する。
-- Git、formatter、lint が scope 外の大量変更を生成した場合は自動的に含めず、instruction-root 相対の`link-targets/agents/guides/git-operations.md`の範囲制御に従う。
-- Git、commit、検証に関するこの共通ルールは変更範囲、操作権限、検証の境界を扱い、コミットメッセージの形式や履歴規則は`link-targets/agents/guides/commit-message.md`に委ねる。
+- Git、formatter、lint が scope 外の大量変更を生成した場合は自動的に含めず、`git-operations` Skill の範囲制御に従う。
+- Git、commit、検証に関するこの共通ルールは変更範囲、操作権限、検証の境界を扱い、コミットメッセージの形式や履歴規則は `commit-message` Skill に委ねる。
 
 ## 権限エラーと代替手段
 
-- 権限・認証・sandbox が原因のエラーでは、別の経路へ黙って切り替えず、必要な操作・対象・理由を示して確認を得る。Git の `index.lock` 例外、read-only 原因確認、同一コマンドの権限昇格、ロック削除条件は instruction-root 相対の`link-targets/agents/guides/git-operations.md`を読む。
+- 権限・認証・sandbox が原因のエラーでは、別の経路へ黙って切り替えず、必要な操作・対象・理由を示して確認を得る。Git の `index.lock` 例外、read-only 原因確認、同一コマンドの権限昇格、ロック削除条件は `git-operations` Skill の runtime contract を適用する。
 
 ## AIレビューの読み取り範囲
 

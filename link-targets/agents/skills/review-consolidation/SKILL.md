@@ -5,10 +5,23 @@ description: 明示的に呼び出されたときだけ、Issue / Pull Request �
 
 # Review consolidation
 
+## Discovery contract
+
+- Positive trigger: ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出し、Issue / Pull Request のレビュー状態を集約する。
+- Negative trigger: 通常の Issue / Pull Request 操作、レビュー対応、HANDOFF、または明示的な呼び出しのない保守である。
+- Conditional dependency: GitHub service、authorization、approval request、external posting の対応 Skill は、その責務が発生した場合だけ解決する。
+- Failure mode: 条件付き依存または対象履歴を解決できない場合は推測や別経路への silent fallback をせず、fail-safe に停止する。
+
+## Runtime contract
+
+この Skill が明示的に discovery されたときだけ、下記の Contract と orchestration を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+
+## Guide
+
 この Skill は自動 trigger を持たない。ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ使う。
 責務は、散在したレビュー情報を意味的に圧縮し、現在の work plan と review state を整合させることに限定する。
 
-## Trigger and scope
+### Trigger and scope
 
 - 会話から対象 Issue / PR を一意に判断できる場合は推定してよいが、開始時に対象を可視化する。一意でなければ確認する。
 - work-plan source は現在の作業 scope を所有する artifact とする。Issue 段階では Issue body、実装中は PR がその PR scope の現在形を持つ。
@@ -17,7 +30,7 @@ description: 明示的に呼び出されたときだけ、Issue / Pull Request �
 - merge、Issue close、HANDOFF、個別レビュー reply、inline comment Hide、review thread Resolve、approval / authorization はこの Skill の独自責務にしない。
 - GitHub service/API 操作、authorization、approval request、external posting、retry / ambiguous outcome は既存の共通 contract を必要に応じて適用し、この Skill で再定義しない。
 
-## Contract
+### Contract
 
 ### Work plan and body
 
@@ -84,9 +97,9 @@ REVIEW-SUMMARY を review maintenance の永続 checkpoint とする。有効な
 - body は状態変化がある場合だけ更新する。write 直前に body を再取得し、snapshot 時点から意味ある変更があれば書き込まず停止・報告する。
 - 失敗、部分失敗、意図した処理を完了できなかった事項は必ずユーザーへ通知する。
 
-## Orchestration and context management
+### Orchestration and context management
 
 1. 読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から `link-targets/agents/reference-map.json` を見つけ、map の `repository_root` から instruction root を固定する。work root や Git 対象は依頼から別途固定する。
-2. GitHub service/API を扱う場合は `link-targets/agents/guides/github.md` を適用する。外部効果には `link-targets/agents/guides/external-operation-authorization.md`、permission / judgment には `link-targets/agents/guides/approval-request-workflow.md`、user-visible posting には `link-targets/agents/guides/external-posting.md` をそれぞれ必要な場合だけ適用する。
+2. GitHub service/API を扱う場合は `link-targets/agents/skills/github/SKILL.md` を適用する。外部効果には `link-targets/agents/guides/external-operation-authorization.md`、permission / judgment には `link-targets/agents/skills/approval-request-workflow/SKILL.md`、user-visible posting には `link-targets/agents/skills/external-posting/SKILL.md` をそれぞれ必要な場合だけ適用する。
 3. main context へ大量の raw comments / API response を不必要に流し込まない。取得・抽出・整理への subagent 利用は任意であり、main agent が最終的な coverage と判断責任を持つ。
 4. 固定 taxonomy、固定 body schema、comment-ID ledger、永続 snapshot、phase state を追加せず、状態が怪しい場合に履歴を再読込して同じ意味状態へ収束させる。
