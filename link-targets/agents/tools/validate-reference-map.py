@@ -502,7 +502,11 @@ def validate_retired_paths(
     exclusions = document.get("retired_path_exclusions", [])
     if not isinstance(exclusions, list):
         raise ValidationError("retired_path_exclusions must be an array")
-    exclusion_paths = {map_path.resolve().relative_to(root).as_posix()}
+    try:
+        map_relative = map_path.resolve().relative_to(root).as_posix()
+    except ValueError as error:
+        raise ValidationError("map path must be inside repository_root") from error
+    exclusion_paths = {map_relative}
     for index, value in enumerate(exclusions):
         parse_relative_path(value, f"retired_path_exclusions[{index}]")
         resolve_repository_path(root, value, f"retired_path_exclusions[{index}]")
@@ -531,6 +535,8 @@ def validate_retired_paths(
 
 
 def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, Path]:
+    """Validate schema, graph, source evidence, discovery, and retirement state."""
+
     if document.get("schema_version") != SCHEMA_VERSION:
         raise ValidationError(
             f"unsupported schema_version: {document.get('schema_version')!r}"
