@@ -41,6 +41,19 @@ description: >
 
 数値化できない場合は、`~[概算]%` の代わりに `--%` を表示する。
 
+## dig-log
+
+- 後で dig-log 化できるよう、検討中から最終判断だけでなく、判断に必要な理由・前提・懸念・重要な変更、撤回、再定義、未解決事項を保持する。固定 taxonomy や別の永続 state は作らない。
+- 通常の終了まとめは既存の簡潔な形式を維持する。dig-log はユーザーが明示的に求めた場合だけ生成する。生成は dig 中でも行えるが、会話内での生成だけを求められた場合は保存しない。
+- 「dig-log を書く」など保存を含む要求では、保存先が文脈から一意なら推定し、曖昧なら確認する。保存先への write は dig の検討終了後に通常操作として行い、ローカルファイルを含め、その destination に適用される authorization / posting contract と対象リポジトリの規約に従う。
+- dig-log は固定 schema を要求せず、その時点の最終判断と、後続作業で判断を理解するために必要な理由・前提・懸念・重要な変更/撤回・未解決事項を意味的に圧縮する。会話全文の保存は目的にしない。
+- 保存時は、対象 artifact と dig-log の解決可能な関連付けを destination の通常経路で確保し、後続作業から discoverable にする。保証できない場合は推測して保存せず、必要な確認を行うか保存できないことを報告する。
+- dig-log には安定した識別 marker を持たせる。Markdown / GitHub では `<!-- DIG-LOG -->` を標準的な例とし、marker / pointer の具体方式は destination に委ねる。
+- 折り畳み等は destination 固有の presentation とする。GitHub の `<details>` は利用可能な例だが、共通 contract には要求しない。
+- dig-log は source of truth ではなく、その時点の判断と理由を残す履歴 artifact とする。現在の authoritative artifact は既存の work-plan / artifact ownership contract に従い、候補が複数または不明なら推測しない。
+- 対象 artifact に discoverable な dig-log が存在すると分かる後続作業では、設計意図が関係する場合に通常経路で参照する。hidden history 等の全探索は要求しない。
+- 会話スレッド共有を dig 独自の保存・handoff 機能にしない。必要な場合は既存の conversation handoff / thread sharing の責務へ委譲し、承認・権限・未完了作業の継承を dig では定義しない。
+
 ## 継続と終了
 
 - dig中の「続けて」は、次の質問を続ける指示として扱う。
