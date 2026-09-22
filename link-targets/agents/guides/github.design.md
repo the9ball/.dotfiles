@@ -38,7 +38,7 @@ authorization、approval request、external posting、write retry 等を GitHub 
 
 ### Skill entrypoint への routing 移行
 
-GitHub 操作時の常時 load と責務発生時の conditional load は現在 `AGENTS.md` / `reference-map.json` が保証する。将来 progressive disclosure を Skill entrypoint へ移す場合も、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
+GitHub 操作時の Skill discovery と責務発生時の conditional load は現在 `github` Skill / `reference-map.json` が保証する。今後も progressive disclosure を維持し、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
 
 ### GitHub 固有規則の追加条件
 

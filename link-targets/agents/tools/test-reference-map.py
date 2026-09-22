@@ -652,6 +652,8 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             valid_shim = shim_path.read_text(encoding="utf-8")
 
             def restore_valid() -> None:
+                """Restore the valid fixture before the next negative case."""
+
                 map_path.write_text(json.dumps(valid_document), encoding="utf-8")
                 router_path.write_text(valid_router, encoding="utf-8")
                 shim_path.write_text(valid_shim, encoding="utf-8")
