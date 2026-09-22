@@ -50,14 +50,17 @@ description: サブエージェントの dispatch、再利用、handoff、Eviden
 を補助資料として読む。モデルguideは共通契約や role / skill 固有契約を
 上書きせず、実行環境で利用できることを確認してから適用する。
 
-| 選択モデル | 対応guide |
-| --- | --- |
-| `gpt-6-astra` | `model-gpt-6-astra.md` |
-| `gpt-6-sol` | `model-gpt-6-sol.md` |
-| `gpt-6-luna` | `model-gpt-6-luna.md` |
-| `gpt-5.6` alias または GPT-5.6 family | `model-gpt-5.6.md` |
+| 選択モデル | family guide | variant guide |
+| --- | --- | --- |
+| `gpt-6-astra` | `model-gpt-6.md` | `model-astra.md` |
+| `gpt-6-sol` | `model-gpt-6.md` | `model-sol.md` |
+| `gpt-6-luna` | `model-gpt-6.md` | `model-luna.md` |
+| `gpt-5.6` alias または GPT-5.6 family | `model-gpt-5.6.md` | — |
 
-対応表にないモデル、または利用できない guide は推測で適用しない。
+GPT-6 は表の family guide と variant guide を両方適用する。variant guide は
+世代名の別名ではなく variant 固有差分だけを所有し、将来の family との組み合わせを
+先取りしない。対応表にないモデル、または必要な guide の一方でも利用できない場合は
+推測で適用しない。
 
 ### 結果の検証
 
