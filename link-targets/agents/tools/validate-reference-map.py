@@ -163,6 +163,43 @@ def validate_nodes(
     return by_path
 
 
+def validate_external_consumers(
+    document: dict[str, Any], nodes: dict[str, dict[str, Any]]
+) -> int:
+    """Validate repository-external consumers without treating them as activation callers."""
+
+    consumers = document.get("external_consumers", [])
+    if not isinstance(consumers, list):
+        raise ValidationError("external_consumers must be an array")
+
+    seen: set[tuple[str, str]] = set()
+    for index, consumer in enumerate(consumers):
+        if not isinstance(consumer, dict):
+            raise ValidationError(f"external_consumers[{index}] must be an object")
+        name = consumer.get("consumer")
+        target = consumer.get("target")
+        purpose = consumer.get("purpose")
+        if not isinstance(name, str) or not name:
+            raise ValidationError(
+                f"external_consumers[{index}].consumer must be a non-empty string"
+            )
+        if target not in nodes:
+            raise ValidationError(
+                f"external_consumers[{index}].target is not a node: {target!r}"
+            )
+        if not isinstance(purpose, str) or not purpose:
+            raise ValidationError(
+                f"external_consumers[{index}].purpose must be a non-empty string"
+            )
+        identity = (name, target)
+        if identity in seen:
+            raise ValidationError(
+                f"duplicate external consumer: {name} -> {target}"
+            )
+        seen.add(identity)
+    return len(consumers)
+
+
 def validate_edges(
     document: dict[str, Any],
     root: Path,
@@ -638,7 +675,7 @@ def validate_retired_paths(
                 )
 
 
-def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, Path]:
+def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, int, Path]:
     """Validate schema, graph, source evidence, discovery, and retirement state."""
 
     if document.get("schema_version") != SCHEMA_VERSION:
@@ -650,13 +687,14 @@ def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, P
 
     root = repository_root(map_path, document)
     nodes = validate_nodes(document, root, map_path)
+    external_consumer_count = validate_external_consumers(document, nodes)
     edges, declared_edge_count = validate_edges(document, root, nodes)
     detect_cycles(nodes, edges)
     validate_source_references(root, nodes, document)
     validate_skill_discovery(root, nodes)
     validate_compatibility_fallbacks(root, nodes, document)
     validate_retired_paths(root, map_path, document)
-    return len(nodes), declared_edge_count, len(edges), root
+    return len(nodes), declared_edge_count, len(edges), external_consumer_count, root
 
 
 def main() -> int:
@@ -664,9 +702,13 @@ def main() -> int:
     map_path = arguments.map_path.resolve()
     try:
         document = read_json(map_path)
-        node_count, declared_edge_count, acyclic_edge_count, root = validate(
-            document, map_path
-        )
+        (
+            node_count,
+            declared_edge_count,
+            acyclic_edge_count,
+            external_consumer_count,
+            root,
+        ) = validate(document, map_path)
     except ValidationError as error:
         print(f"reference map invalid: {error}", file=sys.stderr)
         return 1
@@ -674,7 +716,8 @@ def main() -> int:
     print(
         "reference map OK: "
         f"{node_count} nodes, {declared_edge_count} declared edges, "
-        f"{acyclic_edge_count} acyclic edges, repository root {root}"
+        f"{acyclic_edge_count} acyclic edges, {external_consumer_count} external consumers, "
+        f"repository root {root}"
     )
     return 0
 
