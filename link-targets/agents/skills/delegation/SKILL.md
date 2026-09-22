@@ -53,6 +53,8 @@ description: サブエージェントの dispatch、再利用、handoff、Eviden
 | 選択モデル | 対応guide |
 | --- | --- |
 | `gpt-6-astra` | `model-gpt-6-astra.md` |
+| `gpt-6-sol` | `model-gpt-6-sol.md` |
+| `gpt-6-luna` | `model-gpt-6-luna.md` |
 | `gpt-5.6` alias または GPT-5.6 family | `model-gpt-5.6.md` |
 
 対応表にないモデル、または利用できない guide は推測で適用しない。

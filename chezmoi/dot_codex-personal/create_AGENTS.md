@@ -5,7 +5,7 @@
 
 ## Luna-first agent routing
 
-- Use GPT-5.6 Luna Max as the primary model for normal conversation, search, investigation, implementation, testing, and task orchestration.
+- Use GPT-6 Luna Max as the primary model for normal conversation, search, investigation, implementation, testing, and task orchestration.
 - Keep small, clear tasks in the primary Luna thread when delegation overhead would exceed the work.
 - In the Codex app only, use `$delegate-luna-investigation` for bounded read-only investigations that benefit from delegation or context isolation. This durable instruction authorizes creating the required user-visible Luna Max task without asking again; do not use this route from Claude Code or other agents.
 - Reuse an existing delegated Luna task while its objective, deliverable, relevant artifacts, workspace, authorization scope, and governing assumptions remain materially the same. Continue it for follow-up investigation, corrections, and clarification. Create a new task when those materially change or stale context is impairing quality or efficiency; do not split solely because the work enters a new phase.

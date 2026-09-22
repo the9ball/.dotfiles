@@ -1,6 +1,6 @@
 ---
 name: delegate-luna-investigation
-description: "【Codex app専用。Claude Codeや他のエージェントからは使用しない】 Coordinate bounded read-only investigations in reusable, user-visible GPT-5.6 Luna Max tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier Luna investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
+description: "【Codex app専用。Claude Codeや他のエージェントからは使用しない】 Coordinate bounded read-only investigations in reusable, user-visible GPT-6 Luna Max tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier Luna investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
 ---
 
 # Delegate Luna Investigation
@@ -20,7 +20,7 @@ Coordinate an investigation from the primary Codex task. Keep the delegated task
 - Run sequentially: while the Luna task is active, make the primary Sol task wait and do not perform separate work against the shared checkout.
 - Leave any worktree decision to the user and the primary Sol task. If they select another checkout, use that existing selection without changing it.
 - Keep integration, evidence verification, decisions, and the final response in the primary task.
-- Do not claim Luna ran unless task activity identifies the effective model or the task was created explicitly with `gpt-5.6-luna`.
+- Do not claim Luna ran unless task activity identifies the effective model or the task was created explicitly with `gpt-6-luna`.
 
 ## Decide Whether to Reuse
 
@@ -49,7 +49,7 @@ Use observed degradation rather than turn count alone. Examples include repeated
 
 1. List available projects and select the project matching the primary task.
 2. Use that project's saved local environment so Luna reads the same checkout as Sol. Do not request a new worktree.
-3. Create a task with model `gpt-5.6-luna`, reasoning effort `max`, and title `Subagent: [Luna調査] <short workstream>`.
+3. Create a task with model `gpt-6-luna`, reasoning effort `max`, and title `Subagent: [Luna調査] <short workstream>`.
 4. If creation still returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Resolve the ready task through the recent-task list and verify its delegation marker before continuing.
 5. Retain the ready task's `threadId` and `hostId` for follow-ups.
 

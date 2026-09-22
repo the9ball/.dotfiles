@@ -371,6 +371,14 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
+                "link-targets/agents/guides/model-gpt-6-sol.md",
+            ),
+            (
+                "link-targets/agents/skills/delegation/SKILL.md",
+                "link-targets/agents/guides/model-gpt-6-luna.md",
+            ),
+            (
+                "link-targets/agents/skills/delegation/SKILL.md",
                 "link-targets/agents/AGENTS.md",
             ),
             (
