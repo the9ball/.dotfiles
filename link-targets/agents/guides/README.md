@@ -4,7 +4,7 @@ Skill discovery 後に読み込む詳細な指針と、Skill が条件付きで�
 
 `~/.dotfiles/link-targets/agents/AGENTS.md` は全作業で常時読み込まれるため、項目を増やすほど個々の指示の遵守率が下がる。そのため、常時必要ではない詳細は対応 Skill の discovery metadata と runtime Guide section へ切り出し、AGENTS.md 側には policy kernel だけを残す。
 
-第一陣で移行した runtime contract は対応する Skill の `## Guide` section を唯一の正本とする。Claude Code の自然言語 discovery が Issue #75 で検証されるまで、旧 guide path は `reference-map.json` の `compatibility_fallbacks` registry に一時的な shim として登録する。shim は Skill への到達経路だけを持ち、runtime contract を複製しない。#75 完了後に shim と host fallback を削除し、retired path 検査へ戻す。
+第一陣で移行した runtime contract は対応する Skill の `## Guide` section を唯一の正本とする。Claude Code の自然言語 discovery が Issue #75 で検証されるまで、旧 guide path は `reference-map.json` の `compatibility_fallbacks` registry に一時的な shim として登録し、tracked な global Claude host layer (`chezmoi/dot_claude/CLAUDE.md`) から到達可能にする。shim は Skill への到達経路だけを持ち、runtime contract を複製しない。#75 完了後に shim と host fallback を削除し、retired path 検査へ戻す。
 
 ## 置き方の規約
 

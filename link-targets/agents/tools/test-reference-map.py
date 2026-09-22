@@ -280,6 +280,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             skill_path = f"link-targets/agents/skills/{name}/SKILL.md"
             node = nodes[skill_path]
             self.assertEqual(node["kind"], "skill-entrypoint")
+            self.assertEqual(node["host_fallback"], "required")
             self.assertEqual(
                 set(node["discovery"]),
                 {"positive", "negative", "conditional", "failure"},
@@ -389,6 +390,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             self.assertIn((path, owner), edges)
             self.assertIn(owner, fallback_text)
             self.assertIn("no runtime rules", " ".join(fallback_text.lower().split()))
+            self.assertEqual(router, "chezmoi/dot_claude/CLAUDE.md")
         self.assertEqual(document["retired_paths"], [])
 
     def test_edge_count_split_is_exact(self) -> None:
@@ -483,6 +485,8 @@ class ReferenceMapValidatorTests(unittest.TestCase):
                     "kind": "skill-entrypoint",
                     "classification": "task-specific workflow",
                     "inbound_required": True,
+                    "host_fallback": "exempt",
+                    "host_fallback_reason": "fixture is not testing host fallback",
                     "discovery": {
                         "positive": "example",
                         "negative": "unrelated",
@@ -497,6 +501,21 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             map_path.write_text(json.dumps(document), encoding="utf-8")
             result = self.run_validator(map_path)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+            del document["nodes"][-1]["host_fallback"]
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("host_fallback", result.stderr)
+            document["nodes"][-1]["host_fallback"] = "exempt"
+
+            document["nodes"][-1]["host_fallback"] = "required"
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("exactly one compatibility fallback", result.stderr)
+            document["nodes"][-1]["host_fallback"] = "exempt"
+            map_path.write_text(json.dumps(document), encoding="utf-8")
 
             skill_path.write_text(
                 skill_path.read_text(encoding="utf-8").replace("## Guide", "## Missing"),
@@ -537,6 +556,8 @@ class ReferenceMapValidatorTests(unittest.TestCase):
                     "kind": "skill-entrypoint",
                     "classification": "task-specific workflow",
                     "inbound_required": True,
+                    "host_fallback": "exempt",
+                    "host_fallback_reason": "fixture is not testing host fallback",
                     "discovery": {
                         "positive": "example",
                         "negative": "unrelated",
@@ -554,7 +575,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             self.assertIn("fail-safe", result.stderr)
 
     def test_compatibility_fallback_requires_a_single_skill_owner(self) -> None:
-        """Reject a host shim that does not identify its Skill owner."""
+        """Reject malformed host shims and preserve their single Skill owner."""
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             root = Path(temporary_directory)
@@ -626,10 +647,55 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             result = self.run_validator(map_path)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+            valid_document = json.loads(json.dumps(document))
+            valid_router = router_path.read_text(encoding="utf-8")
+            valid_shim = shim_path.read_text(encoding="utf-8")
+
+            def restore_valid() -> None:
+                map_path.write_text(json.dumps(valid_document), encoding="utf-8")
+                router_path.write_text(valid_router, encoding="utf-8")
+                shim_path.write_text(valid_shim, encoding="utf-8")
+
             shim_path.write_text("fallback without owner\n", encoding="utf-8")
             result = self.run_validator(map_path)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("does not name its Skill owner", result.stderr)
+
+            restore_valid()
+            shim_path.write_text(
+                "The owner is `.agents/skills/example/SKILL.md`; fallback text only.\n",
+                encoding="utf-8",
+            )
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no runtime rules", result.stderr)
+
+            restore_valid()
+            invalid_owner_kind = json.loads(json.dumps(valid_document))
+            for node in invalid_owner_kind["nodes"]:
+                if node["path"] == ".agents/skills/example/SKILL.md":
+                    node["kind"] = "shared-reference"
+            map_path.write_text(json.dumps(invalid_owner_kind), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("owner is not a Skill entrypoint", result.stderr)
+
+            restore_valid()
+            missing_router_edge = json.loads(json.dumps(valid_document))
+            missing_router_edge["edges"] = [
+                edge_value
+                for edge_value in missing_router_edge["edges"]
+                if not (
+                    edge_value["from"] == ".agents/CLAUDE.md"
+                    and edge_value["to"] == ".agents/guides/example.md"
+                    and edge_value["kind"] == "host-fallback"
+                )
+            ]
+            router_path.write_text("fallback registry entry\n", encoding="utf-8")
+            map_path.write_text(json.dumps(missing_router_edge), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("router edge is missing", result.stderr)
 
     def test_retired_path_literal_fails(self) -> None:
         """Reject a retired path that remains in a non-exempt tracked source."""

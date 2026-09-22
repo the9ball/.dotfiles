@@ -418,6 +418,19 @@ def validate_skill_discovery(
             raise ValidationError(
                 f"discovery metadata requires a skill-entrypoint node: {node_path}"
             )
+        host_fallback = node.get("host_fallback")
+        if host_fallback not in {"required", "exempt"}:
+            raise ValidationError(
+                "discovery Skill must declare host_fallback as 'required' or "
+                f"'exempt': {node_path}"
+            )
+        if host_fallback == "exempt":
+            reason = node.get("host_fallback_reason")
+            if not isinstance(reason, str) or not reason.strip():
+                raise ValidationError(
+                    "exempt discovery Skill must declare a non-empty "
+                    f"host_fallback_reason: {node_path}"
+                )
         if not isinstance(metadata, dict):
             raise ValidationError(f"discovery metadata must be an object: {node_path}")
         if set(metadata) != required_metadata:
@@ -482,6 +495,7 @@ def validate_compatibility_fallbacks(
         if isinstance(edge, dict)
     }
     seen_paths: set[str] = set()
+    fallbacks_by_owner: dict[str, list[str]] = {}
     for index, fallback in enumerate(fallbacks):
         if not isinstance(fallback, dict):
             raise ValidationError(f"compatibility_fallbacks[{index}] must be an object")
@@ -501,6 +515,7 @@ def validate_compatibility_fallbacks(
         if path in seen_paths:
             raise ValidationError(f"duplicate compatibility fallback: {path}")
         seen_paths.add(path)
+        fallbacks_by_owner.setdefault(owner, []).append(path)
         if path not in nodes:
             raise ValidationError(f"compatibility fallback is not a node: {path}")
         if nodes[path].get("kind") != "compatibility-fallback":
@@ -534,6 +549,22 @@ def validate_compatibility_fallbacks(
         if (path, owner, "compatibility-fallback") not in edge_keys:
             raise ValidationError(
                 f"compatibility fallback owner edge is missing: {path} -> {owner}"
+            )
+
+    for node_path, node in nodes.items():
+        if "discovery" not in node:
+            continue
+        host_fallback = node.get("host_fallback")
+        owner_fallbacks = fallbacks_by_owner.get(node_path, [])
+        if host_fallback == "required" and len(owner_fallbacks) != 1:
+            raise ValidationError(
+                "required discovery Skill must have exactly one compatibility "
+                f"fallback: {node_path} (found {len(owner_fallbacks)})"
+            )
+        if host_fallback == "exempt" and owner_fallbacks:
+            raise ValidationError(
+                "exempt discovery Skill must not have a compatibility fallback: "
+                f"{node_path}"
             )
 
 

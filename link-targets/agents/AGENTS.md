@@ -87,6 +87,7 @@
 - `instruction root` 相対の`link-targets/agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`link-targets/agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
 - 用途別ガイドは本ファイルを補足するものとして扱う。本ファイルと矛盾する場合は本ファイルを優先する。
 - GitHub service/API 操作では、実行環境によらず `gh` または `gh api` を標準経路とする。authorization は外部効果を伴う操作の実行権限が必要なとき、approval-request workflow は明示的な permission / judgment の取得が必要なとき、external-posting は user-visible な外部投稿テキストを扱うときに、それぞれ独立して条件付きで読む。GitHub write だけを理由に approval-request を必須ロードしない。
+- Issue、Pull Request、レビューコメントなど他ユーザーから見える場所へ投稿するときは、明示的に求められない限りローカル環境固有の情報を本文へ含めない。詳細な投稿契約は `external-posting` Skill に委ねる。
 - 条件付き依存を含む Skill の runtime contract を解決できない場合は、依存を省略せず fail-safe に停止する。
 
 ## ファイル変更前の範囲確認
