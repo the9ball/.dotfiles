@@ -51,14 +51,14 @@ Supplements `link-targets/agents/AGENTS.md`'s common contract and owns delegatio
 
 Read the guide corresponding to the selected model as supplementary material only when model-specific adjustments are needed. A model guide must not override the common contract or role/skill-specific contracts; confirm that it is available in the execution environment before applying it.
 
-| Selection model | Compatible guide |
-| --- | --- |
-| `gpt-6-astra` | `model-gpt-6-astra.md` |
-| `gpt-6-sol` | `model-gpt-6-sol.md` |
-| `gpt-6-luna` | `model-gpt-6-luna.md` |
-| `gpt-5.6` alias or GPT-5.6 family | `model-gpt-5.6.md` |
+| Selection model | Family guide | Variant guide |
+| --- | --- | --- |
+| `gpt-6-astra` | `model-gpt-6.md` | `model-astra.md` |
+| `gpt-6-sol` | `model-gpt-6.md` | `model-sol.md` |
+| `gpt-6-luna` | `model-gpt-6.md` | `model-luna.md` |
+| `gpt-5.6` alias or GPT-5.6 family | `model-gpt-5.6.md` | — |
 
-Models not in the correspondence table or guides that are not available will not be applied by guess.
+For GPT-6, apply both the family guide and the variant guide in the table. Variant guides own variant-specific differences rather than aliases for generation names; do not assume their composition with future families. Do not apply a model by guess when it is absent from the table or either required guide is unavailable.
 
 ### Validation of results
 
