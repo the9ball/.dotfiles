@@ -23,6 +23,9 @@ substituting another contract.
 | Visible external posting | `~/.agents/guides/external-posting.md` (`link-targets/agents/guides/external-posting.md`) |
 | Git state, diff, ref, lock, or range control | `~/.agents/guides/git-operations.md` (`link-targets/agents/guides/git-operations.md`) |
 | GitHub service/API Issue, PR, review, or comment | `~/.agents/guides/github.md` (`link-targets/agents/guides/github.md`) |
+| Scoping an AI Advisor review | `~/.agents/guides/advisor-review.md` (`link-targets/agents/guides/advisor-review.md`) |
+| Creating, editing, or reviewing an implementation plan or runbook | `~/.agents/guides/implementation-planning.md` (`link-targets/agents/guides/implementation-planning.md`) |
+| Checking authorization for an external operation | `~/.agents/guides/external-operation-authorization.md` (`link-targets/agents/guides/external-operation-authorization.md`) |
 | JSON structure or value extraction | `~/.agents/guides/structured-data.md` (`link-targets/agents/guides/structured-data.md`) |
 
 <!--

@@ -512,6 +512,22 @@ def validate_skill_discovery(
                 f"Skill discovery/runtime sections missing from {node_path}: "
                 + ", ".join(missing_sections)
             )
+        conditional_prefix = "- Conditional dependency: "
+        conditional_lines = [
+            line[len(conditional_prefix) :].strip()
+            for line in skill_text.splitlines()
+            if line.startswith(conditional_prefix)
+        ]
+        if len(conditional_lines) != 1:
+            raise ValidationError(
+                "migrated Skill must declare exactly one conditional dependency: "
+                f"{node_path}"
+            )
+        if metadata["conditional"] != conditional_lines[0]:
+            raise ValidationError(
+                "discovery conditional metadata drift from Skill source: "
+                f"{node_path}"
+            )
 
 
 def validate_compatibility_fallbacks(
@@ -574,10 +590,27 @@ def validate_compatibility_fallbacks(
             raise ValidationError(
                 f"compatibility fallback does not name its Skill owner: {path} -> {owner}"
             )
-        normalized_fallback = " ".join(fallback_text.lower().split())
+        normalized_fallback = " ".join(
+            fallback_text.lower().replace(chr(96), "").split()
+        )
         if "no runtime rules" not in normalized_fallback:
             raise ValidationError(
                 f"compatibility fallback must declare that it has no runtime rules: {path}"
+            )
+        expected_fallback = " ".join(
+            (
+                f"# claude code compatibility shim: {PurePosixPath(owner).parent.name} "
+                f"this temporary host fallback exists for {retire_after}. "
+                f"the normative runtime contract is {owner}. "
+                "read that Skill and apply its ## guide section; this shim defines "
+                "no runtime rules of its own. if the Skill cannot be resolved, "
+                "stop and report."
+            ).lower().split()
+        )
+        if normalized_fallback != expected_fallback:
+            raise ValidationError(
+                "compatibility fallback may contain only its Skill owner, "
+                f"retirement condition, and no-runtime-rules notice: {path}"
             )
         if (router, path, "host-fallback") not in edge_keys:
             raise ValidationError(
@@ -602,6 +635,80 @@ def validate_compatibility_fallbacks(
             raise ValidationError(
                 "exempt discovery Skill must not have a compatibility fallback: "
                 f"{node_path}"
+            )
+
+
+def validate_normative_owners(
+    root: Path,
+    nodes: dict[str, dict[str, Any]],
+    document: dict[str, Any],
+) -> None:
+    """Check unique Skill ownership and reject hidden legacy-guide loaders."""
+
+    owners = document.get("normative_owners", [])
+    if not isinstance(owners, list):
+        raise ValidationError("normative_owners must be an array")
+
+    fallback_owners = {
+        (entry.get("path"), entry.get("owner"))
+        for entry in document.get("compatibility_fallbacks", [])
+        if isinstance(entry, dict)
+    }
+    seen_contracts: set[str] = set()
+    seen_legacy_paths: set[str] = set()
+    for index, record in enumerate(owners):
+        if not isinstance(record, dict):
+            raise ValidationError(f"normative_owners[{index}] must be an object")
+        contract = record.get("contract")
+        owner = record.get("owner")
+        legacy_path = record.get("legacy_path")
+        for field, value in (
+            ("contract", contract),
+            ("owner", owner),
+            ("legacy_path", legacy_path),
+        ):
+            if not isinstance(value, str) or not value.strip():
+                raise ValidationError(
+                    f"normative_owners[{index}].{field} must be non-empty"
+                )
+        parse_relative_path(owner, f"normative_owners[{index}].owner")
+        parse_relative_path(legacy_path, f"normative_owners[{index}].legacy_path")
+        if contract in seen_contracts or legacy_path in seen_legacy_paths:
+            raise ValidationError(
+                f"duplicate normative source ownership: {contract!r} / {legacy_path!r}"
+            )
+        seen_contracts.add(contract)
+        seen_legacy_paths.add(legacy_path)
+
+        if owner not in nodes or nodes[owner].get("kind") != "skill-entrypoint":
+            raise ValidationError(
+                f"normative contract owner is not a Skill entrypoint: {owner}"
+            )
+        if legacy_path not in nodes or nodes[legacy_path].get("kind") != "compatibility-fallback":
+            raise ValidationError(
+                f"normative contract legacy path is not a compatibility shim: {legacy_path}"
+            )
+        if (legacy_path, owner) not in fallback_owners:
+            raise ValidationError(
+                f"normative contract owner drift: {legacy_path} does not route to {owner}"
+            )
+
+        owner_text = source_text(root, owner)
+        if owner_text is None:
+            raise ValidationError(f"normative Skill owner is unreadable: {owner}")
+        owner_name = frontmatter_value(owner_text, "name")
+        if owner_name != contract:
+            raise ValidationError(
+                f"normative contract owner drift: {contract} maps to Skill {owner_name!r}"
+            )
+        if "## Guide" not in owner_text:
+            raise ValidationError(
+                f"normative Skill owner has no self-contained Guide section: {owner}"
+            )
+        legacy_basename = PurePosixPath(legacy_path).name
+        if legacy_path in owner_text or legacy_basename in owner_text:
+            raise ValidationError(
+                f"hidden Skill-to-legacy-guide loader found: {owner} -> {legacy_path}"
             )
 
 
@@ -693,6 +800,7 @@ def validate(document: dict[str, Any], map_path: Path) -> tuple[int, int, int, i
     validate_source_references(root, nodes, document)
     validate_skill_discovery(root, nodes)
     validate_compatibility_fallbacks(root, nodes, document)
+    validate_normative_owners(root, nodes, document)
     validate_retired_paths(root, map_path, document)
     return len(nodes), declared_edge_count, len(edges), external_consumer_count, root
 
