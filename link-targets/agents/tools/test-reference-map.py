@@ -649,7 +649,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
                 "## Discovery contract\n\n"
                 "- Positive trigger: example.\n"
                 "- Negative trigger: unrelated.\n"
-                "- Conditional dependency: none.\n"
+                "- Conditional dependency: none\n"
                 "- Failure mode: fail-safe.\n\n"
                 "## Runtime contract\n\n"
                 "Stop safely when unavailable.\n\n"
@@ -680,6 +680,13 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             map_path.write_text(json.dumps(document), encoding="utf-8")
             result = self.run_validator(map_path)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+            document["nodes"][-1]["discovery"]["conditional"] = "stale dependency"
+            map_path.write_text(json.dumps(document), encoding="utf-8")
+            result = self.run_validator(map_path)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("conditional metadata drift from Skill source", result.stderr)
+            document["nodes"][-1]["discovery"]["conditional"] = "none"
 
             del document["nodes"][-1]["host_fallback"]
             map_path.write_text(json.dumps(document), encoding="utf-8")

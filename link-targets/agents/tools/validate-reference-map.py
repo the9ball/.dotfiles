@@ -512,6 +512,22 @@ def validate_skill_discovery(
                 f"Skill discovery/runtime sections missing from {node_path}: "
                 + ", ".join(missing_sections)
             )
+        conditional_prefix = "- Conditional dependency: "
+        conditional_lines = [
+            line[len(conditional_prefix) :].strip()
+            for line in skill_text.splitlines()
+            if line.startswith(conditional_prefix)
+        ]
+        if len(conditional_lines) != 1:
+            raise ValidationError(
+                "migrated Skill must declare exactly one conditional dependency: "
+                f"{node_path}"
+            )
+        if metadata["conditional"] != conditional_lines[0]:
+            raise ValidationError(
+                "discovery conditional metadata drift from Skill source: "
+                f"{node_path}"
+            )
 
 
 def validate_compatibility_fallbacks(
