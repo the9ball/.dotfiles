@@ -1,6 +1,5 @@
 ---
 task_continuity: true
-status: active
 session_id: "{{SESSION_ID}}"
 continuous_write_approved: true
 memo_path_approved: "{{MEMO_PATH}}"
@@ -26,7 +25,7 @@ evidence whenever the two conflict.
 
 ### Active constraints and approvals
 
-- Memo creation, continuous maintenance, session registration, and mechanical
+- Memo creation, continuous maintenance, session-to-memo binding, and mechanical
   compact append records were approved at `{{APPROVED_AT}}`.
 - {{CONSTRAINT_OR_APPROVAL}}
 
@@ -58,8 +57,8 @@ evidence whenever the two conflict.
 
 ### {{STARTED_AT}}
 
-- Decision: Activate task continuity.
-- Reason: {{ACTIVATION_REASON}}
+- Decision: Bind the task-continuity memo to this session.
+- Reason: {{CONTINUITY_REASON}}
 - Evidence checked: {{INITIAL_EVIDENCE}}
 
 ## Maintenance log

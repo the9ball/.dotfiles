@@ -45,15 +45,20 @@ modification time, and size. Preserve the full-precision machine timestamp
 captured during preview, such as filesystem ticks or nanoseconds, for later
 comparison. Never reconstruct that value from human-readable display text.
 
-`TASK_CONTINUITY_ACTIVE_MEMO_PATH`, when present in hook context, is
-model-visible context rather than a process environment variable. Normalize
-that absolute path and exclude the exact file from the preview. If a helper
-command performs enumeration, pass the exclusion path to it explicitly. Do
-not infer a replacement exclusion when the label is absent.
+`TASK_CONTINUITY_BOUND_MEMO_PATH`, when present in hook context, is
+model-visible context rather than a process environment variable. During
+mixed-version rollout, accept `TASK_CONTINUITY_ACTIVE_MEMO_PATH` only as a
+legacy alias when the bound-path label is absent. Normalize absolute paths
+before comparison; if both labels are present and differ, fail closed and
+do not continue cleanup. These labels provide a memo path only; they do not
+indicate lifecycle status or approval. Exclude the exact normalized bound
+file from the preview. If a helper command performs enumeration, pass the
+exclusion path to it explicitly. Do not infer a replacement exclusion when
+both labels are absent.
 
-Do not read or write any task-continuity session registry. Registry status,
-stale references, ownership records, and fixture installations are outside
-this skill's scope.
+Do not read or write any task-continuity session registry. Legacy status fields,
+stale references, ownership records, and fixture installations are outside this
+skill's scope.
 
 Show the selected directories, threshold, cutoff, candidate count, and a list
 containing path, size, UTC modification time, and local modification time with
