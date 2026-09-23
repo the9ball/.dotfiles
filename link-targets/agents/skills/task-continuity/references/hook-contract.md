@@ -67,23 +67,6 @@ timestamp or ownership identity, an unknown legacy writer, or a mixture of
 standing and task-scoped fields is ambiguous and fails closed. Never infer
 task-scoped approval solely from the absence of a standing marker.
 
-Keep explicit authorization revocations in the same session registry as a
-separate `revoked_bindings` collection. Each record identifies the exact host,
-session lineage, memo path, installation ownership, revocation timestamp, and
-`revocation_source: explicit-user-instruction`; it carries no task-lifecycle
-status. `TASK_CONTINUITY_UNBIND` must atomically
-record that exact revocation and remove only the matching live binding. If the
-registry write or read-back fails, report that revocation was not applied.
-Automatic binding must check this collection before considering standing
-approval and must not recreate any binding automatically for a host/session
-lineage with a revocation record, even when a memo and `.allow-write` marker
-remain. A later explicit bind may clear only the exact matching revocation
-after fresh user approval for that path. Binding a different path requires its
-own fresh approval and leaves the old path's revocation intact.
-An exact revocation blocks model and hook writes to that host/session/path;
-the standing marker does not override it. Only a later explicit bind after
-fresh approval restores writes for that exact binding.
-
 The storage format and location are environment-specific. Do not put registry
 state in the shared skill directory or source repository.
 
@@ -152,8 +135,6 @@ Model-visible hook context must use clear labels and provide:
   binding, with an empty value when no validated marker exists
 - An environment-specific binding instruction, labeled
   `TASK_CONTINUITY_BIND`
-- An environment-specific authorization-only unbind instruction, labeled
-  `TASK_CONTINUITY_UNBIND`, available at every `SessionStart`
 - An environment-specific standing-directory grant instruction
 
 During mixed-version rollout, accept
@@ -162,22 +143,6 @@ bound-path label is absent. Normalize both absolute paths before comparing
 them; if both labels are present and differ, fail closed. The legacy label
 is only a path alias. It does not establish activity, approval, or status.
 Do not provide a task-continuity close instruction or runtime close action.
-
-`TASK_CONTINUITY_UNBIND` revokes only the exact binding identified by host,
-session lineage, memo path, and installation ownership. It atomically removes
-that live binding and adds the exact `revoked_bindings` record; it changes no
-task or memo lifecycle state. Require an explicit user revocation or
-path-replacement instruction;
-never infer revocation from memo status, task completion, or missing files.
-Do not alter another binding. After unbinding, hooks must not write to or
-recover the old path, and the model must not write to it either. A replacement
-requires unbinding the exact old record, separate approval for the new exact
-path, then creating a new binding. Never repoint or keep two paths for one
-host/session lineage. If the adapter cannot
-perform exact unbinding, report that revocation has not been applied. Require
-the helper to be regenerated or its hooks disabled or uninstalled before
-claiming that mechanical writes to the old path have stopped. Until then, do
-not claim that maintaining another path prevents the old hooks from writing.
 
 These `TASK_CONTINUITY_*` names are text labels in injected model context.
 They are not environment variables and must not be read from the process
@@ -199,13 +164,12 @@ does not require a per-write registry or frontmatter check.
 
 Keep injected context short. Do not inject the complete memo automatically.
 
-The complete binding command must be available at `SessionStart`. The complete
-unbinding command must also be available there on every session. Per-turn
-`UserPromptSubmit` context may omit either command when it was supplied at
-`SessionStart`; refer to those instructions. A validated standing-approval
-memo at the exact default path uses host-side automatic binding, so missing
-the session-start command does not block recovery. Custom paths and
-task-scoped-only approval require the explicit binding interface.
+The complete binding command must be available at `SessionStart`. Per-turn
+`UserPromptSubmit` context may omit it when it was supplied at `SessionStart`;
+refer to those instructions. A validated standing-approval memo at the exact
+default path uses host-side automatic binding, so missing the session-start
+command does not block recovery. Custom paths and task-scoped-only approval
+require the explicit binding interface.
 
 Each host adapter may define a host-local reminder policy. The abstract modes
 are `periodic` (emit a short memo-maintenance reminder at a configurable long
@@ -237,11 +201,11 @@ When no valid session-to-memo binding exists:
   warrants a memo.
 - When the exact default memo later exists, record its binding from the event
   hook only after validating the marker and required memo metadata specified
-  under Automatic default-path binding and confirming that this host/session
-  lineage has no revocation record. If revoked, do not auto-bind or write; show
-  the user the explicit-bind interface. If an existing binding points to a
+  under Automatic default-path binding and confirming that no binding already
+  exists for this host/session lineage. If an existing binding points to a
   missing memo, use Boundary recovery and missing memo instead of treating
-  legacy status as a reason to stop.
+  legacy status as a reason to stop. A binding to a different path is never
+  repointed; the conflicting path fails closed.
 
 When a validated binding exists:
 
@@ -314,10 +278,6 @@ writes only when all of these checks pass:
 - If a registry record already exists for the host and session, validate it as
   a binding using its identity, path, ownership, and approval evidence only.
   Ignore its status and never replace it automatically.
-- If `revoked_bindings` contains a record for this host/session lineage, do not
-  automatically bind any path, even when the standing marker and memo remain
-  valid. The exact revoked path is never eligible for writes. A path listed as
-  both bound and revoked is inconsistent; fail closed.
 - Create a new binding only when no registry record exists and all following
   default-path and standing-approval checks pass.
 - The memo is the exact default
@@ -341,11 +301,10 @@ A custom path or task-scoped-only approval requires the explicit
 path. New task-scoped records set `approval_scope: task-scoped`, preserve the
 approval timestamp and exact path, and omit `approved_directory`. A
 task-scoped binding does not require `.allow-write` during later recovery.
-Existing status fields do not create, suppress, reopen, or revoke a binding.
-An explicit bind after revocation clears only the exact matching revocation
-record when fresh approval and the new binding are committed together. On
+Existing status fields do not create, suppress, or alter a binding. On binding
 failure, leave the registry unchanged, do not write the memo, and report an
-advisory without blocking the host event.
+advisory without blocking the host event. A different path never replaces an
+existing binding; fail closed for the conflicting path.
 
 ## Boundary recovery and missing memo
 
@@ -381,12 +340,10 @@ If any identity, path, approval, or ownership check fails, do not recreate or
 append. Never repoint a binding to another path. Legacy `active`, `closed`,
 unknown, or absent status fields do not affect these checks.
 
-If the user revokes approval or explicitly requests a different memo path,
-first perform `TASK_CONTINUITY_UNBIND` for the exact old host/session/path
-record. Obtain approval for the replacement path and create a fresh binding
-only after that authorization succeeds. Until then, do not write or recover
-through the old binding. If exact unbinding is unsupported, do not bind the
-replacement; maintain it without hook recovery.
+If the user explicitly requests a different memo path while a binding exists,
+preserve the existing binding and fail closed for the conflicting path. This
+contract defines no binding-removal or path-replacement operation. Do not
+repoint the binding.
 
 ## SessionStart
 
@@ -402,12 +359,7 @@ fork/resume/recovery boundary, add model-visible context that requires:
 6. Resuming continuous maintenance.
 
 When no binding exists, provide continuity-risk context and the bind interface
-as applicable. When a revocation exists for the host/session lineage, identify
-the revoked path and tell the model and hooks not to write or recover it. Any
-new path requires fresh explicit approval through `TASK_CONTINUITY_BIND`; never
-bind automatically or clear an old path's revocation. Keep the unbind
-instruction available. Do not inherit a parent session's binding into an
-unbound fork.
+as applicable. Do not inherit a parent session's binding into an unbound fork.
 
 ## Installation ownership
 

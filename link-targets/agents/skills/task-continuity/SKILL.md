@@ -123,17 +123,11 @@ because a different memo directory was selected, ask for one approval covering:
 - Creating a local `.allow-write` marker for future task-continuity sessions in
   the exact selected memo directory.
 
-Task-scoped approval and its recorded binding remain the authorization basis
-for covered writes to that exact host, session, and memo-path binding until the
-user explicitly revokes it. Revocation invalidates only that exact binding
-through `TASK_CONTINUITY_UNBIND`; it does not mark the task complete or change
-memo lifecycle state. The unbind operation must record an exact authorization
-revocation in the existing session registry so automatic binding cannot restore
-it from a still-valid standing marker. Until a fresh binding is approved,
-neither the model nor hooks may write to that exact host/session/path. A path
-replacement requires exact unbinding of the old path, separate approval for
-the new path, then a new binding. Do not extend the old approval to another
-path, session, or operation.
+Task-scoped approval and its recorded binding cover writes to that exact host,
+session, and memo path. Do not extend the approval to another path, session, or
+operation. If a different path is requested while a binding exists, preserve
+the existing binding and fail closed for the conflicting path. This contract
+defines no binding-removal or path-replacement operation.
 
 For any other `scope-out` operation, obtain approval that explicitly names the
 proposed path and operation. Do not treat the memo-approval bundle above
@@ -181,21 +175,20 @@ below are met.
    manually, and do not run the instruction for task-scoped-only approval.
 5. For the validated standing-approval default path, let the next host event
    validate the memo metadata and record its binding automatically when no
-   revocation record exists. After revocation, use the explicit binding
-   interface with fresh approval. For a custom path or task-scoped-only
-   approval, follow the binding interface supplied by installed hook context.
+   binding exists. For a custom path or task-scoped-only approval, follow the
+   binding interface supplied by installed hook context. An existing binding
+   to a different path remains unchanged and causes the conflicting path to
+   fail closed.
 
 Installed hook context should provide the current session ID, proposed default
 path, bound memo path when one exists, and an environment-specific bind
-instruction at session start. It must also provide the complete
-authorization-only unbind instruction at every session start. It must not
-provide a task-continuity close instruction. Routine prompt context may be
-abbreviated to a risk or maintenance reminder. If the full session-start
-context does not exist but a valid standing marker and session ID are
-available, create the default memo and let `UserPromptSubmit` or `PreCompact`
-recover its binding unless an exact revocation record blocks it. Otherwise
-create and maintain the memo without hook recovery and tell the user that
-compact automation is unavailable until the adapter is repaired.
+instruction at session start. It must not provide a task-continuity close
+instruction. Routine prompt context may be abbreviated to a risk or
+maintenance reminder. If the full session-start context does not exist but a
+valid standing marker and session ID are available, create the default memo
+and let `UserPromptSubmit` or `PreCompact` recover its binding when no binding
+exists. Otherwise create and maintain the memo without hook recovery and tell
+the user that compact automation is unavailable until the adapter is repaired.
 
 After binding, the hook may omit the standing-approval notification because
 the validated session binding preserves the exact approved path and approval
@@ -212,15 +205,10 @@ not memo content.
 
 While the task is underway, keep the memo synchronized with current primary
 evidence. Updating the memo is part of completing each state-changing step,
-not an optional later checkpoint. Task-scoped approval and registration remain
-the authorization basis for covered writes to the exact host, session, and
-memo-path binding until explicit revocation. Process revocation by invalidating
-only the exact host/session/path binding with `TASK_CONTINUITY_UNBIND`; do not
-infer it from task completion, legacy status, or missing files. For a path
-replacement, unbind the exact old record, obtain new-path approval, and then
-bind the replacement. Do not extend approval to another path, session, or
-operation. Confirm the revocation record by read-back before saying that hook
-writes to the old path have stopped.
+not an optional later checkpoint. Continue to use the validated binding only
+for its exact host, session, memo path, and approved operations. If a requested
+path conflicts with that binding, fail closed and do not repoint it. Do not
+extend approval to another path, session, or operation.
 
 Update it after:
 
@@ -279,15 +267,11 @@ by itself prove the current task meaning or target epoch. If the hook cannot
 establish that identity, it must not recreate the memo or append a compact
 record. It must provide recovery context for the model to validate identity
 from the current conversation and primary evidence. `PreCompact` and
-`PostCompact` skip appending until recovery is complete. If the user explicitly
-requests a different path, first invalidate the exact old binding with
-`TASK_CONTINUITY_UNBIND`, then obtain separate approval and create the new
-binding. One host/session lineage has one bound memo path. If the adapter
-cannot unbind exactly, report that revocation has not been applied. Require the
-helper to be regenerated or its hooks disabled or uninstalled before claiming
-that mechanical writes to the old path have stopped. Do not write to the old
-memo, bind the replacement through that helper, or claim it prevents old-hook
-writes until revocation is confirmed. Never move or repoint the old binding.
+`PostCompact` skip appending until recovery is complete. One host/session
+lineage has one bound memo path. If a different path is requested, preserve the
+existing binding, fail closed for the conflicting path, and provide recovery
+context. This contract defines no binding-removal or path-replacement
+operation. Never move or repoint the binding.
 
 When hook context reports a bound memo after `PostCompact`,
 `SessionStart(compact)`, fork, resume, or another recovery boundary:

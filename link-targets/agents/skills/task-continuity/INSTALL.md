@@ -17,9 +17,9 @@ This source contract uses status-free session-to-memo bindings. An already
 installed generated helper may still require legacy `status: active` metadata
 and expose activation or close commands. Regenerate and reinstall that helper
 under this contract before relying on the status-free template. The regenerated
-helper must expose exact authorization-only unbinding and must have no close
-action. This source-only change does not migrate an installed helper or
-establish end-to-end host behavior.
+helper must support the binding contract and must have no close action. This
+source-only change does not migrate an installed helper or establish end-to-end
+host behavior.
 
 Do not assume Node.js, Python, PowerShell, Bash, fixed configuration paths, or
 unchanging hook schemas. Inspect the current environment and official
@@ -232,32 +232,15 @@ never survive a failed or incomplete run.
     legacy writer, mismatched directory, or mixed standing/task-scoped fields
     fail closed. The absence of a standing marker alone never proves
     task-scoped approval.
-31. `TASK_CONTINUITY_UNBIND` removes only the exact host/session/path binding
-    after explicit user revocation and records an exact revocation in the
-    existing registry, including explicit-user-instruction provenance. It
-    changes no task or memo lifecycle state and cannot affect another binding.
-    Even with the memo and standing marker left intact, later `SessionStart`,
-    `UserPromptSubmit`, `PreCompact`, and `PostCompact` events neither recreate
-    that binding nor append to the old memo. Model-side writes to the exact
-    revoked path are also blocked. A fresh explicit approval can clear only the
-    matching revocation and bind that path again.
-    A path replacement requires exact unbinding and separate approval of the
-    replacement path.
-32. Automatic binding rejects a memo or approved directory that is a symbolic
+31. Automatic binding rejects a memo or approved directory that is a symbolic
     link, junction, or reparse point. Compact append and missing-memo recovery
     repeat no-follow checks immediately before I/O and use no-follow open or
     create semantics where supported. If the adapter cannot avoid following a
     link or verify the target, it fails closed. Replacing the bound memo or
     parent directory with a link after binding fails closed.
-33. Generated `SessionStart` context contains no `TASK_CONTINUITY_CLOSE`, and
+32. Generated `SessionStart` context contains no `TASK_CONTINUITY_CLOSE`, and
     the runtime exposes no close command/action that can mutate a binding when
-    task work ends. Authorization-only unbind remains available for explicit
-    revocation and removes only the exact approved binding.
-34. The complete `TASK_CONTINUITY_UNBIND` instruction is available at every
-    `SessionStart`. If the installed helper cannot perform exact unbinding or
-    confirm the revocation by read-back, report that revocation was not
-    applied. Do not claim old-path hook writes have stopped; require helper
-    regeneration or hook disablement/uninstallation first.
+    task work ends.
 
 Run the host's own configuration validator or launch a disposable new session
 when available. If neither is possible, label the result `fixture-only`; do not
