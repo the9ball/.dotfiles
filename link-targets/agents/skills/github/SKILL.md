@@ -34,8 +34,11 @@ GitHub service/API 上の Issue、Pull Request、review、comment、label、rele
 
 ### Access failure の診断
 
-- 単発の `gh` access/auth/connectivity failure だけで永続的な credential failure と断定しない。
-- 外部効果を伴わない GitHub access を同じ標準経路で 1 回 retry し、実効的な利用可能性を確認する。retry も失敗した場合は別経路へ fallback せず停止する。
+- GitHub への network access が必要な `gh` / `gh api` は、host が network-restricted sandbox を使用する場合、その sandbox 内で失敗させてから retry せず、network access が許可された host の正式な実行経路を最初から使用する。Codex では `require_escalated` を使用する。これは Linux の `sudo` 等による user privilege escalation とは別であり、network を必要としない `gh` 操作まで一律に escalation しない。
+- 単発の `gh` access/auth/connectivity failure や通常表示だけで永続的な credential failure と断定しない。認証失敗が疑われる場合は `gh auth status -h github.com --json hosts` を実行し、exit status 単独ではなく JSON の `state` / `error` を確認する。
+- credential failure は `error` が token / credential 自体の invalid / revoked / expired 等を明示する場合にのみ分類する。未知の error、DNS / network / TLS / rate limit / GitHub API failure、到達不能、`socket: operation not permitted` 等の実行環境制約は credential failure と推定しない。
+- credential failure と確認できない状態で `gh auth refresh` / `gh auth login` 等を recovery として実行しない。
+- network-restricted sandbox 以外で発生した外部効果を伴わない GitHub access failure は、同じ標準経路で 1 回 retry し、実効的な利用可能性を確認する。retry も失敗した場合は別経路へ fallback せず停止する。
 - この retry は read-only の診断であり、write の再送、ambiguous outcome、read-back、retry lifecycle を定めない。それらは共通 contract の責務とする。
 
 ### Resource identity
