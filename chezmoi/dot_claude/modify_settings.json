@@ -60,4 +60,9 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{- $_ = set $enabledPlugins "dotnet@dotnet-agent-skills" true -}}
 {{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
 
+{{- /*
+  回答後の入力欄に表示される prompt suggestion は不要なので無効化する。
+*/ -}}
+{{- $_ = set $settings "promptSuggestionEnabled" false -}}
+
 {{- $settings | toPrettyJson -}}
