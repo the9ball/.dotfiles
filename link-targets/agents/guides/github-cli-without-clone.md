@@ -3,7 +3,7 @@
 > **Maintenance note:** このガイドは GPT-Chat から参照される外部向け shared reference である。repository runtime の activation path は要求せず、`reference-map.json` の `external_consumers` 登録を存続根拠として扱う。
 
 GitHub CLI (`gh`) を使い、`git clone` せずに GitHub 上のファイル、branch、commit、Pull Request を操作するときの実用ガイド。
-GitHub service/API の normative contract は `link-targets/agents/skills/github/SKILL.md` を優先し、この文書は操作方法のリファレンスとして扱う。外部 write の authorization は `link-targets/agents/guides/external-operation-authorization.md` に従う。GitHub token / repository permission と、ユーザーが許可した semantic authorization boundary は別物として扱う。
+GitHub service/API の normative contract は `link-targets/agents/skills/github/SKILL.md` を優先し、この文書は操作方法のリファレンスとして扱う。外部 write の authorization は `link-targets/agents/skills/external-operation-authorization/SKILL.md` に従う。GitHub token / repository permission と、ユーザーが許可した semantic authorization boundary は別物として扱う。
 
 ## 基本方針
 
@@ -177,7 +177,7 @@ Contents API、ref 更新、Git Data API、PR 作成は、それぞれ独立し�
 
 成功応答だけで完了扱いにせず、対象 file SHA、ref SHA、commit、PR など、その logical operation に対応する remote state を read-back して外部効果を確認する。timeout や不明応答は outcome ambiguous とし、未適用を確認できるまで同じ write を再送しない。成功済みの logical operation も再送しない。
 
-authorization boundary の記録、消費、retry budget、ambiguous outcome、操作後記録の詳細は `link-targets/agents/guides/external-operation-authorization.md` を正本とし、このガイドでは複製しない。
+authorization boundary の記録、消費、retry budget、ambiguous outcome、操作後記録の詳細は `link-targets/agents/skills/external-operation-authorization/SKILL.md` を正本とし、このガイドでは複製しない。
 
 ## 注意事項
 

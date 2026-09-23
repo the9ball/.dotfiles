@@ -100,6 +100,6 @@ REVIEW-SUMMARY を review maintenance の永続 checkpoint とする。有効な
 ### Orchestration and context management
 
 1. 読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から `link-targets/agents/reference-map.json` を見つけ、map の `repository_root` から instruction root を固定する。work root や Git 対象は依頼から別途固定する。
-2. GitHub service/API を扱う場合は `link-targets/agents/skills/github/SKILL.md` を適用する。外部効果には `link-targets/agents/guides/external-operation-authorization.md`、permission / judgment には `link-targets/agents/skills/approval-request-workflow/SKILL.md`、user-visible posting には `link-targets/agents/skills/external-posting/SKILL.md` をそれぞれ必要な場合だけ適用する。
+2. GitHub service/API を扱う場合は `link-targets/agents/skills/github/SKILL.md` を適用する。外部効果には `link-targets/agents/skills/external-operation-authorization/SKILL.md`、permission / judgment には `link-targets/agents/skills/approval-request-workflow/SKILL.md`、user-visible posting には `link-targets/agents/skills/external-posting/SKILL.md` をそれぞれ必要な場合だけ適用する。
 3. main context へ大量の raw comments / API response を不必要に流し込まない。取得・抽出・整理への subagent 利用は任意であり、main agent が最終的な coverage と判断責任を持つ。
 4. 固定 taxonomy、固定 body schema、comment-ID ledger、永続 snapshot、phase state を追加せず、状態が怪しい場合に履歴を再読込して同じ意味状態へ収束させる。

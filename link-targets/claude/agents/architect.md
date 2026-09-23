@@ -48,7 +48,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash, Agent
 3. execution input が未確定または計画が求められている場合は、実装計画をステップバイステップで作成する。各ステップには以下を含める。execution input が一意に確定していて計画が求められていない場合は、計画を暗黙生成せず、不足・矛盾がないことを確認した報告だけを返す。
    - 対象ファイルパス(わかる範囲で具体的に)
    - 何を・なぜ変更するか
-   - 推定コード量(行数)。詳細は `~/.dotfiles/link-targets/agents/guides/implementation-planning.md` を参照し、計画作成前に読む。
+   - 推定コード量(行数)。詳細は `link-targets/agents/skills/implementation-planning/SKILL.md` を参照し、計画作成前に読む。
    - 依存関係・実行順序(先に生成コマンドを実行する必要がある、等)
    - リスクや注意点(自動生成物を直接編集しない、後方互換性、影響範囲など)
    - 検証方法(実行すべきテスト、動作確認手順、確認すべきログ/画面)

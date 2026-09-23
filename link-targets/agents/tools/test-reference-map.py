@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,15 @@ from pathlib import Path
 
 
 SCRIPT = Path(__file__).with_name("validate-reference-map.py")
+VALIDATOR_SPEC = importlib.util.spec_from_file_location("reference_map_validator", SCRIPT)
+assert VALIDATOR_SPEC is not None and VALIDATOR_SPEC.loader is not None
+VALIDATOR = importlib.util.module_from_spec(VALIDATOR_SPEC)
+previous_bytecode_setting = sys.dont_write_bytecode
+sys.dont_write_bytecode = True
+try:
+    VALIDATOR_SPEC.loader.exec_module(VALIDATOR)
+finally:
+    sys.dont_write_bytecode = previous_bytecode_setting
 
 
 def write_fixture(root: Path, edges: list[dict[str, str | bool]]) -> Path:
@@ -302,6 +312,69 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         self.assertIn("declared edges", result.stdout)
         self.assertIn("acyclic edges", result.stdout)
 
+    def test_normative_owner_registry_rejects_duplicate_and_drift(self) -> None:
+        """Require one declared Skill owner for each migrated runtime contract."""
+
+        map_path = (SCRIPT.parent.parent / "reference-map.json").resolve()
+        document = VALIDATOR.read_json(map_path)
+        root = VALIDATOR.repository_root(map_path, document)
+        nodes = VALIDATOR.validate_nodes(document, root, map_path)
+
+        duplicate_document = json.loads(json.dumps(document))
+        duplicate_document["normative_owners"].append(
+            dict(duplicate_document["normative_owners"][0])
+        )
+        with self.assertRaisesRegex(
+            VALIDATOR.ValidationError, "duplicate normative source"
+        ):
+            VALIDATOR.validate_normative_owners(root, nodes, duplicate_document)
+
+        drifted_document = json.loads(json.dumps(document))
+        drifted_document["normative_owners"][0]["owner"] = (
+            "link-targets/agents/skills/implementation-planning/SKILL.md"
+        )
+        with self.assertRaisesRegex(
+            VALIDATOR.ValidationError, "normative contract owner drift"
+        ):
+            VALIDATOR.validate_normative_owners(root, nodes, drifted_document)
+
+    def test_normative_skill_cannot_load_legacy_guide(self) -> None:
+        """Reject an owner Skill that reaches back to its legacy guide path."""
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            owner_path = ".agents/skills/advisor-review/SKILL.md"
+            legacy_path = ".agents/guides/advisor-review.md"
+            owner_file = root / owner_path
+            owner_file.parent.mkdir(parents=True)
+            owner_file.write_text(
+                "---\nname: advisor-review\ndescription: review\n---\n\n"
+                "## Guide\n\nLoad .agents/guides/advisor-review.md.\n",
+                encoding="utf-8",
+            )
+            (root / legacy_path).parent.mkdir(parents=True)
+            (root / legacy_path).write_text("shim\n", encoding="utf-8")
+            nodes = {
+                owner_path: {"kind": "skill-entrypoint"},
+                legacy_path: {"kind": "compatibility-fallback"},
+            }
+            document = {
+                "normative_owners": [
+                    {
+                        "contract": "advisor-review",
+                        "owner": owner_path,
+                        "legacy_path": legacy_path,
+                    }
+                ],
+                "compatibility_fallbacks": [
+                    {"path": legacy_path, "owner": owner_path}
+                ],
+            }
+            with self.assertRaisesRegex(
+                VALIDATOR.ValidationError, "hidden Skill-to-legacy-guide loader"
+            ):
+                VALIDATOR.validate_normative_owners(root, nodes, document)
+
     def test_first_wave_discovery_and_dependency_edges(self) -> None:
         """Check owner Skills, host discovery, and preserved conditional closure."""
 
@@ -318,11 +391,17 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             "github",
             "structured-data",
         }
+        second_wave = {
+            "advisor-review",
+            "external-operation-authorization",
+            "implementation-planning",
+        }
+        discovery_skills = first_wave | second_wave
         nodes = {node["path"]: node for node in document["nodes"]}
         edges = {
             (edge["from"], edge["to"]): edge for edge in document["edges"]
         }
-        for name in first_wave:
+        for name in discovery_skills:
             skill_path = f"link-targets/agents/skills/{name}/SKILL.md"
             node = nodes[skill_path]
             self.assertEqual(node["kind"], "skill-entrypoint")
@@ -355,11 +434,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             ),
             (
                 "link-targets/agents/skills/approval-request-workflow/SKILL.md",
-                "link-targets/agents/guides/external-operation-authorization.md",
-            ),
-            (
-                "link-targets/agents/skills/approval-request-workflow/SKILL.md",
-                "link-targets/agents/guides/approval-request-workflow.design.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
@@ -387,7 +462,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             ),
             (
                 "link-targets/agents/skills/external-posting/SKILL.md",
-                "link-targets/agents/guides/external-operation-authorization.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
             ),
             (
                 "link-targets/agents/skills/git-operations/SKILL.md",
@@ -400,10 +475,6 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             (
                 "link-targets/agents/skills/git-operations/SKILL.md",
                 "link-targets/agents/skills/commit-message/SKILL.md",
-            ),
-            (
-                "link-targets/agents/skills/github/SKILL.md",
-                "link-targets/agents/guides/github.design.md",
             ),
             (
                 "link-targets/agents/skills/github/SKILL.md",
@@ -421,6 +492,50 @@ class ReferenceMapValidatorTests(unittest.TestCase):
                 "link-targets/agents/skills/review-consolidation/SKILL.md",
                 "link-targets/agents/skills/external-posting/SKILL.md",
             ),
+            (
+                "link-targets/agents/skills/execution-lifecycle-gate/SKILL.md",
+                "link-targets/agents/skills/advisor-review/SKILL.md",
+            ),
+            (
+                "link-targets/agents/skills/execution-lifecycle-gate/SKILL.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
+            ),
+            (
+                "link-targets/agents/skills/rigorous-review/SKILL.md",
+                "link-targets/agents/skills/advisor-review/SKILL.md",
+            ),
+            (
+                "link-targets/agents/skills/rigorous-review/SKILL.md",
+                "link-targets/agents/skills/implementation-planning/SKILL.md",
+            ),
+            (
+                "link-targets/agents/skills/review-consolidation/SKILL.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
+            ),
+            (
+                "link-targets/agents/skills/approval-request-workflow/SKILL.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
+            ),
+            (
+                "link-targets/agents/guides/github-cli-without-clone.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
+            ),
+            (
+                "link-targets/agents/AGENTS.md",
+                "link-targets/agents/skills/advisor-review/SKILL.md",
+            ),
+            (
+                "link-targets/agents/AGENTS.md",
+                "link-targets/agents/skills/implementation-planning/SKILL.md",
+            ),
+            (
+                "link-targets/agents/AGENTS.md",
+                "link-targets/agents/skills/external-operation-authorization/SKILL.md",
+            ),
+            (
+                "link-targets/claude/agents/architect.md",
+                "link-targets/agents/skills/implementation-planning/SKILL.md",
+            ),
         }
         for dependency in expected_dependencies:
             self.assertIn(dependency, edges)
@@ -429,7 +544,7 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         }
         self.assertEqual(
             fallback_paths,
-            {f"link-targets/agents/guides/{name}.md" for name in first_wave},
+            {f"link-targets/agents/guides/{name}.md" for name in discovery_skills},
         )
         for fallback in document["compatibility_fallbacks"]:
             path = fallback["path"]
@@ -445,7 +560,17 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             self.assertIn(owner, fallback_text)
             self.assertIn("no runtime rules", " ".join(fallback_text.lower().split()))
             self.assertEqual(router, "chezmoi/dot_claude/CLAUDE.md")
-        self.assertEqual(document["retired_paths"], [])
+        self.assertEqual(
+            set(document["retired_paths"]),
+            {
+                "link-targets/agents/guides/approval-request-workflow.design.md",
+                "link-targets/agents/guides/github.design.md",
+            },
+        )
+        self.assertEqual(
+            {record["contract"] for record in document["normative_owners"]},
+            second_wave,
+        )
 
     def test_edge_count_split_is_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -650,11 +775,16 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             owner_path = skill_directory / "SKILL.md"
             owner_path.write_text("# example skill\n", encoding="utf-8")
             shim_path = root / ".agents" / "guides" / "example.md"
-            shim_path.write_text(
-                "The owner is `.agents/skills/example/SKILL.md`; "
-                "this shim defines no runtime rules.\n",
-                encoding="utf-8",
+            backtick = chr(96)
+            valid_shim = (
+                "# Claude Code compatibility shim: example\n\n"
+                "This temporary host fallback exists for Issue #75. The normative runtime\n"
+                f"contract is {backtick}.agents/skills/example/SKILL.md{backtick}. "
+                f"Read that Skill and apply its {backtick}## Guide{backtick} section;\n"
+                "this shim defines no runtime rules of its own.\n"
+                "If the Skill cannot be resolved, stop and report.\n"
             )
+            shim_path.write_text(valid_shim, encoding="utf-8")
             document = json.loads(map_path.read_text(encoding="utf-8"))
             document["nodes"].append(
                 {
@@ -719,12 +849,12 @@ class ReferenceMapValidatorTests(unittest.TestCase):
 
             restore_valid()
             shim_path.write_text(
-                "The owner is `.agents/skills/example/SKILL.md`; fallback text only.\n",
+                valid_shim + "Run an additional operation-specific rule.\n",
                 encoding="utf-8",
             )
             result = self.run_validator(map_path)
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("no runtime rules", result.stderr)
+            self.assertIn("compatibility fallback may contain only", result.stderr)
 
             restore_valid()
             invalid_owner_kind = json.loads(json.dumps(valid_document))

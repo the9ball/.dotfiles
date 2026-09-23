@@ -9,20 +9,20 @@ description: GitHub service/API の Issue、Pull Request、review、comment、la
 
 - Positive trigger: GitHub service/API 上の resource を read または write する。
 - Negative trigger: Git repository の local checkout や Git transport だけを操作する。
-- Conditional dependency: common policy kernel と GitHub design companion を必要な条件でだけ解決し、共通 authorization は重複定義しない。
+- Conditional dependency: common policy kernel を適用し、再設計材料が必要な場合は本 Skill 内の非runtime Design section を参照する。共通 authorization は重複定義しない。
 - Failure mode: GitHub service contract を解決できない場合は別経路へ fallback せず、fail-safe に停止する。
 
 ## Runtime contract
 
 この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
 
-常時適用される共通 policy kernel は `link-targets/agents/AGENTS.md` とし、GitHub service contract の再設計・review 時だけ非規範 companion の `link-targets/agents/guides/github.design.md` を解決する。
+常時適用される共通 policy kernel は link-targets/agents/AGENTS.md とする。GitHub service contract の再設計・review 時は、本 Skill 内の非runtime Design section を参照する。
 
 ## Guide
 
 GitHub service/API 上の Issue、Pull Request、review、comment、label、release、repository metadata などを read / write するときに適用する。
 この guide は GitHub 操作一般の解説ではなく、共通規約と通常の GitHub 知識だけでは判断がぶれる GitHub service 固有事項だけを保持する normative contract である。一般的な authorization、approval request、external posting、write lifecycle、retry はそれぞれの責務を持つ共通 contract に委譲し、ここへ重複して追加しない。
-この contract 自体を変更・再設計するときは `link-targets/agents/guides/github.design.md` を必要なときだけ参照する。
+この contract 自体を変更・再設計するときは、下記の非runtime Design section を必要なときだけ参照する。
 
 ### Scope
 
@@ -54,3 +54,52 @@ GitHub service/API 上の Issue、Pull Request、review、comment、label、rele
 ### Maintenance rule
 
 GitHub 固有の規則を追加するのは、共通 contract と通常の GitHub 知識だけでは resource / effect / read-back 等の判断が安定しない場合に限る。網羅的な操作一覧、一般 workflow、共通責務の再記述は追加しない。
+
+
+## Design (nonruntime)
+
+This section preserves GitHub contract rationale and reconsideration material. It is not part of the runtime contract and does not override the Guide section.
+
+GitHub Skill runtime contract の将来の設計判断に必要な選択肢、再検討材料、責務境界を記録する。
+通常の GitHub 操作では不要で、`github` Skill の編集・再設計・不確実な境界判断・review 時に参照する。この section は非規範的であり、runtime contract と矛盾する場合は Skill の `## Guide` section を優先する。
+
+### 設計意図
+
+#### service/API と Git transport を分離する
+
+GitHub が提供元でも、Issue/PR API と repository transport では対象 resource、effect、失敗モデルが異なる。`gh` という同じ CLI を使うかではなく、操作の意味が GitHub service/API か Git transport / local checkout かで分類する。
+
+#### 標準経路を host 能力から独立させる
+
+runtime ごとの integration availability を fallback 順序へ組み込むと、同じ guide でも実行経路と失敗時挙動が変わる。そのため service/API の標準経路を `gh` / `gh api` に固定し、host 固有 integration は明示的に採用された別 workflow として分離する。
+
+#### GitHub 固有差分だけを保持する
+
+authorization、approval request、external posting、write retry 等を GitHub guide が再定義すると、共通 contract の変更時に意味が分岐する。GitHub 側には resource identity、PR template、review comment / thread のように通常知識だけでは agent 判断がぶれやすい差分だけを残す。
+
+### 責務境界
+
+`github` Skill は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
+
+一方、以下は所有しない。
+
+- Git repository / Git transport / local checkout の lifecycle
+- external operation の authorization boundary、approval consumption、ambiguous outcome、write retry
+- approval request の discovery、collection、提示 workflow
+- user-visible external posting の一般的な文章・公開規則
+- Issue/PR maintenance、review response、REVIEW-SUMMARY、HANDOFF の workflow
+- host ごとの technical enforcement や integration capability catalog
+
+### 再検討材料
+
+#### read-only 診断 retry の一般化
+
+単発の access/auth/connectivity failure を永続的 failure と即断しない規則は、Git transport や他の外部 service にも一般化できる可能性がある。共通化する場合は、外部効果がないこと、retry budget、write retry との区別、適用可能な failure class を共通 contract 側で十分に定義できることを再検討条件とする。
+
+#### Skill entrypoint への routing 移行
+
+GitHub 操作時の Skill discovery と責務発生時の conditional load は現在 `github` Skill / `reference-map.json` が保証する。今後も progressive disclosure を維持し、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
+
+#### GitHub 固有規則の追加条件
+
+新しい規則候補は、通常の GitHub knowledge で安定して判断できるか、共通 contract が既に所有していないかを先に確認する。GitHub 固有の resource/effect/read-back の差分が実運用で反復して判断をぶらす場合だけ normative Skill Guide への追加を検討する。

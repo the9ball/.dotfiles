@@ -38,7 +38,7 @@ Issue、Pull Request、レビューコメントなど、他ユーザーから見
 
 ### ユーザーの立場として作成する内容
 
-外部投稿の具体化は、`link-targets/agents/guides/external-operation-authorization.md` の認可境界内で行う。
+外部投稿の具体化は、`link-targets/agents/skills/external-operation-authorization/SKILL.md` の認可境界内で行う。
 
 確認済み事実、実施作業、検証結果、既存判断の忠実な要約、通常の文章品質や表現調整は、意味的範囲内で決定できる。
 
