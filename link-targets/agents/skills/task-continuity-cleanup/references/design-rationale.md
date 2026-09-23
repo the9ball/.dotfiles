@@ -18,10 +18,11 @@ permanent deletion.
 ## Why filesystem modification time
 
 The memo schema contains `last_maintained_at`, but maintaining that field
-depends on model behavior. The session `active` and `closed` values likewise
-record whether the explicit close workflow completed, not whether a session is
-still alive. Abandoned, crashed, or silently ended sessions can remain
-`active` indefinitely.
+depends on model behavior. In the legacy memo schema, `active` and `closed`
+recorded whether the explicit close workflow completed, not whether a session
+was still alive. Abandoned, crashed, or silently ended sessions could remain
+`active` indefinitely. The current binding contract ignores these historical
+status values.
 
 During the initial 2026-08-04 design review, the same project memo directory
 contained divergent host state: the inspected Claude registry had only

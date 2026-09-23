@@ -1,6 +1,6 @@
 ---
 name: task-continuity
-description: Maintain an evidence-checked external Markdown state record for long-running tasks. Use automatically when work is likely to span many turns or context compaction, includes multi-phase investigation and implementation, expands in scope, coordinates multiple subagents or persistent workstreams across turns, crosses sessions, or when a task-continuity hook requests evaluation or recovery. Once activated and approved, continuously maintain the memo until the task is closed. Do not use for short Q&A, isolated edits, or brief reviews.
+description: Maintain an evidence-checked external Markdown state record for long-running tasks. Use automatically when work is likely to span many turns or context compaction, includes multi-phase investigation and implementation, expands in scope, coordinates multiple subagents or persistent workstreams across turns, crosses sessions, or when a task-continuity hook requests evaluation or recovery. After approval, bind the memo to the current host session and maintain it while the task is underway. Task completion does not require lifecycle status or a close operation. Do not use for short Q&A, isolated edits, or brief reviews.
 ---
 
 # Task Continuity
@@ -11,7 +11,7 @@ evidence.
 
 ## Evaluate continuity risk
 
-Activate this workflow when at least one hard trigger or two soft triggers
+Use this workflow when at least one hard trigger or two soft triggers
 apply.
 
 Hard triggers:
@@ -29,7 +29,7 @@ Soft triggers:
 - The scope expands beyond the initial request.
 - Tool output or elapsed work is becoming difficult to reconstruct reliably.
 
-Do not activate for short questions, one small edit, or a brief review.
+Do not use this workflow for short questions, one small edit, or a brief review.
 A single bounded, read-only subagent or Advisor consultation that is expected
 to return one result without persistent follow-up state is not a hard trigger
 by itself.
@@ -67,13 +67,19 @@ system, or tool permission prompts.
 `TASK_CONTINUITY_*` names are labels inside model-visible hook context, not
 process environment variables.
 
-Resolve write approval separately from activation and registry recovery:
+Resolve write approval separately from memo binding and boundary recovery:
 
-- `valid`: Hook context supplies `TASK_CONTINUITY_ACTIVE_MEMO_PATH` and the
-  proposed operation is an approved maintenance write to exactly that active
-  memo, or supplies a nonempty
-  `TASK_CONTINUITY_WRITE_PREAPPROVED` directory that exactly covers the
-  proposed runtime write. Reuse the recorded approval without asking again.
+- `valid`: Hook context supplies `TASK_CONTINUITY_BOUND_MEMO_PATH` with a
+  validated binding, or supplies only the legacy path alias together with a
+  validated binding record for the same host, session, and exact path. The
+  proposed operation must be an approved write to that bound memo. A nonempty
+  `TASK_CONTINUITY_WRITE_PREAPPROVED` directory also covers writes within that
+  exact approved directory. Reuse the recorded approval without asking again.
+- During mixed-version rollout, accept
+  `TASK_CONTINUITY_ACTIVE_MEMO_PATH` only as a legacy alias when the bound-path
+  label is absent. Normalize both absolute paths before comparison; if both
+  labels are present and differ, fail closed. The legacy label is only a path
+  alias and does not establish activity, approval, or lifecycle state.
 - `valid-fallback`: The preapproval label or hook context is absent or empty,
   but a read-only fallback validates the standing marker and the proposed
   runtime write is covered. Reuse the recorded approval without asking again.
@@ -96,11 +102,11 @@ marker.
 An absent or empty preapproval label is not by itself evidence that the user
 denied approval. Complete the read-only fallback before asking. Ask for write
 approval only for `invalid`, `unavailable`, or `scope-out`, and only when the
-continuity-risk evaluation otherwise warrants activation.
+continuity-risk evaluation otherwise warrants creating a memo.
 
 If the host session ID is unavailable, do not guess it. This does not invalidate
 standing approval for covered runtime writes; it only prevents session-bound
-activation and automatic registry recovery. A custom memo directly inside the
+memo binding and automatic registry recovery. A custom memo directly inside the
 approved directory remains covered, but must be maintained without hook
 recovery until the adapter exposes the ID. Clearly distinguish any path-choice
 question from a write-approval request.
@@ -109,16 +115,28 @@ When the decision state is `invalid` or `unavailable`, or is `scope-out` solely
 because a different memo directory was selected, ask for one approval covering:
 
 - Creating the selected memo.
-- Continuously updating it until this task is closed.
-- Registering the selected path for the current session when hook integration
+- Continuously maintaining it while the task is underway.
+- Binding the selected path to the current host session when hook integration
   is installed.
 - Allowing mechanical, unverified `PreCompact` and `PostCompact` append-only
   records.
 - Creating a local `.allow-write` marker for future task-continuity sessions in
   the exact selected memo directory.
 
+Task-scoped approval and its recorded binding remain the authorization basis
+for covered writes to that exact host, session, and memo-path binding until the
+user explicitly revokes it. Revocation invalidates only that exact binding
+through `TASK_CONTINUITY_UNBIND`; it does not mark the task complete or change
+memo lifecycle state. The unbind operation must record an exact authorization
+revocation in the existing session registry so automatic binding cannot restore
+it from a still-valid standing marker. Until a fresh binding is approved,
+neither the model nor hooks may write to that exact host/session/path. A path
+replacement requires exact unbinding of the old path, separate approval for
+the new path, then a new binding. Do not extend the old approval to another
+path, session, or operation.
+
 For any other `scope-out` operation, obtain approval that explicitly names the
-proposed path and operation. Do not treat the activation approval bundle above
+proposed path and operation. Do not treat the memo-approval bundle above
 as authorization for nested-directory writes, moves, deletion, or changes to
 other files.
 
@@ -127,60 +145,82 @@ task. Do not write before either current-task or standing approval exists.
 Obtain new approval for deletion, moving files, writing outside the approved
 directory, or expanding the approved operations.
 
-## Boundary revalidation and effective activity
+## Memo binding and boundary revalidation
 
-Fork, resume, compact, and recovery are the lifecycle boundaries at which
-continuity state is revalidated. At each such boundary, confirm the same task
-and session-or-fork lineage, target epoch, exact approved memo path, registry
-entry, memo frontmatter, and standing approval before accepting or repairing
-state. Do not repeat this validation for every ordinary memo write; continuous
-maintenance writes still follow the already-approved path and scope.
+The session registry binds one host/session lineage to one exact approved memo
+path. It is an authorization record for covered writes, not task-lifecycle
+state. At fork, resume, compact, and recovery boundaries, revalidate the same
+task and session-or-fork lineage, target epoch, exact approved memo path,
+binding ownership, and approval evidence before accepting or repairing state.
+Do not repeat this identity check for every ordinary memo write; continuous
+maintenance follows the already validated binding and its scope.
 
-For lifecycle decisions, the effective state is `active` when either the
-validated registry entry or the memo frontmatter is `active`. Treat the task as
-closed only after both sides explicitly declare `closed`. A `closed` registry
-entry therefore does not suppress recovery when its same-path memo is active,
-and an active registry entry does not become inactive merely because the memo
-was temporarily missing. This precedence applies to lifecycle hooks, not to
-the separate metadata-only cleanup policy.
+New binding records explicitly identify `approval_scope` as `standing-marker`
+or `task-scoped`. A standing binding records its exact approved directory; a
+task-scoped binding records the user's explicit approval for its exact path and
+omits that directory. Accept legacy records only in the complete shapes defined
+in `references/hook-contract.md`; unknown writer provenance or partial or
+conflicting approval fields fail closed. Do not infer task-scoped approval from
+the absence of a standing marker.
 
-## Create and activate the memo
+New bindings and memos must omit lifecycle `status`. Existing `active`,
+`closed`, unknown, or absent status fields are legacy metadata. They must not
+authorize or block a write, change binding validity, or control recovery. Memo
+existence alone does not create a binding. A boundary failure is fail-closed
+unless the exact existing binding can be validated and the recovery conditions
+below are met.
+
+## Create and bind the memo
 
 1. Copy `assets/task-memory-template.md` to the approved path.
 2. Replace every placeholder and record the approval scope.
 3. If approved, create `.gitignore` with exactly `*` in the newly created
    default directory.
 4. After new standing approval, follow the hook's directory-grant instruction
-   to create `.allow-write` before activation. Do not create the marker
+   to create `.allow-write` before binding. Do not create the marker
    manually, and do not run the instruction for task-scoped-only approval.
 5. For the validated standing-approval default path, let the next host event
-   validate the memo frontmatter and register it automatically. For a custom
-   path or task-scoped-only approval, follow the activation interface supplied
-   by installed task-continuity hook context.
+   validate the memo metadata and record its binding automatically when no
+   revocation record exists. After revocation, use the explicit binding
+   interface with fresh approval. For a custom path or task-scoped-only
+   approval, follow the binding interface supplied by installed hook context.
 
 Installed hook context should provide the current session ID, proposed default
-path, active memo path when one exists, and environment-specific activation and
-close instructions at session start. Routine prompt context may be abbreviated
-to a risk or maintenance reminder to reduce repeated input overhead. If the
-full session-start context does not exist but a valid standing marker and
-session ID are available, create the default memo and let `UserPromptSubmit` or
-`PreCompact` recover registration. Otherwise create and maintain the memo
-without hook recovery and tell the user that compact automation is unavailable
-until the adapter is repaired.
+path, bound memo path when one exists, and an environment-specific bind
+instruction at session start. It must also provide the complete
+authorization-only unbind instruction at every session start. It must not
+provide a task-continuity close instruction. Routine prompt context may be
+abbreviated to a risk or maintenance reminder. If the full session-start
+context does not exist but a valid standing marker and session ID are
+available, create the default memo and let `UserPromptSubmit` or `PreCompact`
+recover its binding unless an exact revocation record blocks it. Otherwise
+create and maintain the memo without hook recovery and tell the user that
+compact automation is unavailable until the adapter is repaired.
 
-After activation, the hook may omit the standing-approval notification because
-the active session registry entry already identifies the approved memo.
+After binding, the hook may omit the standing-approval notification because
+the validated session binding preserves the exact approved path and approval
+evidence. A task-scoped-only approval does not require a standing marker during
+recovery when the binding records that explicit approval for the same exact
+host, session, and path.
 
-After activation, follow the host adapter's reminder policy. A long-interval
+After binding, follow the host adapter's reminder policy. A long-interval
 periodic reminder is the normal balance; boundary-only and strict per-turn
 reminders are host-local alternatives. Prompt counters are operational state,
 not memo content.
 
 ## Maintain the memo continuously
 
-Once active, keep the memo synchronized with the task until it is closed.
-Updating the memo is part of completing each state-changing step, not an
-optional later checkpoint.
+While the task is underway, keep the memo synchronized with current primary
+evidence. Updating the memo is part of completing each state-changing step,
+not an optional later checkpoint. Task-scoped approval and registration remain
+the authorization basis for covered writes to the exact host, session, and
+memo-path binding until explicit revocation. Process revocation by invalidating
+only the exact host/session/path binding with `TASK_CONTINUITY_UNBIND`; do not
+infer it from task completion, legacy status, or missing files. For a path
+replacement, unbind the exact old record, obtain new-path approval, and then
+bind the replacement. Do not extend approval to another path, session, or
+operation. Confirm the revocation record by read-back before saying that hook
+writes to the old path have stopped.
 
 Update it after:
 
@@ -218,29 +258,46 @@ memo.
 
 ## Recover after compaction or resume
 
-When hook context points to an active memo that no longer exists, treat the
+When hook context points to a bound memo that no longer exists, treat the
 memo as discarded volatile state rather than a fatal error. At the next
-fork/resume/compact/recovery boundary, notify the user, revalidate the task and
-session-or-fork lineage, target epoch, exact path, registry status, and standing
-approval, then recreate a fresh memo at that exact approved path when the
-checks pass. The recreation uses the template and current verified task facts;
-it does not infer or silently restore the discarded memo contents, and the new
-memo must record that reconciliation is required. The existence of the fresh
-memo by the next compaction boundary is the operational consistency condition.
-That path is already registered as this session's active memo, so do not run
-the activation instruction; an existing session entry cannot be repointed and
-activation may fail with a conflict. If the user selects a different path,
-maintain it without hook recovery and state that compact automation is
-unavailable for this session.
+fork/resume/compact/recovery boundary, revalidate the same task and
+session-or-fork lineage, target epoch, exact bound path, binding ownership, and
+approval evidence. A task-scoped-only binding uses its recorded explicit
+approval for that exact path; it does not require a standing marker. A
+standing-approved binding requires revalidation of the exact `.allow-write`
+marker. Before recovery writes, validate the exact parent directory using
+no-follow metadata checks and reject symbolic links, junctions, and reparse
+points. If these checks pass and the current boundary can establish task and
+target-epoch identity, notify the user and recreate a fresh memo from the
+template at the exact bound path. Verify the recreated target is a regular
+non-link file before appending. Do not copy transcript contents, infer
+discarded sections, or repoint the binding. Record that reconciliation is
+required in the new memo.
 
-When hook context reports an active memo after `PostCompact`,
+A binding proves host/session lineage, path, and recorded approval; it does not
+by itself prove the current task meaning or target epoch. If the hook cannot
+establish that identity, it must not recreate the memo or append a compact
+record. It must provide recovery context for the model to validate identity
+from the current conversation and primary evidence. `PreCompact` and
+`PostCompact` skip appending until recovery is complete. If the user explicitly
+requests a different path, first invalidate the exact old binding with
+`TASK_CONTINUITY_UNBIND`, then obtain separate approval and create the new
+binding. One host/session lineage has one bound memo path. If the adapter
+cannot unbind exactly, report that revocation has not been applied. Require the
+helper to be regenerated or its hooks disabled or uninstalled before claiming
+that mechanical writes to the old path have stopped. Do not write to the old
+memo, bind the replacement through that helper, or claim it prevents old-hook
+writes until revocation is confirmed. Never move or repoint the old binding.
+
+When hook context reports a bound memo after `PostCompact`,
 `SessionStart(compact)`, fork, resume, or another recovery boundary:
 
 1. Read the complete memo before continuing.
 2. Revalidate the same task and session-or-fork lineage, target epoch, exact
-   memo path, registry/memo effective activity, and approval metadata.
-3. Inspect current files, Git state, and relevant external systems.
-4. Correct stale or inconsistent current-state entries.
+   memo path, binding ownership, and approval metadata. Ignore legacy lifecycle
+   status fields.
+3. Inspect current files, Git state, commands, and relevant external state.
+4. Correct stale or inconsistent memo entries.
 5. Append a reconciliation result for each unresolved emergency record.
 6. Resume normal work and continuous maintenance.
 
@@ -248,20 +305,18 @@ Mechanical compact records are unverified. They may contain stale summaries or
 pointers and must not override primary evidence.
 
 The compact-time hook is deliberately minimal: it only appends the current
-state and never deduplicates, reorganizes, or rewrites. Duplicate or
-overlapping emergency records are expected and acceptable. Consolidating,
-deduplicating, and rewriting them into clean current-state entries is the job
-of this reconciliation step, not of the compact-time hook.
+state after revalidating the bound memo path and no-follow file/parent metadata
+as specified in `references/hook-contract.md`. It never deduplicates,
+reorganizes, or rewrites. Duplicate or overlapping emergency records are
+expected and acceptable. Consolidating, deduplicating, and rewriting them into
+clean current-state entries is the job of this reconciliation step, not of the
+compact-time hook.
 
-## Close the memo
+## Finish task work
 
-Before completing the task:
-
-1. Update the final outcome, verification, and remaining risks.
-2. Set frontmatter `status` to `closed`.
-3. Append a closing log entry.
-4. Follow the environment-specific close instruction supplied by installed
-   hook context.
-
-Do not delete the memo unless the user asks. Closed memos are disposable
-artifacts and may be removed after any needed revalidation.
+Record the outcome, verification, and remaining risks in the memo before
+finishing the task. Do not add or change lifecycle status, issue a close
+command, or let completion metadata control the session-to-memo binding. The
+memo remains a disposable working-state artifact; its later cleanup still
+requires the separate preview and deletion approval defined by
+`task-continuity-cleanup`.
