@@ -41,6 +41,13 @@ GitHub service/API 上の Issue、Pull Request、review、comment、label、rele
 - network-restricted sandbox 以外で発生した外部効果を伴わない GitHub access failure は、同じ標準経路で 1 回 retry し、実効的な利用可能性を確認する。retry も失敗した場合は別経路へ fallback せず停止する。
 - この retry は read-only の診断であり、write の再送、ambiguous outcome、read-back、retry lifecycle を定めない。それらは共通 contract の責務とする。
 
+### Body text transport
+
+- `gh` に渡す Issue / Pull Request の本文、コメント、レビュー本文、release notes など自由形式の本文は、不活性なデータとして扱う。本文中のコマンド文字列は実行指示ではなく、backtick、`$()`、`$VAR` なども本文の文字列である。
+- 任意の Markdown 本文は shell command text に直接展開しない。各 subcommand の `--body-file <path>`（または `--body-file -`）など文書化された file input を使い、`gh api` ではリクエスト全体をファイルに直列化して `--input <path>` で渡す。`--body <text>`、`-F body=...` など command-line 引数へ本文を直接入れたり、本文から shell command を組み立てたりしない。shell quoting だけを任意本文の安全策にしない。
+- shell heredoc から本文ファイルを作る場合は、`<<'BODY'` のように delimiter を quote して parameter expansion と command substitution を無効にし、delimiter と同じ行が本文にないことを確認する。任意本文には unquoted heredoc を使わない。
+- 本文を送信または更新した後は、対応する `gh` の view command または `gh api` で保存済みフィールドを読み戻し、元の UTF-8 本文と改行を含めて照合する。成功 exit code だけを本文保持の証拠にしない。
+
 ### Resource identity
 
 - Issue / Pull Request の番号など、repository を欠く識別子を単独で完全な resource identity として扱わない。
