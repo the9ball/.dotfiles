@@ -1,0 +1,7 @@
+{{- $windowsScriptPath := printf "%s/.agents/hooks/gh_auth_status_json_gate.py" .chezmoi.homeDir -}}
+{{- $windowsCommand := printf "uv run --managed-python --no-project --no-python-downloads --python 3.13 \"%s\"" $windowsScriptPath -}}
+{{- $unixCommand := "uv run --managed-python --no-project --no-python-downloads --python 3.13 ~/.agents/hooks/gh_auth_status_json_gate.py" -}}
+{{- $handler := dict "type" "command" "command" $unixCommand "commandWindows" $windowsCommand "timeout" 10 -}}
+{{- $matcher := dict "matcher" "^Bash$" "hooks" (list $handler) -}}
+{{- $configuration := dict "description" "Route GitHub CLI authentication checks through host-scoped JSON." "hooks" (dict "PreToolUse" (list $matcher)) -}}
+{{ $configuration | toPrettyJson }}

@@ -5,7 +5,7 @@
 設定ファイルの`sourceDir`は`~/.dotfiles`とし、WindowsとWSLでOS固有の絶対パスを共有しません。
 
 WSL版Codex Remote Controlは任意機能です。
-standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、手動手順で行います。
+standalone版の導入、ログイン、Windowsの自動起動登録は手動手順で行います。`chezmoi apply`は共通hook登録用に`.codex-wsl/hooks.json`を配置し、必要なら`.codex-wsl`ディレクトリを作成しますが、standalone実体や認証情報は作成しません。
 
 ## 共通
 
@@ -56,6 +56,10 @@ Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`
 個人用は`pcodex`（`~/.codex-personal`）、WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
 個人用の`default_permissions`は通常`personal-standard`です。共有ワークスペースに加えてGitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスを許可し、`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離しています。必要な場合だけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で緊急プロファイルを選択してください。絶対パスは`codex-personal-defaults.toml.local`にだけ置き、共有テンプレートには含めません。
 端末固有の仕事用Codex設定は`codex-defaults.toml.local`、個人用設定は`codex-personal-defaults.toml.local`へ置きます。作成手順は[`README.manual.md`](README.manual.md)を参照してください。
+
+GitHub CLI の認証状態確認用 hook は、共通スクリプトを`~/.agents/hooks/`に置き、chezmoiで各`CODEX_HOME`の`hooks.json`へ登録します。共通設定で使うPython 3.13は`chezmoi apply`が`uv`経由で導入し、hookもその管理下のPythonから起動します。初回やhook定義を変更した後は、そのホームでCodexを再起動し、`/hooks`から定義を確認して信頼してください。信頼状態はホームごとに必要です。詳細は[Codex Hooks](https://learn.chatgpt.com/docs/hooks)を参照してください。
+
+hookが調べるのは、CodexのBashツールに渡されたコマンド中の直接的な`gh auth status` / `gh.exe auth status`呼び出しです。一般的な`;`、`&&`、`||`や単純な`if`の区切りは認識し、固定delimiterのhere-document本文はコマンドとして扱いません。一方、`env -i`のようなオプション付きwrapper、`bash -c '…'`のような引用された入れ子コマンド、変数から組み立てるコマンド、PowerShell構文は検出対象ではありません。hookイベントが不正、引用符の解析に失敗、またはhere-documentのdelimiterを確定できない場合も実行を許可します。その場合は`gh auth status -h github.com --json hosts`を直接実行してください。hookはJSON結果を解釈せず、認証状態の分類、login、refreshも行いません。
 
 ### Codex CLIの更新
 
