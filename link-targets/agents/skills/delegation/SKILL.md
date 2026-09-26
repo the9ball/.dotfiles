@@ -42,6 +42,7 @@ description: サブエージェントの dispatch、再利用、handoff、Eviden
 
 - 役割固有のモデル制約は、その role に限り低コストモデル優先より先に適用する。利用不能時に判断 role を黙って別 role へ置き換えない。
 - `Advisor` は、依頼で model が明示されていなければ `gpt-6-sol`、reasoning effort が明示されていなければ `high` を指定して dispatch する。親 agent の model / effort の暗黙継承を Advisor の既定として使わず、依頼で明示された各指定は対応する既定より優先する。
+- Advisor の model / reasoning effort を指定する際は、runtime の起動契約上それらを上書き可能な context fork を選ぶ。`fork_turns="all"` のように親の model / effort 継承が固定される mode は使わず、利用可能なら `none` または必要十分な履歴ターン数を指定する。runtime の契約が確認できない場合は推測で起動しない。
 - agent 定義が自動起動を禁じる場合は、一般の委譲既定より agent 定義を優先する。
 - 選択可能な場合は、タスクを十分遂行できる範囲で最も低コストのモデルを選ぶ。モデル固有の調整が必要なら対応する model guide を併読する。
 
