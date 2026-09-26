@@ -17,6 +17,8 @@ Windows側の`CODEX_HOME`（通常は`C:\Users\<ユーザー名>\.codex-personal
 
 専用ホームを使うと、WSL固有の`AGENTS.md`を置きながら、Windows側の設定、ログ、セッション、SQLite状態を変更せずに済みます。
 
+共通のGitHub CLI認証確認hookは`~/.agents/hooks/`のスクリプトを参照し、`chezmoi apply`で`~/.codex-wsl/hooks.json`へ登録します。この設定だけが`.codex-wsl`に作られる場合があります。standalone実体とログインはこの手順で別途行ってください。Codexを`CODEX_HOME=$HOME/.codex-wsl`で再起動した後、`/hooks`で定義を確認し、初回は信頼してください。信頼状態は各`CODEX_HOME`で個別に必要です。
+
 この分離はアカウントを分けるためではありません。
 Windows側とWSL側で同じChatGPTアカウントを使用できます。
 

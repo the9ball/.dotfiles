@@ -4,7 +4,7 @@
 Windowsのログオン時にWSL2上のCodex Remote Controlを起動する場合だけ実行します。
 
 通常のCodex CLIはAquaで管理します。
-`.codex-wsl`の作成、standalone版の導入、ログイン、Windowsの自動起動登録は、`chezmoi apply`では実行しません。
+`chezmoi apply`は共通hook登録用の`~/.codex-wsl/hooks.json`を配置し、必要なら`.codex-wsl`ディレクトリを作成します。standalone版の導入、ログイン、Windowsの自動起動登録は手動で行います。
 
 ## 実行順
 

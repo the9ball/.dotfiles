@@ -8,6 +8,7 @@ link-targets/
 ├── agents/
 │   ├── AGENTS.md     # ~/.agents/AGENTS.md
 │   ├── guides/
+│   ├── hooks/        # ~/.agents/hooks で共有
 │   ├── reference-map.json
 │   ├── skills/       # ~/.agents/skills と ~/.claude/skills で共有
 │   └── tools/
@@ -18,6 +19,7 @@ link-targets/
 ## 正本と公開先
 
 `link-targets/agents/` が `~/.agents/` の正本です。
+`link-targets/agents/hooks/` は `~/.agents/hooks/` から共有する Codex hook の正本です。
 `link-targets/agents/skills/` は `~/.agents/skills/` と `~/.claude/skills/` から共有します。
 `link-targets/claude/agents/` が `~/.claude/agents/` の正本です。
 

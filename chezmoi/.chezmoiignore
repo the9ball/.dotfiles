@@ -2,3 +2,6 @@
 .codex/.codex-global-state.json
 AppData/
 {{- end }}
+{{- if eq .chezmoi.os "windows" }}
+.codex-wsl/
+{{- end }}

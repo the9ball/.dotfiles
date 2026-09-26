@@ -415,6 +415,7 @@ chezmoi verify --exclude=scripts
 - Windowsでは`winget.json`に定義されたAWS CLIとaws-vaultのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開（Windowsではジャンクション）
+- Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）
 
 既存環境から移行する場合は、[`link-targets/README.md`](link-targets/README.md)の手順でruntime link / junctionを張り直してから`chezmoi apply`を実行してください。管理スクリプトはtarget mismatchを自動修復しません。
 
@@ -453,7 +454,7 @@ VS Codeをまだ起動しておらず`Code\User`ディレクトリ自体がな�
 
 この方法では、設定全体をテンプレートへコピーしてVS Codeの更新を巻き戻す運用や、`settings.json`をシンボリックリンクへ置き換える運用を採りません。PowerShellの`ConvertFrom-Json`/`ConvertTo-Json`だけで実装する案は、PowerShellのバージョン差、JSONC非対応、深さ制限、ファイル全体の再整形が残るため採用していません。Pythonの標準`json`もJSONCを扱えず、JSONC用パッケージを追加するとWindows端末ごとのランタイム・依存関係の管理が必要になります。chezmoi組み込みの`fromJsonc`と`toPrettyJson`を使うことで追加ランタイムなしにJSONCを扱い、無変更時は元テキストを保持します。管理値が頻繁に書き換えられる運用でコメントや書式を絶対に保持する必要がある場合は、別途JSONC対応の構文編集ツールを導入し、適用前後の差分を必ず確認してください。
 
-WSL版Codex Remote Controlは任意機能であり、`chezmoi apply`には含めません。
+WSL版Codex Remote Controlは任意機能です。`chezmoi apply`は共通hook登録用の`~/.codex-wsl/hooks.json`を配置しますが、standalone版、ログイン、Windowsの自動起動登録は行いません。
 standalone版の導入、専用`CODEX_HOME`の作成、ログイン、Windowsの自動起動登録は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。
 `.codex-wsl`の詳細は、同文書から[`codex-wsl/CODEX_HOME.md`](codex-wsl/CODEX_HOME.md)へ進みます。
 
