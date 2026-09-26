@@ -31,6 +31,7 @@ def run_hook(
         check=False,
         capture_output=True,
         text=True,
+        encoding="utf-8",
         input=json.dumps(event),
     )
 
@@ -52,6 +53,14 @@ class GhAuthStatusGateTests(unittest.TestCase):
 
         result = run_hook("gh auth status")
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("--json hosts", denial_reason(result) or "")
+
+    def test_denial_json_is_ascii_safe(self) -> None:
+        """The denial response must decode as UTF-8 on code-page-based hosts."""
+
+        result = run_hook("gh auth status")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.isascii(), result.stdout)
         self.assertIn("--json hosts", denial_reason(result) or "")
 
     def test_host_scoped_json_status_is_allowed(self) -> None:

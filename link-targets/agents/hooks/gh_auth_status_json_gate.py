@@ -396,7 +396,7 @@ def main() -> int:
     if not isinstance(command, str) or not _is_unscoped_status_command(command):
         return 0
 
-    json.dump(_deny_response(), sys.stdout, ensure_ascii=False)
+    json.dump(_deny_response(), sys.stdout, ensure_ascii=True)
     sys.stdout.write("\n")
     return 0
 
