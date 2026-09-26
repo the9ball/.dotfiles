@@ -46,6 +46,28 @@ AIレビューでAdvisorへファイルを指定するときに、対象と読�
 - 差分参照は、base／targetと差分定義を固定した`mode=差分`とする。差分の行番号は補助情報であり、行番号だけで差分の対象版を定義してはならない。
 - 生成物、minifiedファイル、行番号が不安定なJSONは、生成元、構造セレクター、JSON Pointer／key、シンボルなどを`mode=構造指定`で指定する。行番号を無理に固定しない。
 
+### 観測ログ
+
+通常の Advisor 利用ログを後から環境横断で解析できるよう、専用 telemetry store は作らず、dispatch 前後の通常の会話ログへ次を簡潔に残す。既に runtime / child result に記録される値は重複転記せず、後から同じ review attempt に対応付けられる形でよい。観測のためだけに追加 review を実行しない。
+
+dispatch 前に、後知恵を混ぜず、その時点で観測できる情報を残す。
+
+- 実効 model / reasoning effort と、それを選んだ理由。
+- review の目的・種別と target identity / epoch identity。
+- 変更規模（例: changed files / diff size など取得できる客観値）と変更種類。変更種類は自由記述を基本とし、再 review の分析で該当すると判断できる場合は `exact-match`、`mechanical-only`、`finding-fix/exact`、`finding-fix/independent`、`mixed/substantive` の観測タグを併記する。分類不能なら推測せず `unknown` とする。
+- routing 時点で認識していた risk、cross-cutting 性、設計上の曖昧さ、dependency / environment / governance など判断に影響した特徴。
+- 再 review の場合は再実行理由。finding 対応なら、Advisor が提示した具体変更の完全採用か、意図を受けた独自実装か、他変更との混在かを区別する。
+
+review 後は、取得可能な範囲で次を同じ attempt に対応付ける。
+
+- outcome と finding。finding は後続作業で採用・棄却・修正不要のいずれになったか追跡可能にする。
+- 再 review で新しい有益な finding が得られたか。後から見落としが判明した場合も、元 review と対応付けられる範囲で記録する。
+- review 強度が不足または過剰だったと判断できる事実。評価不能なら記録しない。
+- runtime から取得できる latency、token、credit / cost、再 dispatch 回数。取得不能な値を推定しない。
+- provider failure、中断、retry、重複 dispatch があれば、完了済み evidence の再利用とは分けて識別できるようにする。
+
+この観測ログは #2 の model / effort / routing 評価と #99 の review validity / 再 review コスト評価の共通材料とする。観測項目を満たすために review scope を広げたり、Advisor の判断契約を変更したりしてはならない。
+
 ### 固定できない場合と結果の記録
 
 - target identityまたは必要な範囲を一意に固定できない場合は、推測してdispatchせず、必要な証拠を`NEEDS_EVIDENCE`として要求する。未コミット対象では、capture開始時に実 index・working tree・untracked・ignored manifestのsnapshot identityを固定し、capture中または完了直後の再検証で変化したら旧snapshotを無効化して新しいepochへ戻す。
