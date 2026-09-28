@@ -16,11 +16,11 @@
 #   - all
 registries:
 - type: standard
-  ref: v4.566.0
+  ref: v4.568.0
 packages:
 - name: twpayne/chezmoi@v2.72.2
 - name: nodejs/node@v26.10.0
-- name: openai/codex@rust-v0.156.0
+- name: openai/codex@rust-v0.158.0
 - name: ahmetb/kubectx@v0.11.0
 - name: ahmetb/kubectx/kubens@v0.11.0
 - name: kubernetes/kubectl@v1.36.2
@@ -31,13 +31,13 @@ packages:
 - name: cli/cli@v2.101.0
 - name: jqlang/jq@jq-1.8.2
 - name: gitleaks/gitleaks@v8.30.1
-- name: j178/prek@v0.5.3
+- name: j178/prek@v0.5.4
 - name: suzuki-shunsuke/pinact@v3.1.2
   update:
     enabled: false
 - name: ynqa/jnv@v0.7.1
 - name: itaysk/kubectl-neat@v2.0.4
 - name: stern/stern@v1.34.0
-- name: astral-sh/uv@0.12.17
-- name: anthropics/claude-code@v2.1.280
+- name: astral-sh/uv@0.12.19
+- name: anthropics/claude-code@v2.1.283
 - name: BurntSushi/ripgrep@15.2.0
