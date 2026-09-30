@@ -1,6 +1,6 @@
 ---
 name: git-stage-lines
-description: Safely stage only selected working-tree Git changes by line range or diff hunk, without changing the working tree or discarding existing staged changes. Use for requests such as “この変更だけstageして”, “42〜57行目だけgit addして”, “変更1と3だけstageして”, “commit A用の変更だけstageして”, or “git add -p相当を非対話的にやって”.
+description: Safely stage only selected working-tree Git changes by line range or diff hunk, without changing the working tree or discarding existing staged changes. Use for requests such as `この変更だけstageして`, `42〜57行目だけgit addして`, `変更1と3だけstageして`, `commit A用の変更だけstageして`, or `git add -p相当を非対話的にやって`.
 ---
 
 # Git Stage Lines
