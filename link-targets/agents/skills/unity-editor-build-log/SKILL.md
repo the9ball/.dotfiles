@@ -1,27 +1,27 @@
 ---
 name: unity-editor-build-log
-description: Windows Unity Editor.log から、最後に完了した Player Build または Script Compilation の区間を分類付きで安全に抽出する。
+description: Safely extract, with a classification, the last completed Player Build or Script Compilation interval from the Windows Unity Editor.log.
 ---
 
 # Unity Editor build log
 
-対象は既定の `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log` です。適用時は、root が読み取り専用のサブエージェントへ自己完結した調査を委譲し、サブエージェントが同梱スクリプトを実行して境界検出と切り出しを行います。root はログ全量を事前表示せず、サブエージェントが返した分類・境界・要約とマスク済み最新ブロックを検証してユーザーへ返します。
+The target is the default `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log`. When this skill applies, root delegates a self-contained investigation to a read-only subagent, which runs the bundled script to detect the boundaries and cut out the interval. Root does not display the whole log in advance; it verifies the classification, boundaries, summary, and masked latest block that the subagent returns, and then returns them to the user.
 
-サブエージェントへの指示には、次を含めてください。
+Include the following in the instructions to the subagent:
 
-1. 固定対象 `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log` を読み取り専用で扱い、`C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1` を実行する。
-2. 必要なら fixture 検証のためだけに `-LogFilePath` を指定する（実ログは変更せず、ファイルをロックしない）。
-3. 分類、開始・終了行、結果、切り詰め有無、マスク済み最新ブロックを root に返す。秘密値を再掲せず、非ゼロ終了時はエラー概要だけ返して本文を推測しない。
+1. Treat the fixed target `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log` as read-only, and run `C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1`.
+2. If necessary, specify `-LogFilePath` only for fixture verification (the real log is not modified, and the file is not locked).
+3. Return to root the classification, the start and end lines, the result, whether it was truncated, and the masked latest block. Do not reprint secret values. On a non-zero exit, return only the error summary and do not guess at the body.
 
-実行例:
+Execution example:
 
 ```powershell
 & "C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1"
 & "C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1" -LogFilePath .\Editor.log -MaximumOutputLines 10000 -MaximumOutputCharacters 500000
 ```
 
-スクリプトは `FileShare.ReadWrite` と `FileShare.Delete` の共有読み取りを使い、Player Build と Script Compilation を型付きイベントとして1回の前方走査で対応付けます。同種イベントが入れ子になった場合も開始位置をスタックで保持し、外側の区間を失いません。`BuildPlayerWindow` などスタックトレースのメソッド名、`##### Output`、`*** Tundra requires additional run` は開始・終端に使いません。最後の開始に対応する終了がなければ、古い成功結果へフォールバックせず「最新ビルド未完了」として非ゼロ終了します。境界が検出できない場合も本文を推測せず非ゼロ終了します。出力区間ではキー付きの access token、Bearer、password、secret、client_secret/clientSecret、Authorization、serial/license key、api key 等を `<redacted>` にマスクし、キーと値が改行された一般的な形式にも対応します。
+The script uses shared reads (`FileShare.ReadWrite` and `FileShare.Delete`) and pairs Player Build and Script Compilation as typed events in a single forward scan. Even when events of the same kind are nested, the start position is kept on a stack, so the outer interval is not lost. Method names in stack traces such as `BuildPlayerWindow`, `##### Output`, and `*** Tundra requires additional run` are not used as a start or an end. If the last start has no matching end, the script does not fall back to an old successful result; it exits non-zero as "the latest build is incomplete" (`最新未完了`). If no boundary can be detected, it likewise does not guess at the body and exits non-zero. In the output interval, keyed access tokens, Bearer, password, secret, client_secret/clientSecret, Authorization, serial/license key, api key, and the like are masked as `<redacted>`, and the common form in which the key and the value are on separate lines is handled too.
 
-出力には `総行数`、`読み取り時ファイル長`、`最終更新UTC`、スナップショットの作成時刻、内容SHA-256、およびスナップショット安定性を含めます。root が境界を検証する時点で対象ファイルの総行数・ファイル長・作成時刻・最終更新UTC・内容SHA-256のいずれかがスナップショットと一致しない場合、その抽出結果を採用せず同じスクリプトを再実行してください。入力サイズ上限を超えた場合や読み取り中にファイルが変化した場合も、ログ本文や例外本文を表示せず固定の日本語エラー分類だけを返します。
+The output includes the script's literal fields `総行数` (total lines), `読み取り時ファイル長` (file length at read time), `作成UTC` (creation time), `最終更新UTC` (last update time), `スナップショットSHA256` (snapshot hash), and `スナップショット安定` (snapshot stability). When root verifies the boundaries, if any of the target file's total line count, file length, creation time, last update time, or content hash differs from the snapshot, do not adopt that extraction result and run the same script again. If the input size limit is exceeded or the file changes while it is being read, the script does not display the log body or the exception body, and returns only a fixed Japanese error classification.
 
-行数・文字数の上限に達した場合は、可能な範囲でブロックの先頭と末尾を残し、省略数と省略マーカーを出力します。
+If the maximum number of lines or characters is reached, the script keeps as much of the beginning and end of the block as it can, and outputs the number of omitted items and an omission marker.
