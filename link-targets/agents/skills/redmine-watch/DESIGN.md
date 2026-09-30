@@ -1,217 +1,216 @@
-# 設計メモ
+# Design memo
 
-`redmine-watch` を構成するファイルを、なぜそこに置き、なぜその作りにしているか。
-このスキルを編集するとき、特に配置と差分検知の方式を変えようとするときに読む。
-`SKILL.md`(実行時の手順)とは別に、判断の理由だけを残す。
+Why the files that make up `redmine-watch` are placed where they are, and why they are built this way.
+Read this when editing this skill, especially when you are about to change the placement or the difference-detection method.
+Separately from `SKILL.md` (the runtime procedure), this file keeps only the reasons for the decisions.
 
-`review-watch` と対になるスキルで、所有トークンによる二重起動抑止は同じものを使っている。
-ただし**引き継ぎの待ち方は揃えられない**(後述)。片方を直すときはもう片方も見ること。
+This skill is the counterpart of `review-watch`, and it uses the same ownership token to prevent double startup.
+However, **the way of waiting during a handover cannot be made the same** (see below). When you fix one, look at the other too.
 
-## 不変条件
+## Invariants
 
-**標準出力への書き込みと状態ファイルの更新を同一トランザクションにはできない。**
-したがって「重複ゼロかつ取りこぼしゼロ」は原理的に保証できない。この監視は
-**取りこぼしを避け、重複を限定する**方を選ぶ。以後の変更でもこの順序を崩さないこと。
+**Writing to standard output and updating the state file cannot be made one transaction.**
+Therefore "zero duplicates and zero misses" cannot be guaranteed in principle. This monitor chooses to
+**avoid misses and limit duplicates**. Do not break this order in later changes either.
 
-1. 通知を出した**後**にだけ journal 位置を進める。逆順にすると取りこぼしになる。
-2. 状態の確定はチケット単位で、一時ファイルへ書いて `mv` で置き換える。
-3. 終了判定・初回発見・取得解析の判断材料が欠けたとき、その対象について通知も
-   journal 位置の前進も確定しない。
-4. 所有権を失ったと分かった時点で、状態を書かずに退く。
+1. Advance the journal position only **after** the notification has been issued. The reverse order causes misses.
+2. State is fixed per ticket, by writing to a temporary file and replacing with `mv`.
+3. When the material for judging finished status, first discovery, or retrieval and parsing is missing, neither the notification nor
+   the advancing of the journal position is fixed for that target.
+4. As soon as it is found that ownership has been lost, retire without writing state.
 
-4 が特に重要で、退くプロセスが状態を書くと、新しい所有者がその変更を「既知」として
-読み飛ばし、**通知が誰にも届かないまま消える。**
+Number 4 is especially important: if a retiring process writes state, the new owner
+skips that change as "already known", and **the notification vanishes without reaching anyone.**
 
-## ファイル配置
+## File placement
 
-| 対象 | 場所 | 追跡 |
+| Target | Location | Tracking |
 |---|---|---|
-| スキル本体 | `link-targets/agents/skills/redmine-watch/` | git で追跡 |
-| 監視リスト | `$HOME/.claude/.redmine-watch/watched-issues.tsv` | dotfiles の外 |
-| ステータス一覧のキャッシュ | `$HOME/.claude/.redmine-watch/status-reference.json` | dotfiles の外 |
-| 自分のユーザー ID | `$HOME/.claude/.redmine-watch/self-user-id` | dotfiles の外 |
-| 監視プロセスの所有トークン | `$HOME/.claude/.redmine-watch/owner-token` | dotfiles の外 |
+| Skill body | `link-targets/agents/skills/redmine-watch/` | Tracked by git |
+| Watch list | `$HOME/.claude/.redmine-watch/watched-issues.tsv` | Outside dotfiles |
+| Status list cache | `$HOME/.claude/.redmine-watch/status-reference.json` | Outside dotfiles |
+| Your own user ID | `$HOME/.claude/.redmine-watch/self-user-id` | Outside dotfiles |
+| Ownership token of the monitoring process | `$HOME/.claude/.redmine-watch/owner-token` | Outside dotfiles |
 
-### スキル本体
+### Skill body
 
-dotfiles で追跡する。ホストをまたいで同じものを使う。
+Tracked in dotfiles. The same files are used across hosts.
 
-`watch-assigned-issues.sh` を別ファイルに切り出してあるのは `review-watch` と同じ理由で、
-`Monitor` に渡すコマンドをインラインで書き起こすと権限の分類器に弾かれるため。
+`watch-assigned-issues.sh` is split out into a separate file for the same reason as in `review-watch`:
+a command written out inline for `Monitor` is rejected by the permission classifier.
 
-### `watched-issues.tsv` — 監視リスト
+### `watched-issues.tsv` — the watch list
 
-`issueId <TAB> lastJournalId` の TSV。**このスキルの中核**で、他の状態ファイルと違って
-消えると監視の意味そのものが失われる(過去に担当したチケットの記憶がここにしか無い)。
+A TSV of `issueId <TAB> lastJournalId`. It is **the core of this skill**, and unlike the other state files,
+if it is lost the monitoring loses its very meaning (the memory of tickets you were assigned to in the past exists only here).
 
-`$HOME/.claude/` 配下に置いてホストごとに分ける。dotfiles で共有しない理由は
-`review-watch` の `seen-pull-requests.tsv` と同じで、ポーリングごとに読み書きするため
-複数ホスト・複数エージェントから触ると競合する。
+It is placed under `$HOME/.claude/` and kept separate per host. The reason it is not shared through dotfiles is
+the same as for `seen-pull-requests.tsv` in `review-watch`: it is read and written on every poll, so
+touching it from multiple hosts or agents causes conflicts.
 
-**ファイルの存在は「確定したスナップショットがある」ことだけを表す。**
-初回起動の判定はこの存在だけで行い、**行数では判定しない。** 空ファイルは
-「未初期化」と「初期化済みだが監視対象ゼロ」の両方を表しうるため、行数で見ると
-全件終了した後の正しい空状態を初回扱いし、その後に新しく担当になったチケットの
-通知を握りつぶす(初回は無通知なので)。この意味を保つため、**起動時に `touch` しない。**
+**The existence of the file means only that "a fixed snapshot exists".**
+The first-startup decision is made from this existence alone, **not from the number of lines.** An empty file
+can mean both "not initialized" and "initialized but zero monitored tickets", so judging by line count
+would treat the correct empty state after all tickets have finished as a first run, and would swallow the notification for a ticket
+newly assigned afterward (because a first run is silent). To keep this meaning, **do not `touch` it at startup.**
 
-初回起動だけは確定を1回にまとめる。通知を出さないので原子性の問題が無く、
-途中で止まってもファイルが生まれないため、次回もやり直しから始められる。
+Only the first startup fixes the state in one go. It issues no notification, so there is no atomicity problem,
+and if it stops midway no file is created, so the next run can start over from the beginning.
 
-新しく発見したチケットは、確定するまで監視リストへ書かない。取得に失敗したまま
-確定させると、担当になったことを知らせないまま「既知」にしてしまう。
-確定時の初期値は現在の最大 journal ID にする。`0` にすると、監視に加える前から
-付いていたコメントが全部「新着」として通知される。
+A newly discovered ticket is not written to the watch list until it is fixed. Fixing it after a failed retrieval
+would make it "known" without ever having told you that you became its assignee.
+The initial value at fixing time is the current maximum journal ID. With `0`, all comments that existed before it was added to monitoring
+would be notified as "new".
 
-初回の発見が不完全なループでは、初期スナップショットを確定せず、次のループへ
-持ち越す。3回連続で不完全なら1行だけ警告し、完全な発見へ戻った時点で復旧を1回
-知らせる。2回目以降は、発見できなかった新規チケットを次のループで拾えばよいので、
-既存の監視対象の取得と確定は続ける。`totalCount=0` かつ `issues=[]` は完全な発見である。
+In a loop where the first discovery is incomplete, the initial snapshot is not fixed and is carried over to
+the next loop. If it is incomplete three times in a row, one warning line is issued, and once discovery is complete again the recovery is
+reported once. From the second run on, a new ticket that could not be discovered can simply be picked up in the next loop,
+so retrieval and fixing of the tickets already monitored continue. `totalCount=0` with `issues=[]` is a complete discovery.
 
-`issues show` に失敗したチケットは、確定させず次のポーリングへ持ち越す。
-落としてしまうと、通信エラーで監視対象が静かに消える。
-jq が落ちた場合も同じ扱いにする。「変更なし」と区別せずに journal 位置を進めると、
-その回に検知すべきだった変更が永久に失われる。
+A ticket for which `issues show` failed is not fixed and is carried over to the next poll.
+If it were dropped, a monitored ticket would silently disappear because of a communication error.
+The same treatment applies when jq fails. If the journal position were advanced without distinguishing it from "no change",
+a change that should have been detected in that round would be lost forever.
 
-### `status-reference.json` — ステータス一覧のキャッシュ
+### `status-reference.json` — cache of the status list
 
-終了判定(`isClosed`)とステータス名の解決に使う。**取得できないループで
-「終了かどうか分からないまま通知する」と、終了済みチケットの変更で課金通知が出る。**
-1通知 = 1モデルターンなので、これは単なる安全側ではなくコスト増になる。
+It is used for the finished-status decision (`isClosed`) and for resolving status names. **If a loop that cannot get it
+notified "without knowing whether the ticket is finished", a change on a finished ticket would produce a billable notification.**
+One notification = one model turn, so this is not merely the safe side but an increase in cost.
 
-最後に成功した応答をそのままキャッシュし、取得に失敗したループはこれを使う。
-キャッシュも無ければ、そのループは通知も journal 位置の前進もせず持ち越す。
-次に成功したループで journal 差分を取り直せるので、取りこぼしにはならない。
+The last successful response is cached as it is, and a loop whose retrieval fails uses it.
+If there is no cache either, that loop carries over without notifying or advancing the journal position.
+The journal difference can be taken again in the next successful loop, so nothing is missed.
 
-キャッシュの更新は、構文検証を通った非空の応答でだけ行う。空や壊れた応答で
-良いキャッシュを潰さないため。
+The cache is updated only with a non-empty response that passed syntax validation. This is so that
+an empty or broken response does not destroy a good cache.
 
-キャッシュの保存に失敗しても、そのループで取得した参照表はメモリ上で使い続ける。
-保存失敗は標準出力へ1行だけ警告し、同じプロセス中は再通知しない。次回起動時に
-キャッシュが無ければ、参照表を再取得できるまで通知と journal 位置の前進を止める。
+Even if saving the cache fails, the reference table retrieved in that loop keeps being used in memory.
+A save failure issues only one warning line to standard output and is not notified again during the same process. If there is
+no cache at the next startup, notifications and advancing of the journal position stop until the reference table can be retrieved again.
 
-代償として、キャッシュが古いと Redmine 側に新しく追加された終了ステータスを
-認識できない。有効期限は設けていない(ステータスの追加は稀で、次の取得成功で更新される)。
+As a trade-off, when the cache is old, a finished status newly added on the Redmine side cannot be
+recognized. No expiry is set (statuses are rarely added, and the cache is refreshed on the next successful retrieval).
 
-### `self-user-id` — 自分のユーザー ID
+### `self-user-id` — your own user ID
 
-自分が付けた変更を通知しないために要る。この CLI は管理者権限が必要な `/users.json` を
-使わないので、`issues list --assigned-to me` が返すチケットの `assignedTo.id` から拾う。
-担当中のチケットが1件も無いと取れないため、取れるまで毎ループ試し、
-分からない間は誰の変更も通知する(黙るより鳴るほうが安全側)。
+It is needed so that changes you made yourself are not notified. This CLI does not use `/users.json`, which requires administrator rights,
+so the ID is taken from `assignedTo.id` of the tickets returned by `issues list --assigned-to me`.
+It cannot be obtained while you have no assigned tickets, so it is tried on every loop until it is obtained,
+and while it is unknown, everyone's changes are notified (being noisy is safer than being silent).
 
-### `owner-token` — 監視プロセスの所有トークン
+### `owner-token` — ownership token of the monitoring process
 
-トークンの持ち方と「後から起動した方が勝つ」は `review-watch` と同じ。詳細はそちらの
-`DESIGN.md` を読む。要点は、セッションや Claude Code の終了ではプロセスが死なず、
-残った孤児が状態ファイルへ「既知」を書き込んで本物の監視が変更を取りこぼすこと。
+How the token is held and "the process that starts later wins" are the same as in `review-watch`. Read that skill's
+`DESIGN.md` for the details. The key points are that processes do not die when a session or Claude Code ends,
+and that a leftover orphan writes "already known" into the state file so that the real monitor misses changes.
 
-**揃えられないのは引き継ぎの待ち方。** `review-watch` は1ポーリングが `gh` 数回で
-終わるため、新プロセスが固定数秒待てば旧プロセスは退いている。こちらは監視件数ぶん
-順次リクエストを投げるので(1件あたり実測 約0.4秒、Windows のプロセス起動が重い)、
-固定待ちでは覆えない。そこで取得パスの各チケットの先頭と確定の直前でも所有権を確認し、
-失っていれば状態を書かずに退く。
+**What cannot be made the same is how to wait during the handover.** In `review-watch`, one poll finishes with a few `gh` calls,
+so if the new process waits a fixed few seconds, the old process has retired. Here, requests are sent sequentially
+for as many tickets as are monitored (measured at about 0.4 seconds per ticket, with Windows process startup being heavy),
+which a fixed wait cannot cover. So ownership is also checked at the start of each ticket in the retrieval pass and just before fixing,
+and if it has been lost, the process retires without writing state.
 
-各 CLI 呼出しにはステップ 2(D)で15秒のタイムアウトを設けた。CLI の固着が無期限に
-待機を延ばす露出は抑えたが、監視件数ぶんの呼出しを待つ構造自体は残る。
+Each CLI call was given a 15-second timeout in step 2 (D). This limits the exposure to a stuck CLI extending the wait indefinitely,
+but the structure of waiting for as many calls as there are monitored tickets remains.
 
-この方式は取りこぼしを重複へ変換するだけで、窓を消すわけではない。
-実測でも、通知を出した直後に所有権を奪われたチケットは journal 位置が進まず、
-新しい所有者が同じ変更を再通知する。上の不変条件に照らせば正しい挙動。
+This approach only converts misses into duplicates and does not remove the window.
+In measurement as well, for a ticket whose ownership was taken right after a notification was issued, the journal position does not advance
+and the new owner notifies the same change again. In light of the invariants above, this is the correct behavior.
 
-## 稼働マーカー方式を採らなかった理由
+## Why a "running marker" approach was not adopted
 
-新プロセスが takeover を要求し、旧プロセスが処理を止めて稼働マーカーを消すまで待つ
-graceful handoff にすれば、引き継ぎ時の重複をさらに減らせる。採らなかった。
+A graceful handoff, in which the new process requests a takeover and waits until the old process stops its work and removes a running marker,
+could reduce duplicates at handover further. It was not adopted.
 
-減らせるのは重複だけで、取りこぼしはどちらの方式でも起きない(所有権確認だけでも
-取りこぼしは重複へ変換される)。一方でマーカー方式は**新しい失敗モードを2つ持ち込む**。
-旧プロセスが複数の呼出しを終えるまでマーカーが消えず新プロセスが待ち続けること、
-異常終了で残ったマーカーを見分けるために PID の生存確認と期限切れ処理が要ること。
-「取りこぼしを避け、重複を限定する」方針では割に合わない。
+It can reduce only duplicates, and misses do not occur with either approach (even the ownership check alone converts
+misses into duplicates). The marker approach, on the other hand, **brings in two new failure modes**:
+the marker is not removed until the old process finishes several calls, so the new process keeps waiting, and
+telling a marker left by an abnormal exit apart requires a PID liveness check and expiry handling.
+It does not pay off under the policy of "avoid misses and limit duplicates".
 
-重複が実運用で問題になるようなら、このメモを更新したうえで導入を再検討する。
+If duplicates become a problem in real operation, update this memo and reconsider introducing it.
 
-## 「過去に担当した」をローカルで持つ理由
+## Why "previously assigned" is kept locally
 
-Redmine の API に「かつて自分が担当だったチケット」を引く手段が無い。
-`issues list --assigned-to me` が返すのは現在の担当だけで、担当を外れた瞬間に消える。
+The Redmine API has no way to query "tickets I was once assigned to".
+`issues list --assigned-to me` returns only the current assignments, and a ticket vanishes the moment you stop being the assignee.
 
-そのため担当中に一度検知したチケットをローカルへ積み、担当が外れた後も追い続ける。
-代償として2つの穴が残る。どちらも「ポーリングの段階での判断で良い」という要件のもとで受けている。
+So a ticket detected once while you were assigned is stored locally and followed even after you stop being the assignee.
+Two holes remain as a trade-off. Both are accepted under the requirement that a judgment made at the polling stage is good enough.
 
-- 監視を始める前に担当を外れたチケットは拾えない。
-- ポーリング間隔より短く担当だったチケットは拾えない。
+- A ticket you stopped being assigned to before monitoring began cannot be picked up.
+- A ticket you were assigned to for less than the polling interval cannot be picked up.
 
-## 差分検知に journal ID を使う理由
+## Why journal IDs are used for difference detection
 
-`updatedOn` の比較でも「何か変わった」は分かるが、**何が変わったか**が分からず、
-通知が「更新あり」だけになる。journal(コメントと属性変更の履歴)には変更者と
-変更内容が入っているので、前回見た journal ID より後のものを拾えば差分がそのまま作れる。
+Comparing `updatedOn` also tells you that "something changed", but **what changed** is unknown,
+and the notification would say only "updated". A journal (the history of comments and attribute changes) contains who made the change and
+what changed, so the difference can be built directly by picking up what comes after the journal ID seen last time.
 
-Redmine では属性変更も必ず journal を作るため、journal ID だけで取りこぼさない。
-`updatedOn` を併せて持つ必要は無い。
+In Redmine an attribute change always creates a journal, so journal IDs alone do not miss anything.
+There is no need to hold `updatedOn` as well.
 
-## 取得パスが1件1リクエストである理由
+## Why the retrieval pass is one request per ticket
 
-担当が外れたチケットは `issues list` のどの条件でも拾えない
-(`--assigned-to` は `me` か特定のユーザー ID しか取らず、チケット ID 指定の絞り込みが無い)。
-`--updated-after` を使っても担当者条件から逃れられないため、監視リストの各チケットへ
-1件ずつ `issues show` を投げる以外に手段が無い。
+A ticket you are no longer assigned to cannot be picked up by any condition of `issues list`
+(`--assigned-to` takes only `me` or a specific user ID, and there is no filter by ticket ID).
+Even with `--updated-after` the assignee condition cannot be avoided, so there is no way other than sending
+`issues show` one ticket at a time for each ticket on the watch list.
 
-確定のたびに監視リスト全体を書き直すので、書き込み量は件数の二乗に比例する。
-数十件までは問題にならない。数百件に育つならチケット別ファイルか、
-追記ログ + 定期圧縮へ切り替える。
+The whole watch list is rewritten at every fixing, so the amount written grows with the square of the number of tickets.
+Up to a few dozen tickets this is no problem. If it grows to several hundred, switch to per-ticket files, or
+an append-only log with periodic compaction.
 
-## 通知文を属性名までしか解決しない理由
+## Why notification text resolves only down to the attribute name
 
-journal の `details` が返す `oldValue` / `newValue` は ID の生値
-(`status_id: "1"→"2"`)で、そのままでは読めない。名前に直すには対応表が要る。
+The `oldValue` / `newValue` returned in a journal's `details` are raw IDs
+(`status_id: "1"→"2"`), which cannot be read as they are. Turning them into names needs a lookup table.
 
-ステータスだけは対応表を引いて `新規→割振済` のように出す。
-差し戻しの検知がこの監視の主目的で、そこが読めないと通知の意味が無いため。
+Only status uses a lookup table and is shown like `新規→割振済` (New → Allocated).
+Detecting a send-back (差し戻し) is the main purpose of this monitor, and without being able to read that, the notification would be meaningless.
 
-優先度・トラッカー・担当者・期日などは「優先度変更」とだけ書く。
-名前解決の分岐と参照表の取得でスクリプトが 40 行ほど増えるわりに、通知の役割
-(見に行くかどうかを判断する)には効かない。中身は通知後に `issues show` で読める。
+Priority, tracker, assignee, due date, and so on are written only as `優先度変更` (priority changed) and the like.
+Name-resolution branches and fetching the reference tables would add about 40 lines to the script, yet they would not help the notification's job
+(deciding whether to go and look). The details can be read with `issues show` after the notification.
 
-担当者に至っては、管理者権限が要る `/users.json` を使わない方針のため
-ユーザー ID から名前への対応表がそもそも作れない。
+For the assignee in particular, the policy is not to use `/users.json`, which requires administrator rights,
+so a table from user IDs to names cannot be built in the first place.
 
-## 終了判定に `isClosed` を使う理由
+## Why `isClosed` is used for the finished-status decision
 
-ステータス名(「終了」「却下」)で判定すると、Redmine 側にステータスが増えたときに
-静かに漏れる。`statuses list --json` が `isClosed` を返すので、これをそのまま使う。
+If the decision were made by status name ("終了" (Closed), "却下" (Rejected)), it would silently leak when statuses are added on the Redmine side.
+`statuses list --json` returns `isClosed`, so it is used as it is.
 
-副作用として、この Redmine では 保留 / 却下 / 本番適用済み / 組込み済み/完了 /
-リリースなし / 終了 の6つが監視の打ち切りになる。**本番適用済みや組込み済みに
-入った既存チケットは、その遷移に含まれる journal を1回通知してから外れる**ため、
-リリース後に付いた差し戻しコメントは拾えない。監視リストへ新しく積んだ時点で
-すでに終了しているチケット(`lastJournalId=-1`)は、既存か新着かを区別できないので
-無通知で外す。
-2026-08-21 時点でこの挙動を承知のうえで `isClosed` 全部を除外する選択をしている。
+As a side effect, in this Redmine the six statuses 保留 (Pending) / 却下 (Rejected) / 本番適用済み (Applied to production) / 組込み済み/完了 (Integrated/Completed) /
+リリースなし (No release) / 終了 (Closed) end monitoring. **An existing ticket that
+enters 本番適用済み or 組込み済み has the journal included in that transition notified once and then drops off**,
+so a send-back (差し戻し) comment added after release cannot be picked up. A ticket that is already finished at the moment it is newly
+added to the watch list (`lastJournalId=-1`) cannot be told apart as existing or new, so it is
+dropped without notification.
+As of 2026-08-21, the choice to exclude everything with `isClosed` was made with this behavior understood.
 
-終了で落ちたチケットが再オープンされ、担当が自分のままなら、発見パスが積み直すため
-「担当追加」通知が出る(担当は変わっていないのに)。同時に、終了中から再オープンまでの
-journal は初期値として飲み込まれる。割り切りとして受けている。
+If a ticket dropped because it finished is reopened and you are still its assignee, the discovery pass adds it again,
+so an "assignment added" notification is issued (even though the assignment has not changed). At the same time, the journals from the finished period until the reopening
+are swallowed as the initial value. This is accepted as a compromise.
 
-## Windows 版 jq の CR
+## CR from jq on Windows
 
-Windows の jq は stdout をテキストモードで開くため、出力の行末に CR が付く。
-これを状態ファイルへ書くとチケット ID が `30708\r` になり、次のポーリングで既知判定に
-失敗して同じチケットを二重登録する(実測あり)。値として使う jq はすべて `jq_strip` を通す。
+jq on Windows opens stdout in text mode, so a CR is appended to the end of each output line.
+If this is written to the state file, the ticket ID becomes `30708\r`, the known-ticket check fails at the next poll,
+and the same ticket is registered twice (observed). Every jq call whose output is used as a value goes through `jq_strip`.
 
-`jq_strip` はパイプではなく変数経由で CR を落とす。パイプにすると `$?` が `tr` のものに
-なり、jq の失敗を検出できない。終了コードだけを見る `jq -e` は素の `jq` のまま使う。
+`jq_strip` drops the CR through a variable rather than a pipe. With a pipe, `$?` would be
+`tr`'s, and a jq failure could not be detected. `jq -e`, which looks only at the exit code, is called directly as `jq`, not through `jq_strip`.
 
-## 修正後も残る穴
+## Holes that remain after the fixes
 
-- 所有権を確認した直後に奪われる TOCTOU。窓は数ミリ秒で、重複側に倒れる。
-- 通知を出した後、`mv` の前に停止した場合の重複。最大1チケットぶん。
-- ステータス一覧を一度も取得できない環境では、監視が通知を出さないまま止まり続ける。
-  3回連続の失敗で1行だけ知らせ、復旧するまで再通知しないようにしてある。
-- 終了中から再オープンされるまでの journal は、発見パスが積み直した時点の基準として
-  飲み込まれる。
-- 恒久的に取得や解析に失敗するチケットは監視リストに残り続ける。取り込みを優先した
-  意図した挙動であり、必要ならプロセスを止めて該当行を手で削る(今回の対応外)。
-- ポーリング全体の時間上限は設けていない。各 CLI 呼出しには15秒の上限があるが、
-  100件なら最大で約1500秒になりうる。数百件に育った時点では取得間隔の見直しを先に行う。
+- A TOCTOU in which ownership is taken right after it was checked. The window is a few milliseconds, and it falls on the duplicate side.
+- A duplicate when the process stops after issuing a notification and before `mv`. At most one ticket.
+- In an environment where the status list can never be retrieved, monitoring keeps stopping without issuing notifications.
+  One line is issued after three consecutive failures, and it is not notified again until recovery.
+- The journals from the finished period until reopening are swallowed as the baseline when the discovery pass adds the ticket again.
+- A ticket that permanently fails to be retrieved or parsed stays on the watch list. This is intended behavior that prioritizes not missing anything;
+  if needed, stop the process and delete its line by hand (out of scope this time).
+- No upper time limit is set for a whole poll. Each CLI call has a 15-second limit, but
+  with 100 tickets it can reach about 1,500 seconds at most. Once the list grows to several hundred, revisit the retrieval interval first.
