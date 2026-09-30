@@ -1,4 +1,5 @@
-# Fetch the bash completion scripts for kubectx and kubens.
+# Shell scripts fetched by chezmoi: kubectx/kubens completions and kube-ps1.
+# --- kubectx / kubens bash completion ---
 # The binaries are managed by aqua.yaml (ahmetb/kubectx and ahmetb/kubectx/kubens).
 # Keep the tag in the URLs below identical to the kubectx version in aqua.yaml so
 # that the binaries and the completions come from the same release. When you
@@ -16,3 +17,12 @@ checksum.sha256 = "3a3ada36a5ada06eb0d2d102d85e7878f22029ef5d7f11db7fc7e163ee02c
 type = "file"
 url = "https://raw.githubusercontent.com/ahmetb/kubectx/v0.11.0/completion/kubens.bash"
 checksum.sha256 = "f075a473f87bffd17a8187d187423c2f44ada0b978c333e378890feefe172e9d"
+
+# kube-ps1 (prompt helper). There is no aqua package, so this file is pinned to a
+# commit SHA. To update, replace the SHA in the URL and the sha256 below, and the
+# LICENSE URL in THIRD_PARTY_NOTICES.md. It is loaded by .bashrc.interactive when
+# kubectl is available.
+[".local/share/kube-ps1/kube-ps1.sh"]
+type = "file"
+url = "https://raw.githubusercontent.com/jonmosco/kube-ps1/7aaaeee5eaa29f920acd850ea63839d9f87b8ac5/kube-ps1.sh"
+checksum.sha256 = "1e3887be5c0700edc4ee4cd75ca71b5de08f4edece70de8d6eeb7d991565c1fe"

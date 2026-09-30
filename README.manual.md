@@ -145,10 +145,9 @@ wingetに残したままにすると、実際には使われていない方が`w
 ```sh
 git clone https://github.com/the9ball/.dotfiles.git "$HOME/.dotfiles"
 cd "$HOME/.dotfiles"
-git submodule update --init --recursive
 ```
 
-すでにclone済みの場合は、`git pull --rebase`と`git submodule update --init --recursive`で更新します。
+すでにclone済みの場合は、`git pull --rebase`で更新します。
 初回の`chezmoi apply`でCodexのグローバル状態を更新できるよう、先にAqua管理のCLIを導入し、プロジェクトや依頼を指定せずCodexを1回起動して終了します。
 
 ```sh
@@ -471,7 +470,6 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 ```sh
 cd "$HOME/.dotfiles"
 git pull --rebase
-git submodule update --init --recursive
 chezmoi diff
 chezmoi apply
 chezmoi verify --exclude=scripts

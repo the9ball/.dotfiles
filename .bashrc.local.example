@@ -12,9 +12,6 @@
 # export GH_CONFIG_DIR="$HOME/.config/gh"
 
 # Host-specific tool integrations.
-# if [ -d "$HOME/.dotfiles/kube-ps1" ]; then
-#   source "$HOME/.dotfiles/kube-ps1/kube-ps1.sh"
-# fi
 # if [ -f "$HOME/.dotfiles/git-completion/git-completion.bash" ]; then
 #   source "$HOME/.dotfiles/git-completion/git-completion.bash"
 # fi

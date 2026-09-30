@@ -72,6 +72,13 @@ then
     alias k=kubectl
     alias kube=kubectl
     complete -o default -F __start_kubectl k
+
+    # kube-ps1 は kubectl を呼んで context を表示するため、kubectl がある環境だけ読み込む。
+    # 上で定義した空の kube_ps1 は、読み込みによって本物の関数へ置き換わる。
+    # chezmoi が取得する(chezmoi/.chezmoiexternal.toml)。未取得の環境では何もしない。
+    if [ -r "$HOME/.local/share/kube-ps1/kube-ps1.sh" ]; then
+        . "$HOME/.local/share/kube-ps1/kube-ps1.sh"
+    fi
 fi
 
 # kubectx/kubens completion
