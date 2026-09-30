@@ -1,6 +1,6 @@
 ---
 name: delegate-luna-investigation
-description: "【Codex app専用。Claude Codeや他のエージェントからは使用しない】 Coordinate bounded read-only investigations in reusable, user-visible GPT-6 Luna Max tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier Luna investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
+description: "[For Codex app only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations in reusable, user-visible GPT-6 Luna Max tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier Luna investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
 ---
 
 # Delegate Luna Investigation
