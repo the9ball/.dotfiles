@@ -18,9 +18,10 @@
 # if [ -f "$HOME/.dotfiles/git-completion/git-completion.bash" ]; then
 #   source "$HOME/.dotfiles/git-completion/git-completion.bash"
 # fi
-# if [ -d "$HOME/.dotfiles/kubectx" ]; then
-#   source "$HOME/.dotfiles/kubectx/completion/kubectx.bash"
-#   source "$HOME/.dotfiles/kubectx/completion/kubens.bash"
+# The kubectx/kubens completions are installed by chezmoi (chezmoi/.chezmoiexternal.toml).
+# if [ -d "$HOME/.local/share/kubectx/completion" ]; then
+#   source "$HOME/.local/share/kubectx/completion/kubectx.bash"
+#   source "$HOME/.local/share/kubectx/completion/kubens.bash"
 # fi
 # if [ -d "$HOME/.vim/bundle/lua-5.2.2-utf8/src" ]; then
 #   export PATH="$HOME/.vim/bundle/lua-5.2.2-utf8/src:$PATH"

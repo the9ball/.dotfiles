@@ -22,7 +22,7 @@
 次のサブモジュールは、固定したコミットに Apache License 2.0 の `LICENSE` を含みます。
 
 - `kube-ps1`: <https://github.com/jonmosco/kube-ps1/blob/7aaaeee5eaa29f920acd850ea63839d9f87b8ac5/LICENSE>
-- `kubectx`: <https://github.com/ahmetb/kubectx/blob/c8393ea883fb241764d8d6ca2851685e1ad5fe02/LICENSE>
+- `kubectx`: <https://github.com/ahmetb/kubectx/blob/v0.11.0/LICENSE>
 
 親リポジトリの gitlink だけを配布する場合、サブモジュールの実体と `LICENSE` は含まれません。再帰的に取得・配布する場合は、各サブモジュールのライセンスを維持してください。
 

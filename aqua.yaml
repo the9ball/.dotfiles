@@ -21,7 +21,9 @@ packages:
 - name: twpayne/chezmoi@v2.73.0
 - name: nodejs/node@v26.10.0
 - name: openai/codex@rust-v0.159.2
+# kubectxを更新したら、補完スクリプトの取得元(chezmoi/.chezmoiexternal.toml)のタグとsha256も同じバージョンに揃える。
 - name: ahmetb/kubectx@v0.11.0
+# kubensも同様に、chezmoi/.chezmoiexternal.tomlの補完スクリプトのタグとsha256を揃える。
 - name: ahmetb/kubectx/kubens@v0.11.0
 - name: kubernetes/kubectl@v1.36.2
   update:

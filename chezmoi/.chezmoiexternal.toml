@@ -1,0 +1,18 @@
+# Fetch the bash completion scripts for kubectx and kubens.
+# The binaries are managed by aqua.yaml (ahmetb/kubectx and ahmetb/kubectx/kubens).
+# Keep the tag in the URLs below identical to the kubectx version in aqua.yaml so
+# that the binaries and the completions come from the same release. When you
+# update kubectx in aqua.yaml, update the tag and sha256 here as well.
+# To get a sha256: curl -sL <url> | sha256sum
+# The files are placed under ~/.local/share/kubectx/completion/ and loaded from
+# ~/.bashrc.local (see .bashrc.local.example).
+
+[".local/share/kubectx/completion/kubectx.bash"]
+type = "file"
+url = "https://raw.githubusercontent.com/ahmetb/kubectx/v0.11.0/completion/kubectx.bash"
+checksum.sha256 = "3a3ada36a5ada06eb0d2d102d85e7878f22029ef5d7f11db7fc7e163ee02ce83"
+
+[".local/share/kubectx/completion/kubens.bash"]
+type = "file"
+url = "https://raw.githubusercontent.com/ahmetb/kubectx/v0.11.0/completion/kubens.bash"
+checksum.sha256 = "f075a473f87bffd17a8187d187423c2f44ada0b978c333e378890feefe172e9d"
