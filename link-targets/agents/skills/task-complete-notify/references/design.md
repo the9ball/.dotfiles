@@ -1,102 +1,88 @@
 # Task-complete notification: design record
 
-この文書は、`task-complete-notify` の現在の契約と、採用理由を対応付けるための設計記録です。
-利用手順と実行時の安全境界は、親文書の [`SKILL.md`](../SKILL.md) を正本とします。
+This document is a design record for mapping the current contract of `task-complete-notify` to the reason for its adoption.
+The usage procedure and safety boundaries at runtime are based on the parent document [`SKILL.md`](../SKILL.md).
 
-## 現在の不変条件
+## Current invariants
 
-- arm の入力からは、standalone なUUID候補を正規化し、異なる候補が1件だけのときだけ対象を確定する。同じUUIDの繰り返しは許可する。
-- canonical URIは `codex://threads/<UUID>`。legacy形式、余分なpath/query/fragmentは拒否する。
-- relaxedなUUID抽出は外部arm入力だけに適用し、hook・transcript metadata・state・watcherの内部値はstrict parserで完全一致検証する。
-- arm前に、現在のプロセスが選択しているCodex homeの `session_index.jsonl` と、同homeのactive rollout先頭 `session_meta` を照合する。`id == session_id == target`、`thread_source == user`、親なしを満たさなければstateを作らない。
-- runtime stateは実行時に解決した `$CODEX_HOME\.task-complete-notify` に置く。`CODEX_HOME`未設定時だけユーザープロファイルの`.codex`を使う。
-- `armedAtUtc` はarm時にrequestへ記録する唯一の有効期限基準で、`armed`だけに固定24時間TTLを適用する。欠落・不正・オーバーフローはfail closedで期限切れとし、arm・Stop・watcherの関連経路がlazyにrequestを先に削除し、checkpointをbest-effortで後処理する。checkpoint側の時刻でTTLを延長しない。
-- `attempting`はTTL掃除の対象外で、Stopの送信・terminal化を妨げない。期限切れrequestは通知処理へ渡さず、ロック競合時は次回scanで再試行する。
-- cancelは明示対象のthreadに対してcoordination lock→per-thread lockの順で状態を再読込し、`armed`だけをrequest先・checkpoint後の順に削除する。`attempting`は削除せず`too_late`、ロックまたは状態が不確定なら`busy`、不在・期限切れ・消費済みなら`Ok=true, Status=not_armed`を返し、terminal/tombstoneは作らない。cancelはactive ownershipを再検証せず、実行時点のgenerationに対する操作とする。
-- Stop hookを第一検出器、JSONL watcherを明示的なfallbackとし、両方を独立senderとして有効化しない。
-- JSONL watcherはLFをrecordのcommit boundaryとして扱う。LF済み行のstrict
-  UTF-8/JSON解析失敗はappend-only writer契約下の恒久破損としてcursorを
-  `NextOffset`まで進め、破損内容を保持・出力しない。LFのない末尾partial
-  lineだけを次回scanへ残す。writerがLF後に同じbyte rangeを書き換える証拠が
-  得られた場合は、この方針を再評価してからcheckpoint schemaを変更する。
-- Stop hookは同期呼出しだが、thread lock 10秒＋notifier child 35秒＋後処理マージン5秒＜helper wrapper 55秒＜hook設定上限90秒の階層に固定する。notifierのHTTP設定はconnect timeout 10秒とoperation inactivity timeout 20秒であり、HTTP全体の上限とは扱わない。失敗してもturn結果は変更せず、非同期workerは導入しない。
-- stdinは各境界で標準入力ストリームを明示的なUTF-8 `StreamReader`として読み、`Console.InputEncoding`の変更やコンソール接続を前提にしない。
-- 1 generationにつき送信APIを1回だけ試行し、結果はterminal stateへ消費する。retryや自動再送は行わない。
-- state、stdout/stderr、hook outputにはtopic、秘密、raw arm input、prompt/response、thread title、repository pathを保存・出力しない。
-- hookやwatcherを有効化する前に、対象セッションで実際に選択されるpermission profileとsandboxの組み合わせをcanaryで確認する。必要な権限は同homeのsession index/transcript読取、同home state rootへの限定書込、`ntfy.sh`へのHTTPS通信に絞り、skillはCodex設定を自動変更しない。
+- From the arm input, normalize the standalone UUID candidates and determine the target only when there is only one different candidate. Repetition of the same UUID is allowed.
+- The canonical URI is `codex://threads/<UUID>`. Legacy formats and any extra path, query, or fragment are rejected.
+- Relaxed UUID extraction is applied only to external arm input, and internal values of hooks, transcript metadata, state, and watchers are verified as exact matches using strict parser.
+- Before arming, check `session_index.jsonl` of the Codex home selected by the current process and `session_meta` at the beginning of the active rollout of the same home. State is not created unless `id == session_id == target`, `thread_source == user`, and parentlessness are satisfied.
+- Place the runtime state in `$CODEX_HOME\.task-complete-notify` which is resolved at runtime. Use `.codex` in the user profile only when `CODEX_HOME` is not set.
+- `armedAtUtc` is the only expiration date standard recorded in the request when arming, and applies a fixed 24-hour TTL only to `armed`. Missing, invalid, and overflow cases are expired with fail closed, and related routes of arm, stop, and watcher lazily delete requests first, and checkpoints are post-processed with best-effort. Do not extend TTL at checkpoint side time.
+- `attempting` is not subject to TTL cleaning and does not prevent Stop transmission/terminalization. Expired requests are not passed to the notification process, and if there is a lock conflict, the next scan will be retried.
+- Cancel rereads the state of the specified thread in the order of coordination lock → per-thread lock, and deletes only `armed`, removing the request first and then the checkpoint. `attempting` does not delete it, returns `too_late`, returns `busy` if it is locked or the status is uncertain, returns `Ok=true, Status=not_armed` if it is absent, expired, or consumed, and does not create a terminal/tombstone. Cancel does not re-verify active ownership and is an operation for the generation at the time of execution.
+- Make Stop hook the primary detector, JSONL watcher as an explicit fallback, and do not enable both as independent senders.
+- JSONL watcher treats LF as a record commit boundary. An LF-terminated line that fails strict UTF-8/JSON parsing is permanently malformed under the append-only writer contract. Advance the cursor to `NextOffset` without retaining or outputting the malformed content. Leave only a trailing partial line without LF for the next scan. If evidence shows that the writer rewrites the same byte range after LF, reevaluate this policy and change the checkpoint schema.
+- Stop hook is a synchronous call, but it is fixed to the hierarchy of thread lock 10 seconds + notifier child 35 seconds + post-processing margin 5 seconds < helper wrapper 55 seconds < hook setting upper limit 90 seconds. The HTTP settings for notifier are connect timeout 10 seconds and operation inactivity timeout 20 seconds, which are not treated as upper limits for the entire HTTP. Even if it fails, the turn result will not be changed and no asynchronous workers will be introduced.
+- stdin reads the standard input stream as an explicit UTF-8 `StreamReader` at each boundary, and does not assume a change in `Console.InputEncoding` or a console connection.
+- Attempt the send API only once per generation and consume the result to the terminal state. No retry or automatic retransmission is performed.
+- Do not save or output topic, secret, raw arm input, prompt/response, thread title, and repository path in state, stdout/stderr, and hook output.
+- Before enabling a hook or watcher, check the combination of permission profile and sandbox that is actually selected in the target session using the canary. The required permissions are limited to reading the session index/transcript of the same home, limited writing to the root of the same home state, and HTTPS communication to `ntfy.sh`, and the skill does not automatically change the Codex settings.
 
-## 判断理由
+## Reason for judgment
 
-### UUIDを最初の一致で採用しない
+### Don't take UUID on first match
 
-Codexのログ、Markdown、引用文には複数のUUIDが混在し得ます。最初の一致やcanonical URI優先では、別threadを黙って選択する危険があります。そのため、同じUUIDの反復だけを重複排除し、異なるUUIDが複数あれば `thread_ambiguous` として停止します。
+Codex logs, Markdown, and quotes can contain multiple UUIDs. If you prioritize first match or canonical URI, you run the risk of silently selecting another thread. Therefore, we only deduplicate repeats of the same UUID, and if there are multiple different UUIDs, we stop as `thread_ambiguous`.
 
-UUIDにASCII英数字・underscore・hyphenが直結した部分一致も候補にしません。入力全体が大きくなり過ぎないようarm入力はUTF-8 4 KiBに制限し、抽出元の全文は保持しません。
+Partial matches in which ASCII alphanumeric characters, underscore, and hyphen are directly connected to UUID will not be considered as candidates. The arm input is limited to UTF-8 4 KiB to prevent the entire input from becoming too large, and the full text of the extracted source is not retained.
 
-### strict parserとarm extractorを分離する
+### Separate strict parser and arm extractor
 
-hookやstateの値まで部分一致にすると、壊れたmetadataや改変されたstateから別のUUIDを拾う可能性があります。したがって、外部入力には `Extract-ArmThreadId`、内部境界には厳格な `Normalize-CodexThreadId` を使い分けます。
+If you use partial matching for hook and state values, there is a possibility of picking up a different UUID from corrupted metadata or altered state. Therefore, use `Extract-ArmThreadId` for external inputs and a strict `Normalize-CodexThreadId` for internal boundaries.
 
-### stateをCodex home単位に分ける
+### Divide state into Codex home units
 
-skill checkout内の共有stateでは、`.codex`と`.codex-personal`を同時に使ったときにrequest、watcher lock、checkpointが衝突します。Codexが実際に使っているhomeからstateとsessions rootを同時に導出すれば、homeごとの常駐watcherを独立させられます。
+In the shared state in skill checkout, request, watcher lock, and checkpoint conflict when `.codex` and `.codex-personal` are used at the same time. By simultaneously deriving the state and sessions root from the home that Codex actually uses, you can make the resident watcher for each home independent.
 
-stateディレクトリはインストール時には作らず、対象が現在のhomeで管理されていることを確認したarm後にだけ作ります。未知のhomeや未知のUUIDを試しただけで新しいruntime directoryを増やさないためです。
+The state directory is not created during installation, but only after arming after confirming that the target is managed by the current home. This is to avoid creating a new runtime directory just by trying an unknown home or an unknown UUID.
 
-`CODEX_HOME`はプロセス環境からのみ選びます。別homeを入力値から推測したり、WSL envelopeで任意homeを上書きしたりしません。WSL側が現在のセッション環境を継承できない場合は、誤ったhomeへの登録を避けるため失敗させます。
+`CODEX_HOME` is selected only from the process environment. It does not infer an alternate home from the input value or overwrite an arbitrary home in the WSL envelope. If the WSL side cannot inherit the current session environment, it will fail to avoid registering the wrong home.
 
-### request-owned TTLとlazy cleanup
+### Request-owned TTL and lazy cleanup
 
-予約が未来のturnを待つ間も、常駐workerや再送機構を追加せずに上限を設けるため、arm時刻から24時間の絶対TTLを採用します。requestの `armedAtUtc` だけを判定に使い、checkpointのコピーや欠落した時刻を補助値として扱うと、古いcheckpointによる延命や不明な時刻からの送信を防げます。期限判定はarm・Stop・watcherの既存実行点に限定し、期限切れのrequestを論理的に無効化したうえで物理削除します。削除はrequestを先に行うため、checkpointの残骸だけではwatcherが通知対象を再構成できません。
+We use an absolute TTL of 24 hours from the arm time to set an upper limit without adding resident workers or retransmission mechanisms while reservations wait for a future turn. If you use only the `armedAtUtc` of the request for judgment and treat the checkpoint copy or missing time as an auxiliary value, you can prevent old checkpoints from extending their lifespan or sending from unknown times. Deadline determination is limited to existing execution points of arm, stop, and watcher, and expired requests are logically invalidated and then physically deleted. Since the request is deleted first, the watcher cannot reconstruct the notification target using only the remains of the checkpoint.
 
-### LF済みmalformed行の扱い
+### Handling LFed malformed lines
 
-JSONL fallbackは単調な単一cursorでrolloutを走査する。LFをrecordのcommit
-boundaryと定義するappend-only writerでは、LF済みでstrict UTF-8またはJSON
-解析に失敗した行は恒久破損であり、直ちに破棄して後続recordの検出を妨げない。
-解析失敗位置を永遠に再試行すると、その行の後ろにある正常な
-`task_complete`までstarveさせるため、retry-foreverは採用しない。raw bytesや
-decoded textをstateに保存せず、checkpointには既存のpath/offsetだけを残す。
+The JSONL fallback scans each rollout with one monotonically advancing cursor. For an append-only writer that defines LF as the record commit boundary, a line ending in LF that fails strict UTF-8 decoding or JSON parsing is permanently malformed. Discard it immediately so it does not block detection of later records. Retrying forever at that offset would starve a valid `task_complete` record behind it. Do not store raw bytes or decoded text in state; keep only the existing path and offset in the checkpoint.
 
-この判断はrollout writerがLF済み範囲を更新しないことを前提とする。もし
-writerの実装またはtraceがその前提を否定する場合は、同一範囲・失敗回数を
-再起動後も保持するbounded retry/discardへ再設計する。その場合も、破損内容を
-保存・出力せず、失敗回数を観測回数として明示する。
+This judgment assumes that the rollout writer does not update the LF-completed range. If the writer implementation or trace disproves that assumption, redesign for bounded retry/discard that preserves the same range and failure count across restarts. Even then, do not save or output the malformed content, and define the failure count as the number of observations.
 
-### cancelの線形化
+### Linearization of cancel
 
-cancelは新しい状態機械を作らず、arm/Stop/watcherが既に共有するcoordination lockとthread lockを同じ順序で取得します。ロック下で `armed` を再確認してからrequestを削除するため、Stopの`attempting` claimと無条件のファイル削除が交差しません。ロック取得が間に合わない場合はrequest本文を二度読みして安定性を確認しますが、安定した `attempting` 以外は安全側に`busy`とします。thread単位の明示cancelなので、呼び出し間の再armを世代トークンで拘束せず、後続のcancelがその時点のgenerationを対象にする制約を契約として残します。
+cancel does not create a new state machine and acquires coordination and thread locks already shared by arm/stop/watcher in the same order. We recheck `armed` under lock before deleting the request, so Stop's `attempting` claim does not intersect with unconditional file deletion. If the lock cannot be acquired in time, the request body is read twice to check stability, but except for stable `attempting`, set `busy` to be safe. Since it is an explicit cancel on a per-thread basis, re-arming between calls is not constrained by a generation token, and the contract leaves a constraint that subsequent cancels target the generation at that point.
 
-### indexとtranscriptを二重に確認する
+### Double check index and transcript
 
-`session_index.jsonl`は同じhomeの候補を高速に絞るために使いますが、indexだけではrolloutの正当性を確認できません。最終判定はactive rolloutの先頭 `session_meta` とし、root user sessionであることを確認します。filename一致だけの判定や、archived rolloutの受理は行いません。
+`session_index.jsonl` is used to quickly narrow down candidates for the same home, but the validity of the rollout cannot be confirmed with the index alone. The final judgment is `session_meta` at the beginning of active rollout and confirms that it is the root user session. It does not judge only filename matches or accept archived rollouts.
 
-### `references/design.md`をREADMEの代わりに使う
+### Use `references/design.md` instead of README
 
-`SKILL.md`は呼び出し方と現行契約に集中させ、採用理由・却下案・証拠・保守条件はこの設計記録に分離します。READMEを別に複製すると利用手順と契約が陳腐化しやすいためです。
+`SKILL.md` concentrates on how to call and the current contract, and the reason for adoption, rejection proposal, evidence, and maintenance conditions are separated into this design record. This is because if you copy the README separately, the usage instructions and contract will likely become obsolete.
 
-このファイルにはローカル絶対path、ユーザー名、実UUID、thread名、prompt/transcript内容、topic、credential、private configの値を記録しません。Issueはprovenance linkとして参照しますが、Issueが読めなくても現行判断が理解できるよう要約を自足させます。
+This file does not record the local absolute path, username, real UUID, thread name, prompt/transcript content, topic, credential, or private config values. Issues are referred to as provenance links, but the summary is self-contained so that even if you can't read the issue, you can understand the current decision.
 
-### 診断スクリプトを本番経路から分離する
+### Separate diagnostic scripts from production routes
 
-端末表示の比較用スクリプトは、実ntfy publishを行うため本番のadapter・hook・watcherから分離し、`scripts/diagnostics/`に置きます。これらは受入経路から自動起動せず、明示的な表示確認でだけ実行します。ランダム値以外のmessage、topic、prompt、responseは扱いません。
+The terminal display comparison script is separated from the production adapter, hook, and watcher because it performs an actual ntfy publish, and is placed in `scripts/diagnostics/`. These scripts do not launch automatically through the acceptance path; they run only for an explicitly requested display check. Messages, topics, prompts, and responses other than random values are not handled.
 
-## 検証と保守
+## Verification and maintenance
 
-仕様を変更するときは、次を同じ変更として扱います。
+When changing specifications, treat the following as the same change:
 
-1. `SKILL.md`の現行契約
-2. `scripts/`のadapter・検出器・sender、および`scripts/diagnostics/`の診断資材
-3. `tests/task-complete-notify.tests.ps1`の受入条件
-4. この設計記録の不変条件・判断理由
-5. GitHub Issue #3の本文と判断履歴コメント
+1. Current contract of `SKILL.md`
+2. Adapter/detector/sender in `scripts/` and diagnostic materials in `scripts/diagnostics/`
+3. Acceptance conditions for `tests/task-complete-notify.tests.ps1`
+4. Invariant conditions and reasons for this design record decision
+5. GitHub Issue #3 body and judgment history comments
 
-最低限、入力抽出の曖昧性、wrong-home拒否とstate未作成、homeごとのlock分離、Stop/watcherの一回性、24時間TTLと不正時刻のfail-closed掃除、cancelとStopの競合、watcherの自然終了、秘密値非漏洩を再検証します。
-JSONL watcherの完全行破損については、invalid JSON/UTF-8の後続にある正常な
-`task_complete`、checkpointの再起動永続性、破損内容の非出力、LFなしpartial
-lineの再試行を受入テストで確認します。
+At a minimum, we will re-verify the ambiguity of input extraction, wrong-home rejection and state not created, lock separation for each home, one-time stop/watcher, fail-closed cleaning of 24-hour TTL and incorrect time, conflict between cancel and stop, natural termination of watcher, and non-leakage of secret values.
+Acceptance tests for a fully malformed JSONL line verify detection of a valid `task_complete` after invalid JSON/UTF-8, checkpoint persistence across restart, no output of malformed content, and retrying a partial line that does not yet end in LF.
 
-## 根拠リンク
+## Evidence link
 
 - [GitHub Issue #3: notification-skill](https://github.com/the9ball/.dotfiles/issues/3)
 - [Issue #3 initial process-reuse draft](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5628328226)
