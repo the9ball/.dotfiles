@@ -1,56 +1,56 @@
 ---
 name: git-operations
-description: Git の状態取得、差分・レビュー範囲固定、index.lock や権限エラー、範囲制御を扱うときに使う。破壊的操作や push の承認を代替しない。
+description: Used to get Git status, fix differences/review range, handle index.lock, permission errors, and range control. It does not substitute for approval of destructive operations or push.
 ---
 
 # Git operations workflow
 
 ## Discovery contract
 
-- Positive trigger: Git の状態、index・ref、差分範囲、権限エラー、lock、formatter・lint の範囲制御を扱う。
-- Negative trigger: Git の状態や範囲を扱わない通常の文章・コード作業である。
-- Conditional dependency: common policy kernel と commit-message Skill の責務境界を維持し、必要な依存だけを解決する。
-- Failure mode: Git identity、範囲、権限または依存契約を確定できない場合は推測せず、fail-safe に停止する。
+- Positive trigger: Handles Git status, index/ref, differential range, permission errors, lock, formatter/lint range control.
+- Negative trigger: This is normal text/code work that does not deal with Git state or scope.
+- Conditional dependency: Maintain the responsibility boundary between the common policy kernel and the commit-message Skill, and resolve only the dependencies that are needed.
+- Failure mode: If Git identity, scope, permissions, or dependency contracts cannot be determined, do not guess; stop fail-safe.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-実行前に、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から `link-targets/agents/reference-map.json` を見つけて JSON の `repository_root` から instruction root を固定する。map が見つからない、構造として解釈できない、または解決先が存在しない場合は、work root や比較基準を推測せず fail-safe に停止する。Git の work root、比較基準、終端、対象 identity、除外範囲は依頼と現在の Git 状態から別途固定する。
+Before execution, resolve the loaded Skill's symlink / junction to the entity path, find `link-targets/agents/reference-map.json` from its ancestors, and fix the instruction root from `repository_root` in JSON. If map is not found, cannot be interpreted as a structure, or cannot be resolved to, fail-safely stops without guessing the work root or comparison criteria. The Git work root, comparison standard, termination, target identity, and exclusion range are fixed separately from the request and current Git state.
 
 ## Guide
 
-Git の状態取得、変更、復旧、差分・レビュー範囲の固定に入る前に読む詳細ガイド。
-`link-targets/agents/AGENTS.md`、root `AGENTS.md`、`link-targets/agents/skills/commit-message/SKILL.md` の責務を補足し、コミットメッセージ形式は定義しない。
+A detailed guide to read before getting into Git state acquisition, modification, recovery, fixing differences and review ranges.
+It supplements the responsibilities of `link-targets/agents/AGENTS.md`, root `AGENTS.md`, and `link-targets/agents/skills/commit-message/SKILL.md`, and does not define the commit message format.
 
-### 状態取得と index.lock
+### State acquisition and index.lock
 
-- リポジトリ状態の参照だけを目的とするコマンドでは、可能な限り `git --no-optional-locks` をサブコマンドより前に指定する。
-- インデックス、作業ツリー、参照、履歴を更新し得るコマンドには `--no-optional-locks` を指定しない。
-- `index.lock` エラーが出た場合は、エラーに表示されたパスまたは `git rev-parse --git-path index.lock` で対象を特定する。
-- 同じリポジトリまたは worktree を操作中の Git プロセスがある場合は、その終了を待ってから再試行する。
-- ロックファイルの削除やプロセスの停止は、原因を read-only で確認し、作成元プロセスが終了した残留ロックだと確認できた場合でも、ユーザーの明示的な承認なしに行わない。
+- For commands whose sole purpose is to view the repository status, specify `git --no-optional-locks` before subcommands whenever possible.
+- Do not specify `--no-optional-locks` for commands that can update the index, working tree, references, or history.
+- If a `index.lock` error occurs, identify the target using the path displayed in the error or `git rev-parse --git-path index.lock`.
+- If there is a Git process operating on the same repository or worktree, wait for it to finish before trying again.
+- Do not delete the lock file or stop the process without the user's explicit approval, even if read-only checks confirm the cause and that the lock is residual from a process that has exited.
 
-### 権限エラー
+### Permission error
 
-- アクセス拒否、認証・認可不足、sandbox 制約などが原因と考えられる場合は、必要な操作、対象、理由を示して確認を得る。
-- 原因確認の read-only 操作以外で、ブラウザ、別 CLI・API、別アカウント、別保存先へ黙って切り替えない。
-- Git 管理領域の `index.lock` を作成・更新できず同一コマンドが権限エラーになった場合は、その同一 Git コマンドだけを権限昇格して再実行してよい。
-- 通常権限で Git 管理領域へ書き込めないことが事前に分かる環境では、index を更新する Git コマンドを最初から権限昇格してよい。ただし上位ポリシーの確認を優先する。
-- ロックの存在、別 Git プロセス、残留ロックを権限不足として扱わない。ロック削除、資格情報変更、別経路への切替はこの例外に含めない。
+- If the cause is considered to be access denial, lack of authentication/authorization, sandbox restrictions, etc., obtain confirmation by indicating the required operation, target, and reason.
+- Do not silently switch to a browser, another CLI/API, another account, or another save location, except for read-only operations to check the cause.
+- If you cannot create or update `index.lock` in the Git management area and the same command results in a privilege error, you can elevate the privileges of that same Git command and re-execute it.
+- In an environment where you know in advance that you cannot write to the Git management area with normal privileges, you can elevate the privileges of the Git command that updates the index from the beginning. However, priority should be given to checking the higher level policy.
+- Presence of locks, separate Git processes, and residual locks are not treated as insufficient privileges. Deleting locks, changing credentials, and switching to another route are not included in this exception.
 
-### 差分・レビュー範囲の固定
+### Fixed difference/review range
 
-- 実質レビューの前に比較基準、終端状態、対象 identity、含める状態、除外する状態を一意に固定する。`HEAD` だけで基準と終端を同時に決めない。
-- PR または URL が指定された場合は、提供元の固定 base/head SHA と差分定義（通常は `merge-base(base, head)` から head まで）に一致するコミット済み差分を対象とする。提供元の差分定義を取得できない場合だけ、固定 base/head SHA から同じ merge-base 差分を再現する。移動するローカル base、index、working tree、untracked を暗黙に混ぜない。
-- `staged` は `HEAD` 基準の index、`直近commit` は `HEAD^..HEAD`、`未commit` または `作業ツリー` は `HEAD` 基準の staged・unstaged・非ignored untracked とする。ignored は常に除外する。
-- `upstreamとの差分` は、明示がなければ現在 branch の追跡先 `@{u}` から `HEAD` までのコミット済み変更（merge-base 基準）とする。`@{u}` を PR base や release branch と同一視せず、dirty な変更を含めるかは別に確認する。
-- identity には commit/PR の base・target SHA、staged の index snapshot、作業ツリーの index・追跡ファイル snapshot、対象 untracked の path・hash manifest を含める。
-- 「レビューして」などで比較基準や終端が一意でない場合は、branch、追跡先、PR base/head、`HEAD`、dirty 状態を read-only で確認し、原則1問で候補を提示する。main、develop、release 系の branch を暗黙の比較元にせず、確認前にレビューや dispatch を始めない。
-- `@{u}` 解決不能、PR head と local `HEAD` の不一致、対象の変化がある場合は、推測や新旧証拠の混在をせず範囲を再確認する。
-- レビュー結果の冒頭に比較基準、終端 ref/SHA または snapshot identity、含めた状態、除外した状態、untracked の扱いを記載する。
+- Before the actual review, the comparison criteria, terminal state, target identity, inclusion status, and exclusion status are uniquely fixed. Do not determine the reference and termination at the same time using only `HEAD`.
+- If a PR or URL is specified, target committed differences that match the provider's fixed base/head SHA and the difference definition (usually from `merge-base(base, head)` to head). Reproduce the same merge-base difference from a fixed base/head SHA only if the provider's difference definition cannot be obtained. Don't implicitly mix moving local bases, indexes, working trees, and untracked.
+- `staged` is an index based on `HEAD`, and `直近commit` (latest commit) is `HEAD^..HEAD`. `未commit` (uncommitted) or `作業ツリー` (working tree) includes staged and unstaged changes and non-ignored untracked files based on `HEAD`; ignored files are always excluded.
+- Unless specified otherwise, `upstreamとの差分` (difference with upstream) is the committed change (merge-base standard) from the current branch's upstream `@{u}` to `HEAD`. Don't equate `@{u}` with PR base or release branch, and check separately whether to include dirty changes.
+- The identity includes the base/target SHA of commit/PR, the index snapshot of staged, the index/tracking file snapshot of the work tree, and the path/hash manifest of target untracked.
+- If the comparison criteria or endpoint is not unique, such as when the request is just 「レビューして」 ("review"), check the branch, tracking destination, PR base/head, `HEAD`, and dirty status as read-only, and suggest candidates with one question in principle. Don't use main, develop, or release branches as implicit comparison sources; do not start the review or dispatch until the user confirms the review scope.
+- If `@{u}` cannot be resolved, there is a mismatch between PR head and local `HEAD`, or there is a change in the target, reconfirm the scope without making assumptions or mixing old and new evidence.
+- At the beginning of the review results, describe the comparison criteria, terminating ref/SHA or snapshot identity, inclusion status, exclusion status, and handling of untracked.
 
-### Git の範囲制御
+### Git range control
 
-- formatter、lint、Git 操作で scope 外の大量変更が生成された場合は自動的に含めず、分離または停止して確認する。
-- 破壊的な操作、履歴書き換え、force push、ロック削除は `link-targets/agents/AGENTS.md` の明示承認境界を満たさない限り行わない。
+- If a formatter, lint, or Git operation generates a large amount of out-of-scope changes, do not automatically include them; separate them, or stop and seek confirmation.
+- Destructive operations, history rewrites, force pushes, and lock deletions will not be performed unless the explicit authorization boundary of `link-targets/agents/AGENTS.md` is met.

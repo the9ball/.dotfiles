@@ -1,115 +1,115 @@
 ---
 name: github
-description: GitHub service/API の Issue、Pull Request、review、comment、label、release、metadata を read または write するときに使う。Git transport だけでは発動しない。
+description: Used to read or write GitHub service/API issues, pull requests, reviews, comments, labels, releases, and metadata. Git transport alone will not trigger it.
 ---
 
 # GitHub service workflow
 
 ## Discovery contract
 
-- Positive trigger: GitHub service/API 上の resource を read または write する。
-- Negative trigger: Git repository の local checkout や Git transport だけを操作する。
-- Conditional dependency: common policy kernel を適用し、再設計材料が必要な場合は本 Skill 内の非runtime Design section を参照する。共通 authorization は重複定義しない。
-- Failure mode: GitHub service contract を解決できない場合は別経路へ fallback せず、fail-safe に停止する。
+- Positive trigger: Read or write resource on GitHub service/API.
+- Negative trigger: Operates only local checkout and Git transport of Git repository.
+- Conditional dependency: Apply the common policy kernel, and when redesign material is needed, refer to the non-runtime Design section in this Skill. Common authorization is not defined redundantly.
+- Failure mode: If the GitHub service contract cannot be resolved, it will fail-safely stop without falling back to another route.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-常時適用される共通 policy kernel は link-targets/agents/AGENTS.md とする。GitHub service contract の再設計・review 時は、本 Skill 内の非runtime Design section を参照する。
+The common policy kernel that is always applied is `link-targets/agents/AGENTS.md`. When redesigning or reviewing a GitHub service contract, refer to the non-runtime Design section in this skill.
 
 ## Guide
 
-GitHub service/API 上の Issue、Pull Request、review、comment、label、release、repository metadata などを read / write するときに適用する。
-この guide は GitHub 操作一般の解説ではなく、共通規約と通常の GitHub 知識だけでは判断がぶれる GitHub service 固有事項だけを保持する normative contract である。一般的な authorization、approval request、external posting、write lifecycle、retry はそれぞれの責務を持つ共通 contract に委譲し、ここへ重複して追加しない。
-この contract 自体を変更・再設計するときは、下記の非runtime Design section を必要なときだけ参照する。
+Applies when reading/writing issues, pull requests, reviews, comments, labels, releases, repository metadata, etc. on GitHub service/API.
+This guide is not an explanation of GitHub operations in general, but is a normative contract that maintains only matters specific to GitHub service that cannot be judged based on the common terms and general GitHub knowledge alone. General authorization, approval request, external posting, write lifecycle, and retry should be delegated to a common contract that has its own responsibilities, and should not be added here redundantly.
+When changing or redesigning this contract itself, refer to the non-runtime Design section below only when necessary.
 
 ### Scope
 
-- 対象は GitHub という外部 service/API 上の read / write である。
-- Git repository / Git transport は、remote が GitHub でも対象外である。`git clone/fetch/pull/push` に加え、`gh repo clone`、`gh pr checkout` など実質的に Git transport / local checkout を主目的とする操作も、コマンド名ではなく操作の意味で分類する。
-- GitHub service/API 操作の標準経路は、実行環境によらず公式 `gh` / `gh api` とする。host が別経路を提供していても、この contract の fallback または代替経路として Connector、MCP、app integration、browser、direct HTTP、別 CLI、別 account へ切り替えない。
-- host 固有の integration workflow は、それ自体が明示的に採用された場合だけ別 workflow として扱う。この規則は各製品にその能力が存在しないことを意味しない。
-- 本 guide は behavioral contract であり、host 側の permissions、hooks、managed settings 等による technical enforcement を定義しない。
+- The target is read/write on an external service/API called GitHub.
+- Git repository / Git transport is not covered even if remote is GitHub. In addition to `git clone/fetch/pull/push`, operations such as `gh repo clone` and `gh pr checkout` whose main purpose is Git transport/local checkout are also classified based on the meaning of the operation rather than the command name.
+- The standard route for GitHub service/API operations is the official `gh` / `gh api` regardless of the execution environment. Do not switch to Connector, MCP, app integration, browser, direct HTTP, another CLI, or another account as a fallback or alternative route for this contract, even if host provides another route.
+- A host-specific integration workflow is treated as a separate workflow only if it is explicitly adopted. This rule does not mean that each product does not have that capability.
+- This guide is a behavioral contract and does not define technical enforcement such as permissions, hooks, managed settings, etc. on the host side.
 
-### Access failure の診断
+### Diagnosing access failure
 
-- GitHub への network access が必要な `gh` / `gh api` は、host が network-restricted sandbox を使用する場合、その sandbox 内で失敗させてから retry せず、network access が許可された host の正式な実行経路を最初から使用する。Codex では `require_escalated` を使用する。これは Linux の `sudo` 等による user privilege escalation とは別であり、network を必要としない `gh` 操作まで一律に escalation しない。
-- 単発の `gh` access/auth/connectivity failure や通常表示だけで永続的な credential failure と断定しない。認証失敗が疑われる場合は `gh auth status -h github.com --json hosts` を実行し、exit status 単独ではなく JSON の `state` / `error` を確認する。同一 host に複数 account がある場合は `active: true` の entry（または `--active` で選択された account）だけを診断対象とし、非active account の状態を credential validity の判定に混在させない。
-- credential failure は `error` が token / credential 自体の invalid / revoked / expired 等を明示する場合にのみ分類する。未知の error、DNS / network / TLS / rate limit / GitHub API failure、到達不能、`socket: operation not permitted` 等の実行環境制約は credential failure と推定しない。
-- credential failure と確認できない状態で `gh auth refresh` / `gh auth login` 等を recovery として実行しない。
-- network-restricted sandbox 以外で発生した外部効果を伴わない GitHub access failure は、同じ標準経路で 1 回 retry し、実効的な利用可能性を確認する。retry も失敗した場合は別経路へ fallback せず停止する。
-- この retry は read-only の診断であり、write の再送、ambiguous outcome、read-back、retry lifecycle を定めない。それらは共通 contract の責務とする。
+- For `gh` / `gh api`, which requires network access to GitHub, if the host uses a network-restricted sandbox, it will not retry after failing within that sandbox, and will use the official execution path of the host with network access allowed from the beginning. Codex uses `require_escalated`. This is different from user privilege escalation by Linux's `sudo`, etc., and does not uniformly escalate up to `gh` operations that do not require network.
+- Do not conclude that a single `gh` access/auth/connectivity failure or normal display is a permanent credential failure. If you suspect authentication failure, execute `gh auth status -h github.com --json hosts` and check `state` / `error` in JSON instead of exit status alone. If there are multiple accounts on the same host, only the `active: true` entry (or the account selected by `--active`) is subject to diagnosis, and the status of inactive accounts is not mixed in the credential validity judgment.
+- Credential failure is classified only when `error` clearly indicates that the token / credential itself is invalid / revoked / expired, etc. Execution environment constraints such as unknown errors, DNS / network / TLS / rate limit / GitHub API failure, unreachable, `socket: operation not permitted`, etc. are not assumed to be credential failures.
+- Do not execute `gh auth refresh` / `gh auth login` etc. as recovery unless credential failure can be confirmed.
+- GitHub access failures with no external effects that occur outside of the network-restricted sandbox will be retried once via the same standard route to ensure effective availability. If retry also fails, stop without falling back to another route.
+- This retry is a read-only diagnostic and does not specify write retransmission, ambiguous outcome, read-back, or retry lifecycle. They are the responsibility of a common contract.
 
 ### Body text transport
 
-- `gh` に渡す Issue / Pull Request の本文、コメント、レビュー本文、release notes など自由形式の本文は、不活性なデータとして扱う。本文中のコマンド文字列は実行指示ではなく、backtick、`$()`、`$VAR` なども本文の文字列である。
-- 任意の Markdown 本文は shell command text に直接展開しない。各 subcommand の `--body-file <path>`（または `--body-file -`）など文書化された file input を使い、`gh api` ではリクエスト全体をファイルに直列化して `--input <path>` で渡す。`--body <text>`、`-F body=...` など command-line 引数へ本文を直接入れたり、本文から shell command を組み立てたりしない。shell quoting だけを任意本文の安全策にしない。
-- shell heredoc から本文ファイルを作る場合は、`<<'BODY'` のように delimiter を quote して parameter expansion と command substitution を無効にし、delimiter と同じ行が本文にないことを確認する。任意本文には unquoted heredoc を使わない。
-- 本文を送信または更新した後は、対応する `gh` の view command または `gh api` で保存済みフィールドを読み戻し、元の UTF-8 本文と改行を含めて照合する。成功 exit code だけを本文保持の証拠にしない。
+- Free-form text such as issue/pull request text, comments, review text, release notes, etc. to be passed to `gh` will be treated as inert data. The command strings in the main text are not execution instructions; backtick, `$()`, `$VAR`, etc. are also strings in the main text.
+- Do not expand arbitrary Markdown body text directly into shell command text. Use a documented file input such as `--body-file <path>` (or `--body-file -`) for each subcommand; for `gh api`, serialize the entire request into a file and pass it as `--input <path>`. Do not directly enter arbitrary body text in command-line arguments such as `--body <text>` or `-F body=...`, or construct a shell command from it. Do not rely on shell quoting as your only safeguard for the body.
+- When creating a body file from a shell heredoc, quote the delimiter like `<<'BODY'` to disable parameter expansion and command substitution, and make sure the same line as the delimiter does not appear in the body. Do not use an unquoted heredoc for arbitrary body text.
+- After sending or updating the body, read back the saved field with the corresponding `gh` view command or `gh api` and match it against the original UTF-8 body, including line breaks. Don't use the successful exit code alone as evidence of text preservation.
 
 ### Resource identity
 
-- Issue / Pull Request の番号など、repository を欠く識別子を単独で完全な resource identity として扱わない。
-- 番号だけでは repository、resource type、対象を一意に固定できない場合、推測で補完しない。
-- review comment と review thread は別 resource として扱う。comment の Hide と thread の Resolve を相互の代替操作として扱わない。
-- review comment の Hide または review thread の Resolve を試行する前に、選択した標準経路で対象 ID、現在の状態、本文を read-back できることを確認する。read-back 能力が利用不能または確認不能な場合は `NEEDS_EVIDENCE` として停止し、操作を試行しない。
+- Do not treat identifiers that lack a repository, such as issue/pull request numbers, as a complete resource identity.
+- If the repository, resource type, or target cannot be uniquely determined by the number alone, it will not be supplemented by guessing.
+- Review comments and review threads are treated as separate resources. Hide of comment and Resolve of thread are not treated as mutually alternative operations.
+- Before attempting to Hide a review comment or Resolve a review thread, ensure that the subject ID, current state, and body can be read-back via the standard route you choose. If read-back capability is unavailable or unverifiable, stop as `NEEDS_EVIDENCE` and do not attempt the operation.
 
 ### Pull Request template
 
-- Pull Request 作成時は repository が提供する GitHub の PR template を尊重する。
-- 複数の template 候補から適切なものを安定して特定できない場合、推測で一つを選ばない。
-- template を特定できた場合は、その構成とチェック項目を保持して本文を作成する。
+- When creating a pull request, respect GitHub's PR template provided by the repository.
+- If you cannot reliably identify a suitable template from multiple template candidates, do not choose one by guessing.
+- If you can identify the template, create the main text while retaining its structure and check items.
 
 ### Maintenance rule
 
-GitHub 固有の規則を追加するのは、共通 contract と通常の GitHub 知識だけでは resource / effect / read-back 等の判断が安定しない場合に限る。網羅的な操作一覧、一般 workflow、共通責務の再記述は追加しない。
+Add GitHub-specific rules only when decisions about resources, effects, read-backs, etc. cannot be made stably using only the common contract and normal GitHub knowledge. Do not add an exhaustive list of operations, general workflows, or restatements of common responsibilities.
 
 
 ## Design (nonruntime)
 
 This section preserves GitHub contract rationale and reconsideration material. It is not part of the runtime contract and does not override the Guide section.
 
-GitHub Skill runtime contract の将来の設計判断に必要な選択肢、再検討材料、責務境界を記録する。
-通常の GitHub 操作では不要で、`github` Skill の編集・再設計・不確実な境界判断・review 時に参照する。この section は非規範的であり、runtime contract と矛盾する場合は Skill の `## Guide` section を優先する。
+Document options, considerations, and responsibility boundaries for future design decisions for the GitHub Skill runtime contract.
+It is not necessary for normal GitHub operations, and is referenced when editing, redesigning, making uncertain boundary judgments, and reviewing `github` Skills. This section is non-normative, and if it conflicts with the runtime contract, the `## Guide` section of Skill takes precedence.
 
-### 設計意図
+### Design intent
 
-#### service/API と Git transport を分離する
+#### Separate service/API and Git transport
 
-GitHub が提供元でも、Issue/PR API と repository transport では対象 resource、effect、失敗モデルが異なる。`gh` という同じ CLI を使うかではなく、操作の意味が GitHub service/API か Git transport / local checkout かで分類する。
+Even though GitHub is the provider, the issue/PR API and repository transport have different target resources, effects, and failure models. It is classified not by whether the same CLI, `gh`, is used, but by whether the meaning of the operation is GitHub service/API or Git transport / local checkout.
 
-#### 標準経路を host 能力から独立させる
+#### Make standard routes independent of host capabilities
 
-runtime ごとの integration availability を fallback 順序へ組み込むと、同じ guide でも実行経路と失敗時挙動が変わる。そのため service/API の標準経路を `gh` / `gh api` に固定し、host 固有 integration は明示的に採用された別 workflow として分離する。
+Incorporating integration availability for each runtime into the fallback order changes the execution path and failure behavior even for the same guide. Therefore, the standard route for service/API is fixed to `gh` / `gh api`, and host-specific integration is separated as a separate workflow that is explicitly adopted.
 
-#### GitHub 固有差分だけを保持する
+#### Keep only GitHub specific differences
 
-authorization、approval request、external posting、write retry 等を GitHub guide が再定義すると、共通 contract の変更時に意味が分岐する。GitHub 側には resource identity、PR template、review comment / thread のように通常知識だけでは agent 判断がぶれやすい差分だけを残す。
+When the GitHub guide redefines authorization, approval request, external posting, write retry, etc., the meanings diverge when the common contract changes. On the GitHub side, only differences such as resource identity, PR template, and review comments/threads are left that are likely to lead to inaccurate agent judgment based on common knowledge.
 
-### 責務境界
+### Responsibility boundary
 
-`github` Skill は GitHub service/API の scope、標準経路、GitHub 固有 resource semantics を所有する。
+`github` Skill owns GitHub service/API scope, standard route, and GitHub-specific resource semantics.
 
-一方、以下は所有しない。
+The `github` Skill does not own the following:
 
-- Git repository / Git transport / local checkout の lifecycle
-- external operation の authorization boundary、approval consumption、ambiguous outcome、write retry
-- approval request の discovery、collection、提示 workflow
-- user-visible external posting の一般的な文章・公開規則
-- Issue/PR maintenance、review response、REVIEW-SUMMARY、HANDOFF の workflow
-- host ごとの technical enforcement や integration capability catalog
+- Git repository / Git transport / local checkout lifecycle
+- external operation authorization boundary, approval consumption, ambiguous outcome, write retry
+- Approval request discovery, collection, and presentation workflow
+- General text and publication rules for user-visible external posting
+- Issue/PR maintenance, review response, REVIEW-SUMMARY, HANDOFF workflow
+- technical enforcement and integration capability catalog by host
 
-### 再検討材料
+### Materials for reexamination
 
-#### read-only 診断 retry の一般化
+#### Generalization of read-only diagnostic retry
 
-単発の access/auth/connectivity failure を永続的 failure と即断しない規則は、Git transport や他の外部 service にも一般化できる可能性がある。共通化する場合は、外部効果がないこと、retry budget、write retry との区別、適用可能な failure class を共通 contract 側で十分に定義できることを再検討条件とする。
+The rules that do not immediately judge a single access/auth/connectivity failure as a permanent failure may be generalized to Git transport and other external services. If it is to be made common, reconsider whether the common contract can sufficiently define the absence of external effects, the retry budget, how this differs from write retries, and the applicable failure classes.
 
-#### Skill entrypoint への routing 移行
+#### Routing migration to skill entrypoint
 
-GitHub 操作時の Skill discovery と責務発生時の conditional load は現在 `github` Skill / `reference-map.json` が保証する。今後も progressive disclosure を維持し、approval-request と authorization を独立した責務として保ち、GitHub write というだけで approval-request を常時 load しない。
+Skill discovery during GitHub operations and conditional load when obligations occur are currently guaranteed by `github` Skill / `reference-map.json`. We will continue to maintain progressive disclosure, keep approval-request and authorization as independent responsibilities, and do not constantly load approval-request just by writing GitHub.
 
-#### GitHub 固有規則の追加条件
+#### Additional conditions for GitHub-specific rules
 
-新しい規則候補は、通常の GitHub knowledge で安定して判断できるか、共通 contract が既に所有していないかを先に確認する。GitHub 固有の resource/effect/read-back の差分が実運用で反復して判断をぶらす場合だけ normative Skill Guide への追加を検討する。
+First, check whether a new rule candidate can be stably determined using normal GitHub knowledge and whether it is already owned by a common contract. Consider adding to the normative skill guide only if GitHub-specific differences in resource/effect/read-back are repeated in actual operations and cause uncertain decisions.

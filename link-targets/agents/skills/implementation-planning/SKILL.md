@@ -1,131 +1,131 @@
 ---
 name: implementation-planning
-description: 実装計画または runbook を作成、更新、レビューするときに使う。計画レビュー境界、見積り、超過時の停止、履歴管理を所有する。
+description: Use when creating, updating, and reviewing implementation plans or runbooks. Own plan review boundaries, estimates, stop conditions when estimates are exceeded, and history management.
 ---
 
 # Implementation planning workflow
 
 ## Discovery contract
 
-- Positive trigger: 実装計画または runbook を作成、更新、レビューする。
-- Negative trigger: 単なる作業メモや短い説明文の編集で、計画の所有範囲を使わない。
-- Conditional dependency: common policy kernel と execution lifecycle の承認・対象・review contract を維持する。
-- Failure mode: 計画の対象、制約、見積り根拠または適用契約を確定できない場合は fail-safe に停止する。
+- Positive trigger: Create, update, and review implementation plans or runbooks.
+- Negative trigger: Simply editing work notes or short descriptive text without using the plan's ownership scope.
+- Conditional dependency: Maintain the common policy kernel and the execution lifecycle's approval, target, and review contract.
+- Failure mode: Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or applicable contract cannot be determined.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の self-contained Guide を normative contract として適用する。本 Skill が計画 / runbook の normative owner であり、旧 guide path をロードしない。
+Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. This skill is the normative owner of the plan/runbook and does not load the old guide path.
 
-必要に応じて読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先から link-targets/agents/reference-map.json を探して repository_root から instruction root を固定する。この root は共有 instruction の参照専用であり、work root と Git 対象は依頼から別途固定する。
+If necessary, resolve the symlink / junction of the loaded Skill to the actual path, search for link-targets/agents/reference-map.json from its ancestors, and fix the instruction root from repository_root. This root is only for reference of the shared instruction, and the work root and Git target are fixed separately from the request.
 
-計画の実行可否、承認状態、外部操作、採否はそれぞれの既存 execution / authorization gate に委ねる。本 Skill はそれらを代替しない。
+The ability to execute the plan, approval status, external operations, and acceptance/rejection are left to each existing execution/authorization gate. This Skill does not replace them.
 
 ## Guide
 
-実装計画と runbook の作成・更新・レビューに適用する。
+Applies to creating, updating, and reviewing implementation plans and runbooks.
 
-`AGENTS.md` の実装規模の見積りと runbook・計画履歴の詳細。
-実装計画または runbook を作成・更新・レビューする前に読む。
+Details of implementation-scale estimation and of runbook/plan history management.
+Read before creating, updating, or reviewing an implementation plan or runbook.
 
-### 計画レビューと実装後レビューの境界
+### The boundary between planning review and post-implementation review
 
-計画書レビューでは、実装前に確定すべき判断に影響しない細部の網羅的な詳細レビューは行わない。
+The plan review does not include an exhaustive detailed review of details that do not affect the decisions that should be made before implementation.
 
-計画レビューでは、実装前に確定しないと要件違反、実害、重大な手戻り、または検証不能を招く事項と、承認範囲・受入条件・安全性・セキュリティ・データ整合性・互換性・不可逆操作に関する重要な欠落を指摘する。実装結果から低コストかつ安全に検証・調整でき、これらの判断を変えない実装詳細や表現上の完全性は、欠落していることだけを理由に指摘しない。
+The plan review points out matters that, if not determined before implementation, will lead to violation of requirements, actual harm, serious rework, or inability to verify, as well as important omissions regarding scope of approval, acceptance conditions, safety, security, data integrity, compatibility, and irreversible operations. Implementation details and representational completeness that can be verified and adjusted at low cost and safely from implementation results and do not change these decisions should not be pointed out simply because they are missing.
 
-実装後レビューでは、計画の記載密度ではなく、固定した実装対象の要件適合、実際の挙動、回帰、危険、検証結果を判定する。実装後レビューの存在を、実装前に必要な判断や重大な不確実性を先送りする理由にしてはならない。
+In the post-implementation review, the requirements conformance, actual behavior, regression, danger, and verification results of the fixed implementation target are determined, not the density of descriptions in the plan. The existence of a post-implementation review should not be used as a reason to postpone necessary judgments or significant uncertainties before implementation.
 
-### 承認候補
+### `承認候補` (Approval Candidates)
 
-すべての plan は、種類・規模によらず専用の `承認候補` section を持つ。planning 時点の情報から合理的に予見できる approval need を候補化し、単なる speculative な可能性は含めない。作成・更新中に自然に発覚した候補を記録し、plan 完成時に承認候補の観点から plan 全体を一度確認する。候補発見だけを目的とした追加の深掘り調査は要求しない。
+All plans have a dedicated `承認候補` (Approval Candidates) section, regardless of type or size. Approval needs that can be reasonably foreseen from information available during planning are candidates; do not include mere speculation. Record candidates discovered naturally during creation or updates, then check the completed plan once for approval candidates. No additional deep investigation is required solely to find candidates.
 
-候補が 0 件でも section を省略せず `なし` と明示する。これは確認済みで候補がないことだけを表し、runtime で approval need が発生しないことを保証しない。
+Even if there are no candidates, do not omit the section; write `なし` (none). This only indicates that the plan was checked and no candidates were found; it does not guarantee that approval needs will not arise at runtime.
 
-各候補には少なくとも **対象・操作・起因** を記載する。条件付き候補では正確な trigger の確定までは要求せず、approval need が何に起因して生じそうかを説明する。条件・時期・理由等は理解・識別・runtime での再評価に有用な場合だけ補足し、詳細が plan の別箇所にあれば参照してよい。bullet、table 等の presentation format は固定しない。
+For each candidate, write at least **target/operation/cause**. Conditional candidates do not require the exact trigger to be determined, but instead explain what is likely to cause the approval need. Conditions, timing, reasons, etc. may be supplemented only when they are useful for understanding, identification, and re-evaluation at runtime, and if details are provided elsewhere in the plan, they may be referred to. Presentation formats such as bullet and table are not fixed.
 
 #### Identifier
 
-- すべての active candidate に plan-local identifier `?1`, `?2`, ... を付け、candidate に割り当てる active ID は current plan 内で一意にする。
-- identifier namespace は plan artifact 単位とする。同じ artifact の revision では namespace を維持し、単なる大幅改訂では reset しない。別 artifact として新しい plan を作る場合だけ `?1` から開始してよい。
-- 同じ将来の approval need と合理的に判断できる限り revision 後も ID を維持し、不明なら新しい ID を発行する。並び替えによる renumber はしない。
-- 廃止した ID は再利用せず、同じ plan artifact 内に retired ID reservation として保持する。これは candidate lineage / history / approval state ではなく、再利用防止に必要な ID の集合だけを保持するものとする。新規 ID は active / retired の双方に未使用でなければならず、active と retired を重複させない。reservation の presentation format は固定しない。
-- split / merge により 1:1 の semantic identity が失われる場合は旧 ID を retire し、結果の候補には新しい ID を発行する。candidate 固有の lineage は記録しない。
-- plan candidate ID と runtime approval item ID は別概念であり、一致・継承を要求しない。
+- Add plan-local identifiers `?1`, `?2`, ... to all active candidates, and make the active ID assigned to candidates unique within the current plan.
+- The identifier namespace is for each plan artifact. The namespace is maintained for revisions of the same artifact, and is not reset for simple major revisions. You can start from `?1` only when creating a new plan as a separate artifact.
+- The ID will be maintained after the revision as long as it can be reasonably determined that the same future approval need is required, and a new ID will be issued if it is unknown. Do not renumber by sorting.
+- Do not reuse retired IDs, but keep them as retired ID reservations within the same plan artifact. This shall not hold candidate lineage / history / approval state, but only a set of IDs necessary to prevent reuse. The new ID must be unused for both active and retired, and must not overlap active and retired. The presentation format of reservation is not fixed.
+- If 1:1 semantic identity is lost due to split/merge, retire the old ID and issue a new ID to the resulting candidate. Candidate-specific lineage is not recorded.
+- Plan candidate ID and runtime approval item ID are different concepts and do not require matching or inheritance.
 
 #### Maintenance
 
-- plan 更新時は、変更内容から候補への影響が合理的に疑われる場合に候補を更新する。細かな編集のたびに plan 全体を機械的に再走査しない。大きく改訂した plan を完成させる時点では、通常の完成時チェックとして plan 全体を確認する。
-- approval need 自体がなくなった候補は `承認候補` section から削除して ID を retire する。重要な変更履歴は既存の plan history 規則に委ね、candidate 独自の state / history store は作らない。
-- ID を削除・split・mergeで retire するときは、current plan の current-state content 全体をその literal token（例: `?3`）で検索する。retired ID reservation と明示的な過去 history を除き dangling reference が残っていないことを確認し、残っていれば同じ更新で修正または削除する。過去 history は書き換えない。
-- `承認候補` section の更新時と plan 完成時に、active candidate ID の割り当てが一意であること、および active / retired ID が重複していないことを確認する。
-- runtime で対応する approval を取得したこと自体では candidate を削除せず、`承認済み` 等へ状態変更しない。candidate は runtime approval state、execution permission、authorization state のいずれでもなく、それらを生成・拡張・復活させない。runtime では現在状態から approval need と既存 authorization contract を別途評価する。
+- When updating plan, candidates are updated if there is a reasonable suspicion that the changes will affect the candidates. Don't mechanically rescan the entire plan for every minor edit. When a significantly revised plan is completed, the entire plan is checked as a normal completion check.
+- Candidates that no longer require approval are deleted from the `承認候補` (Approval Candidates) section and their IDs are retired. Leave important change history to the existing plan history rules and do not create a candidate-specific state/history store.
+- When retiring an ID by deleting, splitting, or merging, the entire current-state content of the current plan is searched for its literal token (e.g. `?3`). Check that no dangling references remain except for retired ID reservations and explicit past history, and if they remain, fix or delete them in the same update. Do not rewrite past history.
+- When updating the `承認候補` (Approval Candidates) section and completing the plan, confirm that active candidate ID assignments are unique and that active and retired IDs are not duplicated.
+- Obtaining the corresponding approval at runtime does not delete the candidate or change its status to `承認済み` (approved). A candidate is not a runtime approval state, execution permission, or authorization state, and does not create, extend, or revive them. At runtime, evaluate the approval need and existing authorization contract from the current state.
 
-### なぜ推定コード量を書くのか
+### Why write estimated code amount?
 
-「シンプルに実装する」は検証不能な指示で、実装中に自分が違反しているか判定できない。推定行数は生成中に自己照合できる代理指標になる。目的は行数を減らすことではなく、計画から逸脱した時点でそれを検知できるようにすること。
+"Simple implementation" is an unverifiable instruction, and it is impossible to determine whether you are violating it during implementation. The estimated number of rows becomes a proxy measure that can be self-checked during generation. The goal is not to reduce the number of lines, but to be able to detect when something deviates from the plan.
 
-### 見積りの単位
+### Estimation unit
 
-- 実装手順の各ステップに対して推定行数を付ける。ファイル単位ではなくステップ単位にする(1ステップが複数ファイルに跨るなら合算でよい)。
-- 精度は求めない。桁が合っていれば十分。20行と30行の区別に意味はないが、30行と300行の区別には意味がある。
-- 幅を持たせて書いてよい(例: 45〜65行)。その場合、超過判定は範囲の上限を基準にする。
+- Label each step in the implementation procedure with an estimated number of lines. Make it step-by-step instead of file-by-file (if one step spans multiple files, you can add them together).
+- Exact accuracy is not required. It is enough to estimate the right order of magnitude. The distinction between 20 lines and 30 lines is meaningless, but the distinction between 30 lines and 300 lines is.
+- You can write it with some width (for example, 45 to 65 lines). In that case, excess determination is based on the upper limit of the range.
 
-### カウント対象と除外
+### Counted and excluded
 
-- 除外する: テストコード、自動生成物、マイグレーションの生成部分、設定ファイル、コメント、空行。
-- テストコードは別枠で概算を書く。本体の見積りに含めると、行数を守るためにテストが削られる。
-- 既存コードの削除行はカウントしない。
+- Exclude: test code, automatic artifacts, migration generation, configuration files, comments, and empty lines.
+- Write a rough estimate of the test code in a separate box. When included in the main body estimate, tests are removed to maintain line count.
+- Deleted lines of existing code are not counted.
 
-### 見積りを超えた場合
+### If the estimate is exceeded
 
-1. 1.5倍かつ+30行以上を超えた時点で、そのステップの実装を止める。
-2. 超過の理由を分類して報告する。(a) 見積りが甘かった (b) 要件が計画より複雑だった (c) 計画に無い要素を追加している。
-3. 対応案を示す。(c) の場合は、その要素が本当に依頼の範囲内か明示的に確認する。
-4. 承認を得てから続行する。
+1. When the number of lines exceeds 1.5 times and +30 lines, stop implementing that step.
+2. Categorize and report the reason for the excess. (a) The estimate was lax (b) The requirements were more complex than planned (c) Elements not included in the plan were added.
+3. Show countermeasures. In case (c), explicitly check whether the element is really within the scope of the request.
+4. Get approval before proceeding.
 
-閾値に絶対値の下限(+30行)を入れているのは、小さいステップで頻繁に停止すると手戻りが多くルールごと無視されるようになるため。
+The reason why the lower limit of the absolute value (+30 lines) is included in the threshold is because if you stop frequently at small steps, there will be a lot of rework and the entire rule will be ignored.
 
-### 見積りを下回った場合
+### When implementation is below the estimate
 
-下振れも報告する。要件の取りこぼし、分岐の未実装、スタブのまま残した箇所がないか確認する。過剰実装はレビューで目に見えるが、過少実装は目に見えない。
+Also report on the downside. Check for any missed requirements, unimplemented branches, or sections left as stubs. Over-implementation is visible in reviews, but under-implementation is invisible.
 
-### 行数に収めるためにやってはいけないこと
+### What not to do to fit within the number of lines
 
-行数はあくまでソフト目標であり、以下を犠牲にして収めることは禁止する。収まらない場合は上記の報告を行う。
+The number of lines is only a soft goal, and it is prohibited to achieve it by sacrificing the following. If it does not fit, please report as above.
 
-- 要件・仕様の一部を落とす、TODO やスタブで済ませる
-- エラーハンドリング、ガード節、入力検証を省く
-- 1行への詰め込み(ネストした三項演算子、多段のメソッドチェーン)
-- 中間変数の削除、命名の短縮(`AGENTS.md` の「短縮名を使わない」に反する)
-- 型注釈やコメントの省略
+- Drop part of the requirements/specifications and use TODO or stubs
+- Eliminate error handling, guard clauses, and input validation
+- Packing into one line (nested ternary operators, multi-level method chains)
+- Eliminate intermediate variables, shorten naming (contrary to "Do not use short names" of `AGENTS.md`)
+- Omitting type annotations and comments
 
-### 行数以外に併記する指標
+### Indicators to be written in addition to the number of rows
 
-行数だけを制約すると、行数の少ない過剰抽象化が報酬される。「3つの明示的な関数」より「1つの汎用関数」の方が行数は少ないが、認知的複雑度は高い。そのため次を必ず計画に明記する。行数だけを書いて済ませない。各ステップに数を書き、計画の末尾に合計も書く。
+Constraining only the number of lines rewards over-abstraction with fewer lines. “One generic function” has fewer lines than “3 explicit functions,” but it has a higher cognitive complexity. Therefore, be sure to specify the following in your plan. Don't just write the number of lines. Write a number for each step and also write the total at the end of the plan.
 
-- 新規に作るファイル数
-- 新規に導入する抽象の数(クラス、インターフェース、ジェネリクス、抽象基底)
-- 新規に追加する依存パッケージ、設定項目
+- Number of new files to create
+- Number of new abstractions to be introduced (classes, interfaces, generics, abstract bases)
+- Newly added dependent packages and setting items
 
-これらは圧縮で誤魔化せないため、行数より過剰実装の検知に向く場合がある。
+Since these cannot be disguised by compression, they may be better suited for detecting excessive implementation than the number of lines.
 
-### 層による行数の意味の違い
+### Differences in the meaning of the number of rows depending on the layer
 
-行数の意味は層ごとに桁で違う。同一の基準で比較しない。
+The meaning of line counts differs by orders of magnitude across layers. Do not compare them on the same basis.
 
-- DI登録、設定バインディング、DTO/型定義: 行数は多くなるが複雑度は低い。超過してもほぼ問題にならない。
-- ドメインロジック、状態遷移、条件分岐: 行数の超過が複雑度の増加を直接示す。ここでの超過を重く見る。
-- UI/テンプレート: マークアップは膨らむため、ロジック部分だけを見積り対象にする。
+- DI registration, configuration binding, DTO/type definitions: More lines, but less complexity. Even if it exceeds it, it is almost not a problem.
+- Domain logic, state transitions, and conditional branching: Line count excess directly indicates increased complexity. We look at the excess here seriously.
+- UI/Template: Markup is large, so estimate only the logic part.
 
-### Runbook・計画の履歴管理
+### Runbook/plan history management
 
-- より具体的な指示がない限り、この節は運用手順を記す runbook と実装計画の新規作成・更新にだけ適用し、通常の計画やタスクメモには適用しない。以下では両者をまとめて「本体」と呼ぶ。
-- 本体には、現時点で有効な手順と、その実行・判断に必要な現行の前提および決定を記載する。本体を現在の内容に関する正とし、履歴ファイルは補足資料として扱う。
-- 初回作成であること自体や軽微な変更だけを理由に、履歴ファイルを作成しない。
-- 手順・方針の実質的な撤回または転換、判断経緯を伴う引き継ぎ、監査・インシデントの追跡、同じ判断の反復的な再検討など、理由を将来独立して参照する価値が生じた場合に限り、本体と同じディレクトリに `<stem>.history.md` を作成する。
-- 履歴には、判断日または変更日、変更の要約、理由、および該当する場合は検討した代替案と影響を記録する。本体の文面を複製せず、表現だけの修正は記録しない。履歴ファイル作成前の軽微な変更を遡って復元する必要はない。
-- 本体が git 管理下にある場合は、変更時点のリポジトリ HEAD の commit SHA を任意項目として添えてよい。履歴とコードの状態を時系列で突き合わせられるようにするため。
-- 履歴ファイルが存在する場合に限り、本体から相対リンクを張る。空の履歴ファイルや存在しない履歴へのリンクは作成しない。
-- 変更が軽微か、履歴作成の条件に当たるか迷う場合は履歴を作成せず、実質的な契機が生じた時点で作成する。
-- 既存エントリの削除・整理は、ユーザーから明示的な指示があるときだけ行う。現在の挙動や今後の調査を説明しうるエントリは残し、迷ったら残す。履歴の削除は取り返しがつかない方向であるため、消す側に倒さない。
-- 掃除する場合も黙って消さず、履歴ファイルの冒頭に「YYYY-MM-DD より前のエントリを YYYY-MM-DD に整理(理由: ...)」という一行の marker を残し、後から履歴が途切れていると分かるようにする。サイレントな欠落を作らない。
+- Unless there are more specific instructions, this section applies only to the creation or updating of runbooks and implementation plans that describe operational procedures, and does not apply to regular plans or task memos. In the following, both will be collectively referred to as the "main body".
+- The body of the document describes the currently valid procedures and the current assumptions and decisions necessary for their implementation and judgment. The main body is treated as the source of the current content, and the history file is treated as supplementary material.
+- Do not create a history file just because it is the first creation or because of minor changes.
+- Create `<stem>.history.md` in the same directory as the main body only when the reason becomes worth referencing independently in the future, such as substantial withdrawal or conversion of procedures/policies, handover with decision history, audit/incident tracking, repeated review of the same decision, etc.
+- The history records the date of the decision or change, a summary of the change, the reasons for it, and, if applicable, the alternatives and impacts considered. Do not copy the text of the main text, and do not record corrections only to the expression. There is no need to go back and restore minor changes made before the creation of the history file.
+- If the main body is under git management, the commit SHA of the repository HEAD at the time of modification can be added as an optional item. To be able to match history and code state in chronological order.
+- Create a relative link from the main body only if the history file exists. Do not create empty history files or links to non-existent history.
+- If you are unsure whether the change is minor or meets the conditions for creating a history, do not create a history, but create one when a substantial opportunity arises.
+- Deleting and organizing existing entries is done only when there is an explicit instruction from the user. Leave entries that explain current behavior and future investigations, and leave them if you are unsure. Deleting history is irreversible, so don't go for it.
+- Even when cleaning, do not remove entries silently. Leave a one-line marker at the beginning of the history file saying “Organize entries before YYYY-MM-DD on YYYY-MM-DD (reason: ...)” so the interruption in the history can be identified later. Do not create silent gaps.

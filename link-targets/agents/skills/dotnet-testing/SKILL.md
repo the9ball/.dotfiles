@@ -1,25 +1,25 @@
 ---
 name: dotnet-testing
-description: .NET の build または test を実行するときにタイムアウトと構成の契約を適用する。無関係な実行では発動しない。
+description: Enforce timeouts and configuration contracts when running a .NET build or test. It will not be triggered by unrelated executions.
 ---
 
 # .NET testing workflow
 
 ## Discovery contract
 
-- Positive trigger: .NET project の build または test を実行する。
-- Negative trigger: .NET 以外の検証や、コマンドを実行しない説明だけを行う。
-- Conditional dependency: 追加の依存契約はない。
-- Failure mode: build・test の構成または実行条件を確定できない場合は無理に実行せず、停止して報告する。
+- Positive trigger: Run build or test of a .NET project.
+- Negative trigger: Only performs verification other than .NET or provides an explanation without executing any commands.
+- Conditional dependency: There is no additional dependency contract.
+- Failure mode: If the build/test configuration or execution conditions cannot be determined, do not force execution, stop and report.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
 ## Guide
 
-`.NET` の build・test を実行する前に読む。
+Read before running build/test of `.NET`.
 
-- `dotnet test` はビルド込みでタイムアウトしやすいため、実装後は原則 `dotnet build` と `dotnet test --no-build` の2段階で実行する。
-- build と test の構成を一致させ、必要に応じて両方へ `-c Debug` など同じ構成を指定する。
-- build と test のツール側タイムアウトは、I/O による一時的な遅延を考慮した調整可能な初期値として原則 `300000ms`（5分）にする。これは固定閾値や承認の代替ではない。
+- Since `dotnet test` tends to time out during the build, in principle, after implementation, execute it in two stages: `dotnet build` and `dotnet test --no-build`.
+- Match the configurations of build and test, and specify the same configuration such as `-c Debug` for both as necessary.
+- In principle, the tool-side timeout for build and test is set to `300000ms` (5 minutes) as an adjustable initial value that takes into account temporary delays due to I/O. This is not a replacement for fixed thresholds or approvals.

@@ -1,194 +1,194 @@
 ---
 name: external-operation-authorization
-description: 外部効果を伴う操作の semantic authorization boundary、実行直前の照合、消費、retry、read-back、操作記録を扱う。
+description: Handles semantic authorization boundaries for operations with external effects, matching just before execution, consumption, retry, read-back, and operation records.
 ---
 
 # External operation authorization
 
 ## Discovery contract
 
-- Positive trigger: push、外部 service/API write、投稿、公開、デプロイなど外部効果を伴う論理操作の認可または実行 lifecycle を判定する。
-- Negative trigger: 外部効果を伴う操作がなく、ローカル作業・検証だけを行う。
-- Conditional dependency: GitHub service、approval discovery、external posting、review evidence の各 Skill はそれぞれの責務が生じた場合だけ適用し、認可境界を重複定義しない。
-- Failure mode: 対象・操作・承認・boundary または実行結果を確認できない場合は fail-safe に停止し、外部操作を行わない。
+- Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.
+- Negative trigger: There is no operation with external effects, only local work/verification is performed.
+- Conditional dependency: The GitHub service, approval discovery, external posting, and review evidence Skills are each applied only when their own responsibilities arise, and the authorization boundary is not defined redundantly.
+- Failure mode: If the target/operation/approval/boundary or execution result cannot be confirmed, stop in fail-safe mode and do not perform any external operations.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の self-contained Guide を external-effect authorization の normative contract として適用する。承認要求の discovery、投稿内容の作成、GitHub 固有 API、review evidence はそれぞれ別の owner に委ねる。
+Only when this skill is discovered, the self-contained guide below will be applied as a normative contract for external-effect authorization. Discovery of approval requests, creation of post content, GitHub-specific API, and review evidence will be entrusted to different owners.
 
 ## Guide
 
-外部効果を伴う論理操作について、実行前の authorization boundary 確認と実行後の lifecycle 記録に適用する。
+Applies to authorization boundary confirmation before execution and lifecycle recording after execution for logical operations with external effects.
 
 ### Explicit instruction and local policy kernel
 
-- push、PR・Issue の作成と更新、外部サービスへの送信・公開・共有・デプロイ・権限変更・外部データの作成・更新・移動・削除は、明示的なユーザー指示がある場合だけ行う。ローカルファイル変更の承認は外部操作の承認を兼ねない。
-- 外部操作の対象、論理操作、意味的内容範囲、反映先、公開範囲、実行主体、権限を実行前に固定する。操作手順への同意だけを公開承認と解釈しない。
-- push は、対象 repository、remote、送信 ref、実行条件が一意で、実際の送信範囲と command が指示に一致する場合に限り実行する。push 直前に範囲と条件を確認し、承認範囲外の commit があれば停止する。
-- force push は使用 option と対象 ref の明示指示がある場合だけ行う。通常 push の retry は外部効果なしを確認した同じ remote・ref・commit 範囲・権限に限り、別 remote/ref、追加 push、権限変更は新しい指示を要する。
-- 外部操作の権限境界が確定する前に行ってよいのはローカルに閉じた編集・build・test・branch 作成・commit までとする。commit の可逆性は外部承認の代替ではない。
+- Push, creating and updating PRs and issues, sending to external services, publishing, sharing, deploying, changing permissions, and creating, updating, moving, and deleting external data are performed only when there is an explicit user instruction. Approval of local file changes does not serve as approval of external operations.
+- The target of external operation, logical operation, semantic content range, reflection destination, disclosure range, execution entity, and authority are fixed before execution. Do not interpret mere consent to operating procedures as approval for publication.
+- Push is executed only when the target repository, remote, sending ref, and execution conditions are unique, and the actual sending range and command match the instructions. Check the range and conditions immediately before pushing, and stop if there is a commit outside the approved range.
+- Force push is performed only when there is an explicit instruction that names the option and the target ref. A non-force push retry is limited to the same remote/ref/commit range/authority that has been confirmed to have no external effect; a different remote/ref, additional push, or permission change requires a new instruction.
+- Before the authority boundaries for external operations are determined, only locally closed edits, builds, tests, branch creation, and commits can be performed. Commit reversibility is not a substitute for external approval.
 
-外部操作の承認は、完成したコマンドや送信本文そのものではなく、ユーザーが許可した意味的な操作範囲に結び付ける。
+Approval of external operations is tied to the semantic range of operations permitted by the user, rather than to the completed command or transmission body itself.
 
-この範囲を **authorization boundary** と呼ぶ。
+This range is called the **authorization boundary**.
 
-boundary は、具体値を自動的に固定したり、後の作業へ無期限に承認を引き継いだりする仕組みではない。
+Boundary is not a mechanism to automatically fix concrete values or hand over approval to subsequent work indefinitely.
 
-実行主体は、各試行の直前に現在の対象と操作を boundary へ照合し、照合結果を操作記録へ残す。
+Immediately before each trial, the execution entity checks the current target and operation against the boundary, and records the matching results in the operation record.
 
 ### Boundary record
 
-承認を取得したときは、少なくとも次の項目を一つの boundary record に記録する。
+When approval is obtained, record at least the following items in one boundary record.
 
 * `authorization_id`
-* 根拠となるユーザー指示と取得時点
-* 目的
-* 対象または安全な target selector
-* 許可する論理操作、成功適用回数、対象集合の上限
-* 意味的な内容範囲
-* 反映先と公開範囲
-* 使用主体、アカウント、許可経路、権限上限
-* 前提条件と明示的な対象外
-* 完了、取消、失効、再検証条件
-* 有限の retry budget
+* Basis of user instructions and time of acquisition
+* the purpose
+* target or safe target selector
+* Allowed logical operations, number of successful applications, upper limit of target set
+* semantic content range
+* Reflection target and disclosure range
+* User entity, account, permission route, authority limit
+* Preconditions and explicit exclusions
+* Completion, cancellation, revocation, and revalidation conditions
+* finite retry budget
 
-### 中断・再開と承認の非継承
+### Suspension/resume and non-inheritance of approval
 
-計画書、Issue本文、REVIEW-SUMMARY、HANDOFF、task-continuityメモは boundary record の代わりにならない。
+Plans, issue texts, REVIEW-SUMMARY, HANDOFF, and task-continuity memos are not substitutes for boundary records.
 
-それらの文書を読み直しただけでは、承認を生成、拡張、復活させない。
+Merely rereading those documents will not generate, extend, or reinstate the authorization.
 
-中断、再開、環境移動の後は、元のユーザー指示と未消費の操作状態を現在の対象へ再適用できるか確認する。
+After suspending, resuming, or moving the environment, ensure that the original user instructions and unconsumed operational state can be reapplied to the current target.
 
-### 実行直前の照合
+### Verification just before execution
 
-具体値が承認時点と異なる場合でも、値の比較方法は項目の性質に応じて選ぶ。
+Even if the specific values differ from those at the time of approval, the method of comparing values is selected depending on the nature of the item.
 
-同一性を比較する項目は、明示された target または selector、actor、account、path、反映先、公開範囲、権限上限である。
+The items to be compared for identity are the specified target or selector, actor, account, path, reflection destination, public scope, and upper limit of authority.
 
-selector から展開した個々の target は、列挙可能な現物 identity 証拠に基づき、selector が許可する集合への membership を比較する。
+Each target expanded from a selector is compared for membership in the set allowed by the selector based on enumerable physical identity evidence.
 
-selector の構成員判定は列挙可能な現物 identity 証拠に限り、意味的な包含を構成員の許可根拠にしない。
+Membership determination of a selector is limited to enumerable physical identity evidence, and semantic inclusion is not the basis for granting membership.
 
-意味的な包含を比較する項目は、目的、許可操作、意味的内容、送信本文である。
+Items to be compared for semantic inclusion are purpose, permitted operation, semantic content, and transmission body.
 
-残数を比較する項目は、対象集合の上限、実際に展開した対象数、成功適用回数、retry budget である。
+The items to compare the remaining number are the upper limit of the target set, the number of targets actually expanded, the number of successful applications, and the retry budget.
 
-selector の展開結果が対象集合の上限を超えた場合は `OUTSIDE_BOUNDARY` とし、展開を完了できない、または対象数を確認できない場合は `INDETERMINATE` とする。
+If the expansion result of selector exceeds the upper limit of the target set, set it as `OUTSIDE_BOUNDARY`, and if the expansion cannot be completed or the number of targets cannot be confirmed, set it as `INDETERMINATE`.
 
-次の三値を使う。
+Use the following three values.
 
-| 判定 | 条件 | 実行 |
+| Judgment | Condition | Execution |
 | --- | --- | --- |
-| `WITHIN_BOUNDARY` | すべての項目を現物証拠で確認し、同一性、包含、残数を満たす | 実行できる |
-| `OUTSIDE_BOUNDARY` | 確認できた項目の一つ以上が範囲外である | 新しい承認が必要 |
-| `INDETERMINATE` | 必須項目を確認できない、または範囲内か判断できない | 証拠取得または新しい承認まで停止 |
+| `WITHIN_BOUNDARY` | Verify all items with physical evidence and satisfy identity, inclusion, and remaining quantity | Can be done |
+| `OUTSIDE_BOUNDARY` | One or more of the confirmed items is out of scope | New approval required |
+| `INDETERMINATE` | Unable to confirm required items or determine whether they are within range | Suspended until evidence obtained or new approval |
 
-具体的な本文やコマンドの変更だけを理由に `OUTSIDE_BOUNDARY` と判定してはならない。
+Do not judge it as `OUTSIDE_BOUNDARY` based solely on changes in the specific text or commands.
 
-変更後の意味的内容が boundary に包含されるかを判定できないときは `INDETERMINATE` とする。
+If it cannot be determined whether the changed semantic content is included in the boundary, use `INDETERMINATE`.
 
-判定の優先順は、確認済みの `OUTSIDE_BOUNDARY`、確認不能な `INDETERMINATE`、すべて確認済みの `WITHIN_BOUNDARY` の順とする。
+The order of priority for determination is `OUTSIDE_BOUNDARY` which has been confirmed, `INDETERMINATE` which cannot be confirmed, and `WITHIN_BOUNDARY` which has all been confirmed.
 
-既知の範囲外と確認不能な項目が同時にある場合は `OUTSIDE_BOUNDARY` とし、範囲外がなく確認不能な項目だけがある場合は `INDETERMINATE` とする。
+If there are both known out-of-range items and unconfirmed items, set it to `OUTSIDE_BOUNDARY`, and if there is no out-of-range items and only unconfirmed items, set it to `INDETERMINATE`.
 
-### 消費状態と retry
+### Consumption state and retry
 
-論理操作ごとに次の状態を区別する。
+Distinguish between the following states for each logical operation:
 
-* `AVAILABLE`：まだ外部効果を成功させていない。
-* `ATTEMPTING`：照合後の試行中である。
-* `SUCCEEDED_CONSUMED`：外部効果を確認し、成功回数を消費した。
-* `FAILED_NO_EFFECT`：送信前または外部効果なしを確認した。
-* `OUTCOME_AMBIGUOUS`：成功と失敗のどちらかを確定できない。
-* `INVALIDATED`：boundaryまたは前提条件が失効した。
+* `AVAILABLE`: Haven't succeeded in external effects yet.
+* `ATTEMPTING`: Trying after verification.
+* `SUCCEEDED_CONSUMED`: Confirmed the external effect and consumed the number of successes.
+* `FAILED_NO_EFFECT`: A failure confirmed to have occurred before sending, or confirmed to have had no external effect.
+* `OUTCOME_AMBIGUOUS`: Success or failure cannot be determined.
+* `INVALIDATED`: boundary or prerequisite has expired.
 
-成功を確認した論理操作は再送しない。
+Logical operations that are confirmed to be successful are not retransmitted.
 
-送信前または外部効果なしを確認した失敗は、同じ論理操作、副作用、対象、主体、権限、boundary のままなら retry できる。
+A failure that is confirmed to have occurred before sending, or that had no external effect, can be retried if the same logical operation, side effect, target, subject, authority, and boundary remain.
 
-既定の retry budget は初回試行と自動 retry 1回の合計とする。
+The default retry budget is the total of the first attempt and one automatic retry.
 
-timeoutや不明応答は `OUTCOME_AMBIGUOUS` として扱い、read-back、ID照合、remote state照合で未適用を確認するまで再送しない。
+Timeout and unknown responses are treated as `OUTCOME_AMBIGUOUS` and are not retransmitted until it is confirmed that they are not applied through read-back, ID verification, and remote state verification.
 
-read-back で未適用を確認できない場合は、承認が残っていても停止する。
+If it cannot be confirmed by read-back that it has not been applied, stop even if authorization remains.
 
-retry を理由に対象、サービス、アカウント、資格情報、権限、remote、ref、公開範囲、経路を変更しない。
+Do not change targets, services, accounts, credentials, permissions, remotes, refs, public scope, or routes due to retry.
 
-403、404、認証変更、scope 追加、別CLI/APIへの切替は自動 retry に含めない。
+403, 404, authentication change, scope addition, and switching to another CLI/API are not included in automatic retry.
 
-### 規範的な回帰行列
+### Normative regression matrix
 
-| ケース | 現物証拠と期待判定 | 実行または停止 |
+| Case | Physical Evidence and Expected Judgment | Run or Stop |
 | --- | --- | --- |
-| 具体的な送信本文だけが変化し、意味的包含が成立する | `WITHIN_BOUNDARY` | 再承認なしで実行し、成功時に消費する |
-| 具体的な意味的包含を判断できない | `INDETERMINATE` | 証拠取得まで停止し、解決不能なら新しい承認を求める |
-| selector 内へ展開した対象数が対象集合の上限を超える | `OUTSIDE_BOUNDARY` | 新しい承認まで停止する |
-| selector の展開完了または対象数を確認できない | `INDETERMINATE` | 証拠取得まで停止し、推測で実行しない |
-| 列挙集合外だが意味的に類似する target、またはそのidentityが確認できない | `OUTSIDE_BOUNDARY` または `INDETERMINATE` | 類似性を許可根拠にせず、範囲外または確認不能として停止する |
-| 既知の範囲外と確認不能な項目が同時にある | `OUTSIDE_BOUNDARY`（`INDETERMINATE` より優先） | 新しい承認まで停止し、確認不能な項目の証拠も取得する |
-| 外部効果なしを確認した同一操作で retry budget が残る | `FAILED_NO_EFFECT` から同一操作を自動 retry 1回 | retry 成功時だけ消費し、追加の自動 retry はしない |
-| timeout 後に read-back で未適用を確認できない | `OUTCOME_AMBIGUOUS` | 再送せず停止する |
-| credential、scope、remote、ref、actor、権限のいずれかが変化する | `OUTSIDE_BOUNDARY` または `INVALIDATED` | retryせず、新しい承認まで停止する |
-| boundary は不変だが review evidence が意味的に変化する | authorization は維持、review/verification は旧状態 | 新しい review または verification の完了まで実行しない |
-| REVIEW-SUMMARY の具体的な最終本文だけが変化し、重要な意思表示が追加されない | `WITHIN_BOUNDARY`、重要主張チェック済み | 完成本文の事前承認を要求せず、投稿後にartifactとread-backを記録する |
-| CLI の不正オプションを除去した結果が外部効果なしで、同一操作・同一boundaryに留まる | `FAILED_NO_EFFECT` | 初回＋自動 retry 1回の範囲で再実行し、成否不明なら停止する |
+| Only the concrete transmission body changes and semantic inclusion holds | `WITHIN_BOUNDARY` | Executes without reauthorization and consumes on success |
+| Unable to determine specific semantic inclusion | `INDETERMINATE` | Stop until evidence is obtained, and if unresolvable, seek new approval |
+| The number of targets expanded into selector exceeds the target set limit | `OUTSIDE_BOUNDARY` | Stop until new approval |
+| Unable to confirm completion of selector expansion or number of targets | `INDETERMINATE` | Stop until evidence is obtained and do not run based on guess |
+| A semantically similar target that is outside the enumeration set, or whose identity cannot be confirmed | `OUTSIDE_BOUNDARY` or `INDETERMINATE` | Do not use similarity as a basis for permission, and stop it as out of scope or unconfirmable |
+| Both known out-of-bounds and unconfirmed items | `OUTSIDE_BOUNDARY` (supersedes `INDETERMINATE`) | Pause until new approval and also obtain evidence of unconfirmed items |
+| Retry budget remains for the same operation after confirming that there is no external effect | One automatic retry of the same operation from `FAILED_NO_EFFECT` | Consumes only when retry is successful, no additional automatic retry |
+| Unable to check non-application with read-back after timeout | `OUTCOME_AMBIGUOUS` | Stop without retransmitting |
+| credential, scope, remote, ref, actor, or permission changes | `OUTSIDE_BOUNDARY` or `INVALIDATED` | Do not retry, pause until new approval |
+| Boundary remains unchanged, but review evidence changes in meaning | Authorization remains, review/verification remains in old state | Not executed until new review or verification is completed |
+| Only the specific final body of the REVIEW-SUMMARY changes, no important statements are added | `WITHIN_BOUNDARY`, important claims checked | Does not require pre-approval of the final text and records artifacts and read-backs after posting |
+| The result of removing invalid CLI options remains the same operation and same boundary without any external effect | `FAILED_NO_EFFECT` | Re-execute within the budget of the initial attempt plus one automatic retry; stop if success or failure is unknown |
 
-### Review evidence との分離
+### Separation from review evidence
 
-authorization boundary と target または epoch に結び付いた review evidence は別の状態として扱う。
+Authorization boundaries and review evidence tied to targets or epochs are treated as separate states.
 
-| Authorization boundary | Review evidence | 扱い |
+| Authorization boundary | Review evidence | Treatment |
 | --- | --- | --- |
-| 有効・不変 | 不変 | 実行時再検証後に実行できる |
-| 有効・不変 | 意味のある変更あり | 承認は維持できるが、新しい review または verification epoch の完了まで実行しない |
-| `OUTSIDE_BOUNDARY` | 不変 | 新しい承認が必要 |
-| `OUTSIDE_BOUNDARY` | 変更あり | 新しい承認と新しい review または verification が必要 |
-| `INDETERMINATE` | 不変 | 必要な証拠で `WITHIN_BOUNDARY` または `OUTSIDE_BOUNDARY` を解決するまで停止し、解決不能なら新しい承認が必要 |
-| `INDETERMINATE` | 変更あり | 承認と review または verification の両方を解決するまで停止する |
-| 有効性またはidentityを確認不能 | 任意 | `INDETERMINATE` として承認と証拠を実行根拠に使わず停止する |
+| Valid and unchanged | Unchanged | Can be executed after revalidation at runtime |
+| Valid and unchanged | Significant changes | Approval can be maintained, but will not run until a new review or verification epoch is completed |
+| `OUTSIDE_BOUNDARY` | Unchanged | New approval required |
+| `OUTSIDE_BOUNDARY` | Changed | New approval and new review or verification required |
+| `INDETERMINATE` | Unchanged | Stop pending evidence. If resolved as `OUTSIDE_BOUNDARY` or it remains unresolvable, obtain new authorization; only `WITHIN_BOUNDARY` permits proceeding without it |
+| `INDETERMINATE` | Changed | Suspended until both approval and review or verification are resolved |
+| Unable to confirm validity or identity | Any | Stop execution as `INDETERMINATE`; do not use authorization or any evidence as grounds for execution |
 
-boundary を `USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、target/epoch evidence へ写像しない。
+Do not map boundary to `USER_AUTHORIZED`, `PASS_WITH_USER_AUTHORIZATION`, target/epoch evidence.
 
-execution lifecycle の fail-closed な identity、review contract、ledger、通常レビュー要件は別の契約として維持する。
+Execution lifecycle fail-closed identities, review contracts, ledgers, and regular review requirements are maintained as separate contracts.
 
-### 明示委任の裁量
+### Discretion of express delegation
 
-「対応して」「保守して」などの明示委任があっても、裁量は boundary 内の具体化に限る。
+Even if there is an explicit delegation such as `対応して`, `保守して`, "respond", or "maintain", discretion is limited to materialization within the boundary.
 
-確認済み事実、実施作業、検証結果、既存判断の忠実な要約、通常の文章品質や表現調整は、意味的範囲内で決定できる。
+Confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments can be determined within a semantic range.
 
-次の内容をユーザーの立場として新たに作る場合は、追加の確認を要する。
+If the agent newly creates any of the following on the user's behalf (in the user's name or voice), additional confirmation is required.
 
-* 約束、期限、サポート責任、リスク受容
-* 法務、コンプライアンス、金銭、セキュリティ方針
-* 対外評価、推薦、非難、プロジェクト方針、優先順位、終了判断
-* 未公開情報、個人の経験、意図、感情、未検証の事実
+* Promises, deadlines, support responsibilities, risk acceptance
+* Legal, Compliance, Financial, Security Policy
+* External evaluation, recommendation, criticism, project policy, priority, termination judgment
+* Unpublished information, personal experiences, intentions, feelings, unverified facts
 
-判断の出所を偽らず、レビュー所見には出所を付ける。
+Don't misrepresent the source of your judgment, and include the source of your review findings.
 
-### IssueとPull Requestへの適用
+### Application to issues and pull requests
 
-Issue本文更新、REVIEW-SUMMARY投稿、HideまたはResolve、push、Pull Request作成は、別々の論理操作として識別・記録する。
+Issue text update, REVIEW-SUMMARY posting, Hide or Resolve, push, and Pull Request creation are identified and recorded as separate logical operations.
 
-一回のIssue保守委任へ含める操作集合は、開始時点の対象snapshotと既存の保守契約から bounded に定める。
+The set of operations to be included in one issue maintenance delegation is defined as bounded from the target snapshot at the start point and the existing maintenance contract.
 
-本文更新、Summary投稿、HideまたはResolveの各操作は成功回数を個別に消費する。
+Each text update, summary post, Hide, or Resolve operation consumes the number of successes individually.
 
-実行中に追加されたコメントや別対象を、自動的に操作集合へ追加しない。
+Do not automatically add comments or other targets added during execution to the operation set.
 
-操作後は、operation ID、対象、具体的操作、外部artifact、read-back結果、boundary判定、消費とretry、skipped、failed、ambiguousな操作、未解決事項を記録する。
+After the operation, record the operation ID, target, specific operation, external artifact, read-back result, boundary judgment, consumption and retry, skipped, failed, ambiguous operation, and unresolved items.
 
-この記録は承認の代わりにならず、追加操作の承認も与えない。
+This record does not replace authorization and does not authorize additional operations.
 
-### 適用順序
+### Application order
 
-AGENTS.md には常時必要な最小の認可境界だけを置く。
+Place only the minimum authorization boundaries necessary at all times in AGENTS.md.
 
-GitHub、Issue管理、外部投稿、execution lifecycle の各ガイドは、この契約を論理操作へ適用する。
+GitHub, issue management, external posting, and execution lifecycle guides apply this contract to logical operations.
 
-承認要求の洗い出し、一括取得、pending state、計画との連携は、別の承認要求ワークフローの責務とする。
+Identification of approval requests, bulk acquisition, pending state, and coordination with plans shall be the responsibility of a separate approval request workflow.
 
-後段の承認要求ワークフローは、取得した承認をこのガイドの boundary record として実行入力へ引き渡す。
+The subsequent approval request workflow passes the obtained approval to the execution input as a boundary record in this guide.
 
-その boundary の有効性、消費、retry、実行後記録はこのガイドの責務とし、#48の実装完了を前提にしない。
+The validity, consumption, retry, and post-execution recording of that boundary are the responsibility of this guide, and do not assume that implementation of #48 has been completed.
