@@ -1,248 +1,242 @@
 ---
 name: execution-lifecycle-gate
-description: 承認済み実装計画または確定した execution input / goal に基づく変更を、実行ごとに選択したレビュー契約に従って自走させ、必要な最終確認を固定したコミット範囲に対して行う。計画書は optional input であり、planless の実行も対象とする。共通の clarification / research / autonomous-execution ルールはこの Skill の対象外とする。計画書だけの作成・更新や、挙動を変えない説明文書だけの変更には適用しない。
+description: Changes based on approved implementation plans or confirmed execution inputs/goals are self-propelled in accordance with the selected review agreement for each execution, and any necessary final confirmations are performed for a fixed commit range. The plan is an optional input and is also applicable to planless execution. Common clarification / research / autonomous-execution rules are not covered by this skill. It does not apply to the creation or updating of plans only, or to changes only to explanatory documents that do not change behavior.
 ---
 
 # Execution Lifecycle Gate
 
-## 目的
+## Purpose
 
-承認済みの実装計画または確定した execution input / goal から実装完了までの品質ゲートを、計画書への定型的なレビュー手順の追記なしで自走させる。計画の承認、実装の採否、外部公開の承認を代替せず、計画または execution contract で選択したレビュー契約に従って必要なレビュー対象とコミット範囲を固定し、指定されたレビューだけを実行する。計画書は optional input とし、planless の複数ファイル・設計変更も、goal、scope、制約、完了条件が確定していれば対象にできる。指摘を修正した新しい対象は、契約で選択されたレビューと検証を経て再確認する。
+Quality gates run automatically from an approved implementation plan or confirmed execution input/goal to implementation completion without adding routine review procedures to the plan. Rather than replacing plan approval, implementation adoption, and external disclosure approval, the necessary review targets and commit scope are fixed according to the review contract selected in the plan or execution contract, and only the specified review is performed. The plan is an optional input, and planless multiple files and design changes can be included as long as the goal, scope, constraints, and completion conditions are determined. New targets with corrected findings will be reconfirmed through review and verification as selected in the contract.
 
-## レビュー契約
+## Review contract
 
-- `user_review` と `review_level` は一つの計画または goal run ごとに独立して指定できる。前者はユーザー通常レビューの要否、後者は Advisor による AI レビューの要否を制御する。計画済み検証、既存の承認・権限ゲート、他の上位規則は、いずれの値でも省略しない。
-- 両方の指定元は、明示的なユーザーまたは goal の契約、計画書の対応する指定、既定値の順で個別に解決する。計画書にレビュー手順や起動文を繰り返し書く必要はない。`PASS` 後の successor run はレビュー契約を自動継承せず、新たに解決する。
-- `user_review` の値は次のいずれかとする。
-  - `REQUIRED`: 最終 candidate target に結び付くユーザー通常レビューを必ず実施する。snapshot identity、提示内容、ユーザーの明示的な承認・変更なし、または各 feedback の解消確認を証拠として記録する。
-  - `NONE`: ユーザー通常レビューを実施せず、`SKIPPED` とした理由、根拠、指定元を記録する。既存の上位規則が同じ candidate target のユーザー通常レビューを要求している場合は、この指定だけで無効化せず、競合として停止して確認を求める。編集承認、実装採否、履歴書き換え、push、外部送信など別種の承認ゲートは通常レビューと独立して履行する。
-  - `AUTO`: 既定値。計画・goal・ユーザー・上位規則にユーザー通常レビューの要否が明示されていればそれに従い、明示がなければ `NONE` として扱う。競合または判断不能なら推測せず停止して確認する。Skill の発動だけを理由に `REQUIRED` と推定してはならない。
-- `review_level` の値は次のいずれかとする。
-  - `NONE`: Advisor を実行しない。すべての必須 Advisor トリガーが根拠付きで false で、計画・goal・上位規則にレビュー必須指定がない場合だけ有効とする。
-  - `ADVISOR`: 最終 Advisor を実行する。
-  - `AUTO`: 既定値。通常の実装ゲートでは `ADVISOR` を選ぶ。必須 Advisor トリガーがある場合は `ADVISOR` を下限として適用する。
-- `NONE` が必須 Advisor トリガーと衝突する場合、選択値を黙って優先せず、`effective_review_level=ADVISOR` へ引き上げる。ユーザーが必須下限を拒否した場合は停止して確認を求め、レビューなしで `PASS` にしてはならない。
-- preflight と最終 candidate 固定時に `requested_user_review`、`effective_user_review`、`requested_review_level`、`effective_review_level`、それぞれの入力元、必須下限、選択理由、実行または `SKIPPED` の理由を台帳へ記録する。`NONE` は選択したレビュー工程を省略する意味に限られ、品質確認全体の免除ではない。
+- `user_review` and `review_level` can be specified independently for each plan or goal run. The former controls whether normal user reviews are required, and the latter controls whether AI reviews by Advisor are required. Planned validations, existing approval/authorization gates, and other high-level rules are not omitted with any value.
+- Each source is resolved separately, in this order of precedence: the explicit user or goal contract, then the corresponding specification in the plan, then the default value. There is no need to repeatedly write review procedures and trigger statements in your plan. The successor run after `PASS` will not automatically inherit the review contract and will resolve it newly.
+- The value of `user_review` shall be one of the following.
+  - `REQUIRED`: Always conduct a regular user review linked to the final candidate target. Record the snapshot identity, the content presented, the user's explicit approval or confirmation that no changes were requested, or confirmation that each item of feedback was resolved.
+  - `NONE`: Record the reason, basis, and designation source for `SKIPPED` without conducting regular user reviews. If an existing higher-level rule requires a user regular review of the same candidate target, this specification alone will not invalidate it, but will stop it as a conflict and ask for confirmation. Other types of approval gates, such as editing approval, implementation acceptance/rejection, history rewriting, push, and external transmission, are handled independently of regular user review.
+  - `AUTO`: Default value. If the necessity of regular user review is clearly specified in the plan, goal, user, or higher level rules, follow it; if it is not specified, treat it as `NONE`. If there is a conflict or something that cannot be determined, stop and check instead of guessing. Do not assume that `REQUIRED` is due to skill activation alone.
+- The value of `review_level` shall be one of the following.
+  - `NONE`: Do not run Advisor. Valid only if all required Advisor triggers are false with a rationale and there is no review requirement specified in the plan, goal, or higher-level rule.
+  - `ADVISOR`: Run final Advisor.
+  - `AUTO`: Default value. Choose `ADVISOR` for normal implementation gates. If there is a required Advisor trigger, apply `ADVISOR` as a lower bound.
+- If `NONE` conflicts with a required Advisor trigger, do not silently honor the selected value; raise it to `effective_review_level=ADVISOR`. If the user rejects the required lower limit, stop and ask for confirmation, and do not make it `PASS` without review.
+- When preflight and final candidate are fixed, record the input source, required lower limit, selection reason, and reason for execution or `SKIPPED` for `requested_user_review`, `effective_user_review`, `requested_review_level`, `effective_review_level` in the ledger. `NONE` only means omitting the selected review process, and does not mean exempting the entire quality check.
 
 ## Execution contract
 
-- execution input は、承認済み実装計画、ユーザーの明示的な変更依頼、または会話中に確定した goal / implementation scope から解決する。計画書の有無と変更規模を分離し、planless でも複数ファイル変更・設計変更を許可する。
-- 実装開始前に、少なくとも `goal`、`scope`、制約、完了条件、承認状態、対象 identity、`user_review`、`review_level`、検証方法、外部操作の有無を execution contract として固定する。計画書や goal からこれらを一意に確定できない場合は停止し、計画書を暗黙生成して不足を補わない。
-- execution ledger には、contract identity、入力元と hash / commit、対象・除外 manifest、base / target、epoch identity、レビュー契約、検証結果、spot / slice manifest、commit range、fixup / amend / autosquash の記録を残す。入力の競合、対象 identity の変化、範囲外の要件は gate を停止する。
-- `execution_status` は少なくとも `INPUT_FIXED`、`EXECUTING`、`REVIEWING`、`USER_CHECKPOINT`、`FINALIZING`、`COMPLETED`、`BLOCKED` を区別する。execution 状態と Advisor の所見・gate 状態を同じ値で表さない。
+- Execution inputs can come from an approved implementation plan, a user's explicit change request, or a goal/implementation scope established during a conversation. Separate the presence or absence of a plan and the scale of change, and allow multiple file changes and design changes even in planless.
+- Before starting implementation, fix at least `goal`, `scope`, constraints, completion conditions, approval status, target identity, `user_review`, `review_level`, verification method, and presence or absence of external operations as an execution contract. If these cannot be uniquely determined from the plan or goal, stop, and do not implicitly generate a plan to compensate for the shortage.
+- The execution ledger records the contract identity, input source and hash/commit, target/exclude manifest, base/target, epoch identity, review contract, verification results, spot/slice manifest, commit range, fixup/amend/autosquash. Conflicting inputs, changes in target identity, and out-of-scope requirements will stop the gate.
+- `execution_status` distinguishes at least `INPUT_FIXED`, `EXECUTING`, `REVIEWING`, `USER_CHECKPOINT`, `FINALIZING`, `COMPLETED`, `BLOCKED`. Do not represent the execution state and Advisor findings/gate state with the same value.
 
-## 発動条件
+## Activation conditions
 
-- 承認済み実装計画、確定した execution input、または goal のレビュー契約で本 Skill が選択された作業、またはユーザーが本 Skill を明示指定した作業で発動する。
-- 対象は、コード、テスト、実行・ビルド・デプロイ設定、スキーマ・データ移行、生成元・生成物、API・通信、またはエージェントやツールの動作を制御するファイルを変更する実装とする。
-- 計画書自体の作成・更新だけ、または規範・仕様・契約・運用手順を変更しない説明文書だけの編集は発動しない。拡張子ではなく変更の役割で判定する。execution contract や agent / tool の動作を変更する規範ファイルは実装対象として扱う。
-- 計画書へ個別レビュー手段の呼出し手順を毎回記載することは、発動条件でも完了条件でもない。本 Skill の適用と実行順序を共通経路とし、計画書には固有のレビュー判断点や追加検証が必要な場合だけ記載する。
-- 対象か判断できない場合、免除扱いにせずユーザーへ確認する。
+- This skill is activated when this skill is selected in an approved implementation plan, confirmed execution input, or goal review contract, or when the user explicitly specifies this skill.
+- The targets are code, tests, execution/build/deployment settings, schema/data migration, generators/products, APIs/communications, or implementations that change files that control the behavior of agents and tools.
+- Work that only creates or updates the plan itself, or only edits explanatory documents that do not change norms, specifications, contracts, or operational procedures, does not activate this skill. Determine based on the role of the change rather than the extension. Normative files that change execution contracts or agent/tool behavior are treated as implementation targets.
+- Describing the procedure for invoking the individual review method in the plan every time is neither an activation nor a completion condition. The application and execution order of this skill should be a common route, and the plan should only include specific review points or additional verification when necessary.
+- If it is not possible to determine whether the application is applicable, please check with the user instead of treating it as exempt.
 
-## 権限と役割
+## Privileges and roles
 
-- 計画、範囲、実装承認、外部操作の既存ゲートを弱めない。レビュー結果は実装・本番採用・外部送信の承認ではない。
-- 外部操作の authorization boundary は `link-targets/agents/skills/external-operation-authorization/SKILL.md` で扱う別契約であり、target/epoch evidence、`USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、fail-closed 判定の代わりにならない。
-- この参照は既存の review contract、identity lifecycle、ledger、通常レビュー要件の判定を変更しない。
-- 調整者は execution contract、対象 identity、レビュー epoch、コミット範囲、spot / slice manifest、ゲート状態を管理し、semantic commit、fixup、amend、autosquash を担当する。Advisor は固定された対象と台帳を read-only で確認し、所見と判定だけを返す。
-- Implementer は確定した contract の範囲で変更と検証だけを担当し、commit、fixup、amend、rebase、autosquash、push を行わない。Advisor は read-only のレビューを行い、Git 操作や採否判断を担当しない。
-- `effective_user_review=REQUIRED` のユーザー通常レビューは、ユーザーへ候補差分と計画済み検証結果を提示し、提示した snapshot identity に結び付いたユーザーの明示的なレビュー完了・承認（変更なしを含む）、または各 feedback の解消確認を含む応答と、未解決 feedback がないことを台帳へ記録する工程である。無応答、計画承認だけ、または snapshot と結び付かない曖昧・無関係な応答を通常レビュー完了の証拠にしない。`effective_user_review=NONE` の場合は、この工程を `SKIPPED` として記録する。通常レビューは Advisor review の代替ではない。
-- Advisor は一般的な品質レビュー担当ではなく、設計、セキュリティ、互換性、データ整合性、破壊的移行、重大な計画逸脱などの判断を助言する。Advisor が利用できない場合に別のモデルを黙って代用しない。
+- Do not undermine existing gates of planning, scope, implementation approval, and external operations. Review results are not approval for implementation, production adoption, or external transmission.
+- The authorization boundary for external operations is a separate contract handled by `link-targets/agents/skills/external-operation-authorization/SKILL.md` and does not replace target/epoch evidence, `USER_AUTHORIZED`, `PASS_WITH_USER_AUTHORIZATION`, or fail-closed judgment.
+- This reference does not change the determination of existing review contracts, identity lifecycles, ledgers, or general review requirements.
+- The coordinator manages the execution contract, target identity, review epoch, commit scope, spot/slice manifest, gate state, and is responsible for semantic commit, fixup, amend, and autosquash. Advisor checks a fixed target and ledger as read-only and returns only findings and verdicts.
+- The Implementer is responsible only for changes and verification within the scope of the finalized contract, and does not commit, fixup, amend, rebase, autosquash, or push. Advisor performs read-only reviews and is not responsible for Git operations or acceptance/rejection decisions.
+- A normal user review of `effective_user_review=REQUIRED` is the process of presenting candidate differences and planned verification results to the user, and recording in the ledger a response that includes the user's explicit review completion/approval (including no changes) or confirmation of resolution of each feedback associated with the presented snapshot identity, and that there is no unresolved feedback. No response, plan approval alone, or ambiguous or unrelated responses that are not tied to a snapshot are not evidence of review completion. If `effective_user_review=NONE`, record this step as `SKIPPED`. Regular reviews are not a substitute for Advisor reviews.
+- Advisors are not general quality reviewers; they advise on decisions such as design, security, compatibility, data integrity, disruptive migrations, and significant plan deviations. Don't silently substitute another model if an Advisor is unavailable.
 
-### Advisor 要否の判定
+### Determining whether Advisor is necessary
 
-- Advisor の要否は、実行結果とは分けて `REQUIRED`、`NOT_REQUIRED`、`UNRESOLVED` のいずれかを先に判定する。調整者は各トリガーの true/false/unknown、該当する計画条項・パス・差分範囲、判定理由、証拠、判定主体を台帳へ記録する。
-- 次のいずれかに該当するときは `REQUIRED` とする。
-  1. セキュリティ、プライバシー、認証・認可、暗号、secret、決済、権限、または信頼境界を追加・変更する。
-  2. データ消失・不可逆操作、破壊的移行、永続データの整合性、または rollback 可否を変更する。
-  3. 分散整合性、並行性、順序性、冪等性、複数サービス・複数バージョン展開の正しさに影響する。
-  4. 公開 API、通信形式、保存形式、スキーマ、互換性保証を破る、または段階展開を必要とする。
-  5. 承認済み計画または execution contract にない設計判断が必要で、選択肢により上記リスク、コンポーネント境界、永続化方式、互換性、rollback 方針のいずれかが変わる。
-  6. `AGENTS.md`、`SKILL.md`、agent 定義、権限・sandbox・routing・tool/plugin 設定などの統制規則を変更し、発動、承認、write・外部送信・破壊的操作、委譲・モデル・ツール選択、対象 identity・証拠、役割独立性、停止、`USER_AUTHORIZED`、または `PASS` に影響する。
-  7. 承認済み計画または execution contract から重大な逸脱がありリスク受容の判断が必要、重大な原因候補が複数残る、または同じ問題への証拠に基づく修正が2回失敗する。
-- `AGENTS.md` や `SKILL.md` のパスだけでは `REQUIRED` としない。誤字、整形、リンク修正、意味を変えない言い換えだけの場合は、規範的意味が同値である根拠を記録できたときに限り初回 Advisor 要否を `NOT_REQUIRED` とできる。これは既存 evidence を successor revision へ継承する `REVIEW_PRESERVING` の allowlist を拡張せず、後者は `Revision と review-preserving 分類` の規則に従う。
-- 要否判定は、いずれかのトリガーが true なら `REQUIRED`、true がなく unknown が一つでもあれば `UNRESOLVED`、すべて false なら `NOT_REQUIRED` の順で決める。true と unknown が混在する場合は `REQUIRED` を優先する。
-- `UNRESOLVED` の場合は Advisor を実行するかユーザーへ停止・確認を報告し、追加証拠を台帳へ記録して三値判定をやり直す。Advisor の回答 `CLEAR` は要否を自動的に `NOT_REQUIRED` へ変えず、unknown が残る場合は停止する。`UNRESOLVED` を無検証で `NOT_REQUIRED` と記録してはならない。
+- The necessity of Advisor is determined by first determining whether `REQUIRED`, `NOT_REQUIRED`, or `UNRESOLVED` is necessary, independent of the execution result. The coordinator records the true/false/unknown status of each trigger, the applicable plan clause, path, difference range, judgment reason, evidence, and judgment entity in the ledger.
+- If any of the following applies, it shall be `REQUIRED`.
+  1. Add or change security, privacy, authentication/authorization, cryptography, secrets, payment, authority, or trust boundaries.
+  2. Change data loss/irreversible operations, destructive migrations, persistent data integrity, or rollback capabilities.
+  3. Affects distributed consistency, concurrency, ordering, idempotency, and correctness of multiple services/multiple version deployment.
+  4. Breaks public APIs, communication formats, storage formats, schemas, compatibility guarantees, or requires staged deployment.
+  5. Requires design decisions that are not in the approved plan or execution contract, and at least one choice changes one of the above risks, component boundaries, persistence method, compatibility, or rollback policy.
+  6. Change control rules such as `AGENTS.md`, `SKILL.md`, agent definition, authority/sandbox/routing/tool/plugin settings, and affect activation, approval, write/external transmission, destructive operations, delegation/model/tool selection, target identity/evidence, role independence, suspension, `USER_AUTHORIZED`, or `PASS`.
+  7. There are significant deviations from the approved plan or execution contract that require a risk acceptance decision, multiple significant potential causes remain, or evidence-based fixes to the same problem fail twice.
+- A change to `AGENTS.md` or `SKILL.md` alone does not make Advisor review `REQUIRED`. For typos, formatting, link corrections, or paraphrasing that does not change meaning, the initial Advisor requirement may be set to `NOT_REQUIRED` only if the basis for normative equivalence can be recorded. This does not extend the `REVIEW_PRESERVING` allowlist for inheriting existing evidence into a successor revision; that follows the rules in `Revision and review-preserving classification`.
+- The necessity determination is determined in the following order: `REQUIRED` if any trigger is true, `UNRESOLVED` if there is no true and even one unknown, and `NOT_REQUIRED` if all are false. If true and unknown are mixed, `REQUIRED` takes precedence.
+- In the case of `UNRESOLVED`, run the Advisor or report the stop/confirmation to the user, record additional evidence in the ledger, and redo the three-value judgment. Advisor's answer `CLEAR` does not automatically change the necessity to `NOT_REQUIRED`, and stops if unknown remains. `UNRESOLVED` must not be recorded as `NOT_REQUIRED` without verification.
 
-### Advisor の実行時期と追加 checkpoint
+### When to run Advisor and add checkpoints
 
-- Advisorをdispatchする依頼は、読み込まれた Skill の symlink / junction を実体パスへ解決し、その祖先の map から導出した instruction root 基準の`link-targets/agents/skills/advisor-review/SKILL.md`の読み取りスコープ契約に従う。instruction root は共有 guide の参照専用であり、work root、target identity、比較基準は別途固定する。各対象ファイルのpath、target identity、epoch identity、mode、primary scope、周辺文脈、excluded scope、dependency closureを依頼文と台帳へ固定し、部分参照では1始まり・両端含みの行範囲と安定アンカーを明示する。Advisorの応答に実読範囲、追加範囲、未確認範囲を記録し、必須範囲または依存closureの未確認が残る場合は`CLEAR`として扱わない。
-- preflight では要否だけを三値判定する。選択またはトリガーされた spot Advisor は、実装後の早期に spot manifest を固定して限定された高リスク・代表範囲を dispatch し、指摘修正と必要な再レビューを完了させる。spot は全変更の coverage を保証せず、slice / final review の代替にしない。slice manifest はその後に固定し、`effective_review_level=ADVISOR` の場合だけ各 slice 単位で Advisor を dispatch して、指摘修正と必要な再レビューが収束するまで反復する。`NONE` の場合は slice coverage を確認して Advisor review を `SKIPPED` と記録する。最終 Advisor の dispatch は、slice review、修正、`effective_user_review=REQUIRED` のユーザー通常レビュー（選択時）が完了し、当該 epoch の candidate target を固定した直後に一度だけ行う。`effective_user_review=NONE` の場合は通常レビューを待たず、slice review と計画済み検証後に candidate target を固定する。`REQUIRED` なら最終 Advisor の `CLEAR`、`UNRESOLVED` なら追加証拠による再分類と必要な Advisor の結果が、`PASS` の前提になる。`NOT_REQUIRED` は最終 target で全トリガーが根拠付きで false と再確認できた場合だけ dispatch を省略できる。
-- 実装前または途中に、最終まで待つと安全に継続できない重要な判断点（セキュリティ・信頼境界、不可逆なデータ変更・移行、公開 API・互換性、分散整合性・rollout、または計画外の重大な設計・リスク受容）がある場合は、当該判断を通過・確定・commit・実施する前に Advisor の追加 checkpoint を必ず dispatch し、結果が `CLEAR` になるまでその判断点と作業の継続を停止する。実行不能、`BLOCKED`、`REQUIRES_USER_DECISION`、またはその他の `CLEAR` 以外の結果でも停止してユーザーへ報告する。各 checkpoint は判断目的、具体的な質問、対象 scope/epoch、理由、結果、次の判断を台帳へ記録し、最終 Advisor 判定の代替にしない。
-- 追加 checkpoint は一つのゲート実行全体（fixup・amend による全 epoch を含む）で最大2回とし、epoch が変わっても上限をリセットしない。3回目が必要になった場合は Advisor を黙って追加せず、ユーザーへ停止・確認を報告する。通常の実装手順、単なる進捗確認、同じ判断の反復には dispatch しない。
+- A request to dispatch an Advisor resolves the loaded Skill's symlink/junction to an entity path and follows the `link-targets/agents/skills/advisor-review/SKILL.md` read scope contract based on the instruction root derived from its ancestor map. The instruction root is only for reference in the shared guide, and the work root, target identity, and comparison criteria are fixed separately. Fix the path, target identity, epoch identity, mode, primary scope, surrounding context, excluded scope, and dependency closure of each target file to the request statement and ledger, and specify the line range starting from 1 and including both ends and stable anchor for partial references. Record the actual reading range, additional range, and unconfirmed range in the Advisor response, and if the required range or dependent closure remains unconfirmed, it will not be treated as `CLEAR`.
+- In preflight, only the necessity is determined by three values. The selected or triggered spot Advisor fixes the spot manifest early after implementation, dispatches a limited high-risk/representative scope, and completes any corrections and necessary re-reviews. Spot does not guarantee coverage of all changes and is not a replacement for slice/final review. After that, fix the slice manifest, dispatch the Advisor for each slice only in the case of `effective_review_level=ADVISOR`, and repeat until the corrections and necessary re-reviews are completed. In the case of `NONE`, check slice coverage and record Advisor review as `SKIPPED`. Dispatch of the final Advisor is performed only once, immediately after the slice review, modification, and user normal review of `effective_user_review=REQUIRED` (when selected) are completed and the candidate target of the relevant epoch is fixed. In the case of `effective_user_review=NONE`, fix the candidate target after slice review and planned verification without waiting for review. For `REQUIRED`, the final Advisor `CLEAR`, and for `UNRESOLVED`, the reclassification based on additional evidence and the necessary Advisor results become the premise for `PASS`. `NOT_REQUIRED` can omit dispatch only if all triggers can be reconfirmed as false with evidence in the final target.
+- If there is an important decision point before or during implementation that cannot be safely continued if you wait until the final stage (security/trust boundaries, irreversible data changes/migration, public API/compatibility, distributed consistency/rollout, or significant unplanned design/risk acceptance), be sure to dispatch an additional checkpoint in Advisor before passing/confirming/committing/implementing the decision, and stop the decision point and the continuation of work until the result is `CLEAR`. Stop and report to the user even if it is not executable, `BLOCKED`, `REQUIRES_USER_DECISION`, or any other non-`CLEAR` result. Each checkpoint records the decision purpose, specific question, target scope/epoch, reason, result, and next decision in the ledger, and does not substitute for the final Advisor decision.
+- Additional checkpoints can be added at most twice in one gate execution (including all epochs due to fixup/amend), and the upper limit will not be reset even if the epoch changes. If you need it a third time, don't add Advisor silently and report to the user to stop and confirm. Do not dispatch for normal implementation procedures, simple progress checks, or repetition of the same decision.
 
 ## Spot review contract
 
-- spot review は、変更全体ではなく、最もリスクが高い判断点・境界・代表的な hunk を早期に Advisor が read-only で確認する工程とする。実装規模だけで無条件に必須化せず、契約・計画・Advisor 要否判定で選択またはトリガーされた場合に実施する。
-- spot manifest には、spot ID、選定理由、対象ファイルと hunk / stable anchor、primary scope、dependency closure、確認質問、検証方法、Advisor の結果、指摘修正と再レビュー対象を記録する。対象を選ばない場合も、リスク評価と `SKIPPED` 理由を記録する。
-- spot Advisor は read-only で実行し、spot の指摘は coordinator が承認済み範囲内で修正する。修正後は影響する spot と依存境界を再レビューし、収束するまで slice review へ進まない。spot の `CLEAR` は最終 Advisor、user checkpoint の完了を意味しない。
+- Spot review is a process in which the Advisor quickly checks the decision points, boundaries, and representative hunks with the highest risk in a read-only manner, rather than the entire change. It should not be made unconditionally mandatory based solely on the scale of implementation, but should be implemented when selected or triggered based on the contract, plan, or advisor necessity determination.
+- The spot manifest records the spot ID, reason for selection, target file and hunk/stable anchor, primary scope, dependency closure, confirmation questions, verification method, advisor results, corrections made, and targets for re-review. Even if you do not select a target, record the risk assessment and `SKIPPED` reason.
+- The spot advisor runs read-only, and the coordinator corrects the spot findings within the approved range. After modification, re-review the affected spots and dependency boundaries, and do not proceed to slice review until convergence. Spot `CLEAR` does not mean the completion of the final Advisor or user checkpoint.
 
 ## Review slice contract
 
-- 実装と計画済み検証が完了したら、変更全体を論理的な review slice へ分割する。slice は commit と同一視せず、仕様・責務、dependency closure、変更目的、commit boundary、他 slice との境界を基準に構成する。
-- slice manifest には、slice ID、目的、対象ファイルと hunk / commit 範囲、依存先、cross-slice dependency / boundary edge、検証方法を記録する。`effective_review_level=ADVISOR` の場合は Advisor の結果と再レビュー対象も記録し、`NONE` の場合は Advisor review の `SKIPPED` 理由を記録する。
-- 全変更の各ファイル・hunk・commit は少なくとも1つの slice に所属し、cross-slice dependency と boundary edge はいずれかの slice の review context に明示する。coverage gap、重複、未定義の境界がある場合は `BLOCKED` とし、レビューを完了扱いにしない。
-- `effective_review_level=ADVISOR` の場合、slice Advisor は各 slice の primary scope と dependency closure を固定して read-only で実行する。指摘修正は coordinator が承認済み範囲内で行い、対応する slice と依存境界を再レビューする。全 slice が収束するまで final review や autosquash へ進まない。`NONE` の場合は slice manifest と coverage を維持したまま Advisor review を実行せず、必須 Advisor トリガーがすべて false である根拠と `SKIPPED` 理由を記録する。
+- Once implementation and planned validation is complete, divide the entire change into logical review slices. A slice is not equated with a commit, but is configured based on specifications/responsibilities, dependency closure, purpose of change, commit boundary, and boundaries with other slices.
+- The slice manifest records the slice ID, purpose, target file and hunk/commit range, dependencies, cross-slice dependency/boundary edge, and verification method. In case of `effective_review_level=ADVISOR`, record the Advisor result and re-review target, and in case of `NONE`, record `SKIPPED` reason for Advisor review.
+- Each file/hunk/commit of all changes belongs to at least one slice, and cross-slice dependencies and boundary edges are specified in the review context of one of the slices. If there are coverage gaps, overlaps, or undefined boundaries, mark `BLOCKED` and do not mark the review as complete.
+- In the case of `effective_review_level=ADVISOR`, slice Advisor fixes the primary scope and dependency closure of each slice and executes it as read-only. The coordinator makes corrections within the approved scope and re-reviews the corresponding slice and dependency boundaries. Do not proceed to final review or autosquash until all slices have converged. In the case of `NONE`, keep the slice manifest and coverage, do not run Advisor review, and record the rationale and `SKIPPED` reason why all required Advisor triggers are false.
 
-## 事前固定
+## Items fixed in advance
 
-実装完了レビューを始める前に、次を同じ台帳へ記録する。
+Before starting the implementation completion review, record the following in the same ledger.
 
-1. 承認済み計画がある場合はその絶対パス、内容 hash または commit、承認状態、対象範囲、計画時の検証方法と見積り。planless の場合は execution input の出所、内容 hash、承認状態、scope、完了条件、検証方法、見積り。
-2. 比較基準の base SHA、対象の target SHA または対象 commit 群、作業ツリーの staged・unstaged・untracked 状態、epoch identity に含める実行環境・ゲート統制面の識別子と各識別子を再計算する方法。
-3. 対象に含めるファイルの identity manifest、spot / slice manifest と、除外する既存差分・untracked の一覧。
-4. Advisor の要否判定、レビュー契約（requested/effective `user_review` と `review_level`、各入力元、必須下限）、追加 checkpoint の上限・実績、ユーザー通常レビューの証拠方法、レビュー役割、進捗確認予算、今回のコミット方式（lifecycle-owned range、fixup の対象 SHA、または amend 操作と対象コミットを明示した承認）。
+1. If there is an approved plan, its absolute path, content hash or commit, approval status, scope, verification method and estimate during planning. For planless, the source of the execution input, content hash, approval status, scope, completion conditions, verification method, and estimate.
+2. Record the base SHA of the comparison standard, the target SHA or target commit group, the staged/unstaged/untracked state of the work tree, and each execution environment/gate-control identifier included in the epoch identity, along with the method for recalculating each value.
+3. List of identity manifests, spot/slice manifests of files to be included, and existing differences/untracked files to be excluded.
+4. Advisor necessity determination, review contract (requested/effective `user_review` and `review_level`, each input source, required lower limit), additional checkpoint upper limit/performance, user regular review evidence method, review role, progress confirmation budget, current commit method (lifecycle-owned range, fixup target SHA, or approval specifying amend operation and target commit).
 
-対象と既存の dirty な変更を分離できない、manifest が変化した、または SHA・hash を再現できない場合は、レビューを開始せずユーザーへ報告する。
+If the target cannot be separated from existing dirty changes, the manifest has changed, or the SHA/hash cannot be reproduced, report the review to the user without starting the review.
 
-### Epoch identity の再検証
+### Epoch identity revalidation
 
-- epoch identity は、計画または execution contract identity、base/target、対象 identity manifest、除外範囲に加え、ゲートに関係する実行環境・統制面の識別子で構成する。後者には、利用するモデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定と利用可能範囲、ゲートに影響する `AGENTS.md`・`SKILL.md`・agent 定義の版を含め、何をどの方法で識別したかを台帳へ記録する。
-- 調整者は、Advisor を実行する場合はその dispatch 直前、および `PASS` または `PASS_WITH_USER_AUTHORIZATION` を確定する直前に、変更可能な対象 manifest と epoch identity を現物から再計算して照合する。revision の差異は必ず `review_delta_classification` へ記録し、`REVIEW_INVALIDATING`、識別不能、または比較不能なら旧 Advisor evidence を再利用せず新しい epoch を開始する。`REVIEW_PRESERVING` の場合も revision identity は更新し、Advisor evidence の inheritance 以外の結果を自動継承しない。
-- 無関係または意味同値の環境変更だけを除外する場合も、対象の独立性、read-only 保証、モデル・tool 条件、ゲートの規範的意味に影響しない根拠を台帳へ記録する。これは `PASS` 後の変更を扱う無効化規則とは別に、`PASS` 前の再検証として適用する。
+- The epoch identity consists of a plan or execution contract identity, base/target, target identity manifest, exclusion scope, and execution environment/control identifiers related to the gate. The latter includes the model, role, inference budget, permissions, sandbox, routing, tool/plugin settings and usable range, versions of `AGENTS.md`, `SKILL.md`, and agent definitions that affect the gate, and records what was identified and by what method in the ledger.
+- The coordinator recalculates the changeable target manifest and epoch identity from the actual objects and matches them against the ledger immediately before dispatching the Advisor (when the Advisor is run) and immediately before finalizing `PASS` or `PASS_WITH_USER_AUTHORIZATION`. Be sure to record the difference in revision to `review_delta_classification`. If the revision is `REVIEW_INVALIDATING`, unidentifiable, or uncomparable, start a new epoch without reusing the old Advisor evidence. In the case of `REVIEW_PRESERVING`, the revision identity is also updated, and results other than inheritance of Advisor evidence are not automatically inherited.
+- Even when excluding only irrelevant or semantically equivalent environmental changes, record in the ledger the basis that does not affect the independence of objects, read-only guarantees, model/tool conditions, and the normative meaning of gates. This applies as a revalidation before `PASS`, in addition to the invalidation rules that handle changes after `PASS`.
 
-### Revision と review-preserving 分類
+### Revision and review-preserving classification
 
-- `revision_identity` は対象 identity、tree または snapshot、対象範囲を表し、内容または topology の変更ごとに更新する。`advisor_review_epoch_id` は review contract、scope、dependency closure、assumptions、role、environment、governance version、および reviewed anchor を表し、revision と同一視しない。
-- coordinator は `review_delta_classification` の唯一の判定主体とし、from/to revision、完全な delta manifest と hash、category、classifier identity と reason、behavior・contract・scope・dependency・security・data・compatibility・rollout・rollback・governance の各 impact axis の true/false/unknown と根拠、validation、source evidence id、継承 edge id、epoch を台帳へ記録する。implementer または author の自己申告だけでは判定を確定しない。
-- `REVIEW_PRESERVING` は、上記で記録する全 impact axis（`behavior`、`contract`、`scope`、`dependency`、`security`、`data`、`compatibility`、`rollout`、`rollback`、`governance`）が決定的に false であり、既存の review contract、permission、依存境界、証跡台帳を変更しないことを検証できる場合だけに限る。いずれかの axis が true または unknown、証拠不足、ledger 不在、hash 不一致、検証不能である場合は `REVIEW_INVALIDATING` とする。
-- 規範文書の preserving allowlist は、semantic token と構造が不変な行末・末尾空白の正規化、または既存 finding が示す exact old/new と決定的な resolution predicate を満たす typo/finding fix に限る。一般的な comment、format、mechanical、non-normative というラベルだけでは preserving にせず、明示的で決定的な marker/predicate が追加されるまで invalidating とする。
-- `behavior`、`contract`、`scope`、`dependency`、`security`、`data`、`compatibility`、`rollout`、`rollback`、`modal`、`quantifier`、`negation`、`gate`、`role`、`state`、`category`、`reference path`、`review contract`、`governance`、または本 Skill 自身の rule/schema/allowlist の変更は必ず `REVIEW_INVALIDATING` とする。同一 actor が classifier と author を兼ねる場合も、決定的 allowlist と predicate を満たさなければ invalidating とする。これらの変更を分類し、fresh Advisorへ渡すときは、`from_revision`に存在するsource contract manifest（Issue対象4ファイルとdependency closureのpath・blob/OID・hash）とそのhashを固定して使い、destinationの変更後規則で自分自身を弱めない。source contractを固定できない場合は`NEEDS_EVIDENCE`で停止する。
-- coordinator はコミット済み target では `from_tree = git rev-parse <from_revision>^{tree}`、`to_tree = git rev-parse <to_revision>^{tree}` を求める。
-- 未コミット target では、まず実 indexの絶対pathとraw SHA-256、`git --no-optional-locks status --porcelain=v2 -z --untracked-files=all` のreal-index/worktree byte stream、`git --no-optional-locks ls-files --stage -z` のindex entry byte stream、`git --no-optional-locks ls-files --others --ignored --exclude-standard -z` のignored-path byte streamを、実indexを変更しないまま captureする。次に新規の専用 `GIT_INDEX_FILE` と専用 `GIT_OBJECT_DIRECTORY` を作り、`from_revision` を `git read-tree` で読み込み、candidate manifestを固定して各entryをtype-awareに適用し、`git write-tree` で不変の `to_tree` を作る。capture後に実indexへ戻して同じ`--no-optional-locks`のstatus/index/ignored/manifestを再取得し、index hash、raw status、path集合、各entryのcontent/mode hashに差異があればcaptureを破棄して`REVIEW_INVALIDATING` / `NEEDS_EVIDENCE`とする。
-- candidate manifestはGitのNUL byte path順で固定し、各entryにpath bytes、mode、source state（`FROM`、`INDEX`、`WORKTREE`、`UNTRACKED`、`DELETE`、`IGNORED_EXCLUDED`、`GITLINK`）、source blob/OID、raw content SHA-256、size、symlink target bytesを記録する。working treeがindexと異なるentryは`WORKTREE`、indexだけがfrom_revisionと異なるentryは`INDEX`、新規は`UNTRACKED`、削除は`DELETE`とし、`MM`はworking tree bytesを採用してindex bytesも記録する。mode `160000` はblobではない`GITLINK` entryとして、from tree・実index・worktree HEADの完全なgitlink commit OIDとsubmoduleのclean / modified / untracked / unmerged / unresolved statusを記録する。変更されていないgitlinkは`git read-tree`が保持したmode `160000`とOIDをそのままcandidate treeへ残し、submodule directory bytesにraw content SHA-256、size、symlink target、`git hash-object`を適用しない。gitlink OIDまたはmodeの変更、nested worktreeのmodified / untracked / unmerged state、またはOID/statusの解決不能は、candidate tree生成とraw delta計算より前に`REVIEW_INVALIDATING` / `NEEDS_EVIDENCE`としてfail-closedにする。`GITLINK` 以外のraw bytesはclean filter・quote・改行変換・正規化なしで、`GIT_OBJECT_DIRECTORY=<private>` と repository object databaseを読む `GIT_ALTERNATE_OBJECT_DIRECTORIES=<repo-objects>` の環境で `git hash-object --no-filters -w --stdin` に渡し、出力されたGit blob OID（`git rev-parse --show-object-format`のobject formatも記録）とraw SHA-256を区別する。専用indexへはraw SHA-256ではなくblob OIDを`git update-index --add --cacheinfo <mode>,<git_blob_oid>,<path>`相当で適用し、削除は`git update-index --remove`相当で適用する。専用object databaseの範囲で`git write-tree`を行い、ref・実index・working treeを変更しない。
-- 続けて、gitlink preflightでfrom/to gitlink OIDが不変でnested statusがcleanであることを証明した後に限り、固定 option `git diff --raw -z --no-renames --no-ext-diff --ignore-submodules=all --abbrev=40 <from_revision> <to_tree>` を実行し、stdout byte streamをdecode・quote・改行変換・正規化せずGitのpath順・NUL区切りのままSHA-256化する。`--ignore-submodules=all` はgitlink不変性の証拠ではない。完全な `to_tree` を主 identity、raw bytesのSHA-256によるdelta hashを補助証拠とし、tree、real-index/status snapshot、candidate manifest、blob OID、またはhashの不一致はinvalidatingとする。
-- preserving で Advisor evidence を再利用する場合は append-only の `review_evidence_inheritance` edge を追加し、source evidence と source revision、destination revision、delta manifest/hash、category、classifier/reason、impact axes、validation、epoch を記録する。source の verdict を destination へ付け替えたり、evidence をコピーしたりしない。
-- packet、child context、reviewer judgment は source revision に bound されたままとし、revision が変われば preserving であっても盲目的に再利用せず必要なら再取得する。ledger が現在の execution context で検証できない場合は inheritance を行わない。以前の `BLOCKED`、`NEEDS_EVIDENCE`、または `CLEAR` 以外の verdict を preserving 判定だけで `CLEAR` に昇格させない。
-- `REVIEW_PRESERVING` が抑制できるのは同じ epoch に対する冗長な Advisor dispatch だけであり、`effective_user_review=REQUIRED`、commit map、lifecycle gate、外部操作認可を免除しない。Advisor dispatch 数の削減を測る場合も Advisor だけを数える。
+- `revision_identity` represents the target identity, tree or snapshot, target range, and is updated every time the content or topology changes. `advisor_review_epoch_id` stands for review contract, scope, dependency closure, assumptions, role, environment, governance version, and reviewed anchor, and is not the same as revision.
+- The coordinator is the sole decision-making body for `review_delta_classification`, and records in the ledger the from/to revision, complete delta manifest and hash, category, classifier identity and reason, behavior, contract, scope, dependency, security, data, compatibility, rollout, rollback, and governance impact axis true/false/unknown and basis, validation, source evidence ID, inheritance edge ID, and epoch. Self-declaration of implementer or author alone does not confirm the decision.
+- For `REVIEW_PRESERVING`, all impact axes recorded above (`behavior`, `contract`, `scope`, `dependency`, `security`, `data`, `compatibility`, `rollout`, `rollback`, `governance`) are definitively false, and it can be verified that existing review contracts, permissions, dependency boundaries, and audit ledgers will not change. If any axis is true or unknown, evidence is lacking, the ledger is absent, hashes mismatch, or verification is impossible, set `REVIEW_INVALIDATING`.
+- The preserving allowlist for normative documents is limited to end-of-line/trailing-whitespace normalization that leaves semantic tokens and structure unchanged, or typo/finding fixes that satisfy the exact old/new and definitive resolution predicates in existing findings. General labels such as comment, format, mechanical, and non-normative do not make a change preserving; classify it as invalidating unless an explicit, definitive marker/predicate says otherwise.
+- Changes to `behavior`, `contract`, `scope`, `dependency`, `security`, `data`, `compatibility`, `rollout`, `rollback`, `modal`, `quantifier`, `negation`, `gate`, `role`, `state`, `category`, `reference path`, `review contract`, or governance, as well as changes to this Skill's own rule/schema/allowlist, must be `REVIEW_INVALIDATING`. Even if the same actor serves as both classifier and author, invalidate unless the deterministic allowlist and predicate are satisfied. When classifying these changes and passing them to a fresh Advisor, fix the source contract manifest (paths, blob/OIDs, hashes of the four issue target files and dependency closure) and its hash from `from_revision`; do not evaluate yourself under the destination's post-change rules. If the source contract cannot be fixed, stop at `NEEDS_EVIDENCE`.
+- Coordinator asks for `from_tree = git rev-parse <from_revision>^{tree}`, `to_tree = git rev-parse <to_revision>^{tree}` for committed target.
+- For uncommitted target, first capture the absolute path and raw SHA-256 of the real index, the real-index/worktree byte stream of `git --no-optional-locks status --porcelain=v2 -z --untracked-files=all`, the index entry byte stream of `git --no-optional-locks ls-files --stage -z`, and the ignored-path byte stream of `git --no-optional-locks ls-files --others --ignored --exclude-standard -z` without changing the real index. Next, create new dedicated `GIT_INDEX_FILE` and dedicated `GIT_OBJECT_DIRECTORY`, read `from_revision` with `git read-tree`, fix the candidate manifest, apply each entry to type-aware, and create an immutable `to_tree` with `git write-tree`. After capture, return to the real index and reacquire the status/index/ignored/manifest of the same `--no-optional-locks`, and if there is a difference in the index hash, raw status, path set, and content/mode hash of each entry, discard the capture and make it `REVIEW_INVALIDATING` / `NEEDS_EVIDENCE`.
+- The candidate manifest is fixed in the order of Git's NUL byte path, and each entry records path bytes, mode, source state (`FROM`, `INDEX`, `WORKTREE`, `UNTRACKED`, `DELETE`, `IGNORED_EXCLUDED`, `GITLINK`), source blob/OID, raw content SHA-256, size, and symlink target bytes. Entries whose working tree differs from index are `WORKTREE`, entries whose only index differs from from_revision are `INDEX`, new entries are `UNTRACKED`, deletions are `DELETE`, and `MM` uses working tree bytes and also records index bytes. mode `160000` records the complete gitlink commit OID of from tree, real index, worktree HEAD and the clean/modified/untracked/unmerged/unresolved status of submodule as a non-blob `GITLINK` entry. The unchanged gitlink leaves the mode `160000` and OID maintained by `git read-tree` in the candidate tree, and does not apply raw content SHA-256, size, symlink target, and `git hash-object` to submodule directory bytes. gitlink OID or mode changes, modified/untracked/unmerged state of nested worktree, or unresolvable OID/status will fail-close as `REVIEW_INVALIDATING`/`NEEDS_EVIDENCE` before candidate tree generation and raw delta calculation. Raw bytes other than `GITLINK` are passed to `git hash-object --no-filters -w --stdin` in the environment of `GIT_OBJECT_DIRECTORY=<private>` and `GIT_ALTERNATE_OBJECT_DIRECTORIES=<repo-objects>` that reads the repository object database without clean filter, quote, line break conversion, or normalization, and distinguish between the output Git blob OID (object format of `git rev-parse --show-object-format` is also recorded) and raw SHA-256. For dedicated index, apply blob OID equivalent to `git update-index --add --cacheinfo <mode>,<git_blob_oid>,<path>` instead of raw SHA-256, and for deletion, apply equivalent to `git update-index --remove`. Perform `git write-tree` within the scope of the dedicated object database and do not change the ref, real index, or working tree.
+- Next, only after proving with gitlink preflight that the from/to gitlink OID is unchanged and the nested status is clean, execute the fixed option `git diff --raw -z --no-renames --no-ext-diff --ignore-submodules=all --abbrev=40 <from_revision> <to_tree>` to convert the stdout byte stream to SHA-256 without decoding, quoting, line break conversion, or normalization, leaving it in Git path order and NUL delimited. `--ignore-submodules=all` is not proof of gitlink immutability. The complete `to_tree` is the main identity, the raw bytes delta hash with SHA-256 is the supporting evidence, and any mismatch in the tree, real-index/status snapshot, candidate manifest, blob OID, or hash is invalidating.
+- When reusing Advisor evidence with preserving, add append-only `review_evidence_inheritance` edge and record source evidence, source revision, destination revision, delta manifest/hash, category, classifier/reason, impact axes, validation, and epoch. Do not reassign the verdict of the source to the destination or copy the evidence.
+- The packet, child context, and reviewer judgment remain bound to the source revision, and if the revision changes, they are not blindly reused even if they are preserved, but are reacquired if necessary. If the ledger cannot be verified in the current execution context, inheritance will not be performed. Do not promote a previous `BLOCKED`, `NEEDS_EVIDENCE`, or any other non-`CLEAR` verdict to `CLEAR` solely on the basis of a `REVIEW_PRESERVING` classification.
+- `REVIEW_PRESERVING` can only suppress redundant Advisor dispatch for the same epoch, and does not exempt `effective_user_review=REQUIRED`, commit map, lifecycle gate, or external operation authorization. When measuring the reduction in the number of Advisor dispatches, only Advisors are counted.
 
-## コミット単位
+## Commit unit
 
-- semantic commit の判断と Git 操作は coordinator が行う。Implementer は変更と検証結果を返し、Advisor は commit 操作を行わない。
-- 既定は、一つの一貫した、レビュー可能で revert 可能な意図を一つのコミットにする。ファイルやレイヤーだけを理由に分割しない。
-- 対象実装と、その検証に必要なテストは機械的に分離しない。生成物を生成元から分離する場合も、プロジェクト固有の生成手順と依存順序を優先する。
-- 複数の独立機能、独立 rollback 単位、DB の additive change・backfill・切替、複数サービスの互換性展開、複雑な生成元と生成物の対応、または fixup 先が曖昧な場合のいずれかに該当するときは、計画書に `Commit map` を必須化する。map には各単位の識別子、意図、対象ファイル（共有ファイルは変更範囲）、依存順序、検証方法、rollback 範囲、想定する初回コミットと fixup target を記載する。単純な作業で毎回定型文を書く必要はないが、該当性が判断できなければユーザーへ確認する。
-- 固定コミットをレビューする場合は、先に初回実装コミットを作る。fixup は対応する実装コミットを target にし、amend はユーザーまたは計画が操作名 `amend` と対象コミット（SHA または一意な ref）を明示して承認し、既存の履歴書き換え条件も満たす場合だけ使う。「一つの論理コミットを維持する」という指定だけでは amend の承認とみなさない。
-- 複雑な計画では、レビュー開始前に Commit map と実際の commit range を照合する。各単位が計画した commit または明示した commit 群へ対応し、対象ファイルと共有ファイル内の変更範囲に未対応・重複がなく、依存順序・検証方法・rollback 範囲・fixup target が一致していない場合は停止する。
-- lifecycle が所有する commit range は、実行開始時の base / start boundary、coordinator が作成した commit の順序、終端候補、既存 commit・無関係な並行変更の除外を range manifest に固定する。range identity を再現できない場合や ownership boundary を越える場合は、fixup / autosquash を実行しない。
+- The coordinator makes semantic commit decisions and Git operations. Implementer returns changes and validation results; Advisor does not perform a commit operation.
+- The default is to make a commit a single consistent, reviewable, and revertable intent. Don't split just because of files or layers.
+- The target implementation and the tests necessary for its verification are not mechanically separated. Even when separating artifacts from their sources, prioritize project-specific generation procedures and dependency orders.
+- `Commit map` is required in the plan when multiple independent functions, independent rollback units, DB additive change/backfill/switching, compatibility development of multiple services, complex correspondence between generation sources and products, or cases where the fixup destination is ambiguous are required. The map describes the identifier of each unit, intention, target file (change range for shared files), dependency order, verification method, rollback range, expected first commit, and fixup target. It is not necessary to write a fixed phrase every time it is a simple task, but if you cannot determine the applicability, please check with the user.
+- When reviewing a fixed commit, first create an initial implementation commit. fixup targets the corresponding implementation commit, and amend is used only when the user or plan explicitly approves the operation name `amend` and the target commit (SHA or unique ref), and also satisfies the existing history rewriting conditions. Merely specifying “maintain one logical commit” is not considered approval of amend.
+- For complex plans, check the commit map against the actual commit range before starting the review. Stop if a unit does not correspond to a planned commit or specified commit group, if changes to target or shared files are unassigned or overlap, or if the dependency order, verification method, rollback range, or fixup target do not match.
+- The commit range owned by lifecycle fixes the base / start boundary at the start of execution, the order of commits created by the coordinator, termination candidates, and exclusion of existing commits and unrelated concurrent changes to the range manifest. Do not run fixup / autosquash if you cannot reproduce the range identity or if it crosses the ownership boundary.
 
-## レビュー状態
+## Review status
 
-Advisor を実行した場合は次のいずれかを返す。実行前の要否判定 `REQUIRED`・`NOT_REQUIRED`・`UNRESOLVED` と混同しない。
+When Advisor is executed, it returns one of the following: Do not confuse it with the necessity determination before execution `REQUIRED`, `NOT_REQUIRED`, `UNRESOLVED`.
 
-- `CLEAR`: 判断が必要な論点は解消し、ゲートを妨げる助言がない。
-- `REQUIRES_USER_DECISION`: 計画・範囲・リスク受容をユーザーが決める必要がある。
-- `BLOCKED`: Advisor の実行、証拠、対象 identity を確立できない。
+- `CLEAR`: Issues requiring judgment have been resolved, and there is no advice to block the gate.
+- `REQUIRES_USER_DECISION`: Users must decide on planning, scope, and risk acceptance.
+- `BLOCKED`: Advisor execution, evidence, or target identity cannot be established.
 
-### 状態軸とユーザー許可
+### Status axis and user permissions
 
-実装ゲートでは、所見の結論、証拠の充足、レビューゲート、実装へ進む許可を
-別々に記録する。実装ゲートで使用する定義は次のとおりである。
+Record the findings, evidence status, review gate, and permission to proceed with implementation separately. The definitions used in the implementation gate are as follows.
 
-- `finding_outcome`: Advisor finding ごとに `指摘成立` または `指摘撤回` のいずれか。Advisor がユーザー判断を要求する論点は `REQUIRES_USER_DECISION`、証拠や対象 identity を確立できない場合は `BLOCKED` として別軸で記録する。
-- `evidence_status`: `SUFFICIENT` または `NEEDS_EVIDENCE`。後者は情報不足・対象
-  identity 不足・再現不能などの未完了状態で、通常は `review_gate=BLOCKED` とする。
-  必要証拠、確認方法、許可範囲、終了条件を記録し、指摘の撤回や承認とはみなさない。
-- `review_gate`: `PASS`、`PASS_WITH_USER_AUTHORIZATION`、`BLOCKED` のいずれか。
-  plain `PASS` は未解決の `NEEDS_EVIDENCE`、gate-blocking な所見、独立性不足がなく、
-  通常の完了条件を満たす場合だけに使う。未解決の `NEEDS_EVIDENCE` を残したまま、
-  scoped な許可の範囲でだけ実装を進める場合は `PASS_WITH_USER_AUTHORIZATION` とし、
-  plain `PASS` に変換しない。必要条件・対象 identity・許可が不足する場合は `BLOCKED`。
-- `USER_AUTHORIZED`: 所見状態や証拠充足を上書きしない、明示的なユーザー許可の記録。
-  finding ID、target/epoch と manifest、許可者・日時・出所、操作範囲と対象外、受容影響、
-  残る確認事項、期限または再検証条件を含める。
-- `proceed_status`: `STOPPED` または `AUTHORIZED_TO_PROCEED`。有効な
-  `USER_AUTHORIZED` が同じ target/epoch と操作範囲に結び付く場合だけ、後者を設定する。
+- `finding_outcome`: Either `指摘成立` or `指摘撤回` for each Advisor finding. Issues for which the Advisor requires user judgment are recorded as `REQUIRES_USER_DECISION`, and cases where evidence or target identity cannot be established are recorded as `BLOCKED` on a separate axis.
+- `evidence_status`: `SUFFICIENT` or `NEEDS_EVIDENCE`. The latter is an incomplete state caused by missing information, missing target identity, or non-reproducibility; normally `review_gate=BLOCKED`.
+  Record the necessary evidence, confirmation method, scope of permission, and termination conditions, and do not consider it as a retraction or approval of the points raised.
+- `review_gate`: One of `PASS`, `PASS_WITH_USER_AUTHORIZATION`, or `BLOCKED`.
+  Use plain `PASS` only when there is no unresolved `NEEDS_EVIDENCE`, no gate-blocking finding, and no lack of independence, and the normal completion conditions are met.
+  If work proceeds with `NEEDS_EVIDENCE` left unresolved and only within scoped permission, use `PASS_WITH_USER_AUTHORIZATION` and do not convert it to plain `PASS`. Use `BLOCKED` if requirements, target identity, or authorization are insufficient.
+- `USER_AUTHORIZED`: Explicit user permission recording that does not override finding status or evidence sufficiency.
+  It includes the finding ID, target/epoch and manifest, authorizer, date and time, source, scope of operation and exclusions, accepted impact,
+  remaining confirmations, and deadline or reverification conditions.
+- `proceed_status`: `STOPPED` or `AUTHORIZED_TO_PROCEED`.
+  Set the latter only if a valid `USER_AUTHORIZED` is bound to the same target/epoch and operation scope.
 
-`ACCEPTED_RISK` は受容の注記であり、進行許可ではない。旧 `WAIVED` を参照する履歴は
-保持してよいが、新規記録では特定の証拠・チェックを免除した意味に限定し、指摘を cleared
-とは扱わない。
+`ACCEPTED_RISK` is a note of acceptance, not a permit to proceed. References to the old `WAIVED` may be retained, but new records must use it only to mean that specific evidence or checks were waived; the finding must not be treated as cleared.
 
 
-## 実行順序
+## Execution order
 
-### 1. Execution contract の固定、実装、計画済み検証
+### 1. Fixed, implemented and planned verification of execution contract
 
-計画書または確定した execution input から contract、対象 manifest、除外範囲、epoch、lifecycle-owned range の開始境界、レビュー契約を固定する。計画書がないことや変更が複数ファイルにまたがることだけを理由に停止しないが、goal、scope、制約、完了条件、検証方法を一意に確定できない場合は停止する。
+Fix the contract, target manifest, exclusion range, epoch, starting boundary of lifecycle-owned range, and review contract from the plan or finalized execution input. Do not stop just because there is no plan or changes span multiple files, but stop if the goal, scope, constraints, completion conditions, or verification method cannot be uniquely determined.
 
-Implementer は contract の範囲で変更と検証を行い、coordinator が semantic commit を作成する。計画または contract で定めた build・test・生成検証を行い、計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は、通常レビューや Advisor の前に停止して再承認を得る。Implementer、Advisor に commit / fixup / amend / autosquash を行わせない。
+The implementer makes changes and verifications within the scope of the contract, and the coordinator creates a semantic commit. Run the build, tests, and generated-artifact verification specified in the plan or contract. If there is a deviation from the plan or contract, an estimate is exceeded, or additional design judgment is required, stop before regular review or Advisor review and obtain re-approval. Don't let Implementer or Advisor do commit/fixup/amend/autosquash.
 
-### 2. Spot review（選択時）
+### 2. Spot review (when selected)
 
-spot review を選択またはトリガーした場合は、実装と初回の計画済み検証後、spot manifest を固定して高リスク・代表範囲を Advisor に read-only で確認させる。指摘があれば coordinator が修正し、影響する spot と依存境界を再レビューする。spot を選択しない場合は、選択条件が false である根拠と `SKIPPED` 理由を台帳へ記録する。spot review は全変更の coverage、slice review、user checkpoint、final review の代替にしない。
+If you select or trigger spot review, after implementation and initial planned validation, pin the spot manifest to have the Advisor review read-only high-risk/representative areas. If any issues are found, the coordinator will correct them and re-review the affected spots and dependency boundaries. If spot is not selected, record the rationale and `SKIPPED` reason why the selection condition is false in the ledger. Spot review is not a substitute for full change coverage, slice review, user checkpoint, or final review.
 
-### 3. Review slice の構成、Advisor review（選択時）、修正
+### 3. Review slice configuration, Advisor review (when selected), and modification
 
-実装と計画済み検証の完了後、slice manifest を作成して全変更を review slice に割り当てる。各 slice の primary scope、dependency closure、cross-slice dependency / boundary edge、検証方法を固定し、coverage gap、重複、未定義の境界がないことを確認する。
+After implementation and planned validation, create a slice manifest and assign all changes to the review slice. Fix the primary scope, dependency closure, cross-slice dependency/boundary edge, and validation method for each slice to ensure that there are no coverage gaps, overlaps, or undefined boundaries.
 
-`effective_review_level=ADVISOR` の場合は、各 slice を Advisor に read-only でレビューさせ、指摘があれば coordinator が対応する `fixup!`、明示承認済みの `amend`、または新規 commit を作成する。修正後は影響する slice と依存境界を再レビューし、全 slice が収束するまで反復する。slice review の結果を final review や user checkpoint の代替にしない。`NONE` の場合は slice Advisor を実行せず、必須 Advisor トリガーがすべて false である根拠と `SKIPPED` 理由を台帳へ記録する。
+In the case of `effective_review_level=ADVISOR`, each slice is reviewed by the Advisor as read-only, and if found, the coordinator creates a corresponding `fixup!`, explicitly approved `amend`, or a new commit. After modification, re-review the affected slices and dependency boundaries, and iterate until all slices are converged. Do not use slice review results as a substitute for final review or user checkpoint. In the case of `NONE`, do not run slice Advisor and record the reason why all required Advisor triggers are false and `SKIPPED` reason in the ledger.
 
-### 4. ユーザー通常レビュー（選択時）
+### 4. User normal review (if selected)
 
-`effective_user_review=REQUIRED` の場合だけ候補差分と検証結果をユーザーへ提示し、ユーザーの feedback を反映する。レビューした snapshot の identity、提示内容、snapshot に結び付いたユーザーの明示的な承認・変更なし、または各 feedback の解消確認を含む応答、未解決 feedback がないことを台帳へ記録し、内容変更後は検証と通常レビューの証拠を更新する。計画範囲、設計、リスク、見積りを変える feedback は既存の承認ゲートへ戻す。`effective_user_review=REQUIRED` で通常レビュー完了の証拠がないまま Advisor を開始してはならない。`effective_user_review=NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳へ記録する。
+Only in the case of `effective_user_review=REQUIRED`, candidate differences and verification results are presented to the user, and the user's feedback is reflected. The identity of the reviewed snapshot, the content presented, the user’s explicit approval or confirmation of no changes linked to the snapshot, or a response confirming resolution of each feedback, and the absence of unresolved feedback are recorded in the ledger, and after the content is changed, verification and normal review evidence are updated. Feedback that changes planning scope, design, risks, and estimates is returned to the existing approval gate. Do not start an Advisor without proof of regular review completion on `effective_user_review=REQUIRED`. In the case of `effective_user_review=NONE`, record the reason, basis, and designation source for setting the normal user review to `SKIPPED` in the ledger.
 
-`effective_user_review=REQUIRED` の通常レビュー完了、または `effective_user_review=NONE` の `SKIPPED` 記録後に candidate target を固定する。レビュー済み snapshot（`REQUIRED` の場合）と target の内容が同一であることを base SHA、tree/commit identity、hunk または Commit map manifest で検証し、commit topology 自体が意味を持つ場合は、`REQUIRED` なら commit 後の target を通常レビュー対象として再確認し、`NONE` なら通常レビューを復活させず target identity と topology の照合だけを行う。
+Fix the candidate target after completing the normal review of `effective_user_review=REQUIRED` or recording `SKIPPED` of `effective_user_review=NONE`. Verify that the content of the reviewed snapshot (in the case of `REQUIRED`) and target are the same using base SHA, tree/commit identity, hunk, or commit map manifest, and if the commit topology itself has meaning, in the case of `REQUIRED`, the target after the commit is reconfirmed as a normal review target, and in the case of `NONE`, the target identity and topology are simply matched without reviving the normal review.
 
-### 5. レビュー強度の確定
+### 5. Determining review strength
 
-candidate target を固定した直後に、`requested_review_level` と必須トリガーを照合して `effective_review_level` を確定する。`effective_user_review` は preflight で解決した値を引き継ぎ、選択値が `NONE` でも、必須 Advisor トリガーがあれば AI レビュー側の下限を適用する。Advisor を含まない場合は、当該レビューを `SKIPPED` とした理由、根拠、ユーザーまたは goal の契約を台帳へ記録する。`SKIPPED` は検証、選択された通常レビュー、承認の完了を意味しない。
+Immediately after fixing the candidate target, confirm `effective_review_level` by matching `requested_review_level` with the required trigger. `effective_user_review` inherits the value resolved by preflight, and even if the selected value is `NONE`, if there is a mandatory Advisor trigger, the lower limit on the AI review side will be applied. If Advisor is not included, record the reason, basis, and contract of the user or goal for making the review `SKIPPED` in the ledger. `SKIPPED` does not imply completion of verification, selected regular review, or approval.
 
-### 6. 最終 Advisor 判定
+### 6. Final Advisor judgment
 
-`effective_review_level` が `ADVISOR` の場合、`effective_user_review=REQUIRED` なら通常レビュー後、`NONE` なら通常レビューを省略して固定した candidate target に対して、Advisor を dispatch する直前に epoch identity を再検証してから固定した計画と対象を渡す。必須トリガーがある場合は `REQUIRED` として扱い、`REQUIRES_USER_DECISION` または `BLOCKED` なら停止する。`UNRESOLVED` で Advisor を実行できない場合も停止してユーザーへ報告する。`effective_review_level` に Advisor が含まれない場合、全トリガーが根拠付きで false であることを確認し、Advisor を `SKIPPED` と記録する。最終 Advisor の結果は、追加 checkpoint の結果やユーザー通常レビューの承認で代用してはならない。
+When `effective_review_level` is `ADVISOR`, conduct the regular review first if `effective_user_review=REQUIRED`; if it is `NONE`, omit the regular review. Reverify the epoch identity just before dispatching the Advisor, then provide the fixed plan and target. If there is a required trigger, treat it as `REQUIRED`, and stop if it is `REQUIRES_USER_DECISION` or `BLOCKED`. If the Advisor cannot run for `UNRESOLVED`, stop and report to the user. If `effective_review_level` does not include Advisor, check that all triggers are false with evidence and record Advisor as `SKIPPED`. Do not substitute the results of additional Advisor checkpoints or approval from a regular user review for the final Advisor result.
 
 
-### 7. 指摘の修正
+### 7. Correction of indications
 
-- すべての `指摘成立` は gate-blocking として扱い、承認済み範囲内で coordinator がまとめて修正する。修正要否やリスク受容にユーザー判断が必要な場合は `REQUIRES_USER_DECISION` として停止する。Advisor に修正や commit をさせない。修正しないまま進める場合は、対象 ID、target/epoch、scope、受容影響、残る確認事項、期限・再検証条件を含む `USER_AUTHORIZED` を別記録として取得し、`proceed_status=AUTHORIZED_TO_PROCEED` と `PASS_WITH_USER_AUTHORIZATION` を記録された範囲にだけ適用する。単なる `ACCEPTED_RISK` 注記や旧 `WAIVED` は進行許可に使わない。
-- 修正後に計画または contract で定めた build・test・生成検証を実行する。計画・contract からの逸脱、見積り超過、追加設計判断が必要になった場合は停止して再承認を得る。
-- 修正、fixup、amend の後は、変更後 snapshot を必ず `review_delta_classification` で判定する。`REVIEW_INVALIDATING` なら旧 epoch の通常レビュー結果を再利用せず新しい epoch を開始し、新しいレビュー契約を解決する。`REVIEW_PRESERVING` なら epoch を維持できるのは Advisor evidence の inheritance に限り、`effective_user_review=REQUIRED` の通常レビューは契約どおり実行する。`NONE` の通常レビューは `SKIPPED` 記録を更新するが、packet、context、judgment は自動継承しない。
-- 修正を対応する実装コミットへの fixup として記録する。計画またはユーザーが操作名 `amend` と対象コミットを明示して承認した場合だけ、そのコミットを amend してよい。「一つのコミットを維持する」という指定だけでは amend してはならない。
+- All `指摘成立` findings block the gate and are corrected by the coordinator within the approved range. If the user must decide whether a correction is necessary or whether to accept the risk, stop with `REQUIRES_USER_DECISION`. Do not let the Advisor make changes or commits. To proceed without changes, obtain a separate `USER_AUTHORIZED` record containing the target ID, target/epoch, scope, accepted impact, remaining confirmation items, deadline, and reverification conditions. Apply `proceed_status=AUTHORIZED_TO_PROCEED` and `PASS_WITH_USER_AUTHORIZATION` only to the recorded range. A bare `ACCEPTED_RISK` note or legacy `WAIVED` is not authorization to proceed.
+- After modification, execute build, test, and generation verification as specified in the plan or contract. If there is a deviation from the plan/contract, the estimate is exceeded, or additional design decisions are required, stop and obtain re-approval.
+- After modification, fixup, or amend, the changed snapshot must be determined by `review_delta_classification`. `REVIEW_INVALIDATING` starts a new epoch and settles a new review contract without reusing the regular review results of the old epoch. For `REVIEW_PRESERVING`, epochs can only be maintained through inheritance of Advisor evidence, and regular reviews for `effective_user_review=REQUIRED` will be performed as per the contract. Regular review of `NONE` updates `SKIPPED` record, but packet, context, and judgment are not automatically inherited.
+- Record the fix as a fixup to the corresponding implementation commit. A commit may be amended only if the plan or user explicitly approves the operation name `amend` and the target commit. Do not amend just by specifying “keep one commit.”
 
-### 8. 新しいレビュー epoch
+### 8. New review epoch
 
-`REVIEW_INVALIDATING` に分類された修正、fixup、amend、履歴整理、または epoch identity の意味のある変更では、対象 manifest、SHA、計画 identity、epoch identity を再検証して新しい epoch を開始し、旧 epoch の通常レビュー結果や契約を新しい target に先に適用してはならない。新 epoch のレビュー契約を解決した後は、`effective_user_review=REQUIRED` なら変更後 snapshot の通常レビューを完了し、`NONE` ならその `SKIPPED` 記録を更新する。`effective_review_level=ADVISOR` の場合、Advisor は最終 candidate target に対して fresh dispatch する。
+Modifications, fixups, amends, history cleanups, or meaningful changes to the epoch identity classified as `REVIEW_INVALIDATING` must start a new epoch by revalidating the target manifest, SHA, plan identity, and epoch identity, and do not apply the regular review results or contracts from the old epoch to the new target first. After resolving the review contract for the new epoch, `effective_user_review=REQUIRED` completes the normal review of the changed snapshot, and `NONE` updates its `SKIPPED` record. In the case of `effective_review_level=ADVISOR`, the Advisor fresh dispatches to the final candidate target.
 
-新しい epoch ではレビュー契約と Advisor の要否トリガーを必ず再評価する。`REVIEW_INVALIDATING` の target では前回の `NOT_REQUIRED` または最終 Advisor の verdict を再利用せず、新しい target に対して要否とレビュー契約を再評価する。Advisor が必須または `effective_review_level` に含まれる場合は、比較が意味同値でも source evidence を destination に付け替えず、現行 target に対する fresh Advisor dispatch を実行する。`REVIEW_PRESERVING` で Advisor evidence を継承する場合は、同じ epoch、完全な delta manifest/hash、`review_evidence_inheritance` edge、現コンテキストで検証可能な ledger、source revision に結び付いた verdict が `CLEAR` であることを追加確認し、`assessment_mode: preserving-inheritance`、参照元 epoch、old/new target、比較結果、追加 checkpoint 累計を記録する。一つでも不一致、識別不能、比較不能、レビュー契約の変更、前提・対象範囲・規範的意味の変化、または source verdict が `CLEAR` 以外である場合は継承せず、必要なレビューを再実行する。旧状態を無検証でコピーして `NOT_REQUIRED`、`CLEAR`、または `SKIPPED` としてはならない。
+Be sure to re-evaluate review contracts and Advisor necessity triggers in new epochs. The `REVIEW_INVALIDATING` target does not reuse the previous `NOT_REQUIRED` or final Advisor verdict, but re-evaluates the necessity and review contract for the new target. If Advisor is required or included in `effective_review_level`, execute fresh Advisor dispatch for the current target without replacing source evidence with destination even if the comparison is semantically equivalent. When inheriting Advisor evidence with `REVIEW_PRESERVING`, additionally confirm the same epoch, a complete delta manifest/hash, a `review_evidence_inheritance` edge, a ledger verifiable in the current context, and that the verdict bound to the source revision is `CLEAR`, and record `assessment_mode: preserving-inheritance`, reference epoch, old/new target, comparison result, and additional checkpoint cumulative total. If there is any discrepancy, inability to identify, incomparability, change in review agreement, change in premise, scope, or normative meaning, or if the source verdict is other than `CLEAR`, it will not be inherited and the necessary review will be re-performed. The old state must not be copied as `NOT_REQUIRED`, `CLEAR`, or `SKIPPED` without verification.
 
 ## Lifecycle-owned autosquash
 
-- autosquash は slice manifest / coverage、必要な user checkpoint、計画済み検証がすべて完了し、`effective_review_level=ADVISOR` の場合は final Advisor が完了、`NONE` の場合は必須 Advisor トリガーがすべて根拠付きで false で final Advisor の `SKIPPED` 理由が記録された後にだけ、coordinator が実行する。Implementer、Advisor は実行しない。
-- 対象は実行開始時から range manifest が所有している commit range 内の `fixup!` commit に限定する。既存 commit、無関係な並行変更、range 外の fixup、対象不明の amend は含めない。range identity、対象 SHA、除外範囲、fixup 対応表を実行前後に照合する。
-- 履歴整理は `git-history-rewrite` の非対話制約に従い、`git rebase -i` や sequence editor の自動書き換えを使わない。書き換え後は pre/post tree identity、commit topology、range / diff、fixup 解消、計画済み検証を確認する。
-- autosquash 前後で tree identity が同一なら、履歴変換を `REVIEW_PRESERVING` として分類し、`review_evidence_inheritance` edge、履歴変換の正当性、post-autosquash verification を記録する。Advisor evidence 以外の packet、context、judgment は自動継承しない。tree identity が変化した場合は `REVIEW_INVALIDATING` として現在の gate を無効化し、新しい epoch と必要な slice / user checkpoint / final review へ戻る。
+- The coordinator runs autosquash only after all slice manifest/coverage, required user checkpoints, and planned validations are complete, and one of these review conditions holds: for `effective_review_level=ADVISOR`, the final Advisor is complete; or for `NONE`, all required Advisor triggers are false and the final Advisor's `SKIPPED` reason is recorded. Do not let the Implementer or Advisor perform autosquash.
+- The target is limited to `fixup!` commits within the commit range owned by the range manifest from the start of execution. Existing commits, unrelated concurrent changes, fixups out of range, and amends with unknown targets are not included. Verify range identity, target SHA, exclusion range, and fixup correspondence table before and after execution.
+- History organization follows the non-interactive constraints of `git-history-rewrite` and does not use automatic rewriting of `git rebase -i` or sequence editor. After rewriting, check pre/post tree identity, commit topology, range/diff, fixup resolution, and planned verification.
+- If the tree identity is the same before and after autosquash, classify the history transformation as `REVIEW_PRESERVING` and record the `review_evidence_inheritance` edge, the validity of the history transformation, and the post-autosquash verification. Packet, context, and judgment other than Advisor evidence are not automatically inherited. If the tree identity changes, invalidate the current gate as `REVIEW_INVALIDATING` and return to the new epoch and necessary slice / user checkpoint / final review.
 
-## 完了条件
+## Completion conditions
 
-次をすべて満たしたときだけゲートを plain `PASS` または、未解決の `NEEDS_EVIDENCE` に有効な scoped authorization を付した `PASS_WITH_USER_AUTHORIZATION` とする。後者は記録された操作範囲に限る。
+The gate is set to plain `PASS` or `PASS_WITH_USER_AUTHORIZATION` with valid scoped authorization attached to unresolved `NEEDS_EVIDENCE` only when all of the following are satisfied. The latter is limited to the recorded operating range.
 
-- 計画または execution contract identity、承認済み範囲、対象 manifest、最終 target、最終化直前に再検証した epoch identity が一致している。
-- 計画または contract に定めた検証が成功している。
-- spot review を選択またはトリガーした場合は、spot manifest の全対象が `CLEAR` または修正後に再レビュー済みである。選択しない場合は、選択条件が false である根拠と `SKIPPED` 理由が記録されている。
-- slice manifest の coverage が完全である。`effective_review_level=ADVISOR` の場合は全 slice と cross-slice dependency / boundary edge の Advisor review が収束している。`NONE` の場合は必須 Advisor トリガーがすべて根拠付きで false であり、slice Advisor の `SKIPPED` 理由が記録されている。
-- `effective_user_review=REQUIRED` の場合は、最終 candidate target に結び付くユーザー通常レビューの snapshot、提示内容、明示的な承認・変更なし、または feedback 解消確認を含む応答、未解決 feedback がないことを台帳で確認できる。`NONE` の場合は、ユーザー通常レビューを `SKIPPED` とした理由、根拠、指定元を台帳で確認できる。
-- `effective_review_level` が Advisor を含む場合は、`REVIEW_INVALIDATING` なら現行 target に対する最終 Advisor の fresh 実行結果が `CLEAR` であり、`REVIEW_PRESERVING` なら source revision の `CLEAR` に結び付く検証済み `review_evidence_inheritance` edge と `assessment_mode: preserving-inheritance` がある（source verdict を destination の実行結果へ付け替えない）。Advisor を含まない場合は、必須トリガーがすべて根拠付きで false であり、Advisor を `SKIPPED` とした理由が記録されている。
-- 追加 Advisor checkpoint の累計がゲート全体で最大2回以内で、各 checkpoint の理由・判断質問・対象・結果が記録されている。
-- 初回コミットと fixup・amend・autosquash の範囲が、計画または contract で承認された lifecycle-owned range の変更だけで構成されている。autosquash を実行した場合は前後の tree identity・topology・range / diff・post-verification を記録し、実行しない場合は `SKIPPED` 理由を記録する。
-- Commit map が必須の計画では、actual commit/hunk manifest と map を双方向に完全照合し、全 commit/hunk がちょうど一つの単位へ割り当てられ、map にない変更や重複がない。独立 rollback 単位は commit 境界で分離し、依存により同一 commit に結合する場合は理由と共同 rollback 範囲を map に記録している。
-- ユーザーの実装採否、本番採用、履歴書き換え、push、PR・Issue 更新、外部送信が必要な場合は、それぞれの既存承認を別途取得している。
+- The plan or execution contract identity, approved scope, target manifest, final target, and epoch identity revalidated just before finalization match.
+- The verification specified in the plan or contract is successful.
+- If spot review is selected or triggered, all targets in the spot manifest are `CLEAR` or have been re-reviewed after modification. If not selected, the rationale and `SKIPPED` reason why the selection condition is false are recorded.
+- Coverage of slice manifest is complete. In the case of `effective_review_level=ADVISOR`, Advisor reviews for all slices and cross-slice dependency/boundary edge have converged. For `NONE`, all required Advisor triggers are false with a rationale, and the slice Advisor's `SKIPPED` reason is recorded.
+- In the case of `effective_user_review=REQUIRED`, it can be confirmed in the ledger that the user-review snapshot linked to the final candidate target, the presented content, the user’s explicit approval or confirmation of no changes, or responses confirming feedback resolution, and the absence of unresolved feedback. In the case of `NONE`, you can check the reason, basis, and designation source for setting the normal user review to `SKIPPED` in the ledger.
+- If `effective_review_level` includes an Advisor, if it is `REVIEW_INVALIDATING`, the final Advisor fresh execution result for the current target is `CLEAR`, and if it is `REVIEW_PRESERVING`, there are verified `review_evidence_inheritance` edge and `assessment_mode: preserving-inheritance` that are linked to the source revision `CLEAR` (the source verdict is not replaced with the destination execution result). If it does not contain an Advisor, all required triggers are false with a rationale, and the reason for making the Advisor `SKIPPED` is recorded.
+- The cumulative total of additional Advisor checkpoints is no more than two times for the entire gate, and the reason, decision question, target, and result of each checkpoint are recorded.
+- The initial commit and fixup/amend/autosquash ranges consist only of lifecycle-owned range changes approved in the plan or contract. If autosquash is executed, record the tree identity, topology, range / diff, and post-verification before and after, and if not execute, record the `SKIPPED` reason.
+- In a plan that requires a commit map, the actual commit/hunk manifest and the map are fully matched in both directions, and all commits/hunks are assigned to exactly one unit, and there are no changes or duplications that are not in the map. Independent rollback units are separated at commit boundaries, and when they are combined into the same commit due to dependencies, the reason and joint rollback range are recorded in the map.
+- If a user's implementation acceptance/rejection, production adoption, history rewriting, push, PR/issue update, or external transmission is required, separate approvals are obtained for each.
 
-plain `PASS` または `PASS_WITH_USER_AUTHORIZATION` 後は、revision の差異を必ず分類する。`REVIEW_INVALIDATING`、epoch identity（計画または execution contract identity・承認状態、除外範囲、実効モデル・役割・推論予算、permission・sandbox、routing、tool/plugin の設定・利用可能範囲、またはレビューに固定したゲート統制ファイル（`AGENTS.md`、`SKILL.md`、agent 定義の版））の意味のある差異・識別不能・比較不能、レビュー契約の変化、または `effective_user_review=REQUIRED` の snapshot・提示内容・応答・未解決 feedback・承認状態の変化（新規 feedback、未解決化、承認撤回を含む）がある場合は、ゲート状態と review-derived の `USER_AUTHORIZED` / `PASS_WITH_USER_AUTHORIZATION` / `proceed_status` を無効にし、対象 identity・除外範囲・epoch identity・通常レビューの証拠を再検証して新しい epoch を開始する。authorization boundary 自体は `external-operation-authorization` Skill の独立契約で再評価し、boundary が不変なら承認記録を保持できるが、新しい review/verification が完了するまで外部操作を実行しない。boundaryの変更・失効・確認不能がある場合だけ authorization 自体を無効化する。`REVIEW_PRESERVING` の場合も `USER_AUTHORIZED`、`PASS_WITH_USER_AUTHORIZATION`、retry/消費状態を新targetへ継承せず、Advisor evidenceのinheritanceと現物検証だけを許可する。`effective_user_review=NONE` の指定根拠が変化したときは同様に扱う。無関係な環境変更や意味同値の整形は、固定した対象と規範的意味に影響しない根拠を記録できる場合に限り除外する。squash・rebase は別操作として扱い、実行後に対象 identity、分類、差分を検証する。
+After plain `PASS` or `PASS_WITH_USER_AUTHORIZATION`, be sure to classify the differences in revision. `REVIEW_INVALIDATING`, meaningful differences/indiscernibility/incomparability in epoch identity (plan or execution contract identity/approval status, exclusion range, effective model/role/inference budget, permission/sandbox, routing, tool/plugin settings/availability, or gate control file fixed to review (`AGENTS.md`, `SKILL.md`, agent definition version)), a change in the review contract, or, when `effective_user_review=REQUIRED`, a change in the snapshot, presentation content, response, unresolved feedback, or approval status (including new feedback, unresolved feedback, or approval withdrawal) invalidates the gate status and review-derived `USER_AUTHORIZED` / `PASS_WITH_USER_AUTHORIZATION` / `proceed_status`, revalidate the target identity, exclusion range, epoch identity, and normal review evidence and start a new epoch. The authorization boundary itself is re-evaluated under the independent `external-operation-authorization` contract, and if the boundary remains unchanged, authorization records can be maintained, but no external operations will be performed until a new review/verification is completed. Authorization itself is invalidated only when the boundary has changed, expired, or cannot be confirmed. In the case of `REVIEW_PRESERVING`, `USER_AUTHORIZED`, `PASS_WITH_USER_AUTHORIZATION`, retry/consumption status is not inherited to the new target, and only inheritance and physical verification of Advisor evidence is allowed. If the basis for designation of `effective_user_review=NONE` changes, it will be treated in the same way. Unrelated changes to the environment or the shaping of semantic equivalences are excluded only when it is possible to record a basis that does not affect the fixed target and normative meaning. Squash and rebase are treated as separate operations, and the target identity, classification, and difference are verified after execution.
 
-## 停止・確認条件
+## Stop/confirm conditions
 
-次の場合は自動継続せず、状態、証拠、残っている指摘、次の選択肢をユーザーへ報告する。
+In the following cases, the process will not continue automatically and the status, evidence, remaining findings, and next options will be reported to the user.
 
-- 同じ指摘への修正が2回失敗した、または epoch が3回に達した。
-- 計画または contract の範囲・identity、見積り上限、対象 manifest、fixup target、lifecycle-owned range が一意でなくなった。
-- 既存 dirty 差分を安全に除外できない、対象がレビュー中に変化した、または build・test・生成検証が失敗した。
-- 必須または選択済みの spot review が未実施・未収束、slice coverage に gap / 重複 / 未定義境界がある、または cross-slice dependency の review context が固定できない。
-- `effective_user_review=REQUIRED` なのに当該 epoch のユーザー通常レビューが完了していない、snapshot に結び付く明示的承認・変更なしまたは feedback 解消確認がない、未解決 feedback が残っている、追加 Advisor checkpoint が `CLEAR` 以外（`BLOCKED` を含む）を返した、または追加 Advisor checkpoint の3回目が必要になった。`effective_user_review=NONE` の場合に `SKIPPED` の根拠を記録できないときも停止する。
-- `user_review` または `review_level` の入力元・値が不明、必須の Advisor 下限と衝突している、または選択したレビューを `SKIPPED` とする根拠を記録できない。
-- Advisor がユーザー判断を要求した、レビューの独立性・台帳の真正性を確認できない、`指摘成立` が残っている、または `NEEDS_EVIDENCE` に対応する有効な `USER_AUTHORIZED` の scope・期限・target/epoch が確認できない。
+- Two failed attempts to fix the same issue or three epochs were reached.
+- The scope/identity, estimate limit, target manifest, fixup target, and lifecycle-owned range of the plan or contract are no longer unique.
+- Existing dirty diffs cannot be safely excluded, the target changed during review, or build/test/generation verification failed.
+- A required or selected spot review has not been performed or has not been converged, there is a gap/overlap/undefined boundary in slice coverage, or the review context of cross-slice dependency cannot be fixed.
+- `effective_user_review=REQUIRED` but the user normal review of the epoch has not been completed, there is no snapshot-linked explicit approval or confirmation that no changes were requested, or confirmation that feedback was resolved, unresolved feedback remains, an additional Advisor checkpoint returned something other than `CLEAR` (including `BLOCKED`), or a third additional Advisor checkpoint is required. In the case of `effective_user_review=NONE`, it also stops when the basis for `SKIPPED` cannot be recorded.
+- The input source/value for `user_review` or `review_level` is unknown, conflicts with a required Advisor lower limit, or cannot record the rationale for assigning the selected review to `SKIPPED`.
+- The Advisor requested user judgment; review independence or ledger authenticity cannot be confirmed; a `指摘成立` finding remains; or the scope, deadline, or target/epoch of valid `USER_AUTHORIZED` corresponding to `NEEDS_EVIDENCE` cannot be confirmed.
 
-これは失敗を隠すための waiver ではない。継続、範囲変更、追加証拠、免除、終了の判断をユーザーに委ねる。
+This is not a waiver to hide failure. Leave the decision of continuation, scope change, additional evidence, exemption, and termination up to the user.
 
-## 最終報告
+## Final report
 
-比較基準と最終 target の SHA、対象・除外状態、計画または execution contract identity、requested/effective `user_review` と `review_level` および各入力元、spot / slice manifest と coverage、選択されたユーザー通常レビューの証拠または `SKIPPED` 理由、Advisor 状態と追加 checkpoint 累計、各 review epoch の結果、lifecycle-owned range、fixup・amend・autosquash の実行または `SKIPPED` 理由と tree identity 検証の一覧、Commit map の照合結果、検証結果、`PASS_WITH_USER_AUTHORIZATION` の scoped authorization、未解決の `指摘成立`・`REQUIRES_USER_DECISION`・`NEEDS_EVIDENCE` または停止理由、外部操作を行っていないことを簡潔に報告する。レビュー結果とユーザーの採否判断を混同しない。
+Concisely report the comparison basis and final target SHA, inclusion/exclusion status, plan or execution contract identity, requested/effective `user_review` and `review_level` and each input source, spot/slice manifest and coverage, selected user-review evidence or the reason for `SKIPPED`, Advisor status and cumulative additional checkpoints, results for each review epoch, lifecycle-owned range, the reason for or `SKIPPED` status of fixup/amend/autosquash and the tree identity verification, Commit map reconciliation, verification results, scoped authorization for `PASS_WITH_USER_AUTHORIZATION`, unresolved findings recorded as `指摘成立`, `REQUIRES_USER_DECISION`, `NEEDS_EVIDENCE`, or stop reasons, and confirmation that no external operation was performed. Do not confuse review results with the user's acceptance or rejection.
