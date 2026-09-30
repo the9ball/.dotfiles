@@ -1,6 +1,6 @@
 ---
 name: conversation-handoff
-description: Create a conversation-centered handoff from a long, degraded, or evolving conversation to a fresh user-visible conversation, session, task, or thread while preserving intent, major pivots, obstacles, unresolved work, and user preferences, with an optional source-task reference for targeted read-only lookup. Use when the user asks to hand off, transfer, or continue work in a new conversation without losing context, including equivalent requests such as "move this to a new task", "引き継いで", "別セッションに移して", or "この会話を新しくして". If the user only remarks that the conversation is long, slow, confused, or degraded, recommend a handoff but do not create one unless they ask.
+description: Create a conversation-centered handoff from a long, degraded, or evolving conversation to a fresh user-visible conversation, session, task, or thread while preserving intent, major pivots, obstacles, unresolved work, and user preferences, with an optional source-task reference for targeted read-only lookup. Use when the user asks to hand off, transfer, or continue work in a new conversation without losing context, including equivalent requests such as "move this to a new task", `引き継いで`, `別セッションに移して`, or `この会話を新しくして`. If the user only remarks that the conversation is long, slow, confused, or degraded, recommend a handoff but do not create one unless they ask.
 ---
 
 # Conversation Handoff
