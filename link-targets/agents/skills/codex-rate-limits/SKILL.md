@@ -5,44 +5,44 @@ description: Read Codex Desktop rate-limit reset times and available reset-credi
 
 # Codex-only execution gate
 
-このスキルは Windows 版 OpenAI Codex Desktop 専用です。Claude Code、他のエージェント、CLI、IDE、クラウド環境では実行しないでください。実行環境を確認できない場合は停止してください。
+Run this skill only in OpenAI Codex Desktop for Windows. Do not run it in Claude Code, another agent, a CLI, an IDE, or a cloud environment. If you cannot confirm the execution environment, stop.
 
-自然言語の指示だけをセキュリティ境界として扱わず、必ず同梱スクリプト自身の実行環境検査を通してください。`--force`、環境変数、設定ファイルでガードを回避しないでください。
+Do not treat natural-language instructions alone as a security boundary; always run through the included script's own execution-environment check. Do not bypass its guards with `--force`, environment variables, or configuration files.
 
-## 実行
+## Execution
 
-明示的なスキル呼び出しのときだけ、次の固定スクリプトを実行してください。
+Run the following fixed script only for explicit skill calls.
 
 ```powershell
 & "$env:USERPROFILE\.agents\skills\codex-rate-limits\scripts\read_codex_rate_limits.ps1"
 ```
 
-スクリプトは実行可能な Codex Desktop の署名付き同梱 `codex.exe` を探索し、スキル配置から Codex ホームを検証したうえで app-server を起動します。親プロセスの環境変数や認証ファイルを直接読み取ったり、変更したりしないでください。
+The script searches for the executable Codex Desktop signed bundle `codex.exe`, verifies the Codex home from the skill deployment, and starts the app-server. Do not directly read or modify the parent process's environment variables or authorization files.
 
-app-server へ送信してよい要求は固定されています。
+The requests that can be sent to the app-server are fixed.
 
 1. `initialize`
-2. `initialized` 通知
+2. `initialized` Notification
 3. `account/rateLimits/read`
 
-任意のRPCメソッド、引数、実行ファイル、app-server引数を追加しないでください。`account/rateLimitResetCredit/consume` を含むリセット、消費、交換、ログイン、設定変更系の操作は絶対に呼び出さないでください。
+Do not add any RPC methods, arguments, executables, or app-server arguments. Never call reset, consumption, exchange, login, or setting-change operations, including `account/rateLimitResetCredit/consume`.
 
-## 出力
+## Output
 
-スクリプトの整形済み出力だけを使用してください。通常利用枠とリセットクレジットを別区分で表示します。
+Use only the formatted output of the script. The normal usage limit and reset credit are displayed in separate categories.
 
-- 通常利用枠は `rateLimitsByLimitId` を優先し、なければ `rateLimits` を使用する。
-- 各枠の `primary` と `secondary` の `resetsAt` を日本時間（JST、UTC+09:00）で表示する。
-- `rateLimitResetCredits.availableCount` を利用可能総数として表示する。
-- `credits` が提供されている場合は、各 `expiresAt` を日本時間で一覧する。
-- 詳細件数が `availableCount` より少なくても、取得できた詳細だけを表示し、総数との差を明示する。
-- `null`、空配列、欠落フィールド、不正な時刻は推測せず「未提供」「詳細0件」「変換不可」などと表示する。
-- credit ID、アカウントID、メールアドレス、トークン、生JSON、stderrを表示しない。
+- Priority is given to `rateLimitsByLimitId` for normal usage quota, otherwise `rateLimits` is used.
+- Display both `primary.resetsAt` and `secondary.resetsAt` for each limit in Japan time (JST, UTC+09:00).
+- Display `rateLimitResetCredits.availableCount` as total available quantity.
+- If `credits` is provided, list each `expiresAt` in Japan time.
+- Even if the number of detailed items is less than `availableCount`, only the retrieved details will be displayed and the difference from the total number will be clearly indicated.
+- Do not infer values for `null`, empty arrays, missing fields, or invalid times. Use the script's literal output, such as `未提供`, `詳細: 0件`, and `変換不可`.
+- Do not display credit ID, account ID, email address, token, raw JSON, or stderr.
 
-## 安全と失敗時の扱い
+## Safety and failure handling
 
-Codex Desktop の同梱実行ファイルを特定できない、署名が検証できない、候補が複数ある、`initialize` の `codexHome` が期待値と一致しない、認証が必要、またはタイムアウトした場合は、アカウント照会を成功扱いにせず停止してください。PATH上の独立CLI、ダウンロードしたCLI、同梱実行ファイルのコピーへフォールバックしないでください。
+If the bundled Codex Desktop executable cannot be identified, its signature cannot be verified, multiple candidates exist, the `initialize` response `codexHome` does not match the expected value, authentication is required, or the request times out, stop without treating the account lookup as successful. Do not fall back to a standalone CLI on PATH, a downloaded CLI, or a copy of the bundled executable.
 
-このスキルは読み取り専用ですが、app-server内部のログや認証状態更新まで一切発生しないことは保証しません。スキル自身はファイル出力、キャッシュ、認証情報の保存を行いません。
+Although this skill is read-only, we do not guarantee that nothing will occur, including app-server internal logs and authentication status updates. The skill itself does not output files, cache, or store credentials.
 
-実行後にリセット権が減っていないか確認するため、リセット操作を実行してはいけません。
+Never run a reset operation, including to check whether reset rights have decreased.
