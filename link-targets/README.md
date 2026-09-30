@@ -1,45 +1,49 @@
 # link-targets
 
-このディレクトリには、リポジトリ固有の共有設定を置きます。
-ホスト側では、symlink / junction を通じて各公開先から参照します。
+Place repository-specific shared settings in this directory.
+On the host side, it is referenced from each publication destination via symlink/junction.
 
 ```text
 link-targets/
 ├── agents/
 │   ├── AGENTS.md     # ~/.agents/AGENTS.md
 │   ├── guides/
-│   ├── hooks/        # ~/.agents/hooks で共有
+│   ├── hooks/        # shared in ~/.agents/hooks
 │   ├── reference-map.json
-│   ├── skills/       # ~/.agents/skills と ~/.claude/skills で共有
+│   ├── skills/       # shared between ~/.agents/skills and ~/.claude/skills
 │   └── tools/
 └── claude/
     └── agents/       # ~/.claude/agents
 ```
 
-## 正本と公開先
+## Original copy and publication location
 
-`link-targets/agents/` が `~/.agents/` の正本です。
-`link-targets/agents/hooks/` は `~/.agents/hooks/` から共有する Codex hook の正本です。
-`link-targets/agents/skills/` は `~/.agents/skills/` と `~/.claude/skills/` から共有します。
-`link-targets/claude/agents/` が `~/.claude/agents/` の正本です。
+`link-targets/agents/` is the original version of `~/.agents/`.
+`link-targets/agents/hooks/` is the original Codex hook shared from `~/.agents/hooks/`.
+`link-targets/agents/skills/` is shared from `~/.agents/skills/` and `~/.claude/skills/`.
+`link-targets/claude/agents/` is the original version of `~/.claude/agents/`.
 
-公開先は正本の内容を参照するためのリンクです。
-公開先のパスを直接編集せず、正本側を編集します。
+The publication destination is a link to refer to the original content.
+Do not edit the publishing destination path directly, but edit the original side.
 
-配置、公開先、移行手順などのリポジトリ固有の説明はこの README に置き、共有 `AGENTS.md` には常時必要な作業ルールだけを置きます。
+Place repository-specific instructions such as placement, publishing location, and migration steps in this README, and keep only always-needed work rules in the shared `AGENTS.md`.
 
-以後の修正はこのディレクトリ配下だけに行います。旧 `.agents/` および `.claude/agents/` は移行完了に伴い削除済みです。
+Any subsequent modifications will be made only under this directory. The old `.agents/` and `.claude/agents/` have been deleted as the migration has been completed.
 
-## 移行時の注意
+## Language
 
-chezmoi の junction / symlink 管理スクリプトは、既存リンクの target mismatch を自動修復せず停止します。
-そのため、管理スクリプトを更新した後は、各 OS の runtime link / junction を先に張り直してから `chezmoi apply` を実行してください。
-旧 target のディレクトリが既に削除されていても、リンクが旧正本のパスを指していれば移行対象として受け入れます。
-移行時にコピーするのは Git で追跡しているファイルだけです。旧ツリーにあるローカル設定や第三者スキルは移行対象に含めず、必要なら各スキルの導入手順で復元します。
+Write agent-facing documentation in English, including `AGENTS.md`, skills, and guides. Keep Japanese trigger phrases, exact output strings, status values, and terms of art (for example, `保守して`) literal in Japanese and add an English gloss.
 
-### POSIX（Linux / macOS / WSL）
+## Precautions during migration
 
-`repository_root` はこのリポジトリの絶対パスに置き換えてください。削除前にすべての既存パスが symlink であることを確認し、通常のファイルやディレクトリなら停止します。
+chezmoi's junction/symlink management script stops without automatically repairing target mismatches on existing links.
+Therefore, after updating the management script, first re-establish the runtime link / junction for each OS and then execute `chezmoi apply`.
+Even if the old target directory has already been deleted, accept it for migration when the link still points to the old canonical path.
+Only files tracked by Git are copied during migration. Local settings and third-party skills in the old tree will not be included in the migration, and will be restored in the installation steps for each skill if necessary.
+
+### POSIX (Linux / macOS / WSL)
+
+Replace `repository_root` with the absolute path to this repository. Before deleting anything, verify that every existing path is a symlink; if any path is a regular file or directory, stop without deleting it.
 
 ```sh
 set -eu
@@ -92,7 +96,7 @@ ln -s "$repository_root/link-targets/claude/agents" "$HOME/.claude/agents"
 
 ### Windows PowerShell
 
-`$repositoryRoot` をこのリポジトリの絶対パスに置き換えてください。既存項目の `LinkType` が `Junction` でない場合は削除せず停止します。
+Replace `$repositoryRoot` with the absolute path to this repository. If an existing item's `LinkType` is not `Junction`, stop without deleting it.
 
 ```powershell
 $repositoryRoot = 'C:\path\to\.dotfiles'
@@ -123,4 +127,4 @@ foreach ($link in $links) {
 }
 ```
 
-張り直し後に `chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts` を実行してください。
+After re-linking, execute `chezmoi diff`, `chezmoi apply`, and `chezmoi verify --exclude=scripts`.

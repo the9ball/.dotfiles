@@ -1,35 +1,35 @@
-# 用途別ガイドと共有契約
+# Task-specific guides and shared contracts
 
-Skill discovery 後に読み込む詳細な指針と、Skill が条件付きで解決する共有契約を置くディレクトリ。移行済み workflow の normative runtime contract は対応する `SKILL.md` の `## Guide` section が所有し、このディレクトリを Skill からロードする構造にはしない。
+A directory for detailed guidelines to read after skill discovery and shared contracts resolved conditionally by a Skill. The normative runtime contract of the migrated workflow is owned by the `## Guide` section of the corresponding `SKILL.md`, and the Skill must not be structured to load this directory.
 
-`~/.dotfiles/link-targets/agents/AGENTS.md` は全作業で常時読み込まれるため、項目を増やすほど個々の指示の遵守率が下がる。そのため、常時必要ではない詳細は対応 Skill の discovery metadata と runtime Guide section へ切り出し、AGENTS.md 側には policy kernel だけを残す。
+Since `~/.dotfiles/link-targets/agents/AGENTS.md` is constantly read during all tasks, the more items are added, the lower the compliance rate for individual instructions becomes. Therefore, details that are not always needed are split out into the discovery metadata and the runtime Guide section of the corresponding skill, leaving only the policy kernel on the AGENTS.md side.
 
-移行済み workflow の runtime contract は対応する Skill の Guide section を唯一の正本とする。Claude Code の natural-language Skill discovery が Issue #75 で検証されるまで、reference-map の compatibility_fallbacks に登録された旧 guide path は runtime rules を持たない host shim として維持し、global Claude host layer から owner Skill へ到達できるようにする。
+The runtime contract of the migrated workflow has the Guide section of the corresponding skill as its only original. Until Claude Code's natural-language skill discovery is verified in Issue #75, the old guide path registered in compatibility_fallbacks of reference-map will be maintained as a host shim without runtime rules, so that the owner skill can be reached from the global Claude host layer.
 
-Issue #75 は第一陣・第二陣を問わず、registry に載る shim と host fallback を一括で閉じる。自然言語 discovery はこの移行の merge prerequisite ではなく、Codex からの明示的な Claude 委譲が owner Skill へ到達できる状態を保つ。
+Issue #75 closes all shims and host fallbacks listed in the registry, regardless of whether they are in the first or second group. Natural-language skill discovery is not a merge prerequisite for this transition; this migration keeps explicit Claude delegations from Codex reachable to the owner Skill.
 
-## 置き方の規約
+## Placement rules
 
-- ファイル名は ASCII の kebab-case にする。
-- shared reference として維持する各ファイルは、`link-targets/agents/reference-map.json` に分類、参照元、参照目的、解決パスを登録する。`inbound_required` が true のファイルは、少なくとも一つの repository 内 caller から参照されていなければならない。repository 外の consumer は `external_consumers` に分離して登録し、repository 内 activation path の代用にしない。
-- repository runtime から読むファイルは AGENTS.md、Skill、または host integration のいずれかから発動経路を持つこと。repository 外だけから利用する shared reference は `external_consumers` に登録し、`inbound_required: false` として repository activation requirement と分離する。Skill の runtime contract は Skill 自体に完結させ、Skill から旧 guide をロードする構造は残さない。移行期間の host fallback shim は、逆方向に Skill を指す compatibility edge として明示する。
-- [`github-cli-without-clone.md`](github-cli-without-clone.md) は GPT-Chat から参照される外部向け shared reference として維持する。GPT-Chat の利用は `reference-map.json` の `external_consumers` に登録し、repository 内 runtime caller と混同しない。
-- `*.design.md` は対応する normative / runtime contract の複製や変更履歴ではなく、将来の選択肢、再検討材料・条件、責務境界などの非規範 design companion とする。通常 runtime ではロードせず、companion を持つ Skill の contract を変更・再設計・review するときだけ参照する。
-- AGENTS.md と矛盾する内容を書かない。矛盾する場合は AGENTS.md が優先される。
-- AGENTS.md 側には、このディレクトリのファイルを読まなくても最低限機能する核を残す。読み込みが行われなかった場合に効果がゼロになる構成にしない。
+- The file name should be ASCII kebab-case.
+- For each file maintained as a shared reference, register the classification, reference source, reference purpose, and resolution path in `link-targets/agents/reference-map.json`. A file for which `inbound_required` is true must be referenced by at least one caller in the repository. Consumers outside the repository are registered separately in `external_consumers` and are not used as a substitute for the activation path within the repository.
+- Files read from the repository runtime must have an invocation path from either AGENTS.md, Skill, or host integration. A shared reference that is used only from outside the repository is registered in `external_consumers` and separated from the repository activation requirement as `inbound_required: false`. The runtime contract of the Skill is completed within the Skill itself, and there is no structure left to load the old guide from the Skill. The host fallback shim during the transition period will be specified as a compatibility edge pointing to the skill in the opposite direction.
+- [`github-cli-without-clone.md`](github-cli-without-clone.md) is maintained as an external shared reference referenced from GPT-Chat. Its use by GPT-Chat is registered in `external_consumers` of `reference-map.json`; do not confuse it with a runtime caller in the repository.
+- `*.design.md` is not a copy or change history of the corresponding normative/runtime contract, but a non-normative design companion that includes future options, reconsideration materials/conditions, responsibility boundaries, etc. Normally, it is not loaded at runtime and is referenced only when changing, redesigning, or reviewing the contract of a skill that has companions.
+- Do not write content that contradicts AGENTS.md. In case of conflict, AGENTS.md takes precedence.
+- On the AGENTS.md side, leave a core that can at least function without reading the files in this directory. Do not create a configuration where the effect is zero if no reading is performed.
 
-## 参照パス
+## Reference path
 
-- `instruction root` は、共有 instruction tree の canonical source と`link-targets/agents/reference-map.json`を含む repository の root を指す。このリポジトリでは`.dotfiles`がその root である。
-- `work root` は、現在の依頼で変更・レビューする対象 repository の root を指す。Git の対象、差分、target identity、dirty state は instruction root から導出せず、依頼と現在の Git 状態から別途固定する。
-- shared reference の本文から別のファイルを参照するときは、instruction root 基準の論理相対パス（例：`link-targets/agents/guides/<name>.md`）を使う。
-- Skill の位置を基準にした`../../`や、ホスト固有の絶対パスを shared reference の本文へ書かない。host integration は実行時に instruction root を解決してから論理相対パスを使う。
-- host integration、AGENTS.md、または Skill が instruction root を解決するときは、読み込まれたファイルまたは Skill の symlink / junction を実体パスへ解決してから、その実体パスの祖先をたどって`link-targets/agents/reference-map.json`を見つけ、map所在ディレクトリから JSON の`repository_root`を解決する。mapが見つからない、JSONを構造として読めない、または解決先が存在しない場合は停止する。現在の作業ディレクトリやホスト固有の絶対パスを暗黙の基準にしない。
-- instruction-root 相対パスを Markdown のリンク先にする場合は、リンク元から実際に解決できるファイル相対先を使う。論理パスを表示するだけの場合は code span を使い、ネストしたファイルから解決不能な root-relative destination を作らない。Skill は自身の `## Guide` を normative source とし、guide path を runtime loader として参照しない。
-- `link-targets/agents/tools/validate-reference-map.py`を明示的な Python 3 実行で呼び出し、参照先不存在、caller 0件、循環参照、Skill discovery metadata、compatibility fallback の単一 owner、retired path の不正な残存を検出する。検証に失敗した状態で参照経路を移行しない。
-- reference map の edge は既定で読み込み依存として循環検査する。`acyclic: false` は、validator が allowlist する非依存 edge にだけ、`acyclic_reason` と併せて指定する。現在許可する組み合わせは、`reference-index` / `manual-navigation`、`host-reference` / `manual-navigation`、および常時適用 kernel への優先関係を記録する `policy-reference` / `policy-precedence` である。`workflow-reference`、`contract-reference`、`policy-routing`、`conditional-reference` などの読み込み依存は除外せず、循環があれば依存関係を整理する。
+- `instruction root` points to the root of the repository that contains the canonical source of the shared instruction tree and `link-targets/agents/reference-map.json`. In this repository, `.dotfiles` is its root.
+- `work root` refers to the root of the target repository to be changed/reviewed in the current request. The Git target, difference, target identity, and dirty state are not derived from the instruction root, but are fixed separately from the request and current Git state.
+- When referencing another file from the body of a shared reference, use a logical relative path based on the instruction root (for example, `link-targets/agents/guides/<name>.md`).
+- Do not write `../../` based on the Skill location or host-specific absolute paths in the body of the shared reference. host integration resolves the instruction root at runtime and then uses logical relative paths.
+- When host integration, AGENTS.md, or Skill resolves the instruction root, it resolves the symlink/junction of the loaded file or Skill to the entity path, then traces the ancestors of that entity path to find `link-targets/agents/reference-map.json`, and resolves the JSON's `repository_root` relative to the directory that contains the map. Stop if map is not found, JSON cannot be read as a structure, or no destination exists. Do not implicitly rely on the current working directory or host-specific absolute path.
+- When using an instruction-root relative path as a Markdown link destination, use a file relative destination that can actually be resolved from the link source. If you just want to display the logical path, use code span to avoid creating unresolvable root-relative destinations from nested files. Skill uses its own `## Guide` as the normative source and does not refer to the guide path as the runtime loader.
+- Invoke `link-targets/agents/tools/validate-reference-map.py` with explicit Python 3 execution to detect missing reference targets, files with zero callers, circular references, skill-discovery metadata problems, compatibility fallbacks without a single owner, and invalid remnants of retired paths. Do not migrate reference routes with validation failures.
+- The edges of the reference map are checked for cycles and treated as read dependencies by default. `acyclic: false` is specified together with `acyclic_reason` only for non-dependency edges that are allowlisted by the validator. The currently allowed combinations are `reference-index` / `manual-navigation`, `host-reference` / `manual-navigation`, and `policy-reference` / `policy-precedence`, which records the priority relationship to the always applied kernel. Do not exclude read dependencies such as `workflow-reference`, `contract-reference`, `policy-routing`, `conditional-reference`, and organize the dependencies if there is a cycle.
 
-## 分類の用途
+## Uses of classification
 
-- reference map の`classification`は、既存資産の棚卸しとレビュー範囲を示す inventory metadata であり、Skill 発動、モデル抑制、権限、承認、安全ゲートの認可情報として扱わない。
-- model-scaffolding の抑制や遅延ロードを追加する場合は、classification だけで判断せず、明示的な model / capability profile、混在条項の分離、代表タスクの比較実験を別途用意する。repository、safety、approval、secret、Git、ユーザー変更保護はモデル条件から独立させる。
+- `classification` in the reference map is inventory metadata that indicates the scope of inventory and review of existing assets, and is not treated as authorization information for skill activation, model suppression, authority, approval, and safety gates.
+- When suppressing model-scaffolding or adding lazy loading, do not make a decision based on classification alone, but prepare separate explicit model/capability profiles, separation of mixed clauses, and comparative experiments of representative tasks. Make repository, safety, approval, secret, Git, and user change protection independent from model conditions.
