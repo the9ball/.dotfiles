@@ -1,421 +1,412 @@
 ---
 name: review-watch
-description: GitHub で自分がレビュアーに指名された Pull Request を常駐監視して通知し、指示されたときにその PR を下読みして HTML レポート1ファイルにまとめる。レビュー監視を張る・張り直す、レビュー依頼を検知する、PR を下読み/レビューしてレポートを出す依頼で使う。
+description: Continuously monitor (as a resident process) GitHub pull requests for which you are designated as a reviewer, and notify you of review requests. When instructed, pre-review (下読み) the PR and compile the results into a single HTML report. Use for setting up or restarting review monitoring, detecting review requests, or requesting a PR pre-review and report.
 ---
 
-# レビュー依頼の監視と PR 下読み
+# Monitoring review requests and PR pre-reviews
 
-レビュアーに指名された PR を検知して通知し、指示を受けたらその PR を下読みして
-**1 PR = 1 HTML ファイル**のレポートを出す。最終判断は人がやる前提の「下読み」であり、
-GitHub へのレビューコメント投稿は絶対に自動で行わない。
+Detect PRs for which you have been designated as a reviewer and notify the user. When instructed, pre-review (下読み) the PR and produce a report with **1 PR = 1 HTML file**. The pre-review assumes that a person makes the final judgment, and review comments are never posted to GitHub automatically.
 
-## 先に役割を決める
+## Decide on a role first
 
-**監視と下読みはセッションを分ける。** どちらの役割で呼ばれたかを最初に決め、該当する章を読む。
+**Separate monitoring and pre-review into different sessions.** Decide first which role you were called for, then read the matching chapters.
 
-| 役割 | やること | 読む章 |
+| Role | What to do | Chapters to read |
 |---|---|---|
-| **監視セッション** | 常駐監視と通知だけ。下読みはしない | A・C |
-| **下読みセッション** | 1 PR を下読みし、レポートを出し、そのまま議論に応じる | B・C |
+| **Monitoring session** | Resident monitoring and notifications only. No pre-review | A and C |
+| **Pre-review session** | Pre-review one PR, submit a report, and respond directly to the discussion that follows | B and C |
 
-分ける理由は「A-4. 下読みはここでやらない」に書く。
+The reason for separating the sessions is explained in "A-4. Do not pre-review here".
 
-このスキル自体を編集するときは、先に `DESIGN.md`(ファイル配置とその理由)を読むこと。
-方針の変遷は [`SKILL.history.md`](SKILL.history.md) に残す。
+When editing this skill itself, read `DESIGN.md` (file placement and the reasons for it) first.
+Changes in policy are recorded in [`SKILL.history.md`](SKILL.history.md).
 
 ---
 
-## A. 監視セッション
+## A. Monitoring session
 
-この章に出てくるツール名(`Monitor` / `TaskStop` / `TaskList`)は Claude Code のもの。
-他の環境では、常駐プロセスを起こして標準出力を通知に変える同等の手段に読み替える。
+The tool names that appear in this chapter (`Monitor` / `TaskStop` / `TaskList`) are Claude Code's.
+In other environments, read them as the equivalent means of running a resident process and turning its standard output into notifications.
 
-### A-1. 監視を張る
+### A-1. Set up monitoring
 
-`Monitor` ツールで、このスキルに同梱のスクリプトを `persistent` で常駐させる。
+Use the `Monitor` tool to run the script bundled with this skill as a `persistent` resident process.
 
 - `command`: `bash "$HOME/.claude/skills/review-watch/watch-review-requests.sh"`
-- `description`: `GitHub のレビュー依頼 (自分が指名された PR)`
+- `description`: `GitHub のレビュー依頼 (自分が指名された PR)` (a Japanese display label; keep it as is)
 - `persistent`: `true`
 
-スクリプトをインラインで書き起こさないこと。権限の分類器に弾かれるうえ、
-差分検知のロジックを取りこぼすと通知が毎分繰り返してクレジットを焼き続ける。
+Do not write the script out inline. Besides being rejected by the permission classifier,
+any gap in the difference-detection logic makes the notification repeat every minute and keeps burning credits.
 
-スクリプトの中身:
-`gh search prs --review-requested=@me --state=open` を60秒間隔でポーリングし、
-`$HOME/.claude/.review-watch/seen-pull-requests.tsv` との差分だけを標準出力に流す。
-このコマンドが返すのは「今レビューを待たれている PR の一覧」というスナップショットであって
-イベント列ではないため、差分を取らないと同じ PR を毎回通知してしまう。
-レビューを提出して検索結果から消えた PR は、2回連続で不在になった時点で状態ファイルから落ちる
-(検索インデックスの反映遅れによる二重通知を避けるためのヒステリシス)。
+What the script does:
+It polls `gh search prs --review-requested=@me --state=open` every 60 seconds
+and writes only the difference from `$HOME/.claude/.review-watch/seen-pull-requests.tsv` to standard output.
+What this command returns is a snapshot of "the PRs currently awaiting review", not a sequence of events,
+so without taking the difference the same PR would be notified every time.
+A PR that disappears from the search results because a review was submitted is dropped from the state file once it has been absent twice in a row
+(hysteresis to avoid double notifications caused by a delay in updating the search index).
 
-`Monitor` が返す task ID はユーザーに伝えて記録しておく。
-常駐監視は `TaskList` には出てこない(あちらは ToDo リスト用)。
+Tell the user the task ID returned by `Monitor` and record it.
+Resident monitoring does not appear in `TaskList` (that is for the ToDo list).
 
-### A-2. 張り直しと停止
+### A-2. Restarting and stopping
 
-**セッションや Claude Code が終了しても、スクリプトのプロセスは残る。**
-ハーネス側の Monitor タスクだけが消え、プロセスは60秒ポーリングを続けるため、
-「通知は来ないのにポーリングだけ生きている」孤児になる(2回続けて発生した実測がある)。
-`TaskStop` も同じで、ハーネスの記録を止めるだけでプロセスを終わらせる保証はない。
+**The script's process remains even after the session or Claude Code ends.**
+Only the harness-side Monitor task disappears. The process keeps polling every 60 seconds,
+becoming an orphan that is "still polling although no notifications arrive" (this happened twice in a row in practice).
+`TaskStop` is the same: it only stops the harness record and does not guarantee that the process ends.
 
-そのため張り直しは**同じ手順をそのまま再実行してよい。** スクリプトが起動時に
-`$HOME/.claude/.review-watch/owner-token` へ自分のトークンを書いて所有権を主張し、
-先に動いていたプロセスは次の確認(既定5秒間隔)で自分から退く。後から起動した方が勝つ。
-起動側で残存プロセスを探したり `kill` したりする必要はない。
+To restart monitoring, run the same setup procedure again. When the script starts, it writes its token to `$HOME/.claude/.review-watch/owner-token` and claims ownership. The previous process retires at its next ownership check (every 5 seconds by default), so the most recently started process wins. The invoking session does not need to find or kill older processes.
 
-**別のセッションで動いている監視を、こちらで張り直さないこと。**
-所有権を奪って通知の宛先が移る。動いているかどうかが分からないときは、
-張り直す前にユーザーに確認する。
+**Do not take over a monitor that is running in another session.**
+Doing so takes away its ownership, and notifications move to this session. When you cannot tell whether it is running,
+confirm with the user before restarting.
 
-プロセスを確実に全部止めたいときは、このファイルへどのプロセスのものでもない値を書く。
+To make sure every process stops, write a value that does not belong to any process into this file.
 
 ```bash
 echo stop > ~/.claude/.review-watch/owner-token
 ```
 
-動作確認のために状態をリセットしたいときは `seen-pull-requests.tsv` を削除する
-(次のポーリングで未提出の PR が全件、新規として通知される)。
+To reset the state for an operation check, delete `seen-pull-requests.tsv`
+(at the next poll, all PRs without a submitted review are notified as new).
 
-### A-3. 検知したら通知だけする
+### A-3. When a request is detected, only notify
 
-**通知するだけで、レビューは自動で始めない。** 通知の1行に含まれる情報
-(リポジトリ、PR 番号、タイトル、変更ファイル数、URL) をそのまま伝え、
-レビューするかどうかはユーザーの判断を待つ。
+**Only notify; do not start a review automatically.** Pass along the information in the notification line as it is
+(repository, PR number, title, number of changed files, URL), then
+wait for the user to decide whether to review it.
 
-伝えるときは PR の URL を `[owner/repo#番号 — タイトル](URL)` の Markdown リンクにして再掲する。
-通知本文そのものの描画は制御できないので、クリックできる形はこちらの応答で用意する。
-コードブロックに入れるとリンクにならないので入れないこと。
+When relaying it, repeat the PR URL as a `[owner/repo#number — title](URL)` Markdown link.
+The rendering of the notification body itself is out of your control, so provide a clickable form in your own response.
+Do not put it in a code block, because it would not become a link.
 
-指名された PR すべてを毎回フルレビューするとコストが跳ね上がるため、
-実際に読む PR をユーザーが選べる形を保つ。
+Fully reviewing every designated PR each time would multiply the cost,
+so keep it in a form where the user chooses which PRs are actually read.
 
-### A-4. 下読みはここでやらない
+### A-4. Do not pre-review here
 
-**下読みは別セッションの仕事。監視セッションでは行わない。差分の大小で例外を作らない。**
-サブエージェントに委譲する形であっても、このセッションでは始めない。
+**Pre-review is the job of a separate session. Do not do it in a monitoring session, and do not make exceptions based on the size of the diff.**
+Do not start it in this session even by delegating it to a subagent.
 
-理由は2つある。
+There are two reasons.
 
-このセッションの本業は何時間も待機して通知を出すことで、1通知あたりを軽く保つのが価値になる。
-1回でも下読みを抱えると、その重さが以降ずっと残る。
-しかもコンパクションは自分から呼べない(`/compact` はユーザー側のコマンド)ため、
-自動要約がいつ走るかを選べない。
+The main job of this session is to wait for hours and issue notifications, so keeping each notification lightweight is what gives it value.
+If you carry even one pre-review, its weight stays with the session from then on.
+Moreover, you cannot invoke compaction yourself (`/compact` is a user-side command),
+so you cannot choose when automatic summarization runs.
 
-もう1つは、**サブエージェントに委譲すると指摘の根拠が手元に残らない**こと。
-返ってくるのは結論だけなので、「この指摘の根拠を出して」と言われた時点で誰かが差分を読み直す。
-下読みしたセッションがそのまま議論相手になれば、この読み直しが要らない。
+The other reason is that **when you delegate to a subagent, the basis of each finding does not stay with you.**
+Only the conclusion comes back, so when you are asked "show the basis for this finding", someone has to reread the diff.
+If the session that did the pre-review becomes the discussion partner, this rereading is unnecessary.
 
-そのため、下読みを求められたら**新しいセッションを開いてもらう**よう案内する。
-素材は識別子から名前が決まる場所に置くので(B-1)、引き継ぎ用のプロンプトを
-書き起こす必要はない。新しいセッションで `<owner>/<repo>#<番号> の下読み` と伝えるか、
-PR の URL を渡せば、このスキルが立ち上がって続きから始められる。
+Therefore, when asked for a pre-review, ask the user to **open a new session**.
+The materials are stored at paths determined by the identifier (B-1), so there is no need to write a handoff prompt.
+In the new session, saying `<owner>/<repo>#<番号> の下読み` (pre-review of `<owner>/<repo>#<number>`) or passing the PR URL is enough for this skill to start and continue from there.
 
-**PR 番号だけでは足りない。** リポジトリごとの採番なので、番号だけではどのリポジトリか
-決まらない。案内するときは PR の URL をそのまま示すのが確実。
+**A PR number alone is not enough.** Numbers are assigned per repository, so the number alone does not
+identify the repository. When giving directions, showing the PR URL as it is is the reliable way.
 
 ---
 
-## B. 下読みセッション
+## B. Pre-review session
 
-### B-1. 識別子と素材の置き場
+### B-1. Identifiers and where to keep materials
 
-#### 何で識別するか
+#### How to identify a PR
 
-**引き継ぎの識別子は PR の URL、または `owner/repo#番号`。**
-PR 番号はリポジトリごとの採番なので、**番号だけではどのリポジトリか決まらない。**
-新しいセッションの作業ディレクトリが対象リポジトリと一致している保証もない。
-番号だけを渡されたら、どのリポジトリかを確認してから始める。
+**The handoff identifier is the PR URL or `owner/repo#number`.**
+PR numbers are assigned per repository, so the **number alone does not identify the repository.**
+There is also no guarantee that the new session's working directory matches the target repository.
+If you are given only a number, confirm which repository it is before starting.
 
-`gh` は作業ディレクトリのリポジトリを既定で見る。対象と違う場所から実行するなら
-`--repo <owner>/<repo>` を付ける(URL を直接渡す形なら要らない)。
+`gh` looks at the repository in the working directory by default. When running from a location other than the target,
+add `--repo <owner>/<repo>` (not needed when the URL is passed directly).
 
-#### 置き場と命名
+#### Storage location and naming
 
-差分とレポートは `%TEMP%\claude-pr-review\` にフラットに置き、
-**識別子から名前が決まる**ようにする。
+Place diffs and reports flat in `%TEMP%\claude-pr-review\`,
+and **make the names derivable from the identifier**.
 
-| 素材 | ファイル名 |
+| Material | File name |
 |---|---|
-| 差分 | `<owner><repo>-<PR番号>.diff` |
-| レポート | `<owner><repo>-<PR番号>.html` |
+| Diff | `<owner><repo>-<PR number>.diff` |
+| Report | `<owner><repo>-<PR number>.html` |
 
-`owner/repo` の `/` は削除して連結する(`OrangeCube/Sentia` → `OrangeCubeSentia`)。
-連結の境界が消えるため `ab/c` と `a/bc` は理論上同じ名前になるが、両方が実在して
-同じ PR 番号を持つ確率は無視できる。衝突に気付いたら片方を手で退避してから下読みする。
+Remove the `/` in `owner/repo` and concatenate (`OrangeCube/Sentia` → `OrangeCubeSentia`).
+Because the concatenation boundary disappears, `ab/c` and `a/bc` would in theory produce the same name, but the probability that both repositories exist
+and have the same PR number is negligible. If you notice a collision, move one file aside by hand before pre-reviewing.
 
-1 PR につき1つで、再下読みは上書きする。名前に日時も GUID も付けない。
-パスが識別子から計算できることが引き継ぎの要で、グロブで探し回る必要がなくなる。
-上書き中に失敗して壊れたレポートが残った場合は、作り直せばよい。
+Keep one file per PR, and overwrite it when pre-reviewing again. Do not add a date/time or GUID to the name.
+The key to handing work over is that the path can be computed from the identifier, so nobody has to hunt with globs.
+If an overwrite fails and leaves a broken report, just recreate it.
 
-**セッション固有の scratchpad には置かない。** パスにセッション ID が入り、
-セッションが終わると消えるため、別セッションから引き継げなくなる。
+**Do not put files in a session-specific scratchpad.** The session ID is part of its path
+and it disappears when the session ends, so another session could not take over.
 
-**最初に置き場を作り、絶対パスを決めてから使う。** 差分の保存(B-3)はレポートの出力(B-8)より
-先に来るので、ディレクトリが無いままリダイレクトすると保存に失敗する。
+**First create the storage location and decide its absolute path before using it.** The diff is saved (B-3) before the report is written (B-8),
+so redirecting into a directory that does not exist yet makes the save fail.
 
 ```powershell
 $reportDirectory = Join-Path $env:TEMP "claude-pr-review"
 New-Item -ItemType Directory -Force $reportDirectory | Out-Null
-$reportDirectory   # 以降はこの絶対パスを bash 側にもそのまま渡す
+$reportDirectory   # From here on, pass this absolute path to the bash side as is
 ```
 
-bash の `$TEMP` に頼らないこと。POSIX の変数ではなく、**値の表現が起動環境に依存する。**
-同じマシンでも、Claude Code の bash では `C:\Users\...\AppData\Local\Temp`(Windows 形式)、
-Codex の Git Bash では `/tmp`(POSIX 形式)に解決された実測がある。
-指す先が同じでも、文字列として組み立てたパスを一方から他方へ渡すと壊れる。
-パスは PowerShell 側で一度決めて、以降それを使い回す。
+Do not rely on bash's `$TEMP`. It is not a POSIX variable, and **its value's representation depends on the environment that started the shell.**
+On this machine, Claude Code's bash resolved it to `C:\Users\...\AppData\Local\Temp` (Windows format),
+while Codex's Git Bash resolved it to `/tmp` (POSIX format).
+Even when both point to the same place, a path assembled as a string in one environment breaks when passed to the other.
+Decide the path once in PowerShell and reuse it from then on.
 
-#### 立ち上がりの手順
+#### Start-up procedure
 
-1. 識別子を受け取り、置き場を作る(上記)。
-2. `gh pr view` で基本情報と **head の SHA** を取る(B-2)。
-3. レポートが既にあれば読む。前回の下読み結果なので、指摘・根拠・確度・限界がそのまま手に入る。
-   **レポートに記録された head SHA が現在の `headRefOid` と違えば、前回とは別のリビジョン。**
-   指摘がまだ有効かどうかは新しい差分を見て判断し直す。
-   **head SHA が書かれていないレポートも同じ扱い**(どのリビジョンを読んだか確定できないため、
-   別リビジョンとみなして下読みし直す)。この必須化より前に出したレポートが該当する。
-4. 差分ファイルが既にあれば読む。ただし前回時点のもの。head SHA が一致しない、
-   あるいは判定できないなら取り直す。`gh pr diff` は安い。
-   更新時刻の比較(`updatedAt` が差分ファイルの mtime より後か)は目安にしかならない。
-   force-push、時計のずれ、取得中の更新があると当てにならないので、迷ったら取り直す。
-5. クローンの場所は `repositories.log` から引く(B-4)。
+1. Receive the identifier and create the storage location (above).
+2. Get the basic information and the **head SHA** with `gh pr view` (B-2).
+3. If a report already exists, read it. It is the result of the previous pre-review, so you get the findings, evidence, confidence, and limitations as they were.
+   **If the head SHA recorded in the report differs from the current `headRefOid`, it is a different revision from the previous one.**
+   Judge again from the new diff whether the findings still hold.
+   **Treat a report without a head SHA the same way** (since you cannot determine which revision was read,
+   consider it a different revision and pre-review again). Reports issued before this became mandatory fall into this case.
+4. If a diff file already exists, read it. However, it dates from the previous run. If its head SHA does not match,
+   or cannot be determined, fetch it again. `gh pr diff` is cheap.
+   Comparing update times (is `updatedAt` later than the diff file's mtime?) is only a rough guide.
+   It is unreliable with a force-push, clock skew, or an update in progress, so when in doubt, fetch it again.
+5. Look up the clone location in `repositories.log` (B-4).
 
-### B-2. ファイル一覧は必ず全件取る
+### B-2. Always get the complete file list
 
-`gh pr view --json files` は **100件で打ち切られる**。これを見落として
-「モデルデータが欠落している」という誤指摘をした実例がある。ファイル一覧は必ずこちらで取る。
+`gh pr view --json files` **is cut off at 100 entries**. There is a real case where this was overlooked
+and led to a false finding that "the model data is missing". Always get the file list this way.
 
 ```bash
-gh api "repos/<owner>/<repo>/pulls/<番号>/files" --paginate --jq '.[].filename'
+gh api "repos/<owner>/<repo>/pulls/<number>/files" --paginate --jq '.[].filename'
 ```
 
-`--jq` を省くと各ファイルの `patch` 全文が返ってきて、大きな PR では数十万トークンの JSON が
-そのままコンテキストに乗る。欠落チェックや設定突合が目的ならファイル名だけで足りる。
+Without `--jq`, the full `patch` text of every file is returned, and for a large PR hundreds of thousands of tokens of JSON
+land in the context as they are. For checking for missing items or matching settings, file names are enough.
 
-取得できた件数と PR の `changedFiles` が一致することを確認し、
-一致しない場合はレポートにその旨を明記する。
+Confirm that the number of retrieved entries matches the PR's `changedFiles`,
+and state it in the report if they do not match.
 
 ```bash
-gh pr view <PRのURL> --json changedFiles,additions,deletions,author,baseRefName,headRefName,headRefOid,title
+gh pr view <PR URL> --json changedFiles,additions,deletions,author,baseRefName,headRefName,headRefOid,title
 ```
 
-`headRefOid` は、差分に含まれないファイルを head の内容で裏取りするときに使う。
+Use `headRefOid` when verifying files that are not in the diff against the contents of the head.
 
-### B-3. 差分は API から取って保存する
+### B-3. Get the diff from the API and save it
 
-差分の中身は `gh pr diff` で取る。ローカルのクローンも fetch も要らない。
-標準出力をそのまま読まず、B-1 で決めたパスへ保存してから読む。
+Get the diff contents with `gh pr diff`. No local clone or fetch is needed.
+Do not read standard output as it is; save it to the path decided in B-1 and then read it.
 
-**一時ファイルへ書き、成功を確認してから本来の名前へ移す。**
-`>` はコマンドを実行する前に書き込み先を切り詰めるため、`gh pr diff` が途中で失敗すると
-空または不完全な差分が新しい更新時刻で残り、次に「新しい差分がある」と誤認される。
+**Write to a temporary file, confirm success, and then move it to the real name.**
+`>` truncates the destination before running the command, so if `gh pr diff` fails midway,
+an empty or incomplete diff remains with a new update time and is later mistaken for "a new diff exists".
 
 ```bash
-diff_path="<B-1 で決めた絶対パス>/<owner><repo>-<PR番号>.diff"
-if gh pr diff <PRのURL> > "${diff_path}.partial"; then
+diff_path="<absolute path decided in B-1>/<owner><repo>-<PR number>.diff"
+if gh pr diff <PR URL> > "${diff_path}.partial"; then
   mv -f "${diff_path}.partial" "${diff_path}"
 else
   rm -f "${diff_path}.partial"
-  echo "差分の取得に失敗した。前回の差分は残してある" >&2
+  echo "Failed to fetch the diff; the previous diff was kept" >&2
 fi
 ```
 
-保存してから読むのは、同じ差分を別セッションや委譲先で読み直せるようにするため。
-数千行の差分を会話に直接乗せると、それだけでコンテキストのかなりを使う。
+The reason for saving before reading is so that the same diff can be read again in another session or by a delegate.
+Putting thousands of lines of diff directly into the conversation uses up much of the context by itself.
 
-**このとき `headRefOid` を控えておく。** どのリビジョンを読んだかを、
-レポート(B-8)と再開時の判定(B-1)の両方で使う。
+**Note down `headRefOid` at this point.** It records which revision you read,
+and is used both in the report (B-8) and in the restart decision (B-1).
 
-`git fetch` + `git diff origin/<base>...origin/<head>` は使わない。
-ユーザーのリポジトリに ref とオブジェクトを書き込むうえ、
-同時に走っている他の git 操作とぶつかりうる。読むだけなら API で足りる。
+Do not use `git fetch` + `git diff origin/<base>...origin/<head>`.
+It writes refs and objects into the user's repository,
+and it can collide with other git operations running at the same time. If you only want to read, the API is enough.
 
-`additions` / `deletions` が大きいときは、先にファイル一覧を見て読む範囲を絞る。
+When `additions` / `deletions` is large, first look at the file list and narrow down the range to read.
 
-### B-4. ローカルクローンの扱い
+### B-4. Handling local clones
 
-差分そのものは API で足りるが、「同じパターンが他にも残っていないか」を
-リポジトリ全体から grep する用途ではローカルのクローンが要る。
-影響範囲の指摘はここからしか出てこないので、この探索は削らない。
+The API is enough for the diff itself, but a local clone is needed when you want to grep the whole repository
+to check "whether the same pattern remains elsewhere".
+Findings about the scope of impact come only from here, so do not drop this search.
 
-ただし**作業ツリーの状態は当てにしない。** チェックアウトされているブランチは
-レビュー対象と無関係のことが多く、レビュー対象のブランチが fetch 済みである保証もない。
-`git fetch` も `git checkout` もしないこと。あるものをそのまま読む。
+However, **do not rely on the working-tree state.** The checked-out branch is often unrelated to the PR under review,
+and there is no guarantee that the PR's branch has been fetched.
+Do not run `git fetch` or `git checkout`; read what is there as it is.
 
-- ローカルは**当たりを付けるための参考資料**として読む。多少古くても
-  「この種のコードが他にもあるか」を探す用途では実用上困らない。
-- **指摘の根拠にする箇所だけ、head の内容で裏を取る。** 差分に含まれないファイルを
-  引用するときは必ずこれをやる。
+- Read the local copy as **reference material for getting a lead**. Even if it is somewhat old,
+  it is practically fine for looking for "is there other code of this kind?".
+- **Verify only the parts that are the basis of a finding against the contents of the head.** Always do this
+  when quoting a file that is not included in the diff.
 
 ```bash
-gh api "repos/<owner>/<repo>/contents/<path>?ref=<headのSHA>" --jq '.content' | base64 -d
+gh api "repos/<owner>/<repo>/contents/<path>?ref=<head SHA>" --jq '.content' | base64 -d
 ```
 
-裏を取れなかった引用が残る場合は、レポートの「見ていない範囲・限界」にその旨を書く。
+If any quotation remains unverified, say so in the report's 「見ていない範囲・限界」 (Unreviewed Scope and Limitations) section.
 
-#### クローンの場所を引く
+#### Looking up the clone location
 
-過去に見つけたクローンの場所を `$HOME/.agents/skills/review-watch/repositories.log` に
-TSV (`owner/repo<TAB>絶対パス`) で残す。`link-targets/agents` 配下に置くのは、Claude 以外
-(Codex など) から同じ監視をするときに使い回すため。`*.log` は dotfiles 側で
-gitignore 済みなので追跡されない。
+Record the locations of clones you have found in the past in `$HOME/.agents/skills/review-watch/repositories.log`
+as TSV (`owner/repo<TAB>absolute path`). It is placed under `link-targets/agents` so that it can be reused
+when the same monitoring is run from something other than Claude (such as Codex). `*.log` is already
+gitignored on the dotfiles side, so it is not tracked.
 
-これはキャッシュであってマスターデータではない。使う前に必ず検証し、外れていたら黙って捨てる。
+This is a cache, not master data. Always verify it before use, and silently discard it if it is wrong.
 
-1. ファイルに `<owner>/<repo>` の行があれば、そのパスを見る。
-2. パスが存在し、`git -C <パス> remote get-url origin` が対象リポジトリを指していれば採用する。
-3. 外れていたらその行を捨て、ディスクを探す。見つかったら行を追加/更新する。
-   **同じ origin を持つクローンが複数見つかった場合**は、`_copydlls` や `gitmeta` のような
-   派生・作業用を示す接尾辞やディレクトリを含まない、素の作業クローンを優先する。
-   判断がつかなければユーザーに確認する。
-4. どうしても見つからなければローカル参照なしで進めてよい。
-   影響範囲の洗い出しが弱くなるので、レポートの「見ていない範囲・限界」に書く。
+1. If the file has a line for `<owner>/<repo>`, look at its path.
+2. If the path exists and `git -C <path> remote get-url origin` points to the target repository, adopt it.
+3. If it does not match, discard that line and search the disk. If found, add or update the line.
+   **If multiple clones with the same origin are found**, prefer a plain working clone that has no suffix or directory
+   indicating a derived or temporary copy, such as `_copydlls` or `gitmeta`.
+   If you cannot decide, ask the user.
+4. If you really cannot find it, you may proceed without a local reference.
+   The scope-of-impact analysis will be weaker, so state that in the report's 「見ていない範囲・限界」 (Unreviewed Scope and Limitations) section.
 
-行を追記するとき、Windows のパスを `printf` の書式文字列に直接埋め込むと `\U` などが
-エスケープと解釈され `printf: missing unicode digit for \U` の警告が出る(出力自体は正しい)。
-`printf '%s\t%s\n' "$repository" "$path"` のように値は引数側で渡すこと。
+When appending a line, embedding a Windows path directly in `printf`'s format string makes `\U` and similar sequences
+be interpreted as escapes and produces a `printf: missing unicode digit for \U` warning (the output itself is correct).
+Pass values as arguments, like `printf '%s\t%s\n' "$repository" "$path"`.
 
-### B-5. 自分で読むか委譲するか
+### B-5. Read it yourself or delegate it?
 
-下読みセッションでは**自分で読んでよい。** むしろ自分で読んだ方が、レポートを出した後の
-「この指摘の根拠は」「同じパターンが他にないか」に即答できる。規模で選ぶ。
+In a pre-review session, **you may read it yourself.** Reading it yourself is in fact better, because after the report is submitted
+you can answer immediately when asked "what is the basis for this finding?" or "is there a similar pattern elsewhere?". Choose by scale.
 
-- **自分で読む**: 差分が数千行程度まで、またはファイルが数十件程度まで。
-  レポート後に議論が続く見込みがあるならこちら。
-- **サブエージェントに分割して投げる**: それを超える規模、または観点ごとに独立して読める場合。
-  返ってくるのは結論だけになるので、根拠の詳細が要る指摘は自分で裏を取り直す。
+- **Read it yourself**: diffs up to a few thousand lines, or up to a few dozen files.
+  Choose this if you expect the discussion to continue after the report.
+- **Split it up and send it to subagents**: for anything larger, or when each perspective can be read independently.
+  Only conclusions come back, so verify again yourself any finding that needs detailed evidence.
 
-**1 PR に対して複数の委譲を出してよい。** 観点ごとに分けた方が速いことがある。
-使い捨てにするのは1体あたりの単位で、**1つのサブエージェントに複数の PR を続けて読ませない。**
-コンテキストが混ざり、監視セッションで避けた問題が委譲先で再発する。
+**You may issue multiple delegations for one PR.** Splitting by perspective is sometimes faster.
+Each subagent is single-use: **do not have one subagent read multiple PRs in a row.**
+The contexts get mixed, and the problem avoided in the monitoring session recurs at the delegate.
 
-下読みは安いモデルで十分。機械的な突合や未初期化の検出はモデルを落としても通る。
-委譲先が「確度: 低」と付けた指摘や、断定的なのに根拠が薄い指摘だけを
-上位モデルで裏取りする二段構えにする。
+A lower-cost model is enough for a pre-review. Mechanical matching and detecting uninitialized variables work even with a downgraded model.
+Use a two-tier setup: verify with a higher-tier model only the findings the delegate marked "確度: 低" (confidence: low)
+and findings that are assertive but have thin evidence.
 
-#### 委譲するときの渡し方
+#### How to hand work to a delegate
 
-委譲先は**呼び出し側の会話を参照できない前提で、プロンプトを自己完結型に書く。**
+**Write the prompt to be self-contained, on the assumption that the delegate cannot see the caller's conversation.**
 
-**Claude Code での実測**: 親セッションのコンテキストを継承するエージェント
-(`subagent_type: "fork"`)はこの環境には存在せず、指定すると
-`Agent type 'fork' not found` で失敗する(2回試して2回失敗した)。
-使えたのは `architect` / `claude` / `claude-code-guide` / `Explore` / `general-purpose` /
-`implementer` / `investigator` / `Plan` / `reviewer` / `statusline-setup`。
-汎用の下読みなら `general-purpose` を選ぶ。
+**Observed with Claude Code**: an agent that inherits the parent session's context
+(`subagent_type: "fork"`) does not exist in this environment, and specifying it fails with
+`Agent type 'fork' not found` (tried twice, failed twice).
+The types that worked were `architect` / `claude` / `claude-code-guide` / `Explore` / `general-purpose` /
+`implementer` / `investigator` / `Plan` / `reviewer` / `statusline-setup`.
+For a general-purpose pre-review, choose `general-purpose`.
 
-探索させるのは「差分を読んで、周辺コードと突き合わせる」ところだけにする。
-差分の取得とクローンの場所探しは呼び出す側が済ませ、
-**保存済みの差分ファイルのパスを渡して `gh pr diff` を再実行させない。**
-ファイル一覧のように件数が限られ欠落チェックに直接使うものは、
-プロンプトに直接載せてよい(60ファイル程度でも問題ない)。
-ここを委譲先にやらせるとツール呼び出しと待ち時間がそのぶん増える。
+Limit what the delegate explores to "reading the diff and matching it against the surrounding code".
+The calling side gets the diff and finds the clone location beforehand,
+and **passes the path of the saved diff file so that the delegate does not rerun `gh pr diff`.**
+Items with a limited count that are used directly for checking missing entries, such as the file list,
+may go straight into the prompt (even about 60 files is fine).
+If you leave this to the delegate, tool calls and waiting time increase accordingly.
 
-| 規模 | 結果 |
+| Scale | Result |
 |---|---|
-| 7ファイル・+45/-14(素材を渡さず委譲先に集めさせた) | 149k トークン・11分 |
-| 60ファイル・+3188/-34(差分をファイルで先渡し) | 218k トークン・42ツール呼び出し・9.4分 |
+| 7 files, +45/-14 (materials not handed over; the delegate gathered them) | 149k tokens, 11 minutes |
+| 60 files, +3188/-34 (diff handed over in advance as a file) | 218k tokens, 42 tool calls, 9.4 minutes |
 
-### B-6. 観点
+### B-6. Perspectives
 
-「レビューして」だけでは表面的になる。PR の種類に応じて観点を絞る。
+Just "reviewing" ends up superficial. Narrow the perspectives according to the type of PR.
 
-- **画像 PR (デザイナー)**: 画像を実際に開いて文言を1文字ずつ読む。衍字・脱字・重複、
-  元資料との不一致、同シリーズ間の表記ゆれ。元資料(スプレッドシートのセル範囲など)が
-  提示されていれば必ず突き合わせる。画像はトークンが重いので、必要な枚数に絞る。
-- **アセット追加 PR**: `.meta` の圧縮設定・メッシュタイプなどを既存の全ファイルと機械的に比較する。
-  目視では分からないズレが出る。
-- **シェーダ・コード**: 未初期化の変数、条件分岐の抜け、影響範囲の洗い出し。
-- **自動生成物**: 生成物を直接編集していないか。型定義と生成物が片側だけ反映漏れしていないか。
+- **Image PR (from a designer)**: Actually open the images and read the text one character at a time. Extra or missing characters, duplicates,
+  mismatches with the source material, and notation variations within the same series. If the source material (such as a spreadsheet cell range)
+  is provided, always match against it. Images are token-heavy, so narrow them down to the number you need.
+- **Asset-addition PR**: Mechanically compare the compression settings, mesh type, and so on in `.meta` against all existing files.
+  This reveals discrepancies that cannot be seen by eye.
+- **Shaders and code**: Uninitialized variables, missing conditional branches, and identifying the scope of impact.
+- **Generated products**: Is a generated product being edited directly? Is a type definition or product updated on only one side?
 
-リポジトリに `AGENTS.md` があれば読み、プロジェクト固有のレビュー観点を優先する。
+If the repository has an `AGENTS.md`, read it and prioritize project-specific review perspectives.
 
-### B-7. 他のレビューと突き合わせる
+### B-7. Matching against other reviews
 
-**Copilot**: リポジトリで有効なら PR に自動コメントが付くが、反映が遅く、
-レビュー依頼を検知した直後にはまだ無いことが多い。突き合わせたい場合は
-`gh pr view <URL> --comments` で後から読む。
+**Copilot**: If enabled for the repository, it adds automatic comments to the PR, but they are slow to appear
+and are often not there yet right after a review request is detected. If you want to match against them,
+read them later with `gh pr view <URL> --comments`.
 
-**Codex**: 読み取り専用で走らせ、結論だけを出させる。調査ログが数千行になることがあり、
-それを読むとこちら側のコストになる。
+**Codex**: Run it read-only and have it output only the conclusion. Its investigation log can run to thousands of lines,
+and reading it becomes a cost on our side.
 
-**保存済みの差分ファイルと head SHA を渡し、差分を取り直させないこと。**
-自分で `gh pr diff` を叩かせると、こちらが読んだリビジョンと食い違う可能性がある
-(その間に force-push されうる)。これは委譲先に対する扱い(B-5)と同じ理由。
+**Pass the saved diff file and the head SHA, and do not let it fetch the diff again.**
+If it runs `gh pr diff` itself, the result may differ from the revision you read
+(a force-push can happen in between). This is the same reason as for delegates (B-5).
 
 ```bash
-codex exec --sandbox read-only "PR <owner>/<repo>#<番号> (head <SHA>) をレビューして。差分は <差分ファイルの絶対パス> に保存済みなのでそれを読んで。gh pr diff で取り直さないで。git fetch や git checkout はしないで。結論と根拠を日本語で。途中の調査ログは不要。ファイルは編集しないで。"
+codex exec --sandbox read-only "Review PR <owner>/<repo>#<number> (head <SHA>). The diff is already saved at <absolute path of the diff file>; read it and do not re-fetch it with gh pr diff. Do not run git fetch or git checkout. Give the conclusion and its basis in Japanese; no intermediate investigation log is needed. Do not edit any files."
 ```
 
-`--sandbox read-only` は必須。付けないとファイルを書き換える可能性がある。
-食い違う結論が出たら、両方の根拠を突き合わせてどちらが正しいか調べる。
+`--sandbox read-only` is required. Without it, files may be rewritten.
+If the conclusions conflict, compare the evidence on both sides and find out which is correct.
 
-### B-8. レポートを出す
+### B-8. Submit the report
 
-置き場は B-1 で作ってある。古い素材を片付けてから、出力先のパスを決める:
+The storage location was created in B-1. Clean out old materials, then decide the output path:
 
 ```powershell
 $reportDirectory = Join-Path $env:TEMP "claude-pr-review"
 
-# 7日より古いレポート・差分・取得途中の残骸を消す。
-# %TEMP% 直下のディレクトリは OS の掃除で実質消えない(1年以上残っている実測あり)ため、
-# ディレクトリを掘らずフラットに置き、掃除はここで済ませる。
+# Delete reports and diffs older than 7 days, and leftovers from interrupted retrievals.
+# A directory directly under %TEMP% is effectively never removed by OS cleanup (there are real cases of it remaining for over a year), so
+# do not dig subdirectories; place files flat and do the cleanup here.
 $cutoff = (Get-Date).AddDays(-7)
 Get-ChildItem -LiteralPath $reportDirectory -File |
   Where-Object { ($_.Extension -in '.html', '.diff', '.partial') -and ($_.LastWriteTime -lt $cutoff) } |
   Remove-Item -Force
 
-Join-Path $reportDirectory "<owner><repo>-<PR番号>.html"
+Join-Path $reportDirectory "<owner><repo>-<PR number>.html"
 ```
 
-削除対象は `claude-pr-review` 直下の `*.html` / `*.diff` / `*.partial` だけに限定すること。
-サブディレクトリを作ったり、他の拡張子を消したりしない。
+Limit deletion to `*.html` / `*.diff` / `*.partial` directly under `claude-pr-review`.
+Do not create subdirectories or delete other extensions.
 
-`*.partial` は差分の取得中にプロセスが落ちたときの孤児(B-3)。7日という条件があるので、
-いま取得中のファイルを巻き込むことはない。
+`*.partial` is an orphan left when the process died while retrieving a diff (B-3). Because of the 7-day condition,
+it never catches a file that is being retrieved right now.
 
-`report-template.html` を雛形として使い、`{{...}}` を埋める。
-テンプレートを崩さないこと。特に次の点を守る。
+Use `report-template.html` as the template and fill in `{{...}}`.
+Do not break the template. In particular, observe the following.
 
-- **外部リソースを参照しない。** CSS も含めて自己完結させる(テンプレートは既にそうなっている)。
-- ライト/ダーク両対応のまま維持する。
-- **head の SHA を必ず書く。** テンプレートに専用の欄が無いので、head を表示している箇所に
-  ブランチ名と併記する(`head <ブランチ> @ <SHA>`)。これが無いと、後から
-  「どのリビジョンをレビューしたか」を確定できず、再開時に差分の鮮度も判定できない。
-- 重大度は `critical`(要修正) / `warn`(要確認) / `info`(提案) から選び、
-  カードの class とバッジを揃える。重大度の高い順に並べる。
-- 指摘ごとに**根拠・確認方法・確度**を必ず埋める。「なぜそう言えるのか」と
-  「人がどう確かめられるか」が無い指摘は書かない。
-- **「見ていない範囲・限界」セクションを空にしない。** 仕様の妥当性、実機動作、
-  取得上限で見落とした可能性のある範囲を明記する。ここが人の最終判断の起点になる。
-- 重大度ごとのカテゴリ節は、該当する指摘が無ければ節ごと削除する。
-  **ただし「指摘」節そのものは残す。** 指摘が0件のときは、カードを消して
-  「機械的な突合では問題を検出できなかった」旨を1文書く(テンプレート側にも同じ指示がある)。
+- **Do not reference external resources.** Keep it self-contained, including CSS (the template already is).
+- Keep both light and dark modes working.
+- **Always write the head SHA.** The template has no dedicated field, so write it
+  together with the branch name where the head is displayed (`head <branch> @ <SHA>`). Without it, you cannot later
+  determine which revision was reviewed, and cannot judge how fresh the diff is when resuming.
+- Choose the severity from `critical` (must fix) / `warn` (needs confirmation) / `info` (suggestion),
+  and keep the card's class and badge consistent. Sort in descending order of severity.
+- For each finding, always fill in **根拠 (basis) / 確認方法 (how to verify) / 確度 (confidence)**. Do not write a finding that lacks why it holds ("why can you say that?") or how a person can verify it.
+- **Do not leave the 「見ていない範囲・限界」 (Unreviewed Scope and Limitations) section empty.** State the ranges that may have been overlooked because of
+  the validity of the specification, behavior on real devices, or retrieval limits. This is the starting point for a person's final judgment.
+- Delete a severity's category section entirely if there are no corresponding findings.
+  **However, keep the 「指摘」 (Findings) section itself.** When there are zero findings, remove the cards and
+  write one sentence saying that "no problem could be detected by mechanical matching" (the template gives the same instruction).
 
-書き終えたらレポートをユーザーへ渡し、その場で描画させる
-(Claude Code では `SendUserFile` に `display: "render"` を付ける)。
-一時ファイルでも見るのに困らない。
+When you finish writing, hand the report to the user and have it rendered on the spot
+(in Claude Code, add `display: "render"` to `SendUserFile`).
+Even a temporary file is fine for viewing.
 
-### B-9. レポートを出した後
+### B-9. After the report is submitted
 
-**レポートを出したら終わりではない。** 下読みセッションはここから議論相手になる。
-指摘の根拠を出す、別の観点で見直す、レビューコメントの文面を用意する(投稿はしない)、
-といった続きに応じられるよう、読んだ内容を手元に残したまま待つ。
-このために監視セッションと分けている。
+**Submitting the report is not the end.** From here on, the pre-review session serves as the discussion partner.
+Keep waiting with what you read still at hand so that you can respond to follow-ups such as
+providing the basis for a finding, looking at it from a different perspective, or preparing the text of review comments (without posting them).
+This is why it is separate from the monitoring session.
 
-1セッションで複数の PR を抱えないこと。監視セッションで避けた問題が場所を変えて再発する。
+Do not carry multiple PRs in one session. The problem avoided in the monitoring session recurs in a different place.
 
 ---
 
-## C. やらないこと(両方のセッション)
+## C. What not to do (both sessions)
 
-- **GitHub へのレビューコメント自動投稿。** 誤指摘がそのまま相手に届く。人が確認して自分で出す。
-  `gh pr review` / `gh pr comment` と、`gh api` の POST/PATCH/PUT/DELETE を使わない。
-- **監視セッションでの下読み。** サブエージェントに委譲する形であっても始めない(「A-4」参照)。
-- **断定の鵜呑み。** 指摘は間違える。実例として、描画設定上そもそも使われない箇所を
-  「参照が消えている」と誤指摘したこと、同名メソッドの呼び出し先を取り違えて
-  存在しない問題を報告したことがある。「欠落している」「参照が消えている」系は特に誤りやすい。
-  断定的な指摘ほど裏を取る。
-- **仕様の妥当性の判断。** 元資料がなければ「実装が仕様どおりか」は分からない。
-  機械的な突合と見落としの検出は得意だが、「この仕様でいいのか」は人が見る。
+- **Automatically posting review comments to GitHub.** A wrong finding would go straight to the other person. A person checks it and posts it themselves.
+  Do not use `gh pr review` or `gh pr comment`, and do not issue POST/PATCH/PUT/DELETE through `gh api`.
+- **Pre-reviewing in a monitoring session.** Do not start one, even by delegating it to a subagent (see "A-4").
+- **Accepting assertions uncritically.** Findings can be wrong. In one past case, a reference was wrongly reported as missing in code that was unused because of rendering settings, and the call target of a same-named method was mistaken, reporting a nonexistent problem. Findings of the "missing" or "reference has disappeared" kind are especially error-prone.
+  The more assertive a finding, the more you should corroborate it.
+- **Judging the validity of a specification.** Without the source material, you cannot know whether the implementation matches the specification.
+  We are good at mechanical matching and detecting oversights, but whether "this specification is acceptable" is for a person to judge.

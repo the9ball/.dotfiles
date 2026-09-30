@@ -1,158 +1,158 @@
-# 設計メモ
+# Design memo
 
-`review-watch` を構成するファイルを、なぜそこに置いているか。
-このスキルを編集するとき、特に配置を変えようとするときに読む。
-`SKILL.md`(実行時の手順)とは別に、判断の理由だけを残す。
+Why the files that make up `review-watch` are placed where they are.
+Read this when editing this skill, especially when you are about to change the placement.
+Separately from `SKILL.md` (the runtime procedure), this file keeps only the reasons for the decisions.
 
-## ファイル配置
+## File placement
 
-| 対象 | 場所 | 追跡 |
+| Target | Location | Tracking |
 |---|---|---|
-| スキル本体 | `link-targets/agents/skills/review-watch/` | git で追跡 |
-| リポジトリ場所のキャッシュ | `link-targets/agents/skills/review-watch/repositories.log` | gitignore |
-| 通知済み PR の状態 | `$HOME/.claude/.review-watch/seen-pull-requests.tsv` | dotfiles の外 |
-| 監視プロセスの所有トークン | `$HOME/.claude/.review-watch/owner-token` | dotfiles の外 |
-| 下読みレポートと差分 | `%TEMP%\claude-pr-review\` | dotfiles の外 |
+| Skill body | `link-targets/agents/skills/review-watch/` | Tracked by git |
+| Repository location cache | `link-targets/agents/skills/review-watch/repositories.log` | gitignored |
+| State of notified PRs | `$HOME/.claude/.review-watch/seen-pull-requests.tsv` | Outside dotfiles |
+| Ownership token of the monitoring process | `$HOME/.claude/.review-watch/owner-token` | Outside dotfiles |
+| Pre-review reports and diffs | `%TEMP%\claude-pr-review\` | Outside dotfiles |
 
-### スキル本体 — `SKILL.md` / `watch-review-requests.sh` / `report-template.html`
+### Skill body — `SKILL.md` / `watch-review-requests.sh` / `report-template.html`
 
-dotfiles で追跡する。ホストをまたいで同じものを使う。
+Tracked in dotfiles. The same files are used across hosts.
 
-`watch-review-requests.sh` を別ファイルに切り出してあるのは、`Monitor` に渡すコマンドを
-インラインで書き起こすと権限の分類器に弾かれるため。加えて、差分検知のロジックを
-書き起こす途中で取りこぼすと通知が毎分繰り返してクレジットを焼き続ける。
+`watch-review-requests.sh` is split out into a separate file because a command written out inline
+for `Monitor` is rejected by the permission classifier. In addition, if any of the difference-detection logic is dropped
+while writing it out, the notification repeats every minute and keeps burning credits.
 
-### `repositories.log` — リポジトリ場所のキャッシュ
+### `repositories.log` — cache of repository locations
 
-`link-targets/agents` 配下に置く。**実行するエージェント(Claude / Codex など)に依存しない**データで、
-どちらから監視しても使い回せるため。
+It is placed under `link-targets/agents`. It is **data that does not depend on the agent that runs it (Claude / Codex, etc.)**,
+so it can be reused whichever of them runs the monitoring.
 
-ただし中身は絶対パスなので**ホストには依存する。** 別マシンへ持ち込めば外れるが、
-使う前に検証して外れていたら捨てる仕組みがあるので害はない。
+However, its contents are absolute paths, so it **does depend on the host.** It stops matching when taken to another machine,
+but since paths are verified before use and discarded when they do not match, this does no harm.
 
-`.log` 拡張子なのは、dotfiles の `.gitignore` に既にある `*.log` に乗るから。
-`.gitignore` を足さずに追跡外にできる。中身は TSV(`owner/repo<TAB>絶対パス`)。
+The `.log` extension is used because it falls under the `*.log` rule already in dotfiles' `.gitignore`.
+It can be left untracked without adding to `.gitignore`. Its contents are TSV (`owner/repo<TAB>absolute path`).
 
-キャッシュであってマスターデータではない。クローンは移動も削除もされるので、
-使う前に `git -C <パス> remote get-url origin` で検証し、外れていたら捨てて探し直す。
+It is a cache, not master data. Clones are moved and deleted, so
+verify a path with `git -C <path> remote get-url origin` before using it, and if it does not match, discard it and search again.
 
-### `seen-pull-requests.tsv` — 通知済み PR の状態
+### `seen-pull-requests.tsv` — state of notified PRs
 
-**あえて共有しない。** `$HOME/.claude/.review-watch/` に置き、ホストごとに分ける。
+**Deliberately not shared.** It is placed in `$HOME/.claude/.review-watch/` and kept separate per host.
 
-`repositories.log` と違い、これは60秒ごとに読み書きされる。Claude と Codex が
-同時に監視を張った場合、共有すると書き込みが競合する。ホスト間で共有して得られるものは
-「片方が通知済みなら他方は黙る」程度で、競合のリスクに見合わない。
-むしろ両方が通知するほうが監視としては安全側に倒れる。
+Unlike `repositories.log`, this file is read and written every 60 seconds. If Claude and Codex
+run monitoring at the same time, sharing it causes write conflicts. What sharing across hosts would gain
+is only "if one side has notified, the other stays silent", which is not worth the risk of conflicts.
+It is rather safer for monitoring if both sides notify.
 
-dotfiles の外に置くのは、これがマシン固有の揮発状態だから。
-別マシンに持ち込んでも意味がなく、持ち込むと未通知の PR を取りこぼす。
+It is placed outside dotfiles because it is machine-specific volatile state.
+Taking it to another machine is meaningless, and doing so would cause PRs that have not been notified to be missed.
 
-### `owner-token` — 監視プロセスの所有トークン
+### `owner-token` — ownership token of the monitoring process
 
-`seen-pull-requests.tsv` と同じディレクトリに置く。同じくマシン固有の揮発状態で、
-ホスト間で共有しない。dotfiles の外なので `.gitignore` への追加は要らない
-(`$HOME/.claude/` は実ディレクトリで、`skills` だけが `link-targets/agents/skills` へのシンボリックリンク)。
+It is placed in the same directory as `seen-pull-requests.tsv`. It is likewise machine-specific volatile state
+and is not shared across hosts. It is outside dotfiles, so it does not need to be added to `.gitignore`
+(`$HOME/.claude/` is a real directory, and only `skills` is a symbolic link to `link-targets/agents/skills`).
 
-**二重起動を抑止するための仕組み。** 起動したプロセスが自分のトークン(`PID-起動時刻`)を
-このファイルへ書いて所有権を主張し、各プロセスはループごとに読み直して、
-自分のトークンでなければ退く。後から起動した方が勝つ。
-どのプロセスのものでもない値を書けば全員が退くので、外から止める手段も兼ねる。
+**A mechanism to prevent double startup.** A started process writes its own token (`PID-start time`)
+into this file to claim ownership, and each process rereads it on every loop and
+retires if it is not its own token. The process that starts later wins.
+Writing a value that belongs to no process makes everyone retire, so it also serves as a way to stop them from outside.
 
-必要になったのは、**セッションや Claude Code の終了ではプロセスが死なない**とわかったから。
-ハーネス側の Monitor タスクだけが消え、プロセスは残ってポーリングを続ける。
-この孤児は通知を誰にも届けないうえ、次に監視を張ったときに `seen-pull-requests.tsv` を
-共有し、新しい PR を先に「既知」として書き込んでしまう。
-すると本物の監視プロセスがそれを黙って読み飛ばし、**レビュー依頼を静かに取りこぼす。**
-重複通知より厄介なのはこちらで、抑止の主目的はこの取りこぼしを防ぐこと。
+It became necessary because we learned that **processes do not die when a session or Claude Code ends.**
+Only the harness-side Monitor task disappears, and the process remains and keeps polling.
+This orphan delivers notifications to no one, and it shares `seen-pull-requests.tsv` with the monitor set up next,
+so it can write a newly found PR as already known before the real monitor sees it.
+The real monitoring process then silently skips it, and **a review request is quietly missed.**
+This is worse than a duplicate notification, and the main purpose of the prevention is to stop this miss.
 
-採らなかった案が2つある。
+Two alternatives were not adopted.
 
-**`kill` でプロセスを撃つ**のは危険。`Monitor` がこのスクリプトを起動する際のラッパーの
-コマンドラインにもスクリプトのパスが含まれるため、`pkill -f` のようなパターンマッチだと
-孤児と一緒に起動したばかりの自分の親を殺し、監視が即死する。
-PID ファイル方式でも、この機能より前に起動した孤児は記録が無く検出できない。
+**Killing the process with `kill`** is dangerous. The command line of the wrapper that `Monitor` uses to start this script
+also contains the script path, so a pattern match such as `pkill -f`
+kills the newly started parent along with the orphan, and monitoring dies immediately.
+Even with a PID-file approach, an orphan started before this feature was added has no record and cannot be detected.
 
-**停止フラグ**(ファイルがあれば終了)は「全部止める」には最適だが、
-「止めてすぐ張り直す」に穴がある。フラグを消すのが新プロセスの起動より後になると
-起動直後に即死し、しかも即死は正常起動と見分けがつかない。消し忘れでも同じことが起きる。
-所有トークン方式なら起動側は何もせず、消し忘れという失敗モードも無い。
+A **stop flag** (exit if the file exists) is ideal for "stop everything", but
+has a hole in "stop and immediately restart". If the flag is removed after the new process starts,
+the process dies right after startup, and that immediate death cannot be told apart from a normal startup. Forgetting to remove it causes the same thing.
+With the ownership-token approach, the starting side does nothing, and there is no failure mode of forgetting to remove anything.
 
-退くまでの間は新旧2プロセスが並走して取りこぼし窓になるので、
-`sleep` を所有権の確認間隔(既定5秒)で刻み、窓の上限をその幅に抑えている。
-加えて新プロセスは最初のポーリング前に1確認分待ち、先行プロセスが退いた後に読み始める。
+Until the old process retires, the old and new processes run side by side, which is a window in which notifications can be missed,
+so `sleep` is split into intervals of the ownership check (5 seconds by default), limiting the window to at most that width.
+In addition, the new process waits one check interval before its first poll, so it starts reading after the earlier process has retired.
 
-### レポートと差分 — `%TEMP%\claude-pr-review\`
+### Reports and diffs — `%TEMP%\claude-pr-review\`
 
-1 PR = レポート1ファイルと差分1ファイル。揮発性なので一時ディレクトリに置く。
+One PR = one report file and one diff file. They are volatile, so they go in a temporary directory.
 
-ディレクトリを掘らずフラットに置き、7日より古い `*.html` / `*.diff` / `*.partial` を自分で消す。
-`%TEMP%` 直下のディレクトリは OS の掃除が実質効かない(1年以上残っていた実測がある)ため、
-掃除を OS に任せられない。フラットにしてあるのは、掃除の対象を
-`claude-pr-review` 直下のこの3種類だけに限定して誤削除を防ぐため。
+Files are placed flat without digging subdirectories, and `*.html` / `*.diff` / `*.partial` older than 7 days are deleted by the skill itself.
+OS cleanup is effectively ineffective for directories directly under `%TEMP%` (they were observed remaining for over a year),
+so cleanup cannot be left to the OS. The layout is flat so that the cleanup target is limited
+to just these three types directly under `claude-pr-review`, which prevents accidental deletion.
 
-`*.partial` は差分を取得する途中の書き込み先。`>` は実行前に書き込み先を切り詰めるので、
-取得が失敗すると空または不完全な差分が新しい更新時刻で残り、次に「新しい差分がある」と
-誤認される。そのため一時名へ書いて成功を確認してから `mv` する。
+`*.partial` is the write destination while a diff is being retrieved. `>` truncates the destination before the command runs, so
+if retrieval fails, an empty or incomplete diff remains with a new update time and is later mistaken
+for "a new diff exists". So the diff is written to a temporary name, and `mv` is run after success is confirmed.
 
-**`.partial` も同じディレクトリに置く。** 別の場所やサブディレクトリへ分けると、
-`mv` がボリュームをまたいでコピーになりうる。それでは「成功を確認してから移す」という
-対策自体が中途半端になる。掃除対象を1種類増やす代償の方が小さい。
-プロセスが落ちて残った孤児は、7日の条件があるので取得中のファイルを巻き込まずに片付く。
+**`.partial` is placed in the same directory too.** If it were put in another location or a subdirectory,
+`mv` could turn into a copy across volumes. Then the safeguard of "move only after confirming success"
+would itself be half-hearted. The cost of adding one more type of cleanup target is smaller.
+An orphan left when a process crashes is cleaned up without catching a file being retrieved, thanks to the 7-day condition.
 
-**ファイル名は `<owner><repo>-<PR番号>` で、日時も GUID も付けない。**
-**別セッションが識別子からパスを計算できる**ことが目的で、下読みを別セッションで行う以上、
-ここが引き継ぎの要になる。グロブで前回のレポートを探し回る必要がない。
+**The file name is `<owner><repo>-<PR number>`, with no date/time or GUID.**
+The purpose is that **another session can compute the path from the identifier**, and since the pre-review is done in a separate session,
+this is the key to handover. There is no need to hunt for the previous report with globs.
 
-以前は GUID の先頭8文字を付けて、同じ PR を2回下読みしても上書きしないようにしていた。
-上書きされて困る場面が実際には無く、末尾がランダムなせいで新旧を判別できない方が害だった。
+Previously, the first 8 characters of a GUID were added so that pre-reviewing the same PR twice would not overwrite the earlier report.
+In practice there was no case where an overwrite caused trouble, and the random suffix made it impossible to tell new from old, which did more harm.
 
-`owner/repo` の `/` は削除して連結する。`-` に置き換えると `a-b/c` と `a/b-c` が
-同じ名前になるが、`/` を削っても `ab/c` と `a/bc` は同じになるので、**どちらも衝突は
-原理的に残る。** 確率は同程度に低く、当たっても手で退避すれば済むため、
-区切り記号を増やさない方を採った。
+The `/` in `owner/repo` is removed and the parts are concatenated. Replacing it with `-` would make `a-b/c` and `a/b-c`
+the same name, and removing `/` makes `ab/c` and `a/bc` the same, so **a collision remains
+possible in principle either way.** The probabilities are similarly low, and a collision can be handled by moving a file aside manually,
+so the option that does not add a delimiter was chosen.
 
-差分を**セッション固有の scratchpad ではなくここに置く**のも引き継ぎのため。
-scratchpad のパスにはセッション ID が入り、セッションが終わると消える。
+Diffs are **placed here rather than in a session-specific scratchpad** for the same handover reason.
+A scratchpad path contains the session ID and disappears when the session ends.
 
-差分は head が進むと古くなる。**どのリビジョンを読んだかはレポート本文に head SHA を
-書いて持たせる。** ファイル名に SHA を入れれば鮮度が名前だけで分かるが、head 更新ごとに
-ファイルが増え、識別子からパスが決まるという利点が消える。
-更新時刻の比較(`gh pr view --json updatedAt` と差分ファイルの mtime)は目安として使うが、
-force-push・時計のずれ・取得中の更新があると当てにならないので、これ単独では判定しない。
-`gh pr diff` は安いので、迷ったら取り直す。
+A diff becomes stale as the head advances. **The revision that was read is kept by writing the head SHA in the report body.**
+Putting the SHA in the file name would show freshness from the name alone, but a file would be added for every head update,
+and the advantage of the path being determined by the identifier would be lost.
+Comparing update times (`gh pr view --json updatedAt` against the diff file's mtime) is used as a rough guide,
+but it is unreliable with a force-push, clock skew, or an update in progress, so it is not used alone for the decision.
+`gh pr diff` is cheap, so when in doubt, fetch it again.
 
-レポートの雛形(`report-template.html`)には head SHA 専用の欄がない。
-テンプレートを変えずに済ませるため、head を表示している箇所へブランチ名と併記する方を
-手順(`SKILL.md` B-8)で必須にした。
+The report template (`report-template.html`) has no dedicated field for the head SHA.
+To avoid changing the template, the procedure (`SKILL.md` B-8) makes it mandatory to write the SHA together with the branch name
+where the head is displayed.
 
-## ローカルクローンを読む範囲
+## How far to read local clones
 
-差分は `gh pr diff` で取り、ローカルクローンは grep 用の参考資料としてしか読まない。
-`git fetch` も `git checkout` もしない。
+Diffs are fetched with `gh pr diff`, and local clones are read only as reference material for grep.
+Neither `git fetch` nor `git checkout` is run.
 
-理由は2つ。ユーザーのリポジトリに ref とオブジェクトを書き込みたくないこと、
-そして同時に走っている他の git 操作とぶつかりうること。
-読むだけなら API で足りる。
+There are two reasons: we do not want to write refs and objects into the user's repository,
+and it could collide with other git operations running at the same time.
+If we only read, the API is enough.
 
-代償として、ローカルの作業ツリーがレビュー対象と別のリビジョンである可能性が残る。
-これは「指摘の根拠にする箇所だけ `gh api .../contents?ref=<sha>` で裏を取る」ことで受ける。
-影響範囲の洗い出し(同種のコードが他にもあるか)は多少古くても実用上困らない。
+As a trade-off, the local working tree may be at a different revision from the one under review.
+This is handled by "verify only the parts that are the basis of a finding with `gh api .../contents?ref=<sha>`".
+For scoping the impact (is there other code of the same kind?), a somewhat old copy is practically fine.
 
-## セッションの分割とサブエージェントへの委譲
+## Splitting sessions and delegating to subagents
 
-**監視と下読みはセッションを分ける。** 監視セッションは通知だけを出し、下読みはしない。
-差分の大小で例外を作らない。
+**Monitoring and pre-review are split into separate sessions.** The monitoring session only issues notifications and does not pre-review.
+No exception is made based on the size of the diff.
 
-監視セッションの本業は何時間も待機して通知を出すことで、1通知あたりを軽く保つのが価値になる。
-1回でも下読みをここで抱えると、その重さが以降ずっと残る。
-コンパクションは自分から呼べない(`/compact` はユーザー側のコマンド)ので、
-自動要約がいつ走るかも選べない。
+The main job of a monitoring session is to wait for hours and issue notifications, so keeping each notification lightweight is what gives it value.
+If it carries even one pre-review, that weight stays with it from then on.
+Compaction cannot be invoked by the session itself (`/compact` is a user-side command), so it also cannot choose
+when automatic summarization runs.
 
-以前は監視セッションがサブエージェントへ必ず委譲する形で守っていたが、それでは
-**指摘の根拠がどこにも残らない。** 委譲先から返るのは結論だけなので、根拠を問われた時点で
-誰かが差分を読み直すことになる。セッションを分ければ、読んだ本人がそのまま議論相手になる。
-経緯は `SKILL.history.md` に残した。
+Previously the monitoring session guarded against this by always delegating to a subagent, but that meant
+**the basis of each finding remained nowhere.** Only the conclusion comes back from the delegate, so when asked for the basis,
+someone has to reread the diff. If the sessions are split, the one who read it becomes the discussion partner as is.
+The history is recorded in `SKILL.history.md`.
 
-下読みセッション側では、委譲は必須ではなく規模で選ぶ。自分で読めばレポート後の議論に
-即答できる一方、大きい PR では観点ごとに分割して投げた方が速い。
+On the pre-review session side, delegation is not mandatory and is chosen by scale. Reading it yourself lets you answer
+discussion after the report immediately, while for a large PR it is faster to split it by perspective and send the pieces out.
