@@ -1,103 +1,97 @@
 ---
 name: commit-message
-description: Git commit message を新規作成または編集するときに形式と履歴規則を適用する。無関係な作業では発動しない。
+description: Apply formatting and history rules when creating or editing a Git commit message. It will not be activated for unrelated tasks.
 ---
 
 # Commit message workflow
 
 ## Discovery contract
 
-- Positive trigger: 新しい commit message または amend 対象の message を作成・編集する。
-- Negative trigger: commit message を作成せず、既存履歴を読み取るだけである。
-- Conditional dependency: 追加の依存契約はなく、現在の Git repository の履歴を直接確認する。
-- Failure mode: 形式または履歴の根拠を確定できない場合は既定を推測せず、確認して停止する。
+- Positive trigger: Create/edit a new commit message or amend target message.
+- Negative trigger: Does not create a commit message, just reads the existing history.
+- Conditional dependency: There is no additional dependency contract; the history of the current Git repository is checked directly.
+- Failure mode: Don't assume defaults, check and stop if format or history basis cannot be determined.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
 ## Guide
 
-コミットメッセージを新規作成または編集するときに、このガイドを読む。
-`--amend` によるメッセージの編集も対象に含める。
+Read this guide when creating or editing a commit message.
+Includes message editing by `--amend`.
 
-### 適用範囲
+### Scope of application
 
-規約と履歴を確認する単位は、現在コミットしようとしている Git リポジトリとする。
-サブモジュール内でコミットする場合はサブモジュールを対象リポジトリとし、親リポジトリの
-規約や履歴を混在させない。逆の場合も同様とする。
+The unit to check the rules and history is the Git repository you are currently trying to commit to.
+When committing within a submodule, treat the submodule as the target repository. Do not mix in the parent repository's conventions or history; the same applies in reverse.
 
-merge、revert、fixup、squash、cherry-pick など、Git または既存コミットから生成・継承される
-特殊なコミットメッセージは、形式自体に意味があるため保持する。これらは以下の形式判定の
-対象にせず、明示的な別指示がない限りデフォルト形式へ書き換えない。
+Messages generated or inherited from Git or existing commits, such as merge, revert, fixup, squash, and cherry-pick messages, are special because their format has meaning. They are excluded from the format determination below and are not rewritten to the default format unless explicitly instructed otherwise.
 
-### 適用順序
+### Application order
 
-上位の指示やユーザーの明示指定がある場合は、それを優先する。それ以外は次の順で確認する。
+If there are instructions from a higher level or explicit instructions from the user, those will take precedence. Otherwise, check in the following order.
 
-1. 対象 Git リポジトリにある明示的なコミット規約（`CONTRIBUTING.md` など）
-2. 現在の Git user と一致する author のコミット履歴
-3. 対象 Git リポジトリ全体のコミット履歴
-4. このガイドのデフォルト規約
+1. Explicit commit conventions in the target Git repository (for example, `CONTRIBUTING.md`)
+2. Commit history for author matching current Git user
+3. Commit history for the entire target Git repository
+4. Default conventions for this guide
 
-### 既存履歴の確認
+### Check existing history
 
-「現在の Git user と一致する author」は、現在の `git config user.name` と
-`git config user.email` の両方が一致する author とする。
+An author matching the current Git user is an author whose name and email both equal the current `git config user.name` and `git config user.email`.
 
-本人の履歴とリポジトリ全体の履歴は、それぞれ次の基準で確認する。
+The individual's history and the history of the entire repository are confirmed using the following criteria.
 
-1. まず直近20件を確認する。
-2. 一貫した形式が明らかでなければ、最大50件まで確認範囲を広げる。
-3. 20件未満しか存在しない場合は、取得できる範囲を確認する。
-4. 形式が混在している、履歴が少ない、判断に迷う場合は「明確な慣習なし」として次の段階へ進む。
+1. First, check the most recent 20 items.
+2. If a consistent format is not clear, expand the scope of checks to a maximum of 50 items.
+3. If there are fewer than 20 items, check the range that can be retrieved.
+4. If the format is mixed, there is little history, or it is difficult to judge, proceed to the next step as "no clear convention".
 
-特殊な生成・継承メッセージは、履歴の慣習を判定するときも除外する。
+Special generated and inherited messages are also excluded when determining history conventions.
 
-### デフォルト形式
+### Default format
 
 ```text
 <type>(<scope>): <subject>
 ```
 
-`scope` は任意とする。`type` は次を基本候補とする。
+`scope` is optional. `type` has the following basic candidates.
 
-- `feat`: 機能追加
-- `fix`: 不具合修正
-- `docs`: ドキュメント変更
-- `style`: 動作に影響しない整形変更
-- `refactor`: 機能追加や不具合修正を目的としない構造変更
-- `perf`: パフォーマンス改善
-- `test`: テストの追加・修正
-- `chore`: ビルドや補助ツールなどの保守変更
+- `feat`: Added functionality
+- `fix`: Bug fixes
+- `docs`: Document change
+- `style`: Cosmetic changes that do not affect behavior
+- `refactor`: Structural changes not intended to add functionality or fix defects
+- `perf`: Performance improvements
+- `test`: Addition/modification of tests
+- `chore`: Maintenance changes such as build and auxiliary tools
 
 ### Subject
 
-- 簡潔に書く。
-- 命令形・現在形を基本とする。
-- 末尾にピリオドを付けない。
-- Subject 単体で何を変更したか理解できる表現にする。
+- Write concisely.
+- Essentially imperative and present tense.
+- Do not add a period at the end.
+- Use an expression that makes it easy to understand what has changed in the Subject alone.
 
 ### Body
 
-変更理由や背景の説明が必要な場合に使用する。Subject の繰り返しではなく、必要に応じて次を
-記載する。
+Use a Body when the reason for or background of the change needs explanation. Instead of repeating the Subject, describe the following as needed.
 
-- なぜ変更したか
-- 以前の挙動や状態との違い
-- 判断上重要な前提
+- Why did we change it?
+- Differences from previous behavior and state
+- Important assumptions for judgment
 
 ### Footer
 
-必要に応じて、関連 Issue や Breaking Change など、本文とは別に記録する情報を記載する。
+If necessary, include information to be recorded separately from the main text, such as related issues and breaking changes.
 
-### 例
+### Example
 
 ```text
 docs(agents): add commit message guide
 ```
 
-AngularJS の Git Commit Guidelines は形式の参考にする。ただし、このガイドのデフォルトには
-100文字制限、Subject 先頭の小文字、厳密な `revert:` 形式などの追加要件を含めない。
+Use AngularJS's Git Commit Guidelines as a format reference. This guide's defaults do not include additional requirements such as a 100-character limit, a lowercase Subject beginning, or a strict `revert:` format.
 
-参考: <https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#-git-commit-guidelines>
+Reference: <https://github.com/angular/angular.js/blob/master/DEVELOPERS.md#-git-commit-guidelines>

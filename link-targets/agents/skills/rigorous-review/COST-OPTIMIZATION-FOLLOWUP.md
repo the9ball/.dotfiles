@@ -1,17 +1,17 @@
-# rigorous-review コスト最適化・後続メモ
+# rigorous-review Cost optimization and follow-up notes
 
-これはGit管理下の引き継ぎ用メモであり、実装計画の正本ではない。詳細な手法・対象runtime・依存関係・予算・受入条件は、各Phaseの着手時点で改めて検討する。
+This is a handover memo managed by Git, and is not the original implementation plan. Detailed methods, target runtimes, dependencies, budgets, and acceptance conditions will be reviewed at the start of each phase.
 
-## 現状（2026-09-05）
+## Current status (2026-09-05)
 
-Phase Aの旧測定実装は observe-only の検討成果としてGit履歴 `2342b5e9f251761a117c39a22e51e524e7867fcf` に保存されているが、現行ツリーからは削除した。通常運用は測定なしのlegacy strict flowを使用する。将来Phase A／Eを再開する場合は、旧実装をそのまま復元せず、当時のスキーマ・runtime・ベストプラクティスを再確認してから再設計する。Phase B〜Dは未適用である。
+The old measurement implementation of Phase A was saved in the Git history `2342b5e9f251761a117c39a22e51e524e7867fcf` as an observe-only study result, but it has been deleted from the current tree. Normal operation uses legacy strict flow without measurement. If you wish to restart Phase A/E in the future, do not restore the old implementation as is, but reconfirm the schema, runtime, and best practices at that time before redesigning. Phases B to D have not been applied.
 
-Phase Bを再開するには、全dispatch経路を覆う保証付きruntime境界、または全role dispatchを単一harnessへ限定する設計判断が必要。
+Restarting Phase B requires a guaranteed runtime boundary that covers all dispatch paths, or a design decision to limit all role dispatch to a single harness.
 
-## 将来のPhase
+## Future Phase
 
-- Phase A（測定）: 実行コストと出力の測定契約を維持し、比較可能なfixture・実測値を整える。
-- Phase B（preflight／epoch）: role開始前の現物検証とdispatch境界を確立し、ownerとfail-closed条件を確認する。
-- Phase C（packet／JCS）: packet schema、内容・path境界、JCS方式を、その時点で検証可能な実装に合わせて定める。
-- Phase D（budget／delta）: 予算checkpointと差分台帳を設計し、停止・再開・承認履歴を保持する。
-- Phase E（比較／go-no-go）: legacyと候補方式を別engagementで比較し、品質・証拠被覆・コストを確認してから既定化を判断する。
+- Phase A (Measurement): Maintain measurement contracts for execution costs and output, and prepare comparable fixtures and actual measurements.
+- Phase B (preflight/epoch): Establish physical verification and dispatch boundaries before starting role, confirm owner and fail-closed conditions.
+- Phase C (packet/JCS): Define the packet schema, contents/path boundaries, and JCS method according to the implementation that can be verified at that time.
+- Phase D (budget/delta): Design a budget checkpoint and differential ledger to maintain stop/restart/approval history.
+- Phase E (comparison/go-no-go): Compare legacy and candidate methods in separate engagements, confirm quality, evidence coverage, and cost, and then decide on default.

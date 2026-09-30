@@ -1,83 +1,83 @@
 ---
 name: wsl-codex-exec
 description: >
-  Windows版CodexからWSL側のAqua管理Codexを非対話で一回実行する。
-  ユーザーが明示的にWSL側Codexの実行を指示した場合だけ使用し、暗黙には起動しない。
+  Run the Aqua management Codex on the WSL side once non-interactively from the Windows version of Codex.
+  It is used only when the user explicitly asks to run Codex on the WSL side, for example, `WSL側のCodexで実行して`; it is not started implicitly.
 ---
 
-# WSL側 Codex の一回実行
+# One-time execution of WSL side Codex
 
-このSkillは、Windows版CodexからWSL側の通常Codex CLIへ一回分の依頼を渡すために使用します。
-ユーザーが `$wsl-codex-exec`、または「WSL側のCodexで実行して」のように明示した場合だけ発動します。
-通常の依頼、検証、レビュー、スクリプト実行から暗黙にこのSkillを起動しません。
+This skill is used to pass a single request from the Windows version of Codex to the regular Codex CLI on the WSL side.
+It will only be triggered if the user specifies `$wsl-codex-exec` or explicitly asks to run Codex on the WSL side, for example, `WSL側のCodexで実行して`.
+This skill will not be implicitly activated from normal requests, verification, reviews, or script execution.
 
-## 対象
+## Target
 
-- WSL内のAqua管理 `codex exec` を一回実行する。
-- stdout、stderr、終了コードを呼び出し元へそのまま返す。
-- WSL側の専用 `CODEX_HOME` とAqua管理CLIを使用する。
+- Run Aqua management `codex exec` in WSL once.
+- Return stdout, stderr, and exit code as is to the caller.
+- Use the dedicated `CODEX_HOME` and the Aqua-managed CLI on the WSL side.
 
-次はこのSkillの対象外です。
+The following are not covered by this skill.
 
-- 対話型TUIの起動。人がWSLのターミナルで直接実行する。
-- `codex remote-control` の起動。既存の `codex-wsl/start-codex-wsl.sh` を使用する。
-- `login`、`logout`、`update`、インストール、プラグイン変更、設定変更。
-- ユーザーの明示なしに、別のCodexプロセスを追加で起動すること。
+- Launching the interactive TUI. A person runs it directly in the WSL terminal.
+- Launching `codex remote-control` (use the existing `codex-wsl/start-codex-wsl.sh` for that).
+- `login`, `logout`, `update`, installation, plugin changes, settings changes.
+- Starting additional Codex processes without the user's explicit consent.
 
-## 前提文書
+## Prerequisite documents
 
-WSLの通常CLI、専用 `CODEX_HOME`、Aqua設定、ディストリビューションの前提は、次の文書を正とします。
+The following documents are authoritative for the WSL regular CLI, the dedicated `CODEX_HOME`, the Aqua settings, and the distribution assumptions.
 
-- repository-root 相対の`codex-wsl/SETUP.md`
-- repository-root 相対の`codex-wsl/CODEX_HOME.md`
+- repository-root relative `codex-wsl/SETUP.md`
+- repository-root relative `codex-wsl/CODEX_HOME.md`
 
-このSkillのラッパーは実行時にMarkdownを解析せず、これらの文書で定めた値を検証して使用します。
-`CODEX_HOME`、Aquaの配置、リポジトリの場所、または対象ディストリビューションを変更するときは、ラッパーと前提文書を同時に更新してください。
+This Skill wrapper does not parse Markdown at runtime, but instead validates and uses the values defined in these documents.
+When changing `CODEX_HOME`, the Aqua deployment, the repository location, or the target distribution, update the wrapper and the prerequisite documents at the same time.
 
-## 固定する実行環境
+## Fixed execution environment
 
-WSL内のラッパーが次の値を設定します。
+A wrapper within WSL sets the following values:
 
 - `AQUA_GLOBAL_CONFIG=$HOME/.dotfiles/aqua.yaml`
 - `PATH=$HOME/.local/share/aquaproj-aqua/bin:$PATH`
 - `CODEX_HOME=$HOME/.codex-wsl`
-- 実行ファイル `$HOME/.local/share/aquaproj-aqua/bin/codex`
-- 作業ディレクトリ `$HOME/.dotfiles`
+- Executable file `$HOME/.local/share/aquaproj-aqua/bin/codex`
+- Working directory `$HOME/.dotfiles`
 
-Windows側の `HOME`、`CODEX_HOME`、認証ファイルを引数として渡しません。
-WSLディストリビューションは現在のセットアップに合わせて `Ubuntu-20.04` を明示します。
-名前が存在しない場合は自動で別のディストリビューションを選ばず停止してください。
+Do not pass the Windows-side `HOME`, `CODEX_HOME`, or authentication files as arguments.
+Specify the WSL distribution `Ubuntu-20.04` explicitly, to match the current setup.
+If the name does not exist, please stop without automatically selecting another distribution.
 
-## 実行手順
+## Execution steps
 
-1. ユーザーの明示的な依頼内容を一回の非対話タスクとして確定します。
-2. Bashの `-c` にユーザー本文を埋め込まず、次の固定ブリッジを使用します。
+1. Fix the user's explicit request as a single non-interactive task.
+2. Don't embed the user body in Bash's `-c` and use the following fixed bridge:
 
 ~~~powershell
 $fixedBashCommand = 'exec "$HOME/.dotfiles/link-targets/agents/skills/wsl-codex-exec/scripts/run-codex-exec.sh" "$@"'
 & wsl.exe --distribution 'Ubuntu-20.04' --exec /bin/bash --noprofile --norc -c $fixedBashCommand wsl-codex-exec [codex-exec-options] -
 ~~~
 
-3. 依頼本文は標準入力から渡し、`-` を `codex exec` のプロンプト指定に使います。
-   `[codex-exec-options]` には、ユーザーが明示したオプションだけを個別の引数として渡します。
-   ラッパーが `codex exec` を追加するため、ここに `exec` サブコマンド自体は書きません。
+3. The request body is passed from standard input, and `-` is used to specify the prompt for `codex exec`.
+   Pass only user-specified options as separate arguments to `[codex-exec-options]`.
+   We do not write the `exec` subcommand itself here because the wrapper adds `codex exec`.
 
-例:
+example:
 
 ~~~powershell
 $prompt = @'
-WSL側のCodexで、現在の作業ツリーを読み取り専用で調査し、結果だけ報告してください。
+In the Codex on the WSL side, inspect the current working tree read-only and report only the results.
 '@
 $prompt | & wsl.exe --distribution 'Ubuntu-20.04' --exec /bin/bash --noprofile --norc -c $fixedBashCommand wsl-codex-exec --sandbox read-only -
 ~~~
 
-引数はBash側で常に `"$@"` として扱います。`$*`、`eval`、文字列連結したコマンド、ユーザー本文を含む `bash -c` / `bash -lc` は使用しません。
+Arguments are always treated as `"$@"` on the Bash side. Do not use `$*`, `eval`, string concatenated commands, or `bash -c` / `bash -lc` with user body.
 
-## 安全と失敗時の扱い
+## Safety and failure handling
 
-- ラッパーはAqua設定、専用 `CODEX_HOME`、作業ディレクトリ、Aqua管理のCodex実体が存在しない場合に非0で停止します。
-- ラッパーはインストール、ログイン、ディレクトリ作成、バックグラウンド化を行いません。
-- `--dangerously-bypass-approvals-and-sandbox`、`--dangerously-bypass-hook-trust`、`--approve-for-me` などの権限緩和オプションを自動追加しません。
-- Codexの標準出力・標準エラーと終了コードを加工せず返します。失敗時に同じ依頼を自動再実行しません。
-- 認証情報、トークン、`CODEX_HOME` の実体をリポジトリへ保存しません。
-- WSL起動、Codex CLI実行、終了コードの確認までを一回の同期処理として扱い、プロセスを残しません。
+- The wrapper exits with a non-zero status if the Aqua configuration, the dedicated `CODEX_HOME`, the working directory, or the Aqua-managed Codex executable does not exist.
+- The wrapper does not install, log in, create directories, or background.
+- Do not automatically add privilege relaxation options such as `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, `--approve-for-me`.
+- Returns the Codex standard output/standard error and exit code without processing. Does not automatically re-execute the same request when it fails.
+- Do not save credentials, tokens, or the contents of `CODEX_HOME` in the repository.
+- WSL startup, Codex CLI execution, and exit code confirmation are treated as a single synchronous process, and no processes are left behind.

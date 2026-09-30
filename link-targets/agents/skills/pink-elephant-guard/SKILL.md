@@ -1,184 +1,175 @@
 ---
 name: pink-elephant-guard
 description: >
-  【試用中。暗黙発動しない。ユーザーが $pink-elephant-guard と明示的に指名したときだけ使用する】
-  会話の中で却下・削除・訂正された案が、その会話を見ていない読み手へ渡る文章に、
-  文脈のないまま否定表現として現れるのを防ぐ。commit メッセージ、PR 本文、チケットコメント、
-  同僚への共有文などを書くときに、「〜は不要と判断した」「今回は見送った」のような、
-  読み手が復元できない前提に依存した記述を混入させないために使う。
-  却下仮説・転換・失敗経路の保存そのものが要件である記述(ADR・議事録・ポストモーテム・
-  レビュー返信・*.history.md など)、および法令・契約・安全・医療・アクセシビリティ上の
-  必要表示には使用しない。
+  [On trial. Not triggered implicitly. Only used when the user explicitly names $pink-elephant-guard]
+  Use when writing for readers who did not see the conversation, such as in commit messages, PR text, ticket comments, or messages to colleagues. It prevents contextless statements that rely on readers reconstructing rejected, deleted, or corrected assumptions, such as "I decided that this was unnecessary" or "I decided not to do it this time."
+  Do not use for documents that must preserve rejected hypotheses, turns, or failure paths (such as ADRs, minutes, postmortems, review replies, and `*.history.md`), or for notices required by law, contracts, safety, medicine, or accessibility.
 ---
 
 # Pink Elephant Guard
 
-## 目的
+## Purpose
 
-会話で却下された案は、その会話を共有していない読み手にとって存在しない。
-それを前提にした否定表現を成果物へ書くと、読み手には根拠のない文脈が突然現れる。
+Ideas that are rejected in a conversation do not exist for readers who do not share in the conversation.
+If you write a negative expression based on this premise in a work product, an unfounded context suddenly appears to the reader.
 
-このスキルは、そうした記述を成果物から取り除くか、読み手が理解できる形へ立て直すためのもの。
+This skill is for removing such descriptions from the work product or reconstructing them in a form that the reader can understand.
 
-## 中核原則
+## Core principles
 
-**欠陥は「却下したものに触れること」ではなく、読み手が復元できない文脈に依存したまま触れることである。**
+**The defect is not “touching what has been rejected,” but touching it while dependent on a context that the reader cannot recover.**
 
-したがって対処は削除だけではない。文書の目的に応じて次のどちらかを選ぶ。
+Therefore, deletion is not the only solution. Select one of the following depending on the purpose of the document.
 
-- 記載対象でない場合(commit メッセージなど): **削除する**
-- 記載対象である場合(設計判断など): **削除せず、選択肢として文脈ごと立てて書く**
+- If it does not belong in the text (commit message, etc.): **Delete**
+- If it is to be described (design judgment, etc.): **Do not delete it, but write it in context as an option**
 
-このスキルは、現在有効な情報を減らすためのものではない。
-現在有効な制約、保証範囲、互換性、移行手順、誤読防止のための記述は、否定形であっても対象外とする。
+This skill is not intended to reduce the amount of currently valid information.
+Currently valid restrictions, warranty scope, compatibility, migration procedures, and statements to prevent misreading are not covered, even if they are in negative form.
 
-## 適用範囲
+## Scope of application
 
-この会話の文脈を共有しない読み手へ渡るすべての文章。
+Any text that passes to a reader who does not share the context of this conversation.
 
-- commit メッセージ、PR・Issue 本文、レビューコメント
-- チケットのコメント、Wiki、共有メモ、同僚への説明文
-- リリースノート、利用者向けの説明、UI 文言・ラベル
-- 鑑賞者向けのコピー、台詞、画像・動画生成プロンプトの説明部分
+- commit message, PR/Issue text, review comment
+- Ticket comments, wikis, shared notes, and explanations for colleagues
+- Release notes, explanations for users, UI text/labels
+- Copy for viewers, dialogue, and the descriptive parts of image/video generation prompts
 
-読み手が自分自身であっても、時間が経てば文脈は共有されていない。
-「自分しか読まない」ことを適用除外の理由にしない。
+Even if the reader is oneself, the context is no longer shared over time.
+Don't use the fact that "only you read it" as a reason for exemption.
 
-生成モデルへ渡す制御命令は対象外とする。
-「文字なし」「人物なし」「透かしなし」のような否定形は、過去案の説明ではなく現在の出力要件を
-定義するものであり、削ると成果物が要件違反になる。
+Control instructions passed to the generative model are not covered.
+Negative forms such as “no text,” “no person,” and “no watermark” do not describe past proposals; they define current output requirements, and removing them would make the deliverable violate those requirements.
 
-## 非適用
+## Not applicable
 
-判定は文書全体ではなく、節・記述の単位で行う。
-一つの文書に、経緯を記録する節と対外説明の節が同居することがあるため。
+Judgments are made by section/description, not by the entire document.
+This is because a section for recording the process and a section for external explanations may coexist in one document.
 
-次に該当する記述には使用しない。
+It should not be used in the following descriptions.
 
-- 却下仮説、方針の転換、失敗経路を保存すること自体が要件である節・記述
-  (ADR、議事録、ポストモーテム、`*.history.md`、作業継続用メモ、会話引き継ぎ文書などがこれに当たる)
-- レビュー指摘への返信で、採用しなかった理由が返答の内容そのものである場合
-- A案とB案の比較、監査記録、原因分析
-- 法令・契約・安全・医療・アクセシビリティ上の必要表示、現在有効な制約・保証範囲、
-  互換性、移行手順、セキュリティ上の情報。以下ではこれらをまとめて**必須情報**と呼ぶ
-- ユーザーが明示的に求めた不使用訴求(「カフェインレス」を必ず入れる、など)
+- Clauses/descriptions in which it is a requirement to preserve rejection hypotheses, policy changes, and failure paths
+  (This includes ADR, minutes, postmortems, `*.history.md`, memos for continuing work, conversation handover documents, etc.)
+- In a reply to review feedback, when the reason for not adopting the suggestion is itself the content of the reply.
+- Comparison of plans A and B, audit records, cause analysis
+- Necessary displays related to laws, contracts, safety, medical care, and accessibility, currently valid restrictions and warranty scope,
+  Compatibility, migration instructions, and security information. Below, these are collectively referred to as **required information**.
+- Non-use appeal explicitly requested by the user (must include "decaffeinated", etc.)
 
-同じ文書内でも、非適用に当たらない対外説明の節は通常どおり検査する。
+Even within the same document, sections of external explanations that do not fall under the non-applicability exceptions are inspected as usual.
 
-判断が競合するときは、上から順に優先する。
+When there are conflicting decisions, prioritize from top to bottom.
 
-1. 必須情報
-2. 確認できる最新の事実・仕様
-3. ユーザーが最後に確定した現在状態。最新のユーザー指示は、それ以前の指定を更新する
-4. ユーザーが成果物へ明示するよう指定した内容。ただし 2・3 と矛盾しない場合に限る。
-   矛盾する場合は出力せず、どちらを取るかを確認する
-5. それ以前の案や変更経緯
+1. Required information
+2. Latest facts and specifications available
+3. The current state last determined by the user. Latest user instructions update previous specifications
+4. Content specified by the user to be displayed in the deliverable. However, this is limited to cases that do not contradict items 2 and 3.
+   If there is a conflict, do not output it and check which one to take.
+5. Previous plans and changes
 
-## 判定
+## Judgment
 
-書くかどうかは二段階で決める。順序を入れ替えない。
+Deciding whether to write or not is a two step process. Do not change the order.
 
-### 第1段階: 根拠判定
+### Stage 1: Grounds determination
 
-> **確認可能な最新資料(差分、チケット、仕様、決定記録、最新のユーザー確定状態)だけから、
-> この主張全体(状態、変更、理由、因果)を裏付けられるか。**
+> **From only the latest verifiable materials (differences, tickets, specifications, decision records, the latest user-confirmed state),
+> can you support this entire claim (state, change, reason, cause and effect)?**
 
-完成後の成果物本文は根拠に含めない。自分が今書いた文を根拠にすると判定が循環する。
-会話の記憶も根拠にしない。記憶に頼った判断は、このスキルが防ごうとしている失敗そのものになる。
+Do not count the finished text as evidence. If you base your judgment on the sentence you just wrote, the reasoning becomes circular.
+Do not rely on memory of the conversation either. A judgment that relies on memory produces the very mistakes this skill is trying to prevent.
 
-対象語が存在するかではなく、主張全体が裏付けられるかを見る。
-「並行処理」が差分にあっても、「競合を避けるため」という理由が資料のどこにもなければ、
-その主張は裏付けられていない。
+Look not at whether the target word exists, but at whether the entire claim is supported.
+Even if "parallel processing" appears in the diff, if the reason "to avoid conflicts" appears nowhere in the materials,
+that claim is not supported.
 
-**失敗した場合は、削除するかユーザーに確認する。文脈を足して救済してはならない。**
+**If it fails, delete it or ask the user. Do not try to save it by adding context.**
 
-### 第2段階: 自己完結性判定
+### Stage 2: Self-sufficiency determination
 
-第1段階を通った主張について、次を判定する。
+For claims that pass the first stage, determine the following:
 
-> **完成後の成果物本文と、読者が参照できる資料だけで、元の会話を知らない読者が
-> 前提・根拠・結論を理解できるか。**
+> **Using only the finished text and the materials the reader can consult, can a reader who did not see the original conversation
+> understand the premise, basis, and conclusion?**
 
-**失敗した場合は、確認済みの現在情報だけを使って補足する。**
-却下・訂正された過去の会話経緯に由来する情報で補ってはならない。
+**In case of failure, supplement by using only confirmed current information.**
+Do not supplement with information derived from past conversations that have been rejected or corrected.
 
-### 照合先
+### Verification destination
 
-第1段階の照合先は、主張の種類によって分ける。
+The targets of the first stage are divided according to the type of claim.
 
-- **変更の事実**(何が追加・削除・変更されたか): 差分で照合する
-- **理由・因果・設計判断**: チケット、仕様、設計文書、決定記録、
-  および現在の会話で直接確認できる最新の明示的なユーザー確定状態で照合する
+- **Fact of change** (what was added/deleted/changed): Check by difference
+- **Reasons/Causes/Design Judgments**: Tickets, specifications, design documents, decision records,
+  and the latest explicitly confirmed user state that can be seen directly in the current conversation.
 
-過去案を記憶や推測で再構成したものは、照合先に含めない。
-含めてよいのは、いま直接確認できる最新の明示指示だけ。
+Past drafts reconstructed from memory or speculation will not be included in the comparison.
+Only the most recent explicit instructions that can be directly verified are allowed to be included.
 
-| 種別 | 例 | 扱い |
+| Type | Example | Treatment |
 |---|---|---|
-| 削除した(存在した → 消えた) | `remove unused retry wrapper` | 残す。差分で裏付けられる |
-| 追加しなかった(会話でのみ提案され却下) | 「リトライ機構は不要と判断したため見送った」 | 出さない。却下された過去の会話経緯にしか根拠がない |
-| 現在有効な設計上の制約 | 「並行実行は握り潰さず呼び出し側に委ねる」 | 仕様・チケット・コード上の記述、または最新の明示的なユーザー確定状態で裏付けられる場合に限り残す |
+| Deleted (existed → disappeared) | `remove unused retry wrapper` | Leave. Supported by differences |
+| Not added (suggested only in conversation and rejected) | "The retry mechanism was judged to be unnecessary, so I decided not to add it" | Do not include it; the only basis is the past conversation in which it was rejected |
+| Currently valid design constraints | "Do not silently suppress concurrent execution; leave its handling to the caller" | Include only if supported by specifications, tickets, code descriptions, or the latest explicit user-confirmed state |
 
-## 手順
+## Procedure
 
-1. **読み手と資料を定義する。** 想定読者と、その読者が参照できる資料を先に決める。
-   読者が複数いる場合は、最も情報の少ない読者を基準にする
-   (例: PR レビュアーはチケットを見られるが、後から履歴だけ読む保守者は見られない)。
-2. **分離する。** 会話を「現在確定している内容」「却下・訂正された経緯」「成果物へ明示すると指定された内容」に分ける。
-3. **現在状態だけで下書きを組む。** 「Xを書かない」という否定形の指示を自分への brief に混ぜない。
-   X が無くても成立する肯定形で組み立てる。
-   却下・訂正された過去の会話経緯だけに由来する理由や旧案を材料に入れない。
-   ただし、現在の判断に必要で、第1段階の根拠判定を通る制約・理由は含める。
-   ただし現在の出力要件を定義する制御命令は、この制限の対象外。
-4. **判定する。** 下書きの各主張に第1段階(根拠判定)、次に第2段階(自己完結性判定)を適用する。
-   コード関連では、先に成果物が説明する変更集合を特定してから引く。
-   - commit: staged 差分、unstaged 差分、未追跡ファイルを区別する
-   - PR: base–head の差分を使う
-   - 既存コミット: 該当する range を使う
-5. **直して照合し直す。** 第1段階に落ちた箇所は削除するか確認する。
-   第2段階に落ちた箇所は、確認済みの現在情報だけで補足する。
-   節の構造そのものが旧案中心になっている場合は、その節を手順3から組み直す。
-   一文の問題であれば局所修正でよい。
-   修正後、元の要件と、非適用に定義した必須情報が残っているかを照合し、
-   欠落があれば手順3へ戻る。
+1. **Define your audience and materials.** Decide in advance who your intended audience is and what materials they can refer to.
+   If there are multiple readers, use the reader with the least information as the standard.
+   (Example: PR reviewers can see tickets, but maintainers who only read the history later cannot.)
+2. **Separate.** Divide the conversation into “contents that are currently finalized,” “process of rejection/correction,” and “content the user specified to be stated explicitly in the deliverable.”
+3. **Create a draft based only on the current state.** Don't mix negative instructions such as "don't write X" in your brief.
+   Construct it in an affirmative form that holds true even without X.
+   Do not include reasons derived solely from past conversations that were rejected or revised, or old proposals.
+   However, constraints and reasons that are necessary for the current judgment and that pass the first-stage basis judgment should be included.
+   However, control instructions that define current output requirements are not subject to this restriction.
+4. **Judge.** Apply the first stage (foundation determination) and then the second stage (self-sufficiency determination) to each claim in the draft.
+   For code, first identify the set of changes described by the artifact, then consult the diff.
+   - commit: distinguish between staged diffs, unstaged diffs, and untracked files
+   - PR: Use base–head diffs
+   - Existing commit: use appropriate range
+5. **Correct and check again.** Delete claims that failed the first stage or ask the user about them.
+   For areas that failed in the second stage, supplement with only confirmed current information.
+   If the structure of the section itself is based on the old proposal, reorganize that section from step 3.
+   If it is a one-sentence problem, local correction is sufficient.
+   After modification, check whether the original requirements and the required information defined as non-applicable remain.
+   If anything is missing, return to step 3.
 
-## 検査で拾う対象
+## What to pick up during inspection
 
-会話の中で却下・訂正された内容に由来する表現だけを拾う。
+Pick up only expressions that originate from content that was rejected or corrected in the conversation.
 
-- 却下語・その言い換え・上位語・婉曲表現
-- 削除理由、変更説明(「以前は」「代わりに」「今回は見送った」「不要と判断した」)
-- 却下された案の不在が、見出し・冒頭・結論の主題になっていないか
-- 画像・動画では、削除した物体の輪郭・影・容器・プレースホルダー、および音声に残る旧案の台詞
+- Dismissal words, their paraphrases, hypernyms, euphemisms
+- Reason for deletion, explanation of change (「以前は」 “previously”, 「代わりに」 “instead”, 「今回は見送った」 “decided not to do it this time”, 「不要と判断した」 “judged unnecessary”)
+- Is the absence of a rejected proposal the subject of the headline, opening, or conclusion?
+- In images and videos, outlines, shadows, containers, placeholders of deleted objects, and old lines that remain in the audio
 
-現在有効な制約・仕様・注意喚起としての否定表現は拾わない。
-生成モデルへの制御命令も拾わない。
-コードや文章を対象にするときは、画像・動画向けの視覚検査は適用しない。
+Negative expressions that are currently valid restrictions, specifications, or warnings will not be picked up.
+It also does not pick up control instructions to the generative model.
+Visual inspection for images and videos is not applicable when targeting code or text.
 
-実ファイルを確認していない媒体について、検査済みと報告しない。
+Media whose actual files have not been verified will not be reported as verified.
 
-## 却下案の行き先
+## Where do rejected proposals go?
 
-非適用に該当する記録は、それぞれの要件に従って保存する。
-非適用に当たらず、**過去の経緯としてのみ意味を持つ内容**は、
-現在状態を伝える本体や対外説明へ出さない。
+Retain records covered by the non-applicability exceptions according to their respective requirements. Do not include content outside those exceptions that has meaning only as past history in the main text or external explanations.
 
-- Runbook と実装計画については、`AGENTS.md` の履歴管理規約が定める条件
-  (手順・方針の実質的な撤回または転換など)に当たる場合に限り `<stem>.history.md` へ記録する。
-  条件に満たないものは記録しない。
-- それ以外の成果物では、経緯の保存先を勝手に作らない。保存が必要かはユーザーに確認する。
+- For runbooks and implementation plans, record an item in `<stem>.history.md` only when it meets the conditions in “Runbook/plan history management” of `link-targets/agents/skills/implementation-planning/SKILL.md`
+  (for example, a substantive withdrawal or reversal of a procedure or policy). Do not record items that do not meet the conditions.
+- For other artifacts, do not create a place to keep the details on your own. If keeping them is necessary, ask the user.
 
-一方、**現在の判断を理解・実行するために必要な制約と理由**は、却下案に触れていても成果物へ残す。
-その場合は読み手が復元できる形で、選択肢として文脈ごと書く。
+On the other hand, **constraints and reasons necessary to understand and implement the current decision** are left in the deliverable even if they mention the rejected proposal.
+In that case, write the context in a way that the reader can restore it as an option.
 
-## 完了条件
+## Completion conditions
 
-- 却下された過去の会話経緯に由来する語句・言い換え・否定形が、非適用の記述以外に残っていない
-- 却下された過去の会話経緯にしか根拠のない削除理由・変更説明・不在の強調が残っていない
-- 見出し、冒頭、結論が現在の目的を主題にしている
-- 各主張が第1段階(根拠判定)を通っており、その判定に完成後の本文を根拠として使っていない
-- 第2段階(自己完結性判定)で補った文脈が、確認済みの現在情報だけで構成されている
-- コード関連では、手順4で特定した変更集合を実際に照合した
-- 修正後に元の要件と必須情報を照合し、検査によって落ちていないことを確認した
-- 未確認の媒体を検査済みと報告していない
-- 成果物が削除跡に見えず、現在の内容だけで自然に成立している
+- No phrases, paraphrases, or negative forms derived from the rejected or corrected conversation history remain outside statements covered by the non-applicability exceptions.
+- There are no reasons for deletion, explanation of changes, or emphasis on absence that are based only on past conversations that led to rejection.
+- The heading, introduction, and conclusion address the current purpose.
+- Each claim has passed the first stage (foundation determination), and the completed text is not used as a basis for that determination.
+- The context supplemented in the second stage (determination of self-sufficiency) consists only of confirmed current information.
+- Regarding code, we actually verified the change set identified in step 4.
+- After modification, compare against the original requirements and required information, and confirm that inspection did not omit them.
+- Not reporting unconfirmed media as inspected
+- Deliverables do not look like deletion traces and are naturally established with only the current contents.

@@ -1,25 +1,25 @@
-# clone せずに GitHub リポジトリの内容を変更する
+# Modify the contents of a GitHub repository without cloning
 
-> **Maintenance note:** このガイドは GPT-Chat から参照される外部向け shared reference である。repository runtime の activation path は要求せず、`reference-map.json` の `external_consumers` 登録を存続根拠として扱う。
+> **Maintenance note:** This guide is an external shared reference referenced by GPT-Chat. It does not require an activation path in the repository runtime; its registration under `external_consumers` in `reference-map.json` is treated as the reason for keeping it.
 
-GitHub CLI (`gh`) を使い、`git clone` せずに GitHub 上のファイル、branch、commit、Pull Request を操作するときの実用ガイド。
-GitHub service/API の normative contract は `link-targets/agents/skills/github/SKILL.md` を優先し、この文書は操作方法のリファレンスとして扱う。外部 write の authorization は `link-targets/agents/skills/external-operation-authorization/SKILL.md` に従う。GitHub token / repository permission と、ユーザーが許可した semantic authorization boundary は別物として扱う。
+A practical guide to working with files, branches, commits, and pull requests on GitHub using the GitHub CLI (`gh`) and without `git clone`.
+The GitHub service/API normative contract prioritizes `link-targets/agents/skills/github/SKILL.md`, and this document is treated as a reference for operating methods. External write authorization follows `link-targets/agents/skills/external-operation-authorization/SKILL.md`. GitHub token / repository permission and the semantic authorization boundary granted by the user are treated as different things.
 
-## 基本方針
+## Basic policy
 
-対象を変数にすると再利用しやすい。
+Making the target a variable makes it easier to reuse.
 
 ```bash
 REPO="owner/repository"
 BRANCH="main"
 ```
 
-単一ファイルの作成・更新・削除には Contents API、複数ファイルを1コミットにまとめる場合は Git Data API を使う。
-レビューを経る変更では、base branch を直接更新せず、topic branch を作って PR にする。
+Use the Contents API to create, update, or delete a single file, and use the Git Data API to combine multiple files into one commit.
+For changes that go through review, create a topic branch and make it a PR instead of updating the base branch directly.
 
-## ファイルを読む
+## Read file
 
-raw content を取得する。
+Get raw content.
 
 ```bash
 gh api \
@@ -27,15 +27,15 @@ gh api \
   -H "Accept: application/vnd.github.raw+json"
 ```
 
-metadata や blob SHA が必要なら通常の JSON response を使う。
+If you need metadata or blob SHA, use regular JSON response.
 
 ```bash
 gh api "repos/$REPO/contents/path/to/file?ref=$BRANCH"
 ```
 
-## 単一ファイルを作成・更新する
+## Create/update a single file
 
-新規作成では `sha` は不要。更新では現在の blob SHA が必要。
+`sha` is not required for new creation. Update requires current blob SHA.
 
 ```bash
 SHA=$(gh api "repos/$REPO/contents/path/to/file?ref=$BRANCH" --jq '.sha')
@@ -49,10 +49,10 @@ gh api --method PUT \
   -f branch="$BRANCH"
 ```
 
-新規作成時は同じ PUT から `-f sha="$SHA"` を除く。
-Contents API は1回の更新ごとに commit を作るため、複数ファイルを1コミットにしたい場合には向かない。
+When creating a new file, remove `-f sha="$SHA"` from the same PUT.
+The Contents API creates a commit for each update, so it is not suitable if you want to combine multiple files into one commit.
 
-## ファイルを削除する
+## Delete file
 
 ```bash
 SHA=$(gh api "repos/$REPO/contents/path/to/file?ref=$BRANCH" --jq '.sha')
@@ -64,11 +64,11 @@ gh api --method DELETE \
   -f branch="$BRANCH"
 ```
 
-同一 branch に対する Contents API の write は競合を避けるため逐次実行する。
+Execute Contents API writes to the same branch sequentially to avoid conflicts.
 
-## topic branch を作る
+## Create a topic branch
 
-base branch の commit SHA から新しい ref を作る。
+Create a new ref from the base branch's commit SHA.
 
 ```bash
 BASE_BRANCH="main"
@@ -82,18 +82,18 @@ gh api --method POST \
   -f sha="$BASE_SHA"
 ```
 
-以後の Contents API 操作では `BRANCH="$TOPIC_BRANCH"` を指定する。
+Specify `BRANCH="$TOPIC_BRANCH"` in subsequent Contents API operations.
 
-## 複数ファイルを1コミットにまとめる
+## Combine multiple files into one commit
 
-Git Data API を使い、現在の commit → base tree → new tree → new commit → ref update の順に進める。
+Using Git Data API, proceed in the order of current commit → base tree → new tree → new commit → ref update.
 
 ```bash
 COMMIT_SHA=$(gh api "repos/$REPO/git/ref/heads/$BRANCH" --jq '.object.sha')
 TREE_SHA=$(gh api "repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha')
 ```
 
-既存 tree を保持したまま変更対象だけを置き換える。
+Replace only the changes while keeping the existing tree.
 
 ```json
 {
@@ -115,14 +115,14 @@ TREE_SHA=$(gh api "repos/$REPO/git/commits/$COMMIT_SHA" --jq '.tree.sha')
 }
 ```
 
-JSON を `/tmp/tree.json` に保存した場合:
+If you save JSON to `/tmp/tree.json`:
 
 ```bash
 NEW_TREE=$(gh api --method POST "repos/$REPO/git/trees" \
   --input /tmp/tree.json --jq '.sha')
 ```
 
-commit object を作る。
+Create a commit object.
 
 ```json
 {
@@ -132,7 +132,7 @@ commit object を作る。
 }
 ```
 
-`/tmp/commit.json` に保存した場合:
+If saved to `/tmp/commit.json`:
 
 ```bash
 NEW_COMMIT=$(gh api --method POST "repos/$REPO/git/commits" \
@@ -143,11 +143,11 @@ gh api --method PATCH \
   -f sha="$NEW_COMMIT"
 ```
 
-`base_tree` を省略すると既存ファイルを保持しない tree を意図せず作る可能性があるため、部分更新では必ず現在の tree を base にする。
+If `base_tree` is omitted, a tree that does not hold existing files may be unintentionally created, so be sure to use the current tree as the base for partial updates.
 
-## Pull Request を作る
+## Create a pull request
 
-topic branch に commit が存在する状態で:
+With a commit on topic branch:
 
 ```bash
 gh pr create \
@@ -158,37 +158,37 @@ gh pr create \
   --body "Update configuration without cloning the repository."
 ```
 
-repository に PR template がある場合は、その構成とチェック項目を保持する。
+If there is a PR template in the repository, retain its configuration and check items.
 
-## 使い分け
+## Choosing a method
 
-| 目的 | 推奨手段 |
+| Purpose | Recommended method |
 | --- | --- |
-| ファイルを読む | `gh api` Contents API |
-| 1ファイルを作成・更新・削除 | Contents API |
-| 数ファイルを変更し、commit が分かれてよい | Contents API を逐次実行 |
-| 複数ファイルを1コミットにする | Git Data API |
-| レビューを経て反映する | topic branch → API write → PR |
-| 大量変更、build、test、複雑な差分確認 | local checkout / `git clone` |
+| Read file | `gh api` Contents API |
+| Create/update/delete 1 file | Contents API |
+| Change several files where separate commits are acceptable | Execute Contents API sequentially |
+| Combining multiple files into one commit | Git Data API |
+| Reflect after review | topic branch → API write → PR |
+| Mass changes, build, test, complex difference checking | local checkout / `git clone` |
 
-## 外部 write の認可と read-back
+## External write authorization and read-back
 
-Contents API、ref 更新、Git Data API、PR 作成は、それぞれ独立した logical operation として扱う。各 write の直前に、対象 repository / resource、操作、意味的内容、反映先、使用主体・account・権限が、ユーザーから許可された authorization boundary 内であることを確認する。
+Contents API, ref update, Git Data API, and PR creation are each treated as independent logical operations. Immediately before each write, confirm that the target repository/resource, operation, semantic content, destination, acting principal, account, and permissions are within the authorization boundary granted by the user.
 
-成功応答だけで完了扱いにせず、対象 file SHA、ref SHA、commit、PR など、その logical operation に対応する remote state を read-back して外部効果を確認する。timeout や不明応答は outcome ambiguous とし、未適用を確認できるまで同じ write を再送しない。成功済みの logical operation も再送しない。
+Instead of treating it as complete just by a successful response, check the external effects by reading back the remote state corresponding to the logical operation, such as the target file SHA, ref SHA, commit, PR, etc. For timeout and unknown responses, the outcome is ambiguous, and the same write is not retransmitted until it is confirmed that it has not been applied. Do not retransmit successful logical operations.
 
-authorization boundary の記録、消費、retry budget、ambiguous outcome、操作後記録の詳細は `link-targets/agents/skills/external-operation-authorization/SKILL.md` を正本とし、このガイドでは複製しない。
+The details of authorization boundary recording, consumption, retry budget, ambiguous outcome, and post-operation recording are defined canonically in `link-targets/agents/skills/external-operation-authorization/SKILL.md` and are not duplicated in this guide.
 
-## 注意事項
+## Precautions
 
-- write には対象 repository への適切な権限が必要。これはユーザーによる外部操作の認可とは別に確認する。
-- `.github/workflows` など一部の path では追加権限が必要になる場合がある。
-- branch protection や ruleset がある場合は、その制約に従う。
-- API write 前に対象 repository、branch、path、現在の SHA を確認する。
-- timeout や不明応答の直後に write を再送せず、remote state を read-back して結果を確認する。
-- 大量変更やローカルでの build/test が必要な作業では、clone / checkout の方が単純で安全なことが多い。
+- write requires appropriate permissions to the target repository. This is checked separately from the user's authorization for external operations.
+- Some paths, such as `.github/workflows`, may require additional privileges.
+- If there is a branch protection or ruleset, follow its restrictions.
+- Check the target repository, branch, path, and current SHA before API write.
+- Do not resend write immediately after timeout or unknown response, read-back the remote state and check the result.
+- For tasks that require large-scale changes or local build/test, clone/checkout is often simpler and safer.
 
-## 公式リファレンス
+## Official reference
 
 - GitHub CLI: [`gh api`](https://cli.github.com/manual/gh_api)
 - GitHub REST API: [Repository contents](https://docs.github.com/en/rest/repos/contents)

@@ -1,46 +1,46 @@
 ---
 name: codex-project-roots
-description: Codexデスクトップの`.codex-global-state.json`にあるローカルプロジェクトの`rootPaths`を、ユーザーが`$codex-project-roots`またはこのSkillの使用を明示したときだけ安全に編集する。通常のCodex設定、ワークスペース操作、暗黙のルート追加には使わない。
+description: Safely edit `rootPaths` of a local project in `.codex-global-state.json` of Codex Desktop, only when the user explicitly invokes `$codex-project-roots` or this skill. Do not use it for ordinary Codex configuration, workspace operations, or implicit addition of roots.
 ---
 
-# Codexプロジェクトのルート編集
+# Editing the roots of a Codex project
 
-Codexデスクトップが保持するローカルプロジェクト定義のうち、指定されたプロジェクトの`rootPaths`だけを更新する。これは公開された設定ファイルではなく、Codexが管理する内部状態なので、現在の内容を確認してから最小限に変更する。
+Update only the `rootPaths` of the specified project among the local project definitions kept by Codex Desktop. This is not a published configuration file but internal state managed by Codex, so check the current contents first and make the smallest possible change.
 
-## 発動条件
+## Activation conditions
 
-- `$codex-project-roots`の明示呼び出し、または「このSkillを使って」と明示された依頼でだけ使用する。
-- 通常のJSON編集、`config.toml`の変更、プロジェクトを作成・削除する依頼から暗黙に発動しない。
-- 対象の状態ファイル、対象プロジェクト、追加・削除するルートを依頼から確定できない場合は、推測せず確認する。
+- Use only when `$codex-project-roots` is invoked explicitly, or when a request explicitly says 「このSkillを使って」 ("use this skill").
+- Do not activate implicitly from ordinary JSON editing, changes to `config.toml`, or requests to create or delete a project.
+- If the target state file, the target project, or the roots to add or remove cannot be fixed from the request, ask for confirmation instead of guessing.
 
-## 対象の確定
+## Fixing the target
 
-1. まず対象のプロファイル名またはプロファイルルートと、そこから解決した**一つの絶対パス**を確定する。`CODEX_HOME`、通常の`~/.codex`、個人用`~/.codex-personal`、WSL用ホームは同一視しない。依頼で対象が明示されない、候補が複数ある、または解決できない場合は停止する。プロファイルルートと最終状態ファイルを実体の絶対パスへ正規化し、計画・スナップショット識別子・承認対象にその両方を記録する。
-2. 状態ファイルが通常ファイルであり、意図しないシンボリックリンク・再解析点・別ファイルへの別名でないことを確認する。親ディレクトリを含む既存の各パス要素も正規化し、シンボリックリンク、ジャンクション、再解析点などの別名を経由していれば停止する。存在しない、読めない、JSONとして不正な場合は書き込まない。
-3. JSONを構造として読み、`local-projects`からプロジェクトを選ぶ。名前だけで一意に決まらない場合はIDまたは既存`rootPaths`も照合し、対象レコードを一つに固定する。
-4. `local-projects`がオブジェクトであることを確認し、対象レコードのJSONポインターをRFC 6901形式の`/local-projects/<エスケープ済みキー>/rootPaths`として記録する。固定したキーの`~`は`~0`、`/`は`~1`へエスケープし、`["..."]`形式や未定義の省略記法は使わない。`rootPaths`が文字列配列であることを確認し、変更前の配列全体と承認後に期待する配列全体を値・順序付きで記録する。欠落、重複、型違い、複数候補があれば書き込まず停止する。
-5. 追加・削除するパスはユーザーが指定した、対象ホストで解釈できる空でない絶対パス（NUL文字や未確定のワイルドカードを含まない）として扱い、相対パス・別OSの記法・解決不能な表記は確認なしに受け入れない。既存の表記を勝手に正規化・改名せず、既存順を保ち、同じ文字列は重複追加しない。
-6. `electron-saved-workspace-roots`、`active-workspace-roots`、`thread-writable-roots`は別の状態である。プロジェクトの`rootPaths`を変更する依頼では、これらを同時に変更しない。
+1. First fix the target profile name or profile root, and **one absolute path** resolved from it. Do not treat `CODEX_HOME`, the regular `~/.codex`, the personal `~/.codex-personal`, and the WSL home as the same. If the request does not state the target, there are multiple candidates, or it cannot be resolved, stop. Normalize the profile root and the final state file to the absolute paths of the real files, and record both in the plan, the snapshot identifier, and the approval target.
+2. Confirm that the state file is a regular file and is not an unintended symbolic link, reparse point, or alias of another file. Also normalize each existing path element, including the parent directories, and stop if the path goes through an alias such as a symbolic link, junction, or reparse point. If the file does not exist, cannot be read, or is invalid as JSON, do not write.
+3. Read the JSON as a structure and select the project from `local-projects`. If the name alone does not identify it uniquely, also match the ID or the existing `rootPaths`, and fix the target record to exactly one.
+4. Confirm that `local-projects` is an object, and record the JSON pointer of the target record in RFC 6901 form as `/local-projects/<escaped key>/rootPaths`. Escape `~` in the fixed key as `~0` and `/` as `~1`, and do not use the `["..."]` form or undefined shorthand. Confirm that `rootPaths` is an array of strings, and record the whole array before the change and the whole array expected after approval, with values and order. If `rootPaths` is missing, duplicated, of the wrong type, or there are multiple candidates, stop without writing.
+5. Treat the paths to add or remove as non-empty absolute paths specified by the user that the target host can interpret (containing no NUL character and no undetermined wildcard). Do not accept relative paths, notation for another OS, or notation that cannot be resolved without confirmation. Do not normalize or rename existing entries on your own, keep the existing order, and do not add the same string twice.
+6. `electron-saved-workspace-roots`, `active-workspace-roots`, and `thread-writable-roots` are separate state. When asked to change a project's `rootPaths`, do not change these at the same time.
 
-## 変更前の確認
+## Confirmation before changing
 
-- 正規化済みのプロファイルルートと最終状態ファイル、対象プロジェクト、固定したRFC 6901ポインター、変更前の`rootPaths`全体、変更後の期待値、追加・削除するパス、変更しないキーを実行前に示し、その**正確な差分へのユーザー承認を得るまで読み取り専用で止まる**。Skillの明示呼び出しだけを変更承認とはみなさない。ただし、同じ依頼文に対象と差分が完全に記載され、変更を明示的に求めている場合は、その依頼を承認として記録する。
-- `.codex`、`.codex-personal`、`.claude`、`.config`などは履歴・認証・実行時状態を含む可能性がある。対象に含めるにはユーザーの明示を必要とし、明示がないディレクトリを推測で追加しない。
-- 書き込み前に、(a)対象ホストでCodexデスクトップのプロセス停止と再起動・書き込みを取引区間全体にわたりOSレベルで禁止する、または(b)Codexデスクトップとの競合を直列化できる、ホストが強制する排他ロックを取得する。単なる手動終了や一時点のプロセス不在確認は再起動を防がないため、(a)の「検証済み終了状態」とはみなさない。許容するロックは、同じホスト名前空間でCodex側も尊重することが確認できる`flock`/排他オープン、またはWindowsの`FileStream`＋`FileShare.None`などに限る。単なる助言的ロック、アプリが尊重するか不明なロック、直列化を証明できないロックは不可とし、どちらも確認できなければ進めず競合の不確実性を報告する。取得したロックまたはOSレベルの終了抑止は、スナップショット取得から置換、置換後の最終検証、バックアップ検証、最終報告の準備まで保持し、解放前に再確認する。
+- Before executing, show the normalized profile root and final state file, the target project, the fixed RFC 6901 pointer, the whole `rootPaths` before the change, the expected value after the change, the paths to add and remove, and the keys that stay unchanged, and **stay read-only until the user approves that exact diff**. Explicitly invoking the skill is not by itself approval of a change. However, if the same request fully describes the target and the diff and explicitly asks for the change, record that request as the approval.
+- `.codex`, `.codex-personal`, `.claude`, `.config`, and similar directories may contain history, credentials, and runtime state. Including one as a target requires the user's explicit statement, and a directory that was not explicitly stated must not be added by guessing.
+- Before writing, either (a) stop the Codex Desktop process on the target host and forbid both restarting and writing at the OS level for the whole transaction interval, or (b) acquire a host-enforced exclusive lock that can serialize against Codex Desktop. Manually quitting, or confirming at one point in time that no process exists, does not prevent a restart, so it does not count as the "verified stopped state" of (a). The locks allowed are limited to `flock` or an exclusive open that is confirmed to be honored by the Codex side in the same host namespace, or `FileStream` with `FileShare.None` on Windows, and the like. Do not accept a merely advisory lock, a lock whose respect by the application is unknown, or a lock that cannot prove serialization; if neither (a) nor (b) can be confirmed, do not proceed and report the uncertainty about conflicts. Keep the acquired lock, or the OS-level stop, from snapshot acquisition through replacement, the final verification after replacement, backup verification, and preparing the final report, and reconfirm it before releasing it.
 
-## 安全な更新
+## Safe update
 
-1. 取得した排他ロック、またはOSレベルで再起動を抑止した終了状態を、スナップショット、バックアップ、変換、検証、置換、置換後の最終検証、バックアップと親ディレクトリの永続化確認が終わるまで維持する。ロックを途中で解放したり、ハッシュ確認だけを排他制御の代わりにしたりしない。
-2. JSONのパースと変換に`jq`、またはPowerShellの`ConvertFrom-Json`/`ConvertTo-Json`などの構造化ツールを使う。ツールが重複キー、非有限値、精度を失う数値、その他の未対応構文を厳密に拒否または元の意味を証明できない場合は書き込まない。PowerShellを使う場合は、完全な入れ子を保持できる十分な`-Depth`を指定し、保持できたことを構造比較で検証する。オブジェクトのキー順とJSONの空白は比較時に無視するが、配列の順序、文字列、真偽値、`null`、数値の値・精度は完全一致とし、`1`と`1.0`を別表現の数値として扱う。元の数値表現を保持・比較できないツールは、非対象に数値がある状態で使わない。`grep`や正規表現によるJSONの部分置換は行わない。
-3. 書き込み直前の状態ファイルを、同じディレクトリに排他的に日時付きバックアップとして保存する。既存バックアップを上書きせず、元のモード、ACL、所有者を可能な範囲で保持・検証する。バックアップの内容とメタデータを検証し、`fsync`またはWindowsの`FlushFileBuffers`相当でファイルを永続化した後、バックアップを含む親ディレクトリのメタデータもフラッシュする。ファイルまたは親ディレクトリを永続化できない場合は置換へ進まない。
-4. 固定したRFC 6901ポインターに対する候補JSONを作り、置換前に変更前スナップショットから**そのポインターの対象部分木だけを、記録した旧配列から承認済みの新配列へ一度だけ置換して得られる期待文書**と候補JSONを比較する。この比較により、対象部分木の外側の構造・値・型に差分がなく、対象ポインターの値が正確な期待配列であることを同時に要求する。オブジェクトのキー順・空白以外の差分、ポインターの曖昧な解決、削除対象外のパスがあれば停止する。削除はユーザーが明示したパスだけに限る。
-5. 一時ファイルを状態ファイルと同じディレクトリ・ファイルシステムに作り、元ファイルのモード、ACL、所有者を設定してメタデータを検証し、パースと期待差分の検証に成功した後で`fsync`または`FlushFileBuffers`相当の耐久フラッシュを行う。OSが提供する同一ファイルシステム上の原子的な置換を使い、コピーで上書きしない。置換後は、対応する親ディレクトリのメタデータもフラッシュし、最終状態ファイルのモード、ACL、所有者が元ファイルと一致することを検証する。これらの耐久性、メタデータ保持、親ディレクトリの永続化、置換後メタデータ検証を保証できない環境では置換前に停止する。置換に失敗した一時ファイルだけを安全に掃除する。
-6. 置換直前にOSレベルの終了抑止または排他ロックがまだ有効であることを確認し、元ファイルのハッシュまたは同等の比較条件がスナップショットと一致しなければ置換せず停止する。
-7. バックアップ作成、構造検証、期待差分検証、フラッシュ、原子的置換のいずれかに失敗したら、再試行や別パスへの書き込みを自動で行わず報告する。
+1. Keep the acquired exclusive lock, or the stopped state with restart suppressed at the OS level, until the snapshot, backup, conversion, verification, replacement, the final verification after replacement, and the confirmation that the backup and the parent directory are durable are all complete. Do not release the lock partway, and do not use a hash check as a substitute for exclusive control.
+2. Use a structured tool, such as `jq` or PowerShell's `ConvertFrom-Json`/`ConvertTo-Json`, to parse and convert the JSON. If the tool cannot strictly reject duplicate keys, non-finite values, numbers whose precision would be lost, and other unsupported constructs, or cannot prove that the original meaning is preserved, do not write. When using PowerShell, specify a `-Depth` large enough to keep the full nesting, and verify with a structural comparison that it was kept. Ignore object key order and JSON whitespace in comparisons, but require an exact match for array order, strings, booleans, `null`, and numeric values and precision, and treat `1` and `1.0` as different numeric representations. Do not use a tool that cannot preserve and compare the original numeric representation when numbers exist outside the target subtree. Do not do partial replacement of JSON with `grep` or regular expressions.
+3. Save the state file as it is just before writing, as a timestamped backup created with an exclusive create in the same directory. Do not overwrite an existing backup, and preserve and verify the original mode, ACL, and owner as far as possible. After verifying the backup's contents and metadata and making the file durable with `fsync` or the Windows equivalent `FlushFileBuffers`, also flush the metadata of the parent directory that contains the backup. If the file or the parent directory cannot be made durable, do not proceed to replacement.
+4. Build a candidate JSON for the fixed RFC 6901 pointer, and before replacing, compare it with **the expected document obtained by replacing only that pointer's target subtree in the pre-change snapshot, once, from the recorded old array with the approved new array**. This comparison at the same time requires that there is no difference in structure, values, or types outside the target subtree, and that the value at the target pointer is exactly the expected array. Stop if there is any difference other than object key order or whitespace, if the pointer resolves ambiguously, or if a path outside the deletion targets would be removed. Limit deletion to the paths the user specified.
+5. Create a temporary file in the same directory and file system as the state file, set the original file's mode, ACL, and owner on it, verify the metadata, and after parsing succeeds and the expected diff is verified, perform a durable flush equivalent to `fsync` or `FlushFileBuffers`. Use the atomic replace on the same file system that the OS provides, and do not overwrite by copying. After the replacement, also flush the metadata of the corresponding parent directory, and verify that the mode, ACL, and owner of the final state file match the original file. In an environment where durability, metadata preservation, durability of the parent directory, and post-replacement metadata verification cannot be guaranteed, stop before replacing. Safely clean up only the temporary file of a replacement that failed.
+6. Immediately before replacing, confirm that the OS-level stop or the exclusive lock is still valid, and if the hash of the original file, or an equivalent comparison condition, does not match the snapshot, stop without replacing.
+7. If any of backup creation, structural verification, expected-diff verification, flushing, or the atomic replacement fails, report it without automatically retrying or writing to another path.
 
-## 検証と終了条件
+## Verification and exit conditions
 
-- 更新後のJSONを再度パースし、対象プロジェクトのRFC 6901ポインターにある`rootPaths`が、記録した承認済みの新配列と値・順序付きで一致することを確認する。この検証と次の比較は、排他ロックまたはOSレベルの終了抑止を保持したまま行う。
-- 更新前のスナップショットまたはバックアップから、固定したRFC 6901ポインターの対象部分木だけを旧配列から新配列へ置き換えて作った期待文書と更新後を深く比較し、対象部分木の外側に意図しない差分がないことを確認する。更新後のポインターは、ユーザーが承認した順序・重複除去の結果と一致させる。最終状態ファイルのモード、ACL、所有者、バックアップ内容・メタデータ、バックアップと状態ファイルの親ディレクトリの永続化確認が終わるまでロックまたは終了抑止を解放しない。
-- バックアップのパスと検証結果を報告する。状態ファイルをGitへ追加したり、認証情報や履歴の内容を表示したりしない。
-- このSkillはcommit、push、PR作成を行わない。Skill自体の変更を伴う場合は、動作確認後も未コミットで止め、ユーザー指定のAdviserレビューを受けてから、別途明示されたcommit依頼にだけ進む。
+- Parse the updated JSON again and confirm that `rootPaths` at the target project's RFC 6901 pointer matches the recorded, approved new array in values and order. Perform this verification and the comparison that follows while still holding the exclusive lock or the OS-level stop.
+- Deeply compare the updated document with the expected document made from the pre-update snapshot or backup by replacing only the target subtree at the fixed RFC 6901 pointer from the old array to the new array, and confirm that there is no unintended difference outside the target subtree. The updated pointer must match the order and deduplication result approved by the user. Do not release the lock or the stop until the final state file's mode, ACL, and owner, the backup's contents and metadata, and the durability of the backup's and the state file's parent directories have been confirmed.
+- Report the backup path and the verification results. Do not add the state file to Git, and do not display credentials or the contents of history.
+- This skill does not commit, push, or create a PR. If a change to the skill itself is involved, stop with it uncommitted even after checking its operation, and proceed only to a separately, explicitly requested commit after receiving the Adviser review the user specified.

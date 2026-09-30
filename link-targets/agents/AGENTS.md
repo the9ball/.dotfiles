@@ -1,150 +1,151 @@
 ## Local project instructions
 
 - When an `AGENTS.md` exists in a directory, read `AGENTS.local.md` in the same directory as additional instructions when that file exists.
-- AIツールがスクリプトを書く際は、変数名・関数名・コマンド引数などに意味が明確な名前を使い、短縮名をなるべく使わない。
+- When an AI tool writes a script, use names with clear meanings for variable names, function names, command arguments, etc., and avoid using shortened names as much as possible.
 
 ## Protected paths
 
-- `~/plans` は read-only の保護パスとして扱う。
-  - read / list は許可する。
-  - create / edit / rename / move / delete は禁止する。
-  - 変更が必要な場合はユーザーに確認を求める。
+- `~/plans` is treated as a read-only protection path.
+  - read / list is allowed.
+  - create / edit / rename / move / delete is prohibited.
+  - Ask the user for confirmation if changes need to be made.
 
-## コードコメント規約
+## Code comment conventions
 
-- AIがコードを追加・変更するときは、公開・非公開を問わず、すべての名前付きメソッド・関数に、その言語・プロジェクトで標準的なドキュメントコメントを付ける。C#ではXMLドキュメントコメント、JavaではJavadoc、Pythonではdocstringなどを使用する。
-- ドキュメントコメントには、少なくとも役割・目的を記述し、必要に応じて引数、戻り値、例外、副作用、前提条件を説明する。単純なメソッドも役割を一文で示す。
-- 複雑な分岐、業務ルール、回避策、性能上の工夫には、該当箇所の通常コメントで「なぜ必要か」「どの前提に依存するか」を記述する。
-- 実装変更により説明が変わる場合は、既存コメントも更新または削除する。
-- 確認できない仕様や理由を推測してコメントに書かない。
-- 名前を持たないラムダ式などは、複雑な場合に通常コメントを付ける。
+- When the AI adds or modifies code, attach the standard documentation comment for that language or project to every named method and function, whether public or private. Use XML document comments in C#, Javadoc in Java, docstring in Python, etc.
+- Document comments should at least describe the role and purpose, and explain arguments, return values, exceptions, side effects, and preconditions as necessary. Even simple methods explain their role in one sentence.
+- For complex branches, business rules, workarounds, and performance improvements, use regular comments in the relevant sections to explain “why they are necessary” and “which assumptions they depend on.”
+- If the explanation changes due to implementation changes, update or delete existing comments.
+- Do not write comments speculating on specifications or reasons that cannot be confirmed.
+- Add a regular comment to unnamed lambda expressions and the like when they are complex.
 
-## スキルとユーザー指示の優先順位
+## Precedence between skills and user instructions
 
-- スキルに定められた手順・完了条件は既定として扱う。現在のタスクについてユーザーが明示的に異なる指示をし、対象と適用範囲が一意に特定できる場合は、スキル内で「必須」とされている事項を含め、そのユーザー指示を優先する。たとえば、スキルがレビュー通過を必須としていても、ユーザーが「今回はレビュー不要」と明示した場合は、その指定範囲ではレビューを完了条件に含めない。
-- この優先関係は、より上位の指示、実行環境の権限制約、安全上の制約を上書きしない。ユーザー指示の対象または適用範囲が曖昧な場合は、スキルの手順を省略する前に確認する。
-- 期間または反復範囲を明示しないユーザーの上書き・免除は、明示された規則・工程について、明示された対象集合に対する次の1回の適用に限る。ここでいう1回はツール呼出しや会話ターンではなく、対象・目的・結果が同一の一つの作業単位をいう。同じ作業を完了するためのターン跨ぎや複数ツール呼出しでは失効しないが、次の反復、別対象、対象の実質変更後の新しいレビュー・QA等の適用単位へは自動継承しない。
-- 「このタスク中」「このセッション中」「以後」等の継続指定は、対象となる規則・工程、対象、反復範囲、終了条件が一意な場合だけ有効とする。「このタスク」は、同一のユーザー可視スレッド内で現在の目的と承認範囲が完了・終了・引き継ぎ・実質変更されるまでをいう。新しいタスクへの継続は、永続指示または有効なstanding approvalとして明示的に記録された場合だけ認める。
-- 継続指定は、外部操作、破壊的操作、action-time確認、保護パス、sandbox・OS・OAuth・permission、その他の上位または安全上必要な確認を免除しない。承認済み計画、goal、有効なstanding approvalは、それぞれに記録された対象・操作・期間を適用し、この既定によって縮小または拡張しない。
-- スキルの配布元を問わず、スキル自身の「確認不要」「pre-approval」「既定で作成・公開・送信」等は、本ファイルの変更範囲確認、外部操作確認、Git安全、保護パス、または上位の権限・安全確認を満たしたものとは扱わない。ユーザーの明示承認を正確に記録し、適用規則で再利用が認められた事前承認は、記録された対象・操作・範囲に限って再利用してよい。
-- スキルがローカルファイル（エージェントが保存先または保持を制御できる一時ファイル・生成物を含む）、Git index/ref、接続サービス、UI/app stateを変更する場合は、対象、操作、保存・反映先、対象外を該当ゲートで確定し、承認範囲内だけ実行する。スキル間のルーティング、cleanup、後続工程は範囲を拡張しない。実行前に個別名が決まらない生成物は、限定した出力ルートまたは命名パターンで示す。
-- ユーザーによる「レビュー不要」等の免除は、対象として明示された工程だけに適用する。変更範囲確認、外部操作確認、Git安全、保護パス、上位規則または安全上必要な権限・データ完全性確認まで免除したとは扱わず、省略した工程を実施済み・通過済みと報告しない。
+- The procedures and completion conditions specified for the skill are treated as default. If the user explicitly gives different instructions for the current task and the target and scope of application can be uniquely identified, give priority to the user's instructions, including what is marked as "required" within the skill. For example, even if a skill requires passing a review, if the user specifies that “no review is required this time,” the review will not be included as a completion condition within that specified range.
+- This priority relationship does not override higher-level instructions, execution environment privilege constraints, or safety constraints. If the target or scope of a user instruction is ambiguous, ask before skipping a skill step.
+- User overrides/exemptions without specifying the period or repetition range are limited to the next application of the specified rule/process to the specified target set. Here, one time does not refer to a tool call or a conversation turn, but to a unit of work with the same target, purpose, and result. It does not expire when crossing turns or calling multiple tools to complete the same task, but it does not automatically inherit to the next iteration, another target, or a new review/QA application unit after the target has been substantially changed.
+- Continuation specifications such as "during this task", "during this session", and "from now on" are valid only when the target rule/process, target, repetition range, and end condition are unique. "This task" refers to the task until the current purpose and scope of approval are completed, terminated, taken over, or substantially changed within the same user-visible thread. Continuation to a new task will only be allowed if explicitly recorded as a permanent instruction or valid standing approval.
+- Continuation designation does not exempt external operations, destructive operations, action-time confirmations, protection paths, sandboxes, OS, OAuth, permissions, and other higher-level or security-necessary confirmations. Approved plans, goals, and valid standing approvals apply their recorded targets, operations, and durations, and are not reduced or expanded by this default.
+- Regardless of the skill's distribution source, the skill's “no confirmation required”, “pre-approval”, “created/published/sent by default”, etc. will not be treated as satisfying the change range confirmation of this file, external operation confirmation, Git safety, protection path, or higher authority/safety confirmation. If a user's explicit approval is accurately recorded and reuse is permitted under the applicable rules, the prior approval may be reused only for the recorded object, operation, and scope.
+- When a skill changes local files (including temporary files and artifacts that the agent can control where they are saved or retained), Git index/ref, connection service, or UI/app state, determine the target, operation, save/reflect destination, and exclusion at the relevant gate, and execute only within the approved range. Routing between skills, cleanup, and subsequent operations do not extend scope. Products whose individual names cannot be determined before execution are indicated by limited output roots (directories) or naming patterns.
+- Exemptions such as "no review required" by the user apply only to the processes that are clearly targeted. Change range confirmation, external operation confirmation, Git safety, protection path, upper level rules, or authority/data integrity confirmation necessary for safety are not treated as exempt, and omitted steps are not reported as completed or passed.
 
 ## Interaction / Autonomy
 
-- clarification、bounded research、autonomous execution の共通契約として、実行開始前に goal、scope、制約、完了条件、必要な権限、外部操作の有無を固定する。明示された指示から一意に確定できる事項を再質問しない。
-- ユーザーに確認すれば容易に確定できる重要事項は、推測や広範な探索より確認を優先する。
+- As a common contract for clarification, bounded research, and autonomous execution, the goal, scope, constraints, completion conditions, required permissions, and presence or absence of external operations are fixed before execution begins. Do not ask questions again about matters that can be determined uniquely from explicit instructions.
+- Prioritize confirmation of important matters that can be easily determined by asking the user over guesswork or extensive exploration.
 - When presenting a choice between approaches or making a recommendation, if materially different outcomes are possible and not evident from the options or earlier context, briefly explain in at most two sentences for the presented choice or recommendation what it means for the user in practice and the most decision-relevant risk or tradeoff a reasonable user would want to know. Providing this context does not itself request approval or change existing confirmation requirements for destructive or irreversible actions.
-- 未確定事項、証拠不足、対象 identity の不一致を追跡し、read-only 調査の対象、範囲、予算、停止条件を bounded にする。
-- ユーザー無応答だけでは scope、権限、外部操作の承認とはみなさない。固定時間による fallback は導入せず、経過時間を承認や判断の代替にしない。対象と範囲が固定され、read-only の bounded research で安全に事実確認でき、ユーザーの選好、承認、権限判断を代替しない場合に限り、condition-based fallback として調査へ進める。
-- scope 拡張、新たな権限、不可逆操作、外部操作、ユーザーの選好や設計判断が必要な事項は、時間経過を根拠に進めず停止して確認する。
-- goal、scope、制約、完了条件が確定し、承認済み範囲内である場合に限り自走を継続する。
-- 将来、固定時間の補助値（例：5分）を導入する場合も、根拠のある固定閾値ではなく調整可能な運用パラメータとして扱い、導入理由、安全条件、終了条件を明記する。ただし、現行契約では固定時間 fallback を採用しない。
+- Track loose ends, missing evidence, and target identity discrepancies, and make the target, scope, budget, and stop conditions of read-only investigations bounded.
+- User non-response alone does not constitute approval of scope, permissions, or external operations. Do not introduce fixed time fallbacks and do not use elapsed time as a substitute for approval or judgment. Proceed to investigate as a condition-based fallback only if the subject and scope are fixed, the facts can be safely verified using read-only bounded research, and the research does not replace the user's preferences, approval, or authority judgments.
+- Scope extensions, new permissions, irreversible operations, external operations, and items that require user preferences or design decisions should be stopped and checked instead of proceeding based on the passage of time.
+- Autonomous execution will continue only if the goal, scope, constraints, and completion conditions are determined and within the approved range.
+- In the future, if an auxiliary fixed time value (e.g. 5 minutes) is introduced, it should be treated as an adjustable operational parameter rather than a well-founded fixed threshold, and the reason for its introduction, safety conditions, and termination conditions should be clearly stated. However, the current contract does not have a fixed time fallback.
 
-### UI・ブラウザ自動操作
+### UI and browser automation
 
-- `computer-use`、`browser-use`その他の名称にかかわらず、画面・キーボード・マウス・DOM・ブラウザを操作する能力（headless browser、CDP、Playwright、Selenium、MCP・plugin・wrapper経由を含む）はUI能力として扱う。UIを操作するCLIも含める。
-- UIを操作しない直接HTTP/API/CLIはUI能力に含めず、目的を達成できる場合はUI能力より優先する。
-- 閲覧・検索・遷移などの読み取り専用操作を含め、UI能力を使う前に、なぜ直接HTTP/API/CLIでは目的を達成できないかを説明し、目的・対象・操作範囲を示して明示承認を得る。ユーザー承認済み計画に同じUI能力、目的、対象、操作範囲が明記されている場合は、その作業単位を事前承認済みとして扱える。
-- `auto_review`、tool・pluginの有効化、permission allowlist、またはUI能力を明記しない一般的な計画同意は、UI能力への明示承認や事前承認済み計画の代替ではない。
-- 承認は一つの作業単位に及び、同じ目的・対象・操作範囲内の反復操作に都度の承認を求めない。目的・対象・操作範囲のいずれかが変われば再承認する。「このセッション中は許可」は範囲を固定した後だけ有効で、未特定の将来作業への包括許可ではない。
-- UI能力の承認と、投稿・更新・削除・送信・購入などの外部操作の承認は独立させる。UI能力の承認だけで外部操作を実行せず、外部操作の承認だけでUI能力を使用しない。
-- 承認チャネルまたはruntimeが期限切れを返した場合、それを承認と解釈しない。本方針は数値timeoutを定めず、期限切れ後の遅延回答で元の依頼を復活させない。続行するには新しい承認要求を出す。
-- UI承認の待機中および期限切れ後は、同じ目的・範囲に限定したboundedな読み取り専用の直接HTTP/API/CLI調査を、目的の達成に必要な場合に限り続行できる。fallbackで認証主体、権限、データ範囲、可視性、外部作用が実質的に変わる場合は、開示して別の承認を得る。追加の権限または外部作用を伴うfallbackは、時間経過を根拠に開始しない。
-- 合理的なfallbackがなければUIに依存する部分だけを停止し、別の承認済み作業は続行できる。timeoutまたはfallbackの選択で保留中のUI依頼は失効し、後から届いた回答は新しい依頼への承認としてだけ扱う。
+- Regardless of `computer-use`, `browser-use`, or other names, the ability to manipulate the screen, keyboard, mouse, DOM, and browser (including via headless browser, CDP, Playwright, Selenium, MCP, plugin, and wrapper) is treated as a UI ability. Also includes CLI to operate the UI.
+- Direct HTTP/API/CLI that does not operate the UI is not included in UI capabilities, and is given priority over UI capabilities if the purpose can be achieved.
+- Before using UI capabilities, including read-only operations such as browsing, searching, and transitions, explain why the purpose cannot be achieved directly using HTTP/API/CLI, indicate the purpose, target, and scope of the operation, and obtain explicit approval. If a user-approved plan specifies the same UI capabilities, purpose, target, and scope of operation, the unit of work can be treated as pre-approved.
+- `auto_review`, enabling tools/plugins, permission allowlists, or general planning consent that does not specify UI capabilities is not a substitute for explicit approval of UI capabilities or a pre-approved plan.
+- Approval covers one unit of work, and repeated operations within the same purpose, target, and operation scope do not require separate approval. If any of those three changes, obtain approval again. "Allowed during this session" is valid only after the scope is fixed, and is not blanket permission for unspecified future work.
+- Keep approval for UI capabilities separate from approval for external operations such as posting, updating, deleting, sending, and purchasing. Approval for UI capabilities alone does not authorize external operations, and approval for external operations alone does not authorize using UI capabilities.
+- If the authorization channel or runtime returns expired, do not interpret it as authorization. This policy does not specify a numerical timeout, and a delayed response after the deadline will not revive the original request. Submit a new approval request to proceed.
+- While waiting for UI approval and after it expires, bounded, read-only, direct HTTP/API/CLI investigations limited to the same purpose and scope can continue only as necessary to achieve the purpose. If the fallback materially changes the authentication principal, privileges, data scope, visibility, or external effects, disclose and obtain separate approvals. Fallbacks with additional privileges or external effects do not start based on the passage of time.
+- Without a reasonable fallback, you can stop only the parts that depend on the UI and continue other approved work. By selecting timeout or fallback, pending UI requests will expire, and responses received later will only be treated as approvals for new requests.
 
-- 共通契約は clarification、bounded research、autonomy の前提を定める。`execution-lifecycle-gate` の execution contract、対象 identity、epoch、承認、review、commit、fixup、amend、autosquash、外部操作ゲートは同 Skill の所有範囲として維持する。
-- モデル別ガイドはモデル固有の傾向や補足だけを扱い、共通契約と同じ clarification 規則を再定義しない。system、ユーザー、role 固有契約、skill の必須条件を上書きする意味でも使わない。
-- Advisor の research budget、bounded research、`NEEDS_EVIDENCE`、親エージェントが最終判断を持つ契約を共通契約で上書きしない。
+- A common contract establishes the premises for clarification, bounded research, and autonomy. `execution-lifecycle-gate`'s execution contract, target identity, epoch, approval, review, commit, fixup, amend, autosquash, and external operation gate will be maintained within the scope of the same skill.
+- Model-specific guides address only model-specific trends and supplements and do not redefine the same clarification rules as the common contract. It should not be used to override the requirements of system, user, role-specific contract, or skill.
+- The common contract must not override Advisor research budgets, bounded research, `NEEDS_EVIDENCE`, or contracts in which the parent agent retains final judgment.
 
-## サブエージェントへの委譲
+## Delegation to subagents
 
-- 個別 workflow の詳細は Skill discovery 後に対応する Skill の runtime contract を適用する。Skill を解決できない場合は推測で代替せず、必要な作業を停止して報告する。
-- 委譲は権限も承認範囲も広げない。「スレッド取り違えの確認」を先に済ませ、「ファイル変更前の範囲確認」の承認前に委譲してよいのは読み取り専用の作業だけ。委譲先による変更も承認済みの範囲に限る。「一つずつ」「順番に」の指定がある作業は並行させない。
-- 同じ作業ツリーに書き込む場合は、ファイル単位で編集の担当を一つに限る。分けられないなら、委譲先の完了まで主スレッドは同じ範囲を触らない。
-- 委譲先の報告を鵜呑みにしない。ファイル変更や検証結果など事実に関わる結論は、自分で差分やログを確認して裏を取る。
+- For details of individual workflows, apply the corresponding skill runtime contract after skill discovery. If the skill cannot be resolved, do not rely on guesswork, stop the necessary work and report.
+- Delegation does not expand authority or scope of approval. Complete “Check for thread mix-ups” first; before “Scope confirmation before file changes” is approved, only read-only work may be delegated. Changes by the delegatee are also limited to the approved scope. Do not run tasks that specify "one by one" or "in order" in parallel.
+- When writing to the same work tree, only one person is responsible for editing each file. If it cannot be divided, the main thread will not touch the same range until the delegate is completed.
+- Do not accept the report of the delegatee at face value. When coming to a conclusion related to facts such as file changes or verification results, check the differences and logs yourself to confirm the conclusion.
 
-## Agent セッションの継続
+## Continuing agent sessions
 
-- Reviewer と Respondent は role ごとに独立したコンテキストを維持し、互いのハンドルを共有しない。Advisor の出力は判断を代行する裁定ではなく、出所付きの助言として扱う。
-- 実質的な調査（対象の探索、仕様・挙動・依存関係の確認、再現、証拠収集）は、原則として `scount` Evidence child へ委譲する。root は対象 identity、epoch、台帳の最小確認と packet の現物照合に専念し、Reviewer／Respondent が独立性のために対象を直接検証することは例外とする。
-- `scount` は読み取り専用の別 role とし、ファイル、workspace、台帳を変更せず、子を起動せず、権限拡張、外部変更、外部送信を行わない。固定した request の取得元、版または source hash、確認方法、取得できなかった証拠、不確実性を packet に返し、判断やレビュー状態を確定しない。
-- 同じ target／epoch で runtime が再開成功を明示した場合だけ child context を再利用する。target または epoch が変われば旧 packet／context／判断を無効化し、自動移送・自動 retry をしない。runtime がない段階では、この再利用を将来 adapter の契約として扱う。
-- revision の変更は coordinator が `review_delta_classification` で分類し、`REVIEW_PRESERVING` の場合も source revision に紐付く `CLEAR` の Advisor evidence だけを append-only inheritance edge で参照する。packet／context／判断は revision-bound のまま再取得し、分類・edge・hash・ledger を現実行コンテキストで検証できない場合は invalidating とする。
-- 判断 role が `NEEDS_EVIDENCE` を返した場合は、root が request、許可範囲、予算、終了条件を固定し、scount → root の照合・台帳記録 → 同じ epoch の要求元 role への明示的再 dispatchを行う。証拠不足・照合不能なら `NEEDS_EVIDENCE` または gate の `BLOCKED` を維持する。
+- Reviewer and Respondent maintain separate contexts for each role and do not share each other's handles. Advisor output is treated as attributable advice, not as a proxy judgment.
+- As a general rule, the actual investigation (search for the target, confirmation of specifications, behavior, and dependencies, reproduction, and evidence collection) will be delegated to the `scount` Evidence child. The root will focus on minimal confirmation of the target identity, epoch, and ledger, and physical verification of the packet, except when a Reviewer or Respondent verifies the target directly for independence.
+- `scount` is a separate read-only role, does not modify files, workspaces, or ledgers, does not launch children, does not extend privileges, make external changes, or send externally. Returns the source, version or source hash of the fixed request, confirmation method, evidence that could not be obtained, and uncertainty in the packet, and does not finalize the judgment or review status.
+- Reuse the child context only if the runtime indicates success in restarting the same target/epoch. If the target or epoch changes, the old packet/context/judgment will be invalidated and automatic transport/retry will not be performed. When there is no runtime, this reuse is treated as a contract for future adapters.
+- Changes in revision are classified by the coordinator as `review_delta_classification`, and in the case of `REVIEW_PRESERVING`, only Advisor evidence of `CLEAR` that is linked to the source revision is referenced through an append-only inheritance edge. The packet/context/judgment is reacquired as revision-bound, and if the classification, edge, hash, and ledger cannot be verified in the actual execution context, it is invalidated.
+- If a judgment role returns `NEEDS_EVIDENCE`, root fixes the request, permission range, budget, and termination conditions, and performs scount → root's verification/ledger record → explicit re-dispatch of the same epoch to the requesting role. If there is insufficient evidence or verification is not possible, maintain `NEEDS_EVIDENCE` or gate `BLOCKED`.
 
-## 作業範囲
+## Scope of work
 
-- goal 達成に必要な範囲へ変更を限定する。
-- scope 外の問題を発見しても、goal 達成に必要でなければ自動的に修正対象へ追加しない。
-- 不要なリファクタリング、cleanup、format 変更を行わない（YAGNI）。
-- 既存のユーザー変更を破棄、移動、上書きしない。
-- dependency install、build、test、探索は、execution contract、適用 skill、完了条件から必要性を説明できる場合に限る。ただし、contract、skill、完了条件で必要とされた検証と対象固定に必要な探索は省略しない。
+- Limit changes to the extent necessary to achieve the goal.
+- Even if you discover a problem that is outside the scope, it will not be automatically added to the list of fixes unless it is necessary to achieve the goal.
+- Avoid unnecessary refactoring, cleanup, and format changes (YAGNI).
+- Do not discard, move, or overwrite existing user changes.
+- Dependency install, build, test, and exploration are limited to cases where the necessity can be explained from the execution contract, applicable skills, and completion conditions. However, the verification required for contracts, skills, and completion conditions and the exploration necessary to pin down the target will not be omitted.
 
-## 用途別ガイドの参照
+## Task-specific guides
 
-- 本ファイルの実体を含む共有 instruction tree の root を`instruction root`と呼び、作業対象 repository の`work root`と区別する。`instruction root`は共有ガイドの解決にだけ使い、Git 操作や変更対象の決定には使わない。具体的な配置規則は`link-targets/agents/guides/README.md`に従う。
-- `instruction root` 相対の`link-targets/agents/guides/`には、特定の作業に入るときだけ読む詳細な指針を置く。配置規則は`link-targets/agents/guides/README.md`に従い、本ファイルの項目が発動条件を示す場合は作業開始前に該当ファイルを読む。
-- 用途別ガイドは本ファイルを補足するものとして扱う。本ファイルと矛盾する場合は本ファイルを優先する。
-- GitHub service/API 操作では、実行環境によらず `gh` または `gh api` を標準経路とする。authorization は外部効果を伴う操作の実行権限が必要なとき、approval-request workflow は明示的な permission / judgment の取得が必要なとき、external-posting は user-visible な外部投稿テキストを扱うときに、それぞれ独立して条件付きで読む。GitHub write だけを理由に approval-request を必須ロードしない。
-- Issue / Pull Request に散在するレビュー情報の集約は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ行い、通常の Issue / Pull Request 操作やレビュー対応から自動発動させない。詳細な contract は対応 Skill に委ねる。
-- Issue、Pull Request、レビューコメントなど他ユーザーから見える場所へ投稿するときは、明示的に求められない限りローカル環境固有の情報を本文へ含めない。詳細な投稿契約は `external-posting` Skill に委ねる。
-- 条件付き依存を含む Skill の runtime contract を解決できない場合は、依存を省略せず fail-safe に停止する。
+- The root of the shared instruction tree that contains the entity of this file is called `instruction root` to distinguish it from `work root` of the work target repository. `instruction root` is used only for resolving shared guides, not for Git operations or deciding what to change. Specific placement rules follow `link-targets/agents/guides/README.md`.
+- The `instruction root`-relative `link-targets/agents/guides/` directory contains detailed guidelines that are read only when entering a specific task. Placement rules follow `link-targets/agents/guides/README.md`, and if an item in this file indicates an activation condition, read the corresponding file before starting work.
+- Use-specific guides are treated as supplements to this file. If there is a conflict with this file, this file will take precedence.
+- For GitHub service/API operations, `gh` or `gh api` is the standard route regardless of the execution environment. Authorization is read independently and conditionally when permission to execute an operation with external effects is required, approval-request workflow is used when explicit permission/judgment needs to be obtained, and external-posting is read independently and conditionally when dealing with user-visible external post text. Don't require approval-request to be loaded just for GitHub write.
+- Aggregation of review information scattered in Issues/Pull Requests is performed only when the user or target task explicitly calls `review-consolidation`, and is not automatically triggered from normal Issue/Pull Request operations or review responses. The detailed contract will be left to the corresponding Skill.
+- When posting issues, pull requests, review comments, etc. where other users can see them, do not include local environment-specific information in the body of the post unless explicitly requested. Detailed posting contract will be left to `external-posting` Skill.
+- If a skill's runtime contract contains conditional dependencies that cannot be resolved, do not omit them; stop the work fail-safe instead of guessing.
 
-## ファイル変更前の範囲確認
+## Scope confirmation before file changes
 
-- 基本原則は、「Codex が加えた変更だけを安全に取り消し、セッション開始前の状態を失わず復元できる場合は、事前承認なしに編集してよい」とする。
-- プロジェクト（Codex が作業対象としているディレクトリ）内の Git で追跡されているファイルは、今回のセッション以前からの未コミット差分がないことを確認できる限り、ユーザーの事前承認なしに編集してよい。
-- 現在のセッション内で Codex が新規作成したファイルは、ユーザーの事前承認なしに編集してよい。
-- 次のいずれかに該当する場合は、編集前にユーザーの承認を得る。
-  - プロジェクト外のファイル。
-  - セッション開始前から存在する、Git で追跡されていないファイル。
-  - 編集対象ファイルに、今回のセッションで加えたものではない未コミット差分が存在する場合。
-- Skills、`AGENTS.md`、その他の適用される指示でファイルの扱いが別途定められている場合は、その指示を優先する。
-- 作業中に、別セッション・ユーザー・外部ツール等による認識していない変更を検知した場合は、その変更と競合または干渉する可能性のある作業を中断し、変更内容をユーザーに報告して対応方針を確認する。
-- 編集前の確認が必要な場合は、変更予定ファイルのパス、ファイルごとの変更概要、対象外を同じメッセージに列挙し、明示的な承認を得る。承認範囲を超える場合は再承認を得る。
-- 承認済みの計画に変更範囲が明記されている場合、再確認は不要。
-- 「一つずつ」「順番に」は、項目ごとに変更・検証・報告してから次へ進む。
-- 新しいファイルの追加、移動・改名・削除、用途・保存先・対象範囲の変更には、編集可否とは別に通常の範囲確認を適用する。外部公開・push・外部送信には、外部公開前の確認を別途適用する。より具体的なプロジェクト固有ルールがある場合は、そちらを優先する。
+- The basic principle is that “edits may be made without prior approval if only the changes made by the Codex can be safely undone and restored without loss of the state before the start of the session.”
+- Files tracked by Git in the project (the directory Codex is working with) may be edited without the user's prior approval, as long as you can ensure that there are no uncommitted differences from before this session.
+- New files created by Codex within the current session may be edited without prior user approval.
+- Get user approval before editing if any of the following apply:
+  - Files outside the project.
+  - Files that are not tracked by Git that exist before the session starts.
+  - If the file being edited contains uncommitted differences that were not added in this session.
+- If Skills, `AGENTS.md`, or other applicable instructions specify otherwise how to handle files, those instructions will take precedence.
+- During work, if the agent detects a change it did not make, made by another session, the user, an external tool, etc., interrupt any work that may conflict with or interfere with that change, report it to the user, and confirm how to proceed.
+- If confirmation is required before editing, list the path of the file to be changed, a summary of changes for each file, and exclusions in the same message and obtain explicit approval. If the approval range is exceeded, re-approval will be obtained.
+- If the scope of changes is clearly specified in the approved plan, reconfirmation is not necessary.
+- “One by one” and “in order” mean changing, verifying, and reporting each item before moving on to the next.
+- When adding a new file, moving, renaming, or deleting it, or changing its usage, storage location, or target range, normal range checks are applied, regardless of whether it can be edited. For external disclosure, push, and external transmission, separate confirmation is applied before external disclosure. If there are more specific project-specific rules, give priority to them.
 
-## 外部操作の認可境界
+## Authorization boundaries for external operations
 
-- push、PR・Issue の作成と更新、外部サービスへの送信・公開・共有・デプロイ・権限変更・外部データの変更は、明示的なユーザー指示がある場合だけ行う。ファイル変更の承認は外部操作の承認を兼ねない。
-- 対象と許可された操作範囲を越えて外部効果を広げず、手順や段取りへの同意を公開操作の承認として解釈しない。
-- external-operation-authorization Skill が詳細な boundary、実行直前確認、消費、retry、read-back、結果記録を所有する。外部操作が発生するときだけ同 Skill を適用し、解決できなければ停止する。
-
-
-## Git コミット方針
-
-- branch は、作業上必要な場合、ユーザーの明示指示がある場合、またはリポジトリ固有ルールで要求される場合に作成できる。worktree は追加の作業ディレクトリや状態管理を伴うため、エージェントの判断だけでは作成せず、ユーザーの明示的な指示または承認を必要とする。リポジトリ固有の branch 運用、master 直接運用、明示的 push 規則を優先する。
-- 破壊的な Git 操作、履歴書き換え、force push は明示的な指示なしに行わない。
-- コミットメッセージを新規作成または編集するとき（`--amend` を含む）は、`commit-message` Skill を discovery し、その runtime contract を適用する。適用範囲と規約・履歴の判定単位は、現在コミットしようとしている Git リポジトリとし、親リポジトリとサブモジュールの情報を混在させない。
-- メッセージ形式・履歴の確認順序、直近20件から最大50件への拡張、明確でない場合の fail-safe は `commit-message` Skill の Guide section に従う。
-- コミットの修正・取り消し・別ブランチへの移植では、目的に合う `--fixup`、revert、cherry-pick などを検討する。
-- Git、formatter、lint が scope 外の大量変更を生成した場合は自動的に含めず、`git-operations` Skill の範囲制御に従う。
-- Git、commit、検証に関するこの共通ルールは変更範囲、操作権限、検証の境界を扱い、コミットメッセージの形式や履歴規則は `commit-message` Skill に委ねる。
-
-## 権限エラーと代替手段
-
-- 権限・認証・sandbox が原因のエラーでは、別の経路へ黙って切り替えず、必要な操作・対象・理由を示して確認を得る。Git の `index.lock` 例外、read-only 原因確認、同一コマンドの権限昇格、ロック削除条件は `git-operations` Skill の runtime contract を適用する。
-
-## AIレビューの読み取り範囲
-
-- Advisor または明示的な読み取りスコープ契約を伴う AI レビューでは advisor-review Skill の self-contained contract を適用する。Skill を解決できない場合は停止する。
+- Push, creating and updating PRs/issues, sending/publishing/sharing/deploying to external services, changing permissions, and changing external data should only be done with explicit user instructions. Approval of file changes does not serve as approval of external operations.
+- Do not extend external effects beyond the scope of targeted and authorized operations, and do not interpret consent to procedures or arrangements as approval for public operations.
+- The external-operation-authorization skill owns detailed boundary, last-minute confirmation, consumption, retry, read-back, and result recording. Apply the same skill only when an external operation occurs, and stop if it cannot be resolved.
 
 
-## 実装計画と runbook
+## Git commit policy
 
-- 実装計画または runbook の作成・更新・レビューでは implementation-planning Skill の self-contained contract を適用する。Skill を解決できない場合は停止する。
+- A branch can be created when a task requires it, at the explicit direction of the user, or when required by repository-specific rules. Because worktrees involve additional working directories and state management, they cannot be created solely at the agent's discretion; they require explicit instructions or approval from the user. Prioritize repository-specific branch operations, direct master operations, and explicit push rules.
+- Do not perform destructive Git operations, history rewrites, or force pushes without explicit instructions.
+- When creating or editing a new commit message (including `--amend`), discover `commit-message` Skill and apply its runtime contract. The unit of determination for scope, rules, and history is the Git repository that is currently being committed, and information about parent repositories and submodules should not be mixed.
+- Follow the Guide section of `commit-message` Skill for message format/history confirmation order, expansion from the most recent 20 to the maximum 50, and fail-safe when it is unclear.
+- When modifying, canceling, or porting commits to another branch, consider using `--fixup`, revert, cherry-pick, etc. that suit your purpose.
+- If Git, formatter, or lint generate a large amount of changes outside the scope, they will not be included automatically and will follow the scope control of `git-operations` Skill.
+- This common rule for Git, commit, and verification deals with the scope of changes, operational authority, and verification boundaries, and leaves commit message format and history rules to the `commit-message` Skill.
+
+## Permission errors and alternatives
+
+- For errors caused by permissions, authentication, or sandboxes, do not silently switch to another route; instead, indicate the required operation, target, and reason and obtain confirmation. The runtime contract of `git-operations` Skill applies to Git's `index.lock` exception, read-only cause confirmation, privilege elevation for the same command, and lock deletion conditions.
+
+## Read scope for AI reviews
+
+- For AI reviews with Advisor or explicit read scope contracts, apply the advisor-review Skill self-contained contract. If the skill cannot be resolved, stop.
 
 
-## スレッド取り違えの確認
+## Implementation plans and runbooks
 
-- この会話にない直前の作業・判断・結果を前提としていて、依頼単独では対象や期待する状態を確定できない場合に限り、着手前に宛先を確認する。自己完結した新規依頼や単なる話題の変更では発動しない。迷ったら発動しない側に倒す。
-- 非発動時は、この確認ルールの判定を説明せず、通常の応答・手順に進む。
-- 確認の返答を得るまでツールを使わない(ファイル変更・コマンド実行・外部送信を含む)。候補スレッドを自分で探しに行かない。
-- 確認するときは次の一文だけを出力する。前置き・補足・理由説明を一切付けず、依頼の対象名(ファイル・機能・チケット番号など)にも触れない。
-  - 「この会話にない直前の作業を前提としているように見えます。このスレッド宛で合っていますか。」
-- 取り違えが確定したら、このスレッドでは作業せず停止する。正しいスレッドから改めて依頼してもらう。該当スレッドを探したい場合は、別セッションを立てて探すよう案内する。
-- 「合っている」と答えられたら、同じ対象と前提が続く限り再確認しない。
-- この確認は「ファイル変更前の範囲確認」より前に行う。宛先確認への回答は変更承認を兼ねない。
+- When creating, updating, and reviewing implementation plans or runbooks, apply the implementation-planning skill's self-contained contract. If the skill cannot be resolved, stop.
+
+
+## Check for thread mix-ups
+
+- Only if the request is based on previous work/judgment/results that are not mentioned in this conversation, and the target or expected state cannot be determined by the request alone, will the recipient be confirmed before starting. It will not be triggered by a new self-contained request or by simply changing the topic. If in doubt, place it on the side that won't activate.
+- If it is not activated, proceed with the normal response/procedure without explaining the judgment of this confirmation rule.
+- Do not use the tool (including changing files, executing commands, or sending externally) until you receive a confirmation response. Don't go looking for candidate threads yourself.
+- When checking, only the following sentence is output. Do not include any introduction, supplementary information, or explanation of the reason, and do not mention the name of the request (file, function, ticket number, etc.).
+  - Exact output: `この会話にない直前の作業を前提としているように見えます。このスレッド宛で合っていますか。`
+    English gloss: “This request seems to assume immediately preceding work that isn't in this conversation. Is it meant for this thread?”
+- Once the mix-up is confirmed, stop working in this thread. Ask the user to make the request again in the correct thread. If the user wants to find that thread, guide them to open a separate session to search for it.
+- If the answer is “Yes,” do not re-check as long as the target and premise remain the same.
+- This confirmation is performed before "Scope confirmation before file changes". A reply to the thread confirmation does not serve as change approval.

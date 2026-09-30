@@ -1,34 +1,34 @@
 ---
 name: agent-output
-description: チャットでコピー可能なコードや他エージェントへ渡す本文の形式を決めるときに使う。無関係な会話では発動しない。
+description: Used to determine the code that can be copied in chat and the format of the text that can be passed to other agents. It does not trigger in unrelated conversations.
 ---
 
 # Agent output workflow
 
 ## Discovery contract
 
-- Positive trigger: コピー可能なコードまたは他エージェントへ渡す本文をチャットへ出力する。
-- Negative trigger: 通常の説明や会話で、特別な出力形式を要求しない。
-- Conditional dependency: 追加の依存契約はない。
-- Failure mode: 形式契約を読み取れない場合は出力を省略せず、停止して報告する。
+- Positive trigger: Outputs a copyable code or text to the chat that can be passed to other agents.
+- Negative trigger: Normal explanation or conversation that does not require any special output format.
+- Conditional dependency: There is no additional dependency contract.
+- Failure mode: If the format contract cannot be read, stop and report instead of omitting the output.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
 ## Guide
 
-ユーザーがコピーするコード、または他エージェントへ中継する本文をチャットに出力する前に読む。
-`link-targets/agents/AGENTS.md` の外部投稿・委譲承認とは別に、チャット本文の形式だけを定める。
+Read this Guide before outputting copyable code or text relayed to other agents in chat.
+Apart from `link-targets/agents/AGENTS.md`'s external posting/delegation approval, only the format of the chat body is determined.
 
-### コピー可能なコード
+### Copyable code
 
-- ユーザーがコピーして利用するコードブロックは、開始・終了とも U+0060（バッククォート）を5個連続して使う。
-- 送信前に開始と終了の数、言語指定、入れ子の対応を確認する。
+- The code block that users copy and use uses five consecutive U+0060 (backticks) both at the beginning and end.
+- Check the start and end numbers, language specification, and nesting support before sending.
 
-### 他エージェントへ渡す本文
+### Body to be passed to other agents
 
-- 依頼文、調査指示、レビュー観点などの中継文面は、本文全体を `markdown` 指定の5バッククォート1個に入れる。
-- 見出し・節ごとに外側のブロックを分けない。本文中のコードブロックは3バッククォートを使う。
-- 外側のブロックには渡す本文だけを入れ、前置き、補足、判断、注意書きは外に書く。
-- 本文は宛先の特定名に依存せず、別のエージェントでも使える形にする。
+- For relay texts such as request texts, investigation instructions, and review viewpoints, put the entire text inside a single five-backtick fence tagged `markdown`.
+- Do not separate the outer blocks by heading/section. Use 3 backticks for code blocks in the body of the text.
+- Place only the main text to be delivered in the outer block, and write any introductions, supplements, judgments, and notes outside.
+- The body text should be in a format that can be used by other agents without depending on the specific name of the destination.

@@ -1,188 +1,188 @@
 ---
 name: approval-request-workflow
-description: 次の自走区間に必要な明示的 permission または judgment を discovery と handoff するときに使う。無関係な実行では発動しない。
+description: Used to discover and hand off explicit permission or judgment needed for the next autonomous execution interval. It is not triggered by unrelated executions.
 ---
 
 # Approval request workflow
 
 ## Discovery contract
 
-- Positive trigger: 実行を進める前に明示的な permission または judgment の discovery が必要になる。
-- Negative trigger: 承認要求がなく、通常の build・test・review だけを実行する。
-- Conditional dependency: external-operation-authorization Skill は認可境界の責務が発生した場合だけ適用する。再設計材料は本 Skill 内の非runtime Design section に含まれ、通常 runtime では適用しない。
-- Failure mode: 必要な依存契約を解決できない場合は推測で代替せず、fail-safe に停止して報告する。
+- Positive trigger: Explicit permission or judgment discovery is required before execution can proceed.
+- Negative trigger: No approval request, just normal build/test/review.
+- Conditional dependency: The external-operation-authorization Skill is applied only when an authorization-boundary responsibility arises. Redesign material is contained in this Skill's non-runtime Design section and is not applied in ordinary runtime.
+- Failure mode: If a required dependency contract cannot be resolved, do not rely on guesswork, instead stop in a fail-safe manner and report.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-実行 authorization の共通契約は link-targets/agents/skills/external-operation-authorization/SKILL.md を責務が発生した場合だけ適用する。runtime workflow の設計判断を再検討するときは、本 Skill の非runtime Design section を参照する。
+The common contract for execution authorization applies link-targets/agents/skills/external-operation-authorization/SKILL.md only when the obligation occurs. When reconsidering runtime workflow design decisions, refer to the non-runtime Design section of this skill.
 
 ## Guide
 
-実行前に必要な承認要求を discovery・集約し、回答を解釈して execution へ handoff するための portable な runtime contract。
-この workflow は新しい承認要件を作らず、既存承認の成立・有効性・permission boundary・消費・retry・read-back・review evidence・execution lifecycle を再定義しない。
+A portable runtime contract that discovers and aggregates the approval requests required before execution, interprets the responses, and handoffs them to execution.
+This workflow does not create new approval requirements, nor does it redefine the establishment, validity, permission boundary, consumption, retry, read-back, review evidence, or execution lifecycle of existing approvals.
 
-### 基本原則
+### Basic principles
 
-- 承認項目は、applicable な上位規則、guide、skill、ユーザー指示等により、現在の実行を自律的に進める前に明示的な permission / judgment が必要なものだけとする。process step、automatic review、checkpoint、build/test をこの workflow 自体が承認項目へ変換しない。
-- workflow 上の collection、ID、lineage、semantic identity は表示・追跡用であり、承認状態、重要度、実行順、実行権限、permission boundary、有効性を表さない。
-- 既存の applicable な承認・delegation が要件を満たす場合は再要求しない。成立・有効性・消費等は、それらを所有する既存規則で判定する。
-- 「自走区間」は、新しい承認を取得せず継続できる実行範囲の便宜的な呼称であり、独立 state、ID、table、数学的な最大区間を持たない。合理的な停止理由がなければ不必要に細分化しない。
+- Approval items should only be those that require explicit permission/judgment before the current execution can proceed autonomously due to applicable higher-level rules, guides, skills, user instructions, etc. This workflow itself does not convert process step, automatic review, checkpoint, and build/test into approval items.
+- Collection, ID, lineage, and semantic identity on workflow are for display and tracking purposes, and do not represent approval status, importance, execution order, execution authority, permission boundary, or validity.
+- If the existing applicable approval/delegation meets the requirements, it will not be re-requested. Establishment, validity, consumption, etc. are determined by the existing rules that own them.
+- “Autonomous execution interval” is a convenient name for an execution range that can continue without obtaining new approval; it has no independent state, ID, table, or mathematical maximum. Unless there is a reasonable reason to stop, do not subdivide it unnecessarily.
 
-### 1. 次の自走区間に必要な承認を discovery する
+### 1. Discover approvals needed for the next autonomous execution interval
 
-利用可能な work context から、**次の自走区間を開始するため現在必要な承認**を合理的に特定する。
+From the available work context, reasonably identify the approvals currently needed to start the next autonomous execution interval.
 
-plan 等に approval candidate が存在する場合は must-check input として確認する。ただし authoritative / exhaustive な一覧とは扱わず、現在状態から必要性を再評価する。candidate の生成方法、heading、format、identifier はこの workflow では規定しない。
+If an approval candidate exists in a plan, check it as a required input. However, it is not an authoritative or exhaustive list; reevaluate the need based on the current state. This workflow does not specify how candidates are generated, their heading or format, or their identifiers.
 
-将来の自走区間を承認収集のためだけに全走査しない。将来区間の承認必要性を早期に認識しても、それだけを理由に現在区間を中断して先取り収集しない。
+Do not scan the entire future autonomous execution interval merely to collect approvals. Even if a future approval need is recognized early, do not interrupt the current interval or collect that approval in advance solely for that reason.
 
-特定自体にユーザー判断や別の承認が必要なら、判明済みの範囲を提示して止める。
+If the identification itself requires user judgment or other approval, present the known range and stop.
 
-### 2. 独立したまま集約提示する
+### 2. Aggregate presentation while remaining independent
 
-複数の approval item を一つの承認境界へ統合しない。各 item は独立したまま、一つの collection でまとめて提示できる。
-各 item は対象・範囲・操作を判断できるよう簡潔に示す。条件、理由、不可逆性、公開範囲、権限、重要データ等が判断に重要な場合だけ補足する。
+Do not combine multiple approval items into a single approval boundary. Each item can remain independent and be presented together in a single collection.
+Each item is briefly indicated so that the target, range, and operation can be determined. Supplement information only if conditions, reasons, irreversibility, scope of disclosure, authority, important data, etc. are important to the decision.
 
-plan 等の approval candidate に由来する runtime item は provenance を示す。candidate に既存 identifier があれば使い、なければ既存 label / referenceable expression を使う。それも明確でなければ `（計画上の承認候補）` のような一般表示でよい。複数 candidate 由来でも multi-parent mapping は要求しない。
+A runtime item derived from an approval candidate such as a plan indicates provenance. If the candidate has an existing identifier, use it; if not, use its existing label or other referenceable expression. If none is clear, use a general display such as `（計画上の承認候補）` (“planned approval candidate”). Multi-parent mapping is not required even if it is derived from multiple candidates.
 
-### collection と ID
+### Collection and ID
 
-- collection ごとに display prefix を持ち、`A..Z, AA, AB...` と進める。
-- 同じ work unit 内では閉じた prefix を再利用しない。新しい work unit は `A` から始めてよい。
-- runtime item ID は初めてユーザーへ提示するとき、display order に `A1`, `A2`, ... と機械的に割り当てる。
-- 一度提示した ID は renumber / reuse しない。欠番を許容する。
-- 同じ collection に後から追加する item は次の未使用番号を使い、表示位置によって既存 ID を変更しない。
-- prefix と ID のための永続 state store は要求しない。
+- Each collection has a display prefix and advances as `A..Z, AA, AB...`.
+- Do not reuse closed prefixes within the same work unit. A new work unit may start at `A`.
+- When presenting the runtime item ID to the user for the first time, it is automatically assigned to the display order as `A1`, `A2`, ....
+- An ID once presented will not be renumbered/reused. Allow missing numbers.
+- Items added later to the same collection use the next unused number, and do not change the existing ID depending on the display position.
+- Does not require persistent state stores for prefixes and IDs.
 
-### 3. 回答を解釈し、必要なら再検討する
+### 3. Interpret answers and reconsider if necessary
 
-承認 workflow の提示では毎回 `回答対象` を明示する。対象がなければ `回答対象: なし` とする。
+Specify `回答対象` each time the approval workflow is presented. If there is no target, set it to `回答対象: なし`.
 
-- 通常の無限定な肯定（例: `OK`, `進めて`）は、その時点で明示された `回答対象` 全体への肯定として扱う。ユーザーが限定・除外した指定を優先する。
-- 通常の否定は、`回答対象` が1件ならその item の拒否として扱う。複数件なら対象を推測せず確認する。
-- partial response では省略された item を承認・拒否と推測しない。未変更で既提示の item は、その後 ID だけで `回答対象` へ再掲してよい。
-- 回答がどの提示内容を対象にしたか曖昧なら自動適用しない。
+- A normal unqualified affirmation (e.g. `OK`, `進めて` ("proceed")) is treated as affirmation of the entire `回答対象` specified at that time. Give priority to any user-specified limitations or exclusions.
+- For a normal negation, if `回答対象` contains one item, treat it as rejection of that item. If it contains multiple items, ask which one rather than guessing.
+- In a partial response, do not presume that omitted items are approved or rejected. Previously presented items that have not changed may be listed again under `回答対象` by ID alone.
+- If it is unclear which presentation content the answer is aimed at, it will not be applied automatically.
 
-拒否によって次の自走区間へ入れない場合は、拒否された path を実行せず alternative を再検討する。handoff 前に alternative の新しい承認が必要なら同じ collection に追加する。代替不能なら進行不能として止める。再検討後も、他の取得済み承認が独立して applicable なら取り直さない。
-### 更新・再提示・新規・撤回
+If rejection prevents entry into the next autonomous execution interval, do not execute the rejected path; reconsider the alternative. If the alternative needs a new approval before handoff, add it to the same collection. If no alternative can replace it, stop because work cannot proceed. After reconsideration, do not request again any other approvals that remain independently applicable.
+### Update/representation/new/withdrawal
 
-- **更新**: 提示済み・未承認の同じ unfinished logical operation の提示内容を更新する場合、同じ ID を維持できる。更新と判断した次の提示で一度だけ `更新: A2` 等と示し、現在の承認内容を全文提示する。更新該当性の細かな分類は agent 判断とする。
-- **再提示**: 拒否された同じ unfinished logical operation を再び判断対象にする場合は新しい ID を発行し、初回だけ `B1（A3の再提示）` のように直接の親を示す。内容更新も伴う場合は更新・再提示の両方が分かる表示にしてよい。祖先履歴は要求しない。
-- **新規**: 統合・分割、完了/消費済み操作後の別操作、撤回後に再び必要になった操作、同じ unfinished logical operation か合理的に判断できないものは新規 item とする。不明な lineage を推測しない。
-- **撤回**: 提示済み item が明示的拒否以外の理由で不要になった場合は `撤回: A2` 等を一度示す。拒否時に重ねて撤回表示しない。撤回した ID は復活させず、後で同種操作が必要なら新規 item とする。撤回だけの通知でも `回答対象: なし` とする。
+- **Update**: When updating the presented content of the same unfinished, unapproved logical operation, you may keep the same ID. Mark the next presentation as `更新: A2` (“Update: A2”) once and show the full current approval content. The agent determines whether an update applies.
+- **Re-presentation**: If the same rejected, unfinished logical operation is considered again, issue a new ID and identify its direct parent once, for example `B1（A3の再提示）` (“B1 (re-presentation of A3)”). If the content is also updated, the display may show both the update and re-presentation. Ancestry history is not required.
+- **New**: Merging/splitting, another operation after a completed/consumed operation, an operation that is needed again after being withdrawn, and an operation that cannot be reasonably determined to be the same unfinished logical operation are considered new items. Don't guess unknown lineages.
+- **Withdrawal**: If a presented item is no longer needed for a reason other than explicit rejection, show `撤回: A2` (“Withdrawal: A2”) once. Do not show a withdrawal again when refusing. Do not reinstate a withdrawn ID; create a new item if a similar operation is needed later. Even a withdrawal-only notice must specify `回答対象: なし`.
 
-ID の継続や更新・再提示表示は、既存 approval の実行時有効性を意味しない。
+Continuing, updating, or re-presenting the ID does not mean the validity of the existing approval at runtime.
 
-### 4. required approvals gate と handoff
+### 4. required approvals gate and handoff
 
-次の自走区間を開始するために必要な承認が、既存の applicable rules に照らして満たされ、必要な再評価も終わったことを確認してから execution へ handoff する。
+Handoff to execution after confirming that the approvals needed to start the next autonomous execution interval have been met under the applicable rules and any necessary re-evaluation is complete.
 
-collection は全回答取得時ではなく、この handoff で閉じる。handoff 前に新しい approval item が判明した場合は同じ collection に追加する。handoff 後に新しい approval need が判明した場合は閉じた collection を再開せず、新しい collection を開始する。
+Collection is closed at this handoff, not when all answers are obtained. If a new approval item is found before handoff, add it to the same collection. If a new approval need is found after handoff, a new collection is started instead of reopening the closed collection.
 
-### 自走区間の途中で新しい承認が必要になった場合
+### If new approval is required during an autonomous execution interval
 
-現在の自走区間を完了するため新しい承認が必要だと判明した場合、その承認が必要な操作には入らない。安全かつ整合した合理的な停止点まで進め、approval phase へ移る。
+If a new approval is required to complete the current autonomous execution interval, do not begin the operation that needs approval. Proceed to a safe, consistent, and reasonable stopping point, then move to the approval phase.
 
-停止点へ着地する過程で自然に判明した approval candidate は利用してよいが、candidate を増やすためだけに実行を引き延ばさない。将来区間にだけ必要な承認を早期発見しても現在区間を中断せず、将来の境界で再 discovery する。専用 persistence store は設けない。
+Approval candidates discovered naturally while reaching a stopping point may be used, but do not delay execution just to increase their number. Even if an approval needed only for a future interval is discovered early, do not interrupt the current interval; rediscover it at a later boundary. No dedicated persistence store is provided.
 
-承認待ちの空き時間を理由に次区間の replay-safe work を先行する特則は設けず、並行実行の一般可否は既存規則に委ねる。
-### reconstruction
+There is no special rule that allows replay-safe work to occur in the next interval in advance because of idle time waiting for approval, and whether or not parallel execution is generally possible is left to the existing rules.
+### Reconstruction
 
-compact や時間経過だけでは reconstruction としない。execution state の連続性を保証できず、memo / context 等から現在状態を再構築する必要がある場合に reconstruction とする。
+Compact or the passage of time alone does not constitute reconstruction. Reconstruction is used when the continuity of the execution state cannot be guaranteed and the current state needs to be reconstructed from memo/context, etc.
 
-古い collection は復元せず、current remaining work から必要な approval item を再 discovery し、新しい collection / 次 prefix を使う。同じ work unit なら `A` に戻さない。
+Do not restore the old collection. Instead, rediscover the necessary approval items from the current remaining work and use a new collection / the next prefix. If it is the same work unit, do not return it to `A`.
 
-reconstruction は既存 approval 自体を無効化しない。通常の既存判定で現在も applicable なら重複要求しない。
+Reconstruction does not invalidate the existing approval itself. If the existing judgment is still applicable, no duplicate requests will be made.
 
-### 責務境界
+### Responsibility boundary
 
-この workflow が扱うのは approval need の discovery、runtime item への分割と集約提示、collection / display ID、`回答対象` と response interpretation、表示上の更新・再提示・撤回、rejection 後の reconsideration、execution への handoff、reconstruction 時の collection 再構築である。
+This workflow handles discovery of approval needs, division into runtime items and aggregated presentation, collection/display IDs, `回答対象` and response interpretation, display updates, re-presentation and withdrawal, reconsideration after rejection, handoff to execution, and reconstruction of a collection.
 
-次は既存の所有者へ委ねる。
+The following are left to their existing owners:
 
-- prior statement が valid approval として成立する条件
-- semantic permission boundary の記録・判定
-- approval の消費、retry、read-back、実行結果
+- Conditions for prior statement to be valid approval
+- Recording and determining semantic permission boundaries
+- approval consumption, retry, read-back, execution results
 - review evidence / revision epoch / execution lifecycle
-- plan approval candidate の生成・format・identifier
+- Generation/format/identifier of plan approval candidate
 
-設計変更や workflow の再設計では下記の非runtime Design section を参照する。これは runtime contract を変更せず、通常 runtime では適用しない。
+For design changes or workflow redesigns, refer to the non-runtime Design section below. This does not change the runtime contract and is not normally applied at runtime.
 
 
 ## Design (nonruntime)
 
 This section preserves design rationale, alternatives, and non-normative scenarios for future redesign. It is not loaded as a runtime contract and does not change the Guide section above.
 
-approval-request-workflow Skill の runtime contract に関する設計理由、責務境界、却下した alternative、判断補助 scenario を記録する。
-通常 runtime では不要で、workflow の編集・再設計・不確実な判断・review 時に参照する。この section の scenario は非規範的であり、Guide と矛盾する場合は Guide を優先する。
+Records the design rationale, responsibility boundaries, rejected alternatives, and decision-support scenarios for the approval-request-workflow Skill's runtime contract.
+It is usually not needed in runtime and is referenced when editing, redesigning, making uncertain decisions, and reviewing workflows. The scenarios in this section are non-normative, and if they conflict with the Guide, the Guide takes precedence.
 
-### 設計意図
+### Design intent
 
-#### discovery は「次の自走区間」に限定する
+#### Discovery is limited to the “next autonomous execution interval”
 
-plan 全体を strict serial に承認してから実行する方式は、まだ実行状態が確定していない将来区間の承認を早期収集し、不要な中断や stale な判断を増やす。そのため discovery は次の自走区間を開始するため現在必要な承認へ限定する。
+Approving an entire plan in strict sequence before execution collects approvals early for future intervals whose execution status is not yet determined, increasing unnecessary interruptions and stale decisions. Therefore, discover only approvals currently needed to start the next autonomous execution interval.
 
-「自走区間」は独立 state ではない。最大区間を計算する仕組みを作ると workflow が実行 planner を所有してしまうため、合理的な停止理由の判断は applicable rules と agent に残す。
+An “autonomous execution interval” is not an independent state. A mechanism for calculating its maximum length would make this workflow own the execution planner, so applicable rules and agents determine reasonable stopping points.
 
-#### collection は batching であって permission boundary ではない
+#### Collection is batching, not permission boundary
 
-複数の独立した approval item を一度に提示できると往復を減らせるが、collection を一つの承認境界にすると既存 authorization contract を侵食する。そのため collection / prefix / ID は表示と回答追跡だけを担い、各 approval item の permission semantics は既存規則に残す。
+Being able to present multiple independent approval items at once reduces round trips, but making a collection a single authorization boundary erodes the existing authorization contract. Therefore, the collection / prefix / ID is only responsible for display and response tracking, and the permission semantics of each approval item are left in the existing rules.
 
-collection を「全回答が揃った時」に閉じると、回答後・handoff 前に判明した item を不自然に別 collection へ分ける。execution への handoff を close point とすることで、approval phase のまとまりと実行境界を一致させる。
+If a collection is closed “when all answers have been collected,” items that were discovered after the answer or before handoff will be unnaturally separated into another collection. By setting the handoff to execution as the close point, the group of approval phases and the execution boundary are aligned.
 
-#### ID は軽量な会話上の identity に限定する
+#### Limit IDs to lightweight conversational identities
 
-runtime ID は初回提示時に割り当てる。未提示 candidate に先に番号を振ると、plan candidate の形式や永続管理まで workflow が所有しやすくなるためである。
+The runtime ID will be assigned when it is presented for the first time. This is because if you number the unpresented candidates first, it becomes easier for the workflow to own the plan candidate's format and permanent management.
 
-ID の維持は semantic identity の追跡に役立つが、authorization の有効性を証明しない。内容更新後の approval applicability、permission boundary、消費等は既存所有者が判定する。
+Maintaining identity helps track semantic identity, but does not prove the validity of authorization. The existing owner will determine approval applicability, permission boundaries, consumption, etc. after content updates.
 
-#### reconstruction は collection history を復元しない
+#### Reconstruction does not restore collection history
 
-execution continuity を保証できない状態で古い collection を復元すると、表示 state の再現を permission state の復元と誤認しやすい。current remaining work から再 discovery して新 collection を作る一方、独立して有効な既存 approval は通常の判定で維持する。
+When restoring an old collection in a state where execution continuity cannot be guaranteed, it is easy to mistake the reproduction of the display state for the restoration of the permission state. A new collection is created by re-discovering the current remaining work, while existing independently valid approvals are maintained through normal judgment.
 
-### 責務境界
+### Responsibility boundary
 
-approval-request workflow は「何を今ユーザーへ判断依頼するか」と「その回答をどの runtime item に作用させるか」を所有する。
+The approval-request workflow owns “what to request the user to judge now” and “which runtime item should the answer be applied to”.
 
-一方、以下は所有しない。
+This workflow does not own the following:
 
-- valid approval の成立条件と semantic authorization boundary
-- approval の実行時有効性、消費、retry、read-back、結果記録
+- Conditions for valid approval and semantic authorization boundary
+- approval runtime effectiveness, consumption, retry, read-back, and result logging
 - review evidence、revision / review epoch、execution lifecycle
-- plan 上の approval candidate の生成、専用 section、format、identifier
-- GitHub / Issue maintenance 全体の外部操作モデル
+- Generation of approval candidate on plan, dedicated section, format, identifier
+- The overall external-operation model for GitHub / Issue maintenance
 
-この分離により、workflow 上の identity / lineage と execution authorization を自動写像しない。
+Due to this separation, identity / lineage and execution authorization on workflow are not automatically mapped.
 
-### 却下した alternative
+### Rejected alternative
 
-- **plan 全体の strict serial**: 将来状態まで承認収集対象にして実行を不必要に止めるため採用しない。
-- **将来区間の承認の先取り**: 早期認識だけを理由に現在区間を中断すると stale / unnecessary approval を増やすため採用しない。
-- **承認待ち中の replay-safe work 特則**: 並行実行の一般規則をこの workflow が上書きするため採用しない。
-- **plan candidate の固定形式・番号付け**: plan authoring の責務を侵食するため採用しない。
-- **workflow 独自の revision/hash/state store**: authorization / review lifecycle と重複し、軽量な表示 workflow を越えるため採用しない。
-- **resume 時の既存 approval 一律再取得**: 独立して有効な approval まで無効化するため採用しない。
+- **Strict serial for the entire plan**: Do not adopt this as it collects approvals up to the future state and stops execution unnecessarily.
+- **Preemptive approval of future intervals**: If the current interval is interrupted just for early recognition, it will increase stale / unnecessary approval, so it will not be adopted.
+- **Replay-safe work special rule while awaiting approval**: Not adopted because it would let this workflow override the general rules for parallel execution.
+- **Fixed format/numbering of plan candidates**: Not adopted as it encroaches on the responsibility of plan authoring.
+- **Workflow-specific revision/hash/state store**: Not adopted as it overlaps with the authorization / review lifecycle and exceeds the lightweight display workflow.
+- **Uniform re-obtainment of existing approvals when resuming**: Not adopted because even independently valid approvals are invalidated.
 
-### 非規範 scenario
+### Non-normative scenario
 
-#### 同じ開始境界に複数の独立承認がある
+#### Multiple independent approvals on the same starting boundary
 
-次の実行区間に公開操作と別の権限判断が必要なら、`A1`、`A2` として同じ collection に提示できる。ユーザーが `A1だけOK` と答えた場合、`A2` を推測せず pending のまま扱う。両 item の authorization semantics はそれぞれの既存規則が判定する。
+If the next execution interval requires a publishing operation and a different authority decision, it can be presented in the same collection as `A1`, `A2`. If the user answers `A1だけOK` ("only A1 is OK"), `A2` is not guessed and treated as pending. The authorization semantics of both items are determined by their respective existing rules.
 
-#### handoff 前に追加 item が判明する
+#### Added item is found before handoff
 
-`A1` の回答後、execution へ handoff する前の再評価で別承認が必要と分かった場合は `A2` として同じ collection に追加する。必要承認が満たされて handoff した後に新しい need が判明した場合は `B1` から新 collection を開始する。
+After answering `A1`, if it is found that separate approval is required during re-evaluation before handoff to execution, add it to the same collection as `A2`. If a new need is found after the necessary approvals are satisfied and handoff is performed, a new collection is started from `B1`.
 
-#### 拒否後に alternative を選ぶ
+#### Choose alternative after rejection
 
-`A2` が拒否され、その操作なしで目的を達成できる alternative に新しい承認が必要なら、handoff 前である限り同じ collection の次番号へ追加する。`A1` の既存 approval が alternative にも独立して applicable なら、workflow は再取得を要求しない。
+If `A2` is rejected and an alternative that can accomplish the goal without that operation requires a new approval, add it to the next number in the same collection as long as it is before handoff. If the existing approval of `A1` is also independently applicable to the alternative, the workflow does not require re-acquisition.
 
-#### 提示内容を更新する
+#### Update presentation content
 
-未承認の `A2` が同じ unfinished logical operation のまま具体化された場合、同じ ID を維持して `更新: A2` と現在内容を全文提示できる。ただし、古い提示への遅延回答が新しい内容にも有効かは workflow ID から決めず、曖昧なら自動適用しない。
+If unacknowledged `A2` is materialized with the same unfinished logical operation, `更新: A2` (“Update: A2”) and the current contents can be presented in full text while maintaining the same ID. However, it is not determined from the workflow ID whether a delayed response to an old proposal is also valid for new content, and if it is ambiguous, it will not be applied automatically.
 
-#### reconstruction が必要になる
+#### Reconstruction is necessary
 
-execution state の連続性を保証できず current remaining work を再構築した場合、古い `A` collection を再現せず次 prefix の collection で discovery し直す。以前の approval が既存 authorization contract 上まだ applicable なら、それを workflow が失効させることはない。
+If the continuity of the execution state cannot be guaranteed and the current remaining work is rebuilt, the old `A` collection will not be reproduced and discovery will be performed again with the collection of the next prefix. If a previous approval is still applicable on an existing authorization contract, the workflow will not revoke it.

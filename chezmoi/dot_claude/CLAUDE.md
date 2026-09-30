@@ -29,15 +29,15 @@ substituting another contract.
 | JSON structure or value extraction | `~/.agents/guides/structured-data.md` (`link-targets/agents/guides/structured-data.md`) |
 
 <!--
-  以下は Claude Code 固有の運用メモ。Opus 5 のセッションには
-  `Do not call the AgentTool unless the user requested it` がシステム側から注入され、
-  AGENTS.md の「積極的に委譲する」既定を上書きすることがある。設定ファイルによる解除手段は
-  公式に用意されていない (https://github.com/anthropics/claude-code/issues/80988)。
+  The following is a Claude Code-specific operational note. In Opus 5 sessions, the system injects
+  `Do not call the AgentTool unless the user requested it`, which can override the
+  "delegate proactively" default in AGENTS.md. No official setting exists to lift it
+  (https://github.com/anthropics/claude-code/issues/80988).
 -->
 
-## サブエージェントへの委譲(Claude Code)
+## Delegation to subagents (Claude Code)
 
-- 作業に入る前に、サブエージェントへ委譲した方が効率がよいかを検討する。判断基準は `AGENTS.md` の
-  「サブエージェントへの委譲」に従う。
-- 委譲が有利だと判断した場合は、対象エージェント名と委譲する範囲を提示して許可を得てから委譲する。
-  許可を得ずに委譲しない。検討自体を省略しない。
+- Before starting work, consider whether delegating to a subagent would be more efficient. Follow the
+  criteria in "Delegation to subagents" in `AGENTS.md`.
+- If delegation looks advantageous, present the target agent name and the scope to delegate, and obtain
+  permission before delegating. Do not delegate without permission. Do not skip the consideration itself.

@@ -1,49 +1,49 @@
 ---
 name: external-posting
-description: Issue、Pull Request、レビューコメントなど外部の可視場所へ本文を投稿するときに使う。外部投稿を伴わない作業では発動しない。
+description: Used when posting the text to an external visible location such as an issue, pull request, or review comment. It will not be activated for work that does not involve external posting.
 ---
 
 # External posting workflow
 
 ## Discovery contract
 
-- Positive trigger: 他ユーザーから見える外部 location へテキストを作成または送信する。
-- Negative trigger: ローカル検証や内部メモだけで、外部へ本文を送信しない。
-- Conditional dependency: 外部 operation authorization contract を投稿の認可境界が必要な場合だけ解決する。
-- Failure mode: 認可境界または投稿条件を解決できない場合は投稿内容を推測せず、fail-safe に停止する。
+- Positive trigger: Compose or send text to an external location that is visible to other users.
+- Negative trigger: Only local verification or internal memo, no body sent externally.
+- Conditional dependency: The external operation authorization contract is resolved only when the posting's authorization boundary is needed.
+- Failure mode: If the authorization boundary or posting conditions cannot be resolved, do not infer the posting content and stop in a fail-safe manner.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
 ## Guide
 
-Issue、Pull Request、レビューコメントなど、他ユーザーから見える場所へテキストを投稿するときの指針。投稿内容を作成・送信する前に読む。
+Guidelines for posting text where other users can see it, such as issues, pull requests, and review comments. Read before creating or submitting your post.
 
-### ローカル環境情報の扱い
+### Handling of local environment information
 
-他ユーザーから見える場所へ投稿するテキストには、ユーザーから明示的な指示がない限り、ローカル環境固有の事情を記載しない。
+In text posted where other users can see, do not include information specific to the local environment unless explicitly instructed by the user.
 
-対象には次を含む。
+Targets include:
 
-- ローカルファイルやディレクトリの絶対パス
-- ローカルのリポジトリ配置場所
-- 一時ファイルや作業ディレクトリ
-- sandbox、workspace などエージェント実行環境固有のパス
-- 投稿内容の理解に不要なローカル環境依存情報
+- Absolute path of local file or directory
+- Local repository location
+- Temporary files and working directory
+- Agent execution environment-specific paths such as sandbox and workspace
+- Local environment-dependent information that is not necessary to understand the posted content
 
-必要に応じて、リポジトリルートからの相対パスなど、受け手にとって意味のある表現へ置き換える。
+If necessary, replace it with an expression that is meaningful to the recipient, such as a relative path from the repository root.
 
-問題の理解・再現・解決のためにローカル環境固有の情報を記載する必要があると判断した場合は、投稿前にユーザーへ確認する。
+If we determine that it is necessary to include information specific to the local environment in order to understand, reproduce, or resolve the issue, we will check with the user before posting.
 
-### ユーザーの立場として作成する内容
+### Content to create as a user
 
-外部投稿の具体化は、`link-targets/agents/skills/external-operation-authorization/SKILL.md` の認可境界内で行う。
+The materialization of external postings is done within the authorization boundary of `link-targets/agents/skills/external-operation-authorization/SKILL.md`.
 
-確認済み事実、実施作業、検証結果、既存判断の忠実な要約、通常の文章品質や表現調整は、意味的範囲内で決定できる。
+Confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments can be determined within a semantic range.
 
-約束、期限、サポート責任、リスク受容、法務・コンプライアンス・金銭・セキュリティ方針、対外評価、推薦、非難、プロジェクト方針、優先順位、終了判断を新しくユーザーの立場で作る場合は確認を要する。
+Promises, deadlines, support responsibilities, risk acceptance, legal/compliance/financial/security policies, external evaluations, recommendations, criticism, project policies, priorities, and termination decisions need to be confirmed when newly created from the user's perspective.
 
-未公開情報、個人の経験・意図・感情、未検証の事実も、ユーザーが示していない限り投稿内容へ追加しない。
+Do not add unpublished information, personal experiences, intentions, feelings, or unverified facts to your posts unless the user indicates so.
 
-レビュー所見では、判断の出所をユーザー本人の意思表示と混同させない。
+In review findings, do not let the source of a judgment be confused with the user's own expression of intent.

@@ -1,26 +1,26 @@
 ---
 name: structured-data
-description: JSON などの構造化データを値や階層として読み取るときに使う。無関係なテキスト検索では発動しない。
+description: Used when reading structured data such as JSON as a value or hierarchy. Does not fire for unrelated text searches.
 ---
 
 # Structured data workflow
 
 ## Discovery contract
 
-- Positive trigger: JSON の構造を解釈または値・階層を抽出する。
-- Negative trigger: 単なる全文表示や通常の Markdown 検索で構造を解釈しない。
-- Conditional dependency: 追加の依存契約はなく、構造化 parser の結果だけを使う。
-- Failure mode: 構造化 parser で解釈できない場合はテキスト推測へ fallback せず、停止して報告する。
+- Positive trigger: Interpret the structure of JSON or extract values/hierarchy.
+- Negative trigger: Only displaying full text or running a normal Markdown search, without interpreting structure.
+- Conditional dependency: There is no additional dependency contract; only the result of a structured parser is used.
+- Failure mode: If the structured parser cannot interpret it, stop and report instead of falling back to text guessing.
 
 ## Runtime contract
 
-この Skill が discovery されたときだけ、下記の Guide section を normative contract として適用する。条件付き依存は必要な場合だけ読み込み、解決不能なら推測による代替や silent omission をせず fail-safe に停止する。
+Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
 ## Guide
 
-JSON ファイルの値を調べる・抽出する前に読む。
+Read before inspecting/extracting JSON file values.
 
-- JSON の構造を解釈できるツールを使い、テキスト検索だけで値や階層を判定しない。
-- PowerShell が使える環境では `ConvertFrom-Json` を優先し、Unix 系で `jq` が使える場合は `jq` を使う。両方使える場合は環境に適した方を選ぶ。
-- grep、ripgrep、Select-String はキー名や構造を横断する検索で取りこぼし・誤ヒットが起きるため、原則として JSON の値の抽出に使わない。
-- ファイル全体をテキストとして眺める、構造化ツールの入力を絞るなど、目的が明確な場合だけテキスト検索を補助的に使う。
+- Use tools that can interpret the structure of JSON, and do not determine values or hierarchies solely by text searches.
+- In an environment where PowerShell can be used, give priority to `ConvertFrom-Json`, and if `jq` can be used on Unix systems, use `jq`. If you can use both, choose the one that suits your environment.
+- As a general rule, grep, ripgrep, and Select-String are not used to extract JSON values, as they can cause missing items or false hits when searching across key names and structures.
+- Use text search only when the purpose is clear, such as viewing the entire file as text or narrowing down the input for a structuring tool.
