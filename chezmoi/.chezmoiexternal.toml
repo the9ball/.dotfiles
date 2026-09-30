@@ -4,8 +4,8 @@
 # that the binaries and the completions come from the same release. When you
 # update kubectx in aqua.yaml, update the tag and sha256 here as well.
 # To get a sha256: curl -sL <url> | sha256sum
-# The files are placed under ~/.local/share/kubectx/completion/ and loaded from
-# ~/.bashrc.local (see .bashrc.local.example).
+# The files are placed under ~/.local/share/kubectx/completion/ and loaded by
+# .bashrc.interactive when they exist.
 
 [".local/share/kubectx/completion/kubectx.bash"]
 type = "file"

@@ -73,3 +73,12 @@ then
     alias kube=kubectl
     complete -o default -F __start_kubectl k
 fi
+
+# kubectx/kubens completion
+# chezmoi が取得する(chezmoi/.chezmoiexternal.toml)。未取得の環境では何もしない。
+for kubectx_completion in kubectx kubens; do
+	if [ -r "$HOME/.local/share/kubectx/completion/$kubectx_completion.bash" ]; then
+		. "$HOME/.local/share/kubectx/completion/$kubectx_completion.bash"
+	fi
+done
+unset kubectx_completion
