@@ -1,69 +1,68 @@
 ---
 name: dig
 description: >
-  【明示指名時のみ使用】ユーザーが `$dig` または `/dig` と明示したときだけ、プラン・設計・
-  技術的意思決定の前提を一問ずつ深掘りし、推奨回答と理由を添えて共通理解を確認する。通常の相談、
-  単発の質問、方針が確定した実装依頼には使用しない。
+  [Used only when explicitly designated] Only when the user explicitly specifies `$dig` or `/dig`, dig into the assumptions behind plans, designs, and technical decisions one question at a time, then confirm common understanding with recommended answers and reasons.
+  Do not use this skill for ordinary consultation, one-off questions, or implementation requests with settled policies.
 ---
 
 # dig
 
-`$dig`（Claude Codeでは `/dig`）で明示的に開始したときだけ、このモードを使用する。
-明示指名なしで読み込まれた場合は、この内容を適用せず通常フローへ戻る。
+Use this mode only when explicitly started with `$dig` (`/dig` in Claude Code).
+If it is read without explicit designation, this content is not applied and the process returns to the normal flow.
 
-## 進め方
+## How to proceed
 
-- 対象を設計ツリーとして捉え、回答ごとに依存する未決定事項を更新する。
-- 新しい洞察が得られなくなるまで、幅を広げず一つの枝を深く掘る。
-- 掘っている枝が解決するか、新しい洞察が得られなくなったら、影響範囲が大きく、他の判断の前提となる未決定事項を次に選ぶ。
-- 環境を調べれば分かる事実は、読み取り専用の範囲で先に自分で確認する。
-- 調査中の事実に依存する質問は後回しにし、依存しない枝を先に進める。依存しない枝がなく、残る論点がすべて調査中の場合は、調査待ちであることと未解決事項を明示し、調査を続ける。調査を実行できない場合は、その理由と必要な次の指示を示す。
-- ユーザーには選択やトレードオフだけを尋ねる。
-- 質問は一度に一つだけにし、重要性、選択肢、推奨回答と理由を必ず添える。
-- 質問を提示する直前に、現在見えている設計ツリーと依存する未決定事項を基準として、残っている深掘り量を定性的に見積もる。重要度・依存関係・深さを考慮し、値は粗い目安として質問ブロックの冒頭に表示する。固定の刻み幅、固定の重み付け式、質問数だけを分母にした算出、別途の進捗台帳は行わない。
-- 設計ツリー全体を粗く見積もれるだけの情報がなく、全体との比較ができない段階では `残り: --%` と表示し、無理に数値化しない。探索初期など、まだ発見されていない枝があり得るときに、現在見えている枝だけを設計ツリー全体とみなして残量を推定しない。全体像を粗く見積もれるようになった後は数値化してよいが、そのために主要な枝の網羅的な列挙は要求せず、既存の深掘り優先の進め方を維持する。依存関係や深さが不明な場合も `--%` とし、新しい枝や依存関係の発見で値が増えてよく、途中で `--%` に戻ることも許容する。単調減少は保証しない。
-- 提示中の質問は未解決として扱う。推奨を採用した暫定決定は、既存の扱いに従い、重要な未決定事項として繰り返し数えない。残り量は表示上の目安に限り、追加質問の根拠や終了条件には使わない。
-- 質問は次の形式で出す。選択肢は判断に必要な数だけ追加する。
+- View the target as a design tree and update dependent undecided items for each answer.
+- Dig deeper into one branch without expanding further until no new insights emerge.
+- Once the branch you're digging is resolved or no new insights are gained, choose the next undecided item that has a large impact and is the basis for other decisions.
+- Facts that can be discovered by examining the environment should be checked by yourself first using read-only operations only.
+- Leave questions that depend on the facts under investigation for later, and move on to branches that don't depend first. If there are no independent branches and all remaining issues are under investigation, clearly state that they are pending investigation and the unresolved issues, and continue the investigation. If the investigation cannot be performed, indicate the reason and any necessary next instructions.
+- Ask users only about choices and tradeoffs.
+- Ask only one question at a time, and be sure to include importance, options, recommended answers, and reasons.
+- Just before posing a question, qualitatively estimate how much exploration remains, using the currently visible design tree and dependent unresolved issues as the basis. Consider importance, dependencies, and depth, and display the value at the beginning of the question block as a rough guide. Do not use fixed increments, fixed weighting formulas, calculations that use only the number of questions as the denominator, or a separate progress ledger.
+- If there is not enough information to roughly estimate the entire design tree and compare against it, display `残り: --%` instead of forcing a number. Early in exploration, undiscovered branches may remain, so do not treat only the currently visible branches as the entire design tree or estimate the remaining amount from them. Once the overall shape can be roughly estimated, a number is allowed; this does not require exhaustively listing the major branches, and the existing depth-first approach remains in effect. If dependencies or depth are unknown, use `--%`. New branches or dependencies may increase the estimate or return it to `--%`; a monotonic decrease is not guaranteed.
+- The question being posed will be treated as unresolved. Interim decisions adopting recommendations will not be counted again as material outstanding matters, in accordance with existing treatment. The remaining amount is only used as a guideline and will not be used as the basis for additional questions or termination conditions.
+- Ask questions in the following format. Add as many options as the decision needs.
 
 ```markdown
-### ❓ Q[番号]: [質問文]
+### ❓ Q[number]: [question text]
 
 残り: ~[概算]%
 
-[この質問が重要な理由]
+[Why this question is important]
 
-- **A** — [選択肢]
-- **B** — [選択肢]
-- **C** — [必要なら追加]
+- **A** — [Choice]
+- **B** — [Choice]
+- **C** — [Add if necessary]
 
-**推奨: [A/B/C]** — [理由]
+**推奨: [A/B/C]** — [Reason]
 ```
 
-数値化できない場合は、`~[概算]%` の代わりに `--%` を表示する。
+If it cannot be quantified, display `--%` instead of `~[概算]%`.
 
 ## dig-log
 
-- 後で dig-log 化できるよう、検討中から最終判断だけでなく、判断に必要な理由・前提・懸念・重要な変更、撤回、再定義、未解決事項を保持する。固定 taxonomy や別の永続 state は作らない。
-- 通常の終了まとめは既存の簡潔な形式を維持する。dig-log はユーザーが明示的に求めた場合だけ生成する。生成は dig 中でも行えるが、会話内での生成だけを求められた場合は保存しない。
-- 「dig-log を書く」など保存を含む要求では、保存先が文脈から一意なら推定し、曖昧なら確認する。保存先への write は dig の検討終了後に通常操作として行い、ローカルファイルを含め、その destination に適用される authorization / posting contract と対象リポジトリの規約に従う。
-- dig-log は固定 schema を要求せず、その時点の最終判断と、後続作業で判断を理解するために必要な理由・前提・懸念・重要な変更/撤回・未解決事項を意味的に圧縮する。会話全文の保存は目的にしない。
-- 保存時は、対象 artifact と dig-log の解決可能な関連付けを destination の通常経路で確保し、後続作業から discoverable にする。保証できない場合は推測して保存せず、必要な確認を行うか保存できないことを報告する。
-- dig-log には安定した識別 marker を持たせる。Markdown / GitHub では `<!-- DIG-LOG -->` を標準的な例とし、marker / pointer の具体方式は destination に委ねる。
-- 折り畳み等は destination 固有の presentation とする。GitHub の `<details>` は利用可能な例だが、共通 contract には要求しない。
-- dig-log は source of truth ではなく、その時点の判断と理由を残す履歴 artifact とする。現在の authoritative artifact は既存の work-plan / artifact ownership contract に従い、候補が複数または不明なら推測しない。
-- 対象 artifact に discoverable な dig-log が存在すると分かる後続作業では、設計意図が関係する場合に通常経路で参照する。hidden history 等の全探索は要求しない。
-- 会話スレッド共有を dig 独自の保存・handoff 機能にしない。必要な場合は既存の conversation handoff / thread sharing の責務へ委譲し、承認・権限・未完了作業の継承を dig では定義しない。
+- While deliberating, retain not only the final decision but also the reasons, premises, concerns, important changes, withdrawals, redefinitions, and unresolved matters necessary for the decision so that it can be converted into a dig-log later. It does not create a fixed taxonomy or separate persistent state.
+- The normal closing summary maintains the existing concise format. Generate a dig-log only when the user explicitly requests it. Creation can be done during dig, but if you are only asked to create it within a conversation, it will not be saved.
+- For requests that include storage, such as 「dig-log を書く」 ("write the dig-log"), the storage destination is estimated if it is unique from the context, and confirmed if it is ambiguous. Writing to a storage destination is performed as a normal operation after dig is completed, and follows the authorization / posting contract applicable to that destination and the rules of the target repository, including local files.
+- dig-log does not require a fixed schema, but instead semantically compresses the final decision at that point and the reasons, assumptions, concerns, important changes/reversals, and unresolved issues needed to understand the decision in subsequent work. The purpose is not to save the entire conversation.
+- When saving, ensure a resolvable association between the target artifact and dig-log through the normal path of the destination, making it discoverable from subsequent work. If this cannot be guaranteed, do not save based on a guess; instead, perform the necessary checks or report that it can't be saved.
+- Give the dig-log a stable identification marker. In Markdown/GitHub, `<!-- DIG-LOG -->` is used as a standard example, and the specific method of marker/pointer is left to the destination.
+- Folding, etc. is a destination-specific presentation. `<details>` on GitHub is an example that can be used, but it is not required for common contracts.
+- Dig-log is not a source of truth, but a historical artifact that records the decisions and reasons at that time. Current authoritative artifacts follow existing work-plan/artifact ownership contracts and do not infer if there are multiple or unknown candidates.
+- In subsequent work where it is determined that a discoverable dig-log exists for the target artifact, refer to it through the normal route if the design intent is relevant. Full search of hidden history etc. is not required.
+- Don't make conversation thread sharing a dig-specific save/handoff feature. Delegate to existing conversation handoff/thread sharing responsibilities if necessary, and do not define inheritance of approvals, permissions, or unfinished work in dig.
 
-## 継続と終了
+## Continuation and termination
 
-- dig中の「続けて」は、次の質問を続ける指示として扱う。
-- 「進めて」のように質問継続とも実装移行とも読める指示は、どちらを意味するかを一度だけ意図確認する。この意図確認で実装移行の可能性がある場合は、重要な未解決事項と影響も示し、実装移行の確認を兼ねる。
-- ユーザーが「わからない」「任せる」と答えたら、推奨を暫定決定として採用し、その旨を前提または未解決事項に記録して次の枝へ進む。同じ論点を言い換えて再質問しない。
-- この意図確認を経ずに、重要な未解決事項が残る状態で実装を求められたら、未解決事項と影響を示し、残したまま実装へ移るかを一度だけ確認する。
-- ユーザーが「digを終了」「質問を打ち切る」「未解決のまま実装へ移る」と明示したら、未解決事項をまとめてdigを終了する。
-- 重要な未決定事項（暫定決定として処理した項目を除く）がなく、次の質問から新しい洞察が得られない場合は、共通理解を確認して終了する。
-- 終了時は、次の形式で決まったこと、未解決事項、残る前提を簡潔にまとめる。
-- 該当する項目がない場合も見出しは省略せず、`- なし` と記載する。
+- 「続けて」 ("continue") during dig is treated as an instruction to continue asking the next question.
+- For instructions such as 「進めて」 ("go ahead") that can be read as either continuing the question or transitioning to implementation, confirm the intention only once as to which is meant. If this confirmation may lead to moving on to implementation, also state the important unresolved issues and their impact, so that it doubles as the confirmation of the move to implementation.
+- If the user answers 「わからない」 ("I don't know") or 「任せる」 ("I'll leave it to you"), the recommendation is accepted as a tentative decision, recorded as a premise or unresolved, and proceeds to the next branch. Do not rephrase the same point and ask the question again.
+- If you are asked to implement something with important unresolved issues remaining without going through this intention confirmation, indicate the unresolved issues and their impact, and confirm once if you want to proceed with implementation with the remaining issues.
+- When the user explicitly says 「digを終了」 ("end dig"), 「質問を打ち切る」 ("stop the questions"), or 「未解決のまま実装へ移る」 ("move to implementation with issues unresolved"), the unresolved issues will be summarized and dig will be closed.
+- If there are no important undecided items (other than those treated as tentative decisions) and the next questions do not provide new insights, confirm common understanding and close.
+- At the end, briefly summarize what has been decided, unresolved matters, and remaining assumptions in the following format.
+- Even if there is no applicable item, the heading should not be omitted and should be written as `- なし`.
 
 ```markdown
 ## まとめ
@@ -78,9 +77,9 @@ description: >
 - ...
 ```
 
-## 承認と委譲
+## Authorization and delegation
 
-- digの共通理解確認は、計画承認やファイル変更前の範囲確認を代替しない。
-- ユーザーが明示的に実装へ移ると確認した後も、通常の承認ゲートと対象リポジトリの規約に従う。
-- dig中の調査・確認は読み取り専用に留め、変更を伴う操作は行わない。
-- 調査をサブエージェントへ委譲する場合は、`AGENTS.md` の委譲規約とホスト固有の許可手順に従う。
+- dig's common understanding confirmation does not replace plan approval or scope confirmation before file changes.
+- Even after the user explicitly confirms that they want to proceed with implementation, the normal approval gates and rules of the target repository are followed.
+- Investigations and confirmations during dig are read-only, and operations that involve changes are not performed.
+- When delegating investigations to subagents, follow `AGENTS.md`'s delegation rules and host-specific authorization procedures.
