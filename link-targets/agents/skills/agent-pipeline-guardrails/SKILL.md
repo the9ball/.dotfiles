@@ -1,150 +1,117 @@
 ---
 name: agent-pipeline-guardrails
 description: >
-  【Claude Code 専用。他のエージェント/ツールからは使用しない】
-  Architect / Implementer / Reviewer / Investigator サブエージェント(~/.claude/agents/ 配下の個人用エージェント)を
-  使った開発フローで、計画の書き換えや実装の本番採用を、ユーザーの明示的な承認なしに指示・確定しないための
-  ガードレール。これら4エージェントのいずれかを呼び出す、あるエージェントのフィードバックを別のエージェント
-  (特に Architect)に中継する、生成されたコードを本番採用として扱う、実装を誰(オーケストレータ自身 /
-  Implementer / ユーザー経由の Codex)に任せるかを判断する、計画ファイル無しの軽微なコード変更を
-  Implementer(直接タスクモード)に渡すか Architect で計画を立てるかを判断する、レビュー依頼を Reviewer に
-  渡すか Claude 自身でレビューするかを判断する、PR 作成前の最終レビューを行う、といった場面で必ず参照する。
-  Implementer は自動起動しない(実装を Codex に出す選択肢が常にあり、実装主体はユーザーが決めるため)。
+  [For Claude Code only. Do not use from other agents/tools]
+  Use this skill in development workflows involving the Architect, Implementer, Reviewer, or Investigator personal subagents under ~/.claude/agents/. It provides guardrails against directing plan rewrites or treating generated code as production without the user's explicit approval. Always refer to it when calling any of these four agents, relaying feedback between agents (especially to Architect), deciding who will implement (the orchestrator, Implementer, or Codex via the user), routing minor work directly to Implementer or through Architect planning, choosing whether a review goes to Reviewer or Claude, or performing a final review before creating a PR. Implementer does not start automatically; the user chooses who implements, and can choose Codex.
 ---
 
 # Agent Pipeline Guardrails
 
-Architect / Implementer / Reviewer / Investigator は個人用サブエージェント(`~/.claude/agents/architect.md` /
-`implementer.md` / `reviewer.md` / `investigator.md`)。オーケストレーション専用の自動化スキルは意図的に作っていない
-(パイプライン全体を自動連鎖させると、途中の人間の承認ポイントが失われるため)。このスキルは自動化の
-代わりに、オーケストレータ(このセッション自身)が守るべき最低限の確認ルールをまとめたもの。
+Architect / Implementer / Reviewer / Investigator are personal subagents (`~/.claude/agents/architect.md` /
+`implementer.md` / `reviewer.md` / `investigator.md`). An automation skill dedicated to orchestration was intentionally not created
+(auto-chaining the whole pipeline would lose the human approval points along the way). Instead of automation, this skill
+collects the minimum confirmation rules that the orchestrator (this session itself) should follow.
 
-## 守ること
+## Rules to follow
 
-1. **Architect への計画書き換え指示は、ユーザーの明示的な承認を得てから出す。**
-   - Implementer/Reviewer/Investigator からのフィードバックを Architect に渡すときは、単に転送するだけでなく、
-     フィードバック内容と(あれば)Architect が提案した修正案をユーザーに提示し、承認を得てから
-     「この内容で計画を修正して」のように曖昧さのない指示を出す。
-   - 「対応して」「良きに計らって」のような曖昧な依頼で済ませない。Architect 自身も「明示指示が
-     無ければ書き換えない」という基準で動くよう定義されているので、オーケストレータ側が先に承認を
-     飛ばしても大事故にはなりにくいが(Architect 側が提案止まりにする)、ユーザーの意図を確認せずに
-     話を進めてしまうことに変わりはない。
+1. **Give the Architect an instruction to rewrite the plan only after obtaining the user's explicit approval.**
+   - When passing feedback from Implementer/Reviewer/Investigator to the Architect, do not simply forward it. Present the feedback content
+     and the Architect's proposed correction (if any) to the user, and after obtaining approval,
+     give an unambiguous instruction such as "revise the plan with this content".
+   - Don't settle for vague requests such as "Please handle this" or "Do as you see fit." The Architect is defined to not rewrite the plan without an explicit instruction, so even if the orchestrator skips obtaining the user's approval first, a major accident is unlikely (the Architect will stop at making a suggestion). Even so, proceeding without confirming the user's intent is still a problem.
 
-2. **生成されたコードを本番採用として扱う前に、ユーザーの明示判断を得る。**
-   - プロダクト側の制約(AI 生成コードは本番に含められない。デバッグ用の一時コードのみ、都度の判断で
-     許可される)により、実装の最終報告(本番/デバッグ分類・変更ファイル一覧)は必ずユーザーに
-     提示し、採否を確認してから次に進む。
-   - **このゲートは実装主体・変更規模・モードに関係なく必ず通す。** Implementer が実装した場合も、
-     オーケストレータ自身が素通しゲートで1行だけ修正した場合も省略しない(制約は実装主体と変更の
-     規模のどちらとも無関係なため)。
-   - 却下する場合は、報告された「却下時の戻し方」(既存ファイルは `git checkout`/`restore`、
-     新規ファイルは削除)に従う。
+2. **Obtain the user's explicit judgment before treating generated code as adopted for production.**
+   - Product constraints prohibit including AI-generated code in production. Temporary code for debugging may be permitted case by case, so always present the final implementation report (production/debug classification and changed-file list) to the user and confirm their acceptance before proceeding.
+   - **This gate applies regardless of who implements the change or its size or mode.** Do not omit it when the Implementer makes the change or when the orchestrator makes a one-line change through the pass-through gate (素通しゲート); the product constraint is independent of both the implementer and the change size.
+   - If it is rejected, follow the reported "How to revert if rejected" (use `git checkout`/`restore` for existing files;
+     delete new files).
 
-3. **迷ったら止める。**
-   - 何が承認されたのか自分で不確かな場合、確認を省略せず、ユーザーに一度尋ね直す。
+3. **If in doubt, stop.**
+   - If you are unsure about what has been approved, don't skip confirmation and ask the user again.
 
-4. **フィードバックを鵜呑みにせず、中継前に自分で不明点を確認する。**
-   - Reviewer/Implementer/Investigator からのフィードバックを別のエージェント(特に Architect)に中継する前に、内容を
-     読んで自分が本当に理解できているか確認する。曖昧・矛盾している・根拠が薄いと感じた箇所を、都合よく
-     解釈・要約して埋めない。
-   - 不明点があれば、先に(Architect などへ中継する前に)ユーザーに確認する。ユーザーへの確認を省略して
-     推測で中継すると、その推測がそのまま計画やコードに反映されてしまう。
+4. **Do not take feedback at face value; check unclear points yourself before relaying it.**
+   - Before relaying feedback from Reviewer/Implementer/Investigator to another agent (especially Architect), read it
+     and check that you really understand it. Do not fill in parts that seem ambiguous, contradictory, or weakly supported by interpreting or summarizing them in a convenient way.
+   - If something is unclear, ask the user first (before relaying it to Architect or another agent). If you skip asking the user and relay a guess,
+     that guess is carried straight into the plan or code.
 
-## Implementer を起動するかどうか
+## Whether to start the Implementer
 
-**Implementer は自動起動しない。** 同じ実装を Codex に依頼する選択肢が常にあり、どちらで実装するかは
-ユーザーが決めるため、オーケストレータの判断だけで Implementer に流さない。
+**Implementer does not start automatically.** There is always the option of asking Codex to implement the same change, and
+the user decides which to use, so do not route work to the Implementer on the orchestrator's judgment alone.
 
-- **ユーザーが Implementer を明示指名した** → Implementer に渡す(Architect を先に通すかは下記で判断)。
-- **指名が無い** → 下記「素通しゲート」に該当すればオーケストレータ自身が実装する。該当しない場合は、
-  実装に着手する前に「オーケストレータ自身が実装する / Implementer に渡す / 計画を作ってユーザーが
-  Codex に渡す」のどれにするかをユーザーに確認する。勝手に決めない。
+- **The user has explicitly designated an Implementer** → Pass it to the Implementer (determine below whether to pass the Architect first).
+- **No designation** → If it falls under the "pass-through gate (素通しゲート)" below, the orchestrator implements it. Otherwise, before implementation starts, ask the user to choose among: the orchestrator implements it; it is passed to the Implementer; or a plan is created for the user to pass to Codex. Do not decide on the user's behalf.
 
-### Architect を先に通すか(計画がまだ無いタスクのルーティング)
+### Whether to go through Architect first (routing tasks for which there is no plan yet)?
 
-計画がまだ無いタスクでは、**Architect を通すかどうかをタスクの規模で分岐させる**。
-全タスクに計画ファイルを作らせると、1行修正のような軽微な変更でも runbook 作成が先に入って著しく
-非効率になるため。判断は次の順序で行う。
+For tasks without a plan, decide whether to route through the Architect based on the task's scale.
+If you make every task create a plan file, even a one-line change would require a runbook first, which is highly inefficient. Decide in the following order:
 
-1. **下記「素通しゲート」の4条件をすべて満たす** → パイプラインを通さずオーケストレータ自身が実装する。
-2. **ユーザーが Implementer を指名しており、素通しゲートの条件1〜3(規模・設計判断なし・検証が
-   ビルド/テストで完結)を満たす** → **Architect を飛ばして Implementer に直接渡す**
-   (Implementer の「直接タスクモード」)。計画ファイルは作らない。呼び出し時は計画ファイルのパスを渡さず、
-   変更内容そのものをタスクとして渡す。
-3. **上記に当たらない** → 従来どおり Architect で計画を立て、ユーザーの承認を得てから実装に進む
-   (この順序は省略しない)。目安: 設計判断が必要、複数レイヤー・複数ファイルにまたがる、影響範囲が
-   読めない、自動生成物の再生成やスキーマ変更などの副作用を伴う。計画ができた時点で、実装主体
-   (オーケストレータ自身 / Implementer / ユーザー経由の Codex)を改めてユーザーが決める。
+1. **All four conditions of "pass-through gate (素通しゲート)" below are met** → Implemented by the orchestrator itself without passing through the pipeline.
+2. **The user has designated the Implementer, and conditions 1 to 3 of the pass-through gate (素通しゲート) (scale, no design decision, verification
+   completed by build/test) are met** → **Skip Architect and pass it directly to the Implementer**
+   (the Implementer's "direct task mode"). No plan file is created. When calling, do not pass a plan file path;
+   pass the change itself as the task.
+3. **None of the above** → Create a plan in Architect as before, get user approval, and then proceed with implementation
+    (Do not omit this order). Use this route as a guide when design judgment is needed, work spans multiple layers or files, the impact scope is unclear, or side effects such as regenerating generated files or changing a schema are involved.
+    Once the plan is complete, the user again decides who implements it: the orchestrator itself, an Implementer, or Codex at the user's direction.
 
-- **迷ったら Architect 先に倒す**(ガードレール3と同じ)。ただしユーザーが「軽微だから直接やって」と
-  明示している場合はその判断を尊重する。
-- Implementer 側にも同じ上限が定義されている(`implementer.md` の「直接タスクモードの上限」)。直接渡した
-  あとで上限超過だと判明した場合、Implementer は着手せず Architect への引き継ぎを提案して止めるので、
-  その報告を受けたら Architect からやり直す。
-- どの経路を通っても**実装承認ゲート(ガードレール2)は必ず通す**。軽量パスは「計画を省略する」ものであって
-  「ユーザーの採否判断を省略する」ものではない。
+- **If in doubt, lean toward Architect first** (the same as Guardrail 3). However, if the user has clearly said "it is minor, so just do it directly",
+  respect that decision.
+- The Implementer has its own start conditions (`implementer.md`, "Contract requirements for direct task mode"). If the task is later found not to meet them, the Implementer will not start and will recommend routing it through the Architect. After receiving that report, restart with the Architect.
+- Every route must pass through the implementation approval gate (Guardrail 2). A lightweight path skips planning, not the user's decision to accept or reject the implementation.
 
-### 素通しゲート(Architect/Implementer を通さず自分で実装してよい条件)
+### 素通しゲート (Pass-through gate): conditions where you can implement it yourself without going through Architect/Implementer
 
-次の条件を**すべて**満たす場合のみ、パイプラインを通さずオーケストレータ自身が Edit/Write で実装してよい。
-一つでも満たさなければ、実装主体をユーザーに確認する(Architect を先に通すかどうかは上記のルーティングで判断する)。
+Only if **all** of the following conditions are met may the orchestrator implement the change itself with Edit/Write, without going through the pipeline.
+If even one is not met, ask the user who will implement it (whether to go through Architect first is decided by the routing above).
 
-1. 変更対象が 2 ファイル以下で、追加・変更行が合計で概ね 30 行以内に収まる見込みである。
-2. 設計判断を含まない。既存パターンの踏襲、明らかな誤りの修正、文言・定数・設定値の変更のいずれかに当たる。
-3. 検証がビルド・テストの実行、または差分の目視確認で完結する(環境を起動して挙動を追う必要がない)。
-4. ユーザーが Architect / Implementer を明示的に指名していない。指名があれば規模によらず従う。
+1. It is expected that changes will be made in two files or less, and that the total number of added and changed lines will be within roughly 30 lines.
+2. It involves no design decision: the change is one of following an existing pattern, fixing an obvious error, or changing wording, constants, or configuration values.
+3. Verification can be completed by running a build/test or visually checking the differences (there is no need to start the environment and follow the behavior).
+4. The user has not explicitly named the Architect or the Implementer. If they have, follow that regardless of size.
 
-迷う場合はパイプラインを通す側に倒す。ただし「迷ったから通す」を繰り返して小さな修正まで Architect に
-流すと、計画作成(Opus)のコストが実作業より大きくなる。上の4条件を実際に当てはめて判断し、素通しした
-場合は「軽微と判断し直接修正した」旨を一行で報告して、判断をユーザーが追えるようにする。
+If in doubt, lean toward routing through the pipeline. However, repeatedly routing even small fixes to Architect "because I was unsure" makes plan creation (Opus) cost more than the actual work. Actually apply the four conditions above; when you pass a change through, report in one line that you judged it minor and fixed it directly, so the user can follow the decision.
 
-**素通ししても実装承認ゲートは省略しない。** オーケストレータ自身が書いたコードも AI 生成コードであり、
-「守ること」2 の本番採用判断(本番/デバッグ分類・変更ファイル一覧の提示と採否確認)は同じように必要。
-素通しで省略できるのは Architect の計画作成と Implementer への委譲だけであり、ユーザーの承認は省略できない。
+**The implementation approval gate is not omitted even when the change is passed through.** Code written by the orchestrator itself is also AI-generated code,
+so the production-adoption decision in Guardrail 2 (presenting the production/debug classification and the changed-file list, and confirming acceptance) is needed in the same way.
+Only the Architect's planning and the delegation to the Implementer can be skipped; the user's approval cannot be omitted.
 
-## Reviewer を呼ぶかどうか
+## Whether to call a reviewer
 
-`reviewer` のレビュー対象は作業ツリーの差分であり、**実装主体は問わない**(Implementer が加えた変更、
-ユーザーが Codex に指示して作られた変更、オーケストレータ自身が加えた変更のいずれも対象)。
-ただし既存コードの不具合・バグ報告の原因調査は `reviewer` の役割ではない。環境を起動して挙動を追う
-必要があるなら `investigator` を使い、そうでなければオーケストレータ自身が調べる。
+The target of `reviewer` review is the worktree diff, and **the implementation actor does not matter**. This includes changes made by the Implementer, changes made by Codex at the user's direction, and changes made by the orchestrator itself.
+However, investigating the cause of a defect or bug report in existing code is not `reviewer`'s role. If you need to start the environment and trace the behavior,
+use `investigator`; otherwise the orchestrator investigates it itself.
 
-`reviewer` は Opus で走り差分と関連コードを読み直すため、小さな差分では報告を書くコストが実作業を
-上回る。次に当たるときは省略してよい(省略した旨は報告に一行残す)。
+Since `reviewer` runs in Opus and rereads the differences and related code, writing a report for a small change can cost more than the change itself. You may omit the review in the following cases (leave a line explaining the omission).
 
-- 実装側の検証がすべて通っており、差分が 1〜2 ファイル・低リスク(設定値やログ出力の変更など、
-  ロジックの分岐を増やしていないもの)である
+- All verifications by the implementation side have passed, and the diff is 1-2 files and low risk (such as a change to a setting value or log output
+  that does not add logic branches)
 
-逆に、次のときは規模が小さくても `reviewer` を呼ぶ。
+Conversely, in the following cases, call `reviewer` even if the scale is small.
 
-- セキュリティ・認証・認可・外部入力の扱いに触れている
-- 実装側が計画からの逸脱を報告している、または検証を一部スキップしている
-- 本番採用を前提にした変更である(デバッグ用の一時コードではない)
+- Covers security, authentication, authorization, and handling of external input
+- The implementation side reports a deviation from the plan, or skipped some verification
+- This change is intended for production use (not temporary code for debugging)
 
-ユーザーが「レビューして」と依頼したときは規模によらず呼ぶ。この省略基準はオーケストレータの既定動作に
-対してのみ適用され、明示依頼を上書きしない。
+When a user requests a review, call the Reviewer regardless of the change's size. This omission criterion applies only to the orchestrator's default behavior and does not override explicit requests.
 
-## PR 作成前の最終レビュー
+## Final review before PR creation
 
-「PR 前の最終レビュー」といった依頼のときも、レビューを走らせるのは Claude 側だけにする。**オーケストレータから
-Codex にレビューを投げることはしない。** Codex への依頼はユーザーが行う。
+Even when a request is made for a "final review before PR," only Claude runs the review. **The orchestrator does not send review requests to Codex.** Requests to Codex are made by the user.
 
-- **Claude 側のレビュー**: 上の「Reviewer を呼ぶかどうか」の基準に従う。`reviewer` を呼ぶ場合は
-  `Agent`(`run_in_background: false`)で呼び、省略基準に当たるならオーケストレータ自身がレビューする。
-- **Codex の第二意見が欲しい場合**: オーケストレータから Codex を起動する手段は無い。必要だと判断したら
-  ユーザーにその旨と見てほしい観点を伝え、ユーザー自身に Codex へ依頼してもらう。結果を貼ってもらえれば、
-  Claude 側のレビューと突き合わせて合成する。
-- **合成する場合**: 両者の指摘を突き合わせ、(a) 両方が挙げた指摘(確度高)、(b) 片方だけが挙げた指摘(出所を明示)、
-  (c) 両者で判断が食い違う点、を整理して1つの総合レビューにする。安易に片方を正としない。食い違いは
-  「どちらの言い分か」を残したまま提示し、最終判断はユーザーに委ねる。
-- **最終レビューでも修正はしない**: これはあくまでレビュー。指摘に基づく修正は別途行い、本番採用の可否は
-  ユーザーが判断する(このスキルの他のガードレールと同じ)。
+- **Claude's review**: Follow the criteria in "Whether to call a reviewer" above. When calling `reviewer`,
+  call it as `Agent` (`run_in_background: false`), and if the omission criteria apply, the orchestrator performs the review itself.
+- **If you want a second opinion from Codex**: There is no way for the orchestrator to start Codex. If you judge it necessary,
+  tell the user so, together with the perspectives you want checked, and have the user request it from Codex. If the user pastes the results, reconcile them with Claude's review and combine them.
+- **When combining**: Compare both sides' findings and sort them into (a) findings raised by both (high confidence), (b) findings raised by only one side (state the source),
+  and (c) points where the two disagree, and produce one comprehensive review. Do not casually treat one side as correct. Present each disagreement
+  with "whose claim it is" preserved, and leave the final decision to the user.
+- **No corrections in the final review**: This is only a review. Corrections based on the findings are made separately, and whether the result is
+  adopted for production is decided by the user (the same as the other guardrails of this skill).
 
-## なぜ
+## Why
 
-このガードレールはプロンプトの表現(何をもって「承認」とするか)を明確化するだけであり、技術的な
-強制力はない。Architect 自身も過去に「対応してください」という曖昧な依頼を書き換えの許可と誤って
-解釈したことがあり(2026-07-10 のテストで発見・修正済み)、オーケストレータ側にも同じ種類のリスクが
-ある。技術的に権限を制限できる箇所(コード編集ツールの有無、作業ディレクトリの範囲、既定モデルなど)は
-既に各エージェント定義側の `tools`/本文ルールで対応済み。ここでカバーしているのは、それでは塞ぎきれない
-「言葉の意味の解釈」に関わる部分だけ。
+This guardrail clarifies the wording of the prompt (what constitutes “approval”) but cannot enforce it technically. Architect has previously mistaken an ambiguous request such as “Please respond” for permission to rewrite (found and fixed in testing on 2026-07-10), and the orchestrator faces the same risk.
+Where permissions can be technically restricted (such as available code-editing tools, working-directory scope, or the default model), the `tools` and body rules in each agent definition already address them. This guardrail covers only what those rules cannot fully address: interpreting the meaning of words.
