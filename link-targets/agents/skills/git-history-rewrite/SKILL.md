@@ -1,27 +1,27 @@
 ---
 name: git-history-rewrite
 description: >
-  `git rebase -i` を使わずに、コミット履歴の書き換え(並べ替え・squash・分割・drop・過去コミットの修正・
-  ベース付け替え)を非対話で行う手順。cherry-pick による履歴リプレイ、目的別の最短手段の選択、
-  `git range-diff` による書き換え結果の検証、元ブランチへの反映までを定める。
-  「コミットをまとめたい」「順番を入れ替えたい」「途中のコミットを直したい」「rebase したい」
-  「履歴を整理したい」といった依頼、および rebase 中のコンフリクト対応で参照する。
+  Rewrite commit history (reorder, squash, split, drop, fix past commits, rebase onto a new base (ベース付け替え)) non-interactively without using `git rebase -i`.
+  Defines history replay with cherry-pick, selection of the shortest method for each purpose,
+  verification of rewrite results with `git range-diff`, and reflecting the result onto the original branch.
+  Referenced for requests such as 「コミットをまとめたい」 (combine commits), 「順番を入れ替えたい」 (reorder), 「途中のコミットを直したい」 (fix intermediate commits), 「rebase したい」
+  and 「履歴を整理したい」 (clean up history), and for conflict handling during a rebase.
 ---
 
-# Git History Rewrite (非対話)
+# Git History Rewrite (non-interactive)
 
-`git rebase -i` はハーネス規約で使用禁止(対話エディタを開くコマンド)。
-`GIT_SEQUENCE_EDITOR` / `sequence.editor` で todo を機械的に書き換える回避策も**使わない**
-(規約の趣旨に反し、todo の書き換えミスが静かに履歴を壊すため)。
-代わりに、目的に応じた非対話コマンドか、cherry-pick による履歴リプレイを使う。
+`git rebase -i` is prohibited by the harness rules (it is a command that opens an interactive editor).
+**Do not use the workaround of mechanically rewriting the todo through `GIT_SEQUENCE_EDITOR` / `sequence.editor`**
+(it goes against the intent of the rule, and a mistake in rewriting the todo silently destroys history).
+Instead, use suitable non-interactive commands or history replay with cherry-pick.
 
-## 手順の全体像
+## Overview of the procedure
 
-0. 事前確認 → 1. 手段の選択 → 2. 実行 → 3. 検証 → 4. 元ブランチへの反映 → 5. 後始末
+0. Prior confirmation → 1. Select method → 2. Execution → 3. Verification → 4. Reflect to original branch → 5. Clean up
 
-検証(3)を省略してはならない。書き換えの事故は差分を見るまで気づけない。
+Do not skip verification (3). A rewrite accident cannot be noticed until you look at the difference.
 
-## 0. 事前確認
+## 0. Prior confirmation
 
 ```bash
 git status --porcelain
@@ -30,138 +30,133 @@ git rev-parse HEAD
 git log --oneline --no-decorate <base>..HEAD
 ```
 
-- 作業ツリーがクリーンでなければ、履歴書き換えを始めない。ユーザーに commit か stash を確認する。
-- `git rev-parse HEAD` の出力(元の tip の SHA)を必ず控える。以降これを `<orig>` と呼ぶ。
-  reflog だけに頼らない(手順の途中で見失うと復旧が面倒になる)。
-- `<base>` は書き換えの起点。分からなければ `git merge-base HEAD origin/main` などで候補を出し、
-  ユーザーに確認する。推測で決めない。
-- 元ブランチが push 済みかどうかを確認する(`git rev-parse --abbrev-ref '@{upstream}'`)。
-  push 済みなら、後の反映が force push を伴うことを先に伝える。
+- Do not start rewriting history unless the working tree is clean. Ask the user to commit or stash.
+- Always record the output of `git rev-parse HEAD` (the SHA of the original tip). It is referred to as `<orig>` from here on.
+  Do not rely on the reflog alone (recovery is troublesome if it is lost during the procedure).
+- `<base>` is the starting point of the rewrite. If you do not know it, suggest candidates using `git merge-base HEAD origin/main` or similar and
+  ask the user. Do not guess.
+- Check whether the original branch has been pushed (`git rev-parse --abbrev-ref '@{upstream}'`).
+  If it has already been pushed, tell the user first that the later reflection will involve a force push.
 
-## 1. 手段の選択
+## 1. Choice of means
 
-cherry-pick リプレイは万能だが手数が多い。目的が下の表の上3行に収まるなら、そちらを使う。
+Cherry-pick replay is versatile but takes a lot of work. If your purpose fits in one of the first three rows of the table below, use that.
 
-| やりたいこと | 手段 |
+| What I want to do | Means |
 |---|---|
-| 直近1件のメッセージ・内容の修正 | `git commit --amend`(メッセージは `-m` で渡す) |
-| 直近N件を1つにまとめる | `git reset --soft HEAD~N` + `git commit -m "..."` |
-| ベースの付け替えのみ(順序・内容はそのまま) | `git rebase --onto <new-base> <old-base> <branch>` |
-| 末尾以外のコミットの修正・並べ替え・分割・drop | cherry-pick リプレイ(手順2) |
+| Edit the last message/content | `git commit --amend` (pass the message as `-m`) |
+| Combine the latest N items into one | `git reset --soft HEAD~N` + `git commit -m "..."` |
+| Just replace the base (order and contents remain the same) | `git rebase --onto <new-base> <old-base> <branch>` |
+| Modify/reorder/split/drop commits other than the last one | cherry-pick replay (step 2) |
 
-`git rebase --onto` は非対話なので使ってよい。`-i` を付けてはならない。
+`git rebase --onto` is non-interactive, so you can use it. Do not include `-i`.
 
-## 2. cherry-pick リプレイ
+## 2. cherry-pick replay
 
 ```bash
-# 一時ブランチをベースから作る(-C ではなく -c を使う)
-git switch -c rewrite/<元ブランチ名> <base>
+# Create a temporary branch from the base (use -c, not -C)
+git switch -c rewrite/<original branch name> <base>
 
-# 目的の順序で積み上げる
+# Stack them in the desired order
 git cherry-pick <sha-a>
 git cherry-pick <sha-b> <sha-c>
 ```
 
-- **`-C` ではなく `-c` を使う。** `-C` は同名ブランチを強制的に作り直すため、前回の試行が
-  黙って消える。既に存在してエラーになった場合は、中身を確認してからユーザーに扱いを確認する。
-- 「`switch -C` してから `reset --hard <base>`」の2段構えは不要。`switch -c <一時ブランチ名> <base>` の
-  1コマンドで足りる。ここで作るのは元ブランチとは別名の新しいブランチであり、元ブランチは動かないので、
-  元の tip(`<orig>`)は失われない。
+- **Use `-c` instead of `-C`.** `-C` forcibly recreates a branch of the same name, so the previous attempt
+  would silently disappear. If the branch already exists and an error occurs, check its contents and ask the user how to handle it.
+- The two-step approach of "`switch -C` then `reset --hard <base>`" is unnecessary. The single command
+  `switch -c <temp branch name> <base>` is enough. What is created here is a new branch with a name different from the original branch, so the original branch ref does not move
+  and the original tip (`<orig>`) is not lost.
 
-操作ごとの型:
+Type per operation:
 
-- **drop**: その SHA を cherry-pick しない。
-- **並べ替え**: cherry-pick の順序を変える。
-- **squash**: まとめる範囲を `git cherry-pick -n <sha>...` でインデックスに重ね、最後に `git commit -m "..."`。
-- **メッセージ変更**: `git cherry-pick <sha>` の後に `git commit --amend -m "..."`。
-  `-e` / `--edit` はエディタを開くので使わない。
-- **内容の修正**: 対象を cherry-pick した直後にファイルを編集し、`git add` + `git commit --amend --no-edit`。
-- **分割**: `git cherry-pick -n <sha>` でコミットせずに取り込み、`git reset HEAD` で unstage してから、
-  必要な塊ごとに `git add` + `git commit` を繰り返す。
+- **drop**: Do not cherry-pick the SHA.
+- **Sort**: Change the order of cherry-pick.
+- **squash**: Stack the range to be combined in the index with `git cherry-pick -n <sha>...`, and finally run `git commit -m "..."`.
+- **Message change**: `git cherry-pick <sha>` followed by `git commit --amend -m "..."`.
+  `-e` / `--edit` opens the editor, so do not use it.
+- **Content correction**: Edit the file immediately after cherry-picking the target, `git add` + `git commit --amend --no-edit`.
+- **Split**: Apply the commit without committing using `git cherry-pick -n <sha>`, unstage with `git reset HEAD`, then
+  repeat `git add` + `git commit` for each chunk you need.
 
-## コンフリクト対応
+## Conflict handling
 
 ```bash
-git status                       # 衝突ファイルと進行状況
-# ファイルを解決してから
-git add <解決したファイル>
+git status            # conflicting files and progress
+# After resolving the file
+git add <resolved file>
 git -c core.editor=true cherry-pick --continue
 ```
 
-- `cherry-pick --continue` は、元の cherry-pick に `-e` / `--edit` を付けていなければエディタを
-  開かない(git 2.55 で確認済み。`core.editor=vim` でもハングしない)。上の `git -c core.editor=true` の
-  前置は、`-e` を付けてしまった場合などに備えた保険。害はないので付けておく(これは todo の機械的
-  書き換えとは別物で、単に停止を防ぐためのもの)。
-- `git config --get rerere.enabled` が `true` なら、衝突解決が記録され同じ衝突に再遭遇したとき
-  自動適用される。リプレイをやり直す可能性がある場合は、事前に有効化しておくと手戻りが軽くなる
-  (グローバル設定の変更はユーザーに確認する)。
-- **`git cherry-pick --skip` を自分の判断で使ってはならない。** コミットを丸ごと捨てる操作なので、
-  意図した drop 以外では必ずユーザーに確認する。
-- 解決方針が読めない衝突は、無理に解決しない。`git cherry-pick --abort` で一時ブランチを直前の
-  状態に戻し(元ブランチは無傷)、衝突の内容をユーザーに報告して指示を仰ぐ。
-- 残りの pick は `.git/sequencer/todo` で確認できる。
+- `cherry-pick --continue` does not open an editor unless the original cherry-pick was started with `-e` / `--edit` (confirmed with Git 2.55; it does not hang even with `core.editor=vim`). The `git -c core.editor=true` prefix above is insurance in case `-e` was attached accidentally. This editor override is different from mechanically rewriting the todo; it is harmless, so keep it, and it exists only to prevent a hang.
+- If `git config --get rerere.enabled` is `true`, a recorded conflict resolution is applied automatically
+  when the same conflict is met again. If a replay is likely, enabling it in advance makes rework easier
+  (ask the user before changing global settings).
+- **Do not use `git cherry-pick --skip` on your own judgment.** This operation discards the whole commit, so
+  always confirm with the user unless it is an intended drop.
+- Do not try to resolve a conflict when you cannot tell how to resolve it. `git cherry-pick --abort` returns the temporary branch to its previous
+  state (the original branch is untouched), so report the conflict to the user and ask for instructions.
+- You can check the remaining picks at `.git/sequencer/todo`.
 
-## 3. 検証(必須)
+## 3. Verification (required)
 
-役割の違う2つの確認を両方行う。合否を機械的に判定できるのは前者だけで、後者は目で見るためのもの。
+Perform two checks with different roles. Only the former can be used to decide pass/fail mechanically; the latter is for visual inspection.
 
-### 3-1. ツリー一致(合否ゲート)
+### 3-1. Tree matching (pass/fail gate)
 
-並べ替え・squash・メッセージ変更のみで、最終的な内容が元と変わらないはずの場合:
+If you only want to sort, squash, or change the message, but the final content should remain the same:
 
 ```bash
-git diff <orig> HEAD             # 出力が空であること
+git diff <orig> HEAD   # the output should be empty
 ```
 
-空でなければ、cherry-pick の取りこぼしか衝突解決のミス。反映に進まず、原因を特定してやり直す。
+If it is not empty, either a cherry-pick was missed or a conflict was resolved wrongly. Identify the cause and redo the work instead of moving on to the reflection.
 
-意図した drop / 内容修正を含む場合は空にならないので、出力がその意図した変更**だけ**であることを確認する。
+It will not be empty if it includes an intended drop or content change, so confirm that the output consists **only** of the intended changes.
 
-### 3-2. コミット単位のレビュー
+### 3-2. Review by commit
 
 ```bash
 git range-diff <base>..<orig> <base>..HEAD
 ```
 
-`=`(不変) / `!`(変化) / `<` `>`(片側のみ) の記号で、コミットの対応関係を確認する。見るべきは、
-消したはずのコミットが消えているか、意図しないメッセージ変更が混じっていないか、分割が意図どおりの
-粒度になっているか。
+Check the commit correspondence with the symbols `=` (unchanged) / `!` (changed) / `<` `>` (present on one side only). What to look for is
+whether commits that were supposed to be dropped have disappeared, whether unintended message changes have crept in, and whether a split
+has the intended granularity.
 
-- **range-diff にコミット内容の差分が出ること自体は異常ではない。** 同じ箇所を触るコミットの順序を
-  変えれば、最終ツリーが完全一致していても個々のコミットのパッチは変わる。差分の有無を合否判定に
-  使ってはならない(合否は 3-1 で見る)。
+- **It is not abnormal in itself for `range-diff` to show differences in commit contents.** Reordering commits that touch the same area changes individual patches even when the final trees match exactly. Do not use the presence or absence of differences as a pass/fail judgment; see 3-1 for the actual pass/fail criteria.
 
-検証結果は、書き換え前後のコミット一覧とあわせてユーザーに報告する。
+Report the verification results to the user together with the lists of commits before and after the rewrite.
 
-## 4. 元ブランチへの反映
+## 4. Reflection to the original branch
 
-**この操作はユーザーの明示的な承認を得てから行う。** 承認前は一時ブランチのまま止める。
+**This operation must be performed with explicit user approval.** Leave the branch as a temporary branch before approval.
 
 ```bash
-git branch -f <元ブランチ> HEAD
-git switch <元ブランチ>
+git branch -f <original branch> HEAD
+git switch <original branch>
 ```
 
-push 済みブランチの場合、push には必ず `--force-with-lease` を使う。素の `--force` は使わない。
+For pushed branches, always use `--force-with-lease` for push. Do not use plain `--force`.
 
 ```bash
-git push --force-with-lease origin <元ブランチ>
+git push --force-with-lease origin <original branch>
 ```
 
-push はユーザーから明示的に指示されたときだけ行う。検証が通っただけでは push しない。
+Push only when the user explicitly instructs it. Do not push merely because verification passed.
 
-## 5. 後始末
+## 5. Clean up
 
 ```bash
-git branch -d rewrite/<元ブランチ名>
+git branch -d rewrite/<original branch name>
 ```
 
-- 一時ブランチの削除は `-d`(マージ済みのみ削除)を使う。`-D` は使わない。
-- 元ブランチや控えておいた `<orig>` は、ユーザーが結果を確認するまで参照可能なままにしておく。
+- Delete the temporary branch with `-d` (deletes only merged branches). Do not use `-D`.
+- Leave the original branch and saved `<orig>` visible until the user confirms the results.
 
-## やってはならないこと
+## What not to do
 
-- `git rebase -i` の使用、および `GIT_SEQUENCE_EDITOR` / `sequence.editor` による todo の機械的書き換え。
-- 検証(手順3)を飛ばして反映・push すること。
-- ユーザー承認なしの `git branch -f` / `git push --force*` / `git reset --hard` / `cherry-pick --skip`。
-- 作業ツリーが汚れた状態での履歴書き換え開始。
+- Use of `git rebase -i` and mechanical rewriting of todo with `GIT_SEQUENCE_EDITOR` / `sequence.editor`.
+- Skip verification (step 3) and reflect/push.
+- `git branch -f` / `git push --force*` / `git reset --hard` / `cherry-pick --skip` without user approval.
+- Start rewriting the history when the work tree is dirty.
