@@ -1,146 +1,146 @@
 ---
 name: japanese-tech-writing
-description: 日本語の技術文書・書籍原稿の文章規範。整形（一文一行、引用ブロック、脚注、コラム記法）、段落と論証の構成（パラグラフライティング）、論証の厳密さ（ツッコミどころの除去）、読み手の負荷の管理、視点と語り、演出の抑制、LLM っぽい空句の禁止、冗長の排除を定める。日本語で技術書の章、草稿、記事、解説文を書くとき、または推敲・リライトするときに使用する。成果物として残す日本語の技術文書を対象とし、通常の会話回答、コードレビュー、PR・Issue、コミットメッセージ、調査経過や診断結果の短い報告には、ユーザーが文章の推敲を明示的に求めない限り使用しない。
+description: Text standards for Japanese technical documents and book manuscripts. It stipulates formatting (sentence by line, quotation block, footnotes, column notation), paragraph and argument structure (paragraph writing), rigor of argument (elimination of tsukkomi), management of reader's load, point of view and narration, suppression of dramatization, prohibition of LLM-like blank phrases, and elimination of redundancy. Used when writing chapters, drafts, articles, and explanations of technical books in Japanese, or when revising or rewriting. It is intended for technical documents in Japanese that will be kept as deliverables, and will not be used for normal conversational responses, code reviews, PR/issues, commit messages, short reports on investigation progress or diagnosis results, unless the user explicitly requests that the text be revised.
 ---
 
-# 日本語技術文書の文章規範
+# Text standards for Japanese technical documents
 
-日本語で技術的な原稿（書籍の章、記事、解説文）を書く・推敲するときは、以下の規範に従う。
+When writing or revising technical prose in Japanese (book chapters, articles, or explanatory text), follow these rules.
 
-## 整形
+## Formatting
 
-- 一文ごとに改行する。段落の区切りは空行で示す。
-- コード、差分、ログ、設定ファイルの断片はコードブロックで示す。
-- 用語の由来や定式化の名称など、本筋から一段外れる補足は、本文に並べず脚注（`[^ラベル]`）に降ろす。
-- 定義や分類の列挙は箇条書きで示してよい。定義される用語は太字にする。
-- 用語を本文中で初めて定義・導入するときも、その語は太字にする。すでに導入した語を話題として指すとき、引用、通称には「」を使い、太字と使い分ける（初出の定義は太字、以後の言及は「」）。
-- ダッシュ（em ダッシュ `—`、horizontal bar `―`、いわゆる2倍ダッシュ「——」）を日本語の地の文・見出しで使わない。同格・補足の挿入（「A——挿入——B」）は括弧（）に、言い換え・敷衍（「A——B」）は句点で二文に分けるか読点でつなぐ。範囲を示す en ダッシュ `–` や英語の複合語（`Curry–Howard` など）、コードブロック・書誌情報は対象外。
-- 中黒（・）を日本語の並列で使わない。ただし単一の固有名詞の内部では使ってよい。
-- 見出し・コラム見出しに、区切り線（罫線 `─` U+2500 やダッシュ類）で「種別──主題」「主題──概念」のように二要素を詰め込まない。見出しは単一の自然な句にする（要素を一つに絞るか、助詞・読点でつなぐ）。コラム見出しも「基礎」「補足」のような種別名だけで済ませず、「同値関係としての分類」「ループ不変条件と帰納法」のように内容を特定する。
-- 用語とその定義を並べる箇条書きは、区切り線ではなく全角コロンで「**用語**：説明」と書く。
+- Add a new line to each sentence. Paragraph breaks are indicated by blank lines.
+- Fragments of code, differences, logs, and configuration files are shown in code blocks.
+- Move supplementary details one step outside the main argument, such as the origin of a term or the name of a formulation, to footnotes (the `[^ラベル]` syntax) instead of listing them in the main text.
+- Definitions and classifications may be listed in bullet points. Defined terms are in bold.
+- When a term is defined or introduced for the first time in the text, put it in bold. When referring to a term already introduced as a topic, or in a quotation or common name, use Japanese corner brackets `「」` to distinguish it from bold (bold for the initial definition, `「」` for later mentions).
+- Do not use dashes (em dash `—`, horizontal bar `―`, or the so-called double dash `——`) in Japanese prose or headings. For an inserted apposition such as `A——挿入——B`, use full-width parentheses `（）`; for paraphrase or elaboration such as `A——B`, split it into two sentences with a full stop or connect it with a comma. Range en dashes `–`, English compounds such as `Curry–Howard`, code blocks, and bibliographic information are excluded.
+- Do not use the nakaguro (`・`, U+30FB) in Japanese parallel lists. However, it may be used within a single proper noun.
+- Do not use separator lines (ruled lines `─` U+2500 or dashes) in headings or column headings to pack two elements together, as in `「種別──主題」` or `「主題──概念」`. Use a single natural phrase (one element, or elements connected by a particle or comma). Column headings should identify their subject rather than use only a category label such as `「基礎」` or `「補足」`; examples include `「同値関係としての分類」` and `「ループ不変条件と帰納法」`.
+- For a bullet that lists a term and its definition, use a full-width colon as in `**用語**：説明`, not a separator line.
 
-## 段落と論証の構成
+## Paragraph and argument structure
 
-パラグラフライティングを基本とする。段落は論証の一歩であり、読者は段落単位で論理を追えなければならない。
+Basic paragraph writing. A paragraph is a step in an argument, and readers must be able to follow the logic paragraph by paragraph.
 
-- 一つの段落には一つのトピックだけを置く。場面の進行（調査、報告、検証、評価）が複数混ざった長い段落は、一歩ずつの段落に分割する。
-- 段落の最初の文を読めば、その段落が何の話かわかるようにする。
-- 段落の先頭では、前の段落との論理関係を接続表現で明示する（「であれば」「実際」「しかし」「この例自体からも」）。
-- 新しい概念・術語を導入するときは、いきなり「XはYである」の辞書型断定で始めない。先に導入文で対象を置き、次にその働き・差分を述べ、必要なら三文目で定義を与える。
-- 論証は一方向に進める。結論を出してから反論を処理し、結論を言い直す構成にしない。反論と疑念の処理を終えてから、結論を一度だけ置く。
-- 例への弁明（作為的に見える、への先回りなど）は、場面の山場の直後に挟んで流れを切らない。次の節の冒頭でまとめて処理する。
-- 読者が立てそうな誤った解釈は、明示的に否定してから本当の理由を述べる（「その理由は『〜だから』ではない。〜だからだ」）。
-- 「AではなくB」と否定するときは、否定の根拠を一文添える。反実仮想（「もしAなら、〜だっただろう」）が使えることが多い。
-- 譲歩（「確かに〜」）では、事実の確認にとどめる。あとで訂正する内容を著者の声で因果として断定すると、自己矛盾になる。表面的な診断を一度認めたいときは、読者や通説の声に帰属させる（「〜と要約できてしまうかもしれない」）。
-- 山場で効かせたい情報（数値、固有の事実）は、その手前の段落で先出ししない。
-- 何かを否定・限定するときは、否定する命題そのものを「」で正確に書き出す（「明文化されていればすべてを任せられる」を意味しない、など）。「何もかもが解決するわけではない」のような漠然とした否定で済ませない。
-- 「後の章で扱う」のような前方参照は、論証が一段落した位置（段落末・節末）に置く。論証の途中に挟んで流れを切らない。
+- Put only one topic in one paragraph. Long paragraphs that include multiple scene progressions (investigation, reporting, verification, evaluation) should be divided into paragraphs with each step.
+- Make sure you can tell what a paragraph is about by reading the first sentence of it.
+- At the beginning of a paragraph, use connective expressions to clarify the logical relationship with the previous paragraph (「であれば」 “if so”, 「実際」 “in fact”, 「しかし」 “however”, 「この例自体からも」 “from this example itself as well”).
+- When introducing a new concept or terminology, do not start with a dictionary-style assertion that "X is Y." First, state the target in an introductory sentence, then state its function and differences, and if necessary, give a definition in the third sentence.
+- The argument proceeds in one direction. Don't create a structure where you draw a conclusion, then deal with counterarguments and restate your conclusion. After dealing with counterarguments and doubts, draw a conclusion only once.
+- Do not interrupt the flow by inserting excuses for the example (seems artificial, preemptive, etc.) right after the climax of the scene. Handle them all together at the beginning of the next section.
+- Explicitly deny any false interpretations that readers might come up with, and then state the real reason (「その理由は『〜だから』ではない。〜だからだ」, “The reason is not ‘because…’; it is because…”).
+- When denying something by saying “B rather than A,” add a sentence explaining the basis for the denial. Counterfactuals (「もしAなら、〜だっただろう」, “If A, it would have been…”) can often be used.
+- Concessions (`「確かに〜」`, “Admittedly…” or “Indeed…”) are limited to acknowledging facts. It would be self-contradictory to assert that something that will be corrected later is cause and effect based on the author's voice. When you want to acknowledge a superficial diagnosis, you attribute it to the voice of the reader or conventional wisdom (「〜と要約できてしまうかもしれない」, “one might be tempted to summarize it as…”).
+- Do not reveal in the preceding paragraph the information you want to land at the climax (numbers, unique facts).
+- When denying or limiting a claim, quote the exact proposition you are rejecting using the Japanese corner brackets `「」` (for example, `「明文化されていればすべてを任せられる」`) and then state why it is false. Avoid vague denials such as `「何もかもが解決するわけではない」`.
+- Forward references such as 「後の章で扱う」 (“will be covered in a later chapter”) should be placed at the end of the argument (at the end of a paragraph or section). Do not interrupt the flow of the argument by inserting it in the middle of the argument.
 
-## 論証の厳密さ
+## Rigor of argument
 
-文章の論理にツッコミどころを残さない。書き上げたら、読み手の反論を先回りして次の点を点検する。
+There is no room for criticism in the logic of the text. Once you have finished writing, check the following points in advance of the reader's objections.
 
-- 推量・可能性・読者の疑念・反実仮想として書かれている文を、機械的に断定へ変えない。
-  「かもしれない」「だろう」「ようだ」「らしい」は、根拠なく主張を弱めている場合だけ削る。
-  事実未確認の可能性、作中人物の認識、ログからの推定、読者が抱きそうな疑念、反実仮想を表す場合は、その不確実性を保つ。
-  断定に直せるのは、本文内の根拠によって命題が確定している場合に限る。
-  悪い例：「提示し続けているかもしれない」を「提示し続けている」に変える。
-  良い例：「提示し続けている可能性がある」のように、不確実性を残して文を整える。
-- 異なるものを「同じ」とまとめない。区別すべき対象（別々の決定、別々の原因、種類の違う問題）を一括りの言葉でくくらない。悪い例：相互依存する三つの未決事項を「同じ決定を別々に下していた」と書く。良い例：「どれも別々の決定であり、しかも互いに依存している」と腑分けする。
-- 複数の要因がある事象を、単一の原因に還元しない。例が複数種類の問題を含むなら、それぞれを切り分け、どの道具がどれを説明するのかを対応づける。悪い例：契約の不在と情報隠蔽の失敗が混ざった事故を、丸ごと「情報隠蔽の問題」と説明する。
-- 章・節をまたいで、同じ概念の扱いを一致させる。ある節で「人間が決める」と分類したものを、別の節で「チームで合意する」と書かない。分類・定義・用語の地位は全体で揃える。
-- 因果を主張するときは、その機構（なぜそうなるのか）を一文で示す。「AだとBになる」とだけ書いて理由を省略しない。悪い例：「手順で分けると変更が全体に波及する」。良い例：「各工程がデータを受け渡すための表現を共有してしまい、その表現を変えると全体に波及する」。
-- 検出・保証・解決を「必ず」できるかのように書かない。条件付きで正確に述べる（「〜しやすい」「〜できることが多い」「〜が成り立つときに限り」）。
-- 主張は、挙げた例が実際にその全体を支えているかを確認する。例が主張の一部しか支えないなら、主張の範囲を例に合わせて狭める。
-- 「次節で扱う」と前方に逃がした論点は、本当にそこで回収されることを確認する。回収しない伏線を張らない。
-- 譲歩や限定（「ただし」「とはいえ」）を置いたら、その後で必ず論を進める。逆接で終えて宙吊りにしない。
-- 節の中心となる語は、その節以前に定義・対象範囲を述べてから使う。定義せず使い始めない。
-- 複数の概念を一つの上位語にまとめるときは、命名の直前に、それらが同じものに帰着すると
-  一文で述べる。腑分けの逆の操作にも橋を架ける。
+- Don't mechanically turn sentences written as conjectures, possibilities, readers' doubts, or counterfactuals into assertions.
+  Delete Japanese hedges such as 「かもしれない」 (“may”), 「だろう」 (“probably/would”), 「ようだ」 (“seems”), and 「らしい」 (“apparently”) only when they weaken a claim without basis.
+  When expressing the possibility of unconfirmed facts, recognition of characters in the story, inferences from logs, doubts that readers may have, or counterfactuals, maintain that uncertainty.
+  A proposition can be changed to an assertion only if the proposition is established by evidence within the text.
+  Bad example: Change 「提示し続けているかもしれない」 (“may continue to present”) to 「提示し続けている」 (“continues to present”).
+  Good example: Keep the uncertainty, as in 「提示し続けている可能性がある」 (“there is a possibility that it continues to be presented”).
+- Don't lump different things together as "the same." Don't lump objects that should be distinguished (separate decisions, different causes, different types of problems) into one word. Bad example: Writing three interdependent undecided items as "the same decision was made separately." Good example: "They are all separate decisions, but they are dependent on each other."
+- Do not reduce events that have multiple factors to a single cause. If the example includes multiple types of problems, separate them and map which tool explains which. Bad example: An accident that combines the absence of a contract and a failure to conceal information is explained as a "problem of information concealment."
+- Consistent treatment of the same concepts across chapters and sections. If you classify something as “decided by humans” in one section, don't write “agreed by the team” in another section. Classifications, definitions, and terms will have the same status throughout.
+- When asserting cause and effect, state the mechanism (why it happens) in one sentence. Don't just write “If A, then B” and omit the reason. Bad example: "If you separate it by procedure, the change will spread throughout." Good example: "Each process shares the same expression for passing data, and changing that expression will affect the whole process."
+- Do not write as if detection, guarantees, or resolution are 「必ず」 (“always”) possible. State them precisely with their conditions, as in 「〜しやすい」 (“tends to…”), 「〜できることが多い」 (“can often…”), or 「〜が成り立つときに限り」 (“only when … holds”).
+- Make sure that the examples you give actually support your argument in its entirety. If an example supports only part of your argument, narrow the scope of your argument to fit the example.
+- Make sure that points deferred with a phrase such as “to be dealt with in the next section” are actually addressed there. Do not plant foreshadowing that will not be paid off.
+- After making concessions or limitations (「ただし」 “however”, 「とはいえ」 “that said”), always move forward with your argument. Don't end it with a reverse connection and leave it hanging in the air.
+- Before using the key term of a section, state its definition and scope. Do not begin using it without defining it.
+- When combining multiple concepts under a single hypernym, state in one sentence, just before naming it, that they all come down to the same thing.
+  Also build a bridge for the reverse operation, breaking concepts apart (腑分け).
 
-## 読み手の負荷の管理
+## Managing reader load
 
-読者の記憶と注意は有限の資源として扱う。
+Treat the reader's memory and attention as finite resources.
 
-- 後で参照する必要のない固有名（ファイル名、関数名、識別子）を出さない。「仕様書」「金額計算のユーティリティ」のような一般的な言い方で済ませる。
-- 抽象的な言い回しの指す内容が文脈から一意に決まらないときは、可能なときは丸括弧による同格挿入でその場で特定し、できるだけ読者に前を読み返させない。
-- 新しい例や場面を追加して、読者が保持すべき文脈が増えるときは、前の例と何が違うのか、なぜもう一つ必要なのかを前置きして納得感を与える。
-- 章冒頭や節の導入では、これから例で扱う内容に関係しない過剰な詳細を詰め込まない。
-- 例の節の中でも、**その節の問い・帰結に関係しない**過剰な詳細だけを omit する。議論に必要な具体は残す。省略の典型は、エージェント報告の装飾的精度（時刻、HTTP ステータス、カバレッジ率など）や、後で参照しない固有名
+- Do not give out unique names (file names, function names, identifiers) that do not need to be referenced later. Use general phrases like 「仕様書」 (“specification document”) and 「金額計算のユーティリティ」 (“amount calculation utility”).
+- When the meaning of an abstract phrase cannot be determined uniquely from the context, use parentheses to identify it on the spot by inserting an appositive when possible, and avoid forcing the reader to read back as much as possible.
+- When you add a new example or situation, giving the reader more context to retain, provide a convincing introduction by explaining what's different from the previous example and why you need another one.
+- Avoid loading chapter openings and section introductions with excessive details that are not relevant to the examples that will be covered.
+- Within an example section, omit only excessive details unrelated to that section's question or conclusion. Keep concrete details needed for the argument. Typical omissions include decorative precision in agent reports (time, HTTP status, coverage rate, etc.) and unique names that are not referenced later.
 
-## 視点と語り
+## Perspective and narrative
 
-- 例示では、結果の羅列や受動態（「特定され、判明した」）ではなく、行為者を主語にした動作の連なり（「リポジトリを調査して特定し、見つけてくれた」）で書く。
-- 「入社2年目のエンジニアが」のような架空の人物設定を無意味に冠しない。
-- 論証の中で読者を「あなた」と呼ばず、役割名（「開発者」「読者」）で書く。二人称の呼びかけは、場面への導入（「〜としよう」）や章・本の結びなど、限られた要所にとどめる。
-- 対象を指す語は具体的に選ぶ。「AI」「ツール」のような広い語でぼかさない。
-- 章や節で定式化・術語（K、契約、不変条件など）を導入したら、以後はその語で通す。「文脈」「ツール」「AI」のような曖昧語に後退しない（定式化する前の導入語として「文脈」などを使うのはよい）。
-- 術語・訳語は、その分野で慣用されている語を選ぶ（プッシュ通知は「配送」ではなく「配信」、など）。意味の近い漢語を一般語の感覚で充てない。
-- 人物そのものに言及するときは原綴りで書く（Lehman、Bainbridge）。ただし、歴史上の人物や、人名を冠した概念を定着名で紹介するときは、日本語で通用しているカタカナの通称を使う。
-- 術語の響きを持つ語を、術語でない場面に流用しない（システムから人間までの連なりを「経路」と呼ぶ、など）。「届くまでの流れ」「あいだに何があるか」のように普通の言い方で書く。
+- In the example, write a series of actions with the actor as the subject (“I researched the repository, identified it, and found it”) rather than a list of results or a passive voice (“It was identified and found”).
+- Don't use meaningless references to fictional characters such as "an engineer in his second year at the company."
+- Do not refer to the reader as 「あなた」 (“you”) in your argument, but instead use their role name (「開発者」 “developer”, 「読者」 “reader”). Limit second-person addresses to a limited number of key points, such as the introduction to a scene (「〜としよう」, “suppose…”) and the conclusion of a chapter or book.
+- Choose specific words that refer to the target. Don't blur it out with broad terms like "AI" or "tools."
+- Once you introduce a formulation or terminology (K, contract, invariant condition, etc.) in a chapter or section, use that term from then on. Don't retreat to vague words like "context," "tool," and "AI" (it's good to use words like "context" as an introductory word before formulating things).
+- For technical terms and translations, choose the established term used in the field. For example, call push notification delivery `配信`, not `配送`; do not pick a kanji compound of similar meaning by everyday intuition.
+- When referring to a person, use the original spelling (Lehman, Bainbridge). However, when introducing a historical figure or a concept named after a person by its established name, use the common name in katakana, which is commonly used in Japanese.
+- Do not use words that sound like technical terms in situations where they are not technical terms (such as calling the chain from a system to a human being a "route"). Write in normal terms, such as “the process of getting it to you” and “what's in between.”
 
-## 演出の抑制
+## Restraint in presentation
 
-演出の規範は全面禁止ではなく、節度の規範である。修辞は、それが効果を生む箇所でのみ使う。
+These rules call for restraint, not a blanket ban on presentation techniques. Use rhetoric only where it is effective.
 
-- 溜め（「ここには〜が潜んでいる」）や修辞疑問で導出を演出するのは、緊張が議論に効く要所に限る。説明で足りる箇所では、そのまま述べる。
-- 短い決め台詞を独立した段落にして緊張を作る演出を多用しない。段落内の短い体言止め（「ここまでわずか数十秒。」など）は、場面の山場に限り使ってよい。
-- 本文中の太字強調を多用しない。誤読を防ぐ否定や節の帰結など、論理の要所に限り、一節に一、二箇所まで使ってよい（導入部でも可）。それ以外は文の順序と構造で際立たせる。
-- 「〜してはならない」という命令調の断定より、「〜するわけにはいかない」のような、作業者の判断として書く形を選ぶ。
-- 転回点を過剰に劇的にしない。事実を述べる一文で足りる場合が多い。議論の山場にかぎり、感嘆符つきの短い一文程度は許容する。
-- 帰結の列挙によって事故や危険を煽らない。
-- 「重要なのは〜である」のような前置きで主張を予告しない。主張をそのまま書く。ただし、主張の様式を宣言する前置き（「標語として言い換えれば」など）は使ってよい。
-- 「AではなくBだった」という対句の決め台詞を多用しない。軽い補足や評価は括弧書きで添えてよい。
-- 慣用表現をひねった言い回し（「知識を体に入れる」など）や、指す内容が一意に決まらない比喩（「報告の外側に世界が広がっている」など）を使わない。平易な動詞でそのまま言う（「身につく」「気付く機会が減る」）。
+- Build suspense in the reasoning with a deliberate pause (“There is something lurking here”) or rhetorical questions only at key points where tension helps the discussion. Where an explanation is sufficient, state it directly.
+- Do not overuse short, decisive lines as standalone paragraphs to create tension. A short sentence ending with a noun (such as “Only a few dozen seconds so far.”) may be used only at the climax of a scene.
+- Avoid excessive use of bold emphasis in the text. Use it in only one or two places per section, at key points of the logic such as a negation or the conclusion of a section, to prevent misreading (it may also be used in the introduction). Otherwise, emphasize the order and structure of sentences.
+- Rather than a commanding assertion such as 「〜してはならない」 (“must not…”), prefer a form that expresses the worker's own judgment, such as 「〜するわけにはいかない」 (“cannot very well…”).
+- Don't make the turning point overly dramatic. A single sentence stating the facts is often sufficient. A short sentence with an exclamation mark is acceptable only at the peak of the discussion.
+- Do not sensationalize accidents or danger by enumerating consequences.
+- Do not announce your argument with a preface such as 「重要なのは〜である」 (“The important thing is…”) Write your argument as is. However, it is permissible to use a preface that declares the style of the argument (such as 「標語として言い換えれば」 “to restate it as a slogan”).
+- Don't overuse the couplet phrase 「AではなくBだった」 (“It was B, not A”). Minor supplements and evaluations may be added in parentheses.
+- Do not use phrases that are a twist on idiomatic expressions (such as “putting knowledge into your body”) or metaphors that do not have a unique meaning (such as “the world extends beyond the report”). Say it as it is, using simple verbs ("I'll learn it", "I'll have fewer chances to notice").
 
-## LLM っぽい表現の禁止
+## Avoid LLM-like phrasing
 
-LLM が大量生成する、中身のない型に誘惑されない。書き上げたら、この節で点検する。
-本書の術語（本質的複雑さ、回収、判断の配置など）を議論に使うのはよい。空虚な装飾として使うのが問題である。
+Don't be seduced by the empty molds that LLMs churn out. Once you have written it, check it in this section.
+It is a good idea to use the terminology from this book (本質的複雑さ “essential complexity”, 回収 “paying off/resolving”, 判断の配置 “placement of judgment”, etc.) in your discussion. The problem is that they are used as empty decorations.
 
-次のような言い回しは、論点を増やさず「ちゃんと書いている感」だけを付ける LLM 口調である。使わない。
+Phrases like the following are typical of an LLM tone that adds no discussion points and only creates a sense of being “well written.” Do not use them.
 
-- **予告と総括**：「重要なのは〜である」「本章では〜を扱う／探求する」「ここでは〜について見ていく」「まとめると」「要するに」（直前の言い換えだけのとき）、「〜に他ならない」
-- **正面から系**：「正面から扱う」「正面から回収する」「正面から見る／書く／立てる」——中身の代わりに姿勢だけを宣言する
-- **空虚な形容**：「不可欠」「核心的」「鍵となる」「根本的な」（主張の中身を説明せず強調だけする）、「多角的」「包括的」「総合的」（何をどう見たかを書かない）
-- **空虚な動詞**：「掘り下げる」「深掘りする」「言語化する」（何をどう書いたかを示さず終わる）、「触れる」「言及する」（一段落で済ませるだけ）
-- **接続の型**：「〜において」「〜という側面から」「〜の観点から」（新情報なし）、「さらに」「また」「加えて」の連打
-- **弱い緩和と称賛**：「〜と言えるだろう」「〜かもしれない」（根拠なく主張を弱める場合だけ。推量・仮定・読者の疑念・作中人物の認識なら残す）、「非常に」「極めて」「大いに」（中身のない強調）
+- **Preview and summary**: 「重要なのは〜である」 (“What matters is…”), 「本章では〜を扱う／探求する」 (“This chapter covers/explores…”), 「ここでは〜について見ていく」 (“Here we will look at…”), 「まとめると」 (“In summary”), 「要するに」 (“In short,” when merely paraphrasing the preceding point), 「〜に他ならない」 (“nothing but…”).
+- **正面から系 (head-on phrasing)**: 「正面から扱う」 (“handle head-on”), 「正面から回収する」 (“resolve head-on”), 「正面から見る／書く／立てる」 (“look at/write/set up head-on”)—declaring a posture instead of the substance.
+- **Empty adjectives**: 「不可欠」 (“essential”), 「核心的」 (“core”), 「鍵となる」 (“key”), 「根本的な」 (“fundamental”) when they only emphasize without explaining the claim; 「多角的」 (“multifaceted”), 「包括的」 (“comprehensive”), 「総合的」 (“comprehensive/synthetic”) when they omit what is seen and how.
+- **Empty verbs**: 「掘り下げる」 (“dig into”), 「深掘りする」 (“dig deeper”), 「言語化する」 (“put into words”) when they do not say what was written and how; 「触れる」 (“touch on”), 「言及する」 (“mention”) when they merely end a paragraph.
+- **Connection patterns**: 「〜において」 (“in…”), 「〜という側面から」 (“from the aspect of…”), 「〜の観点から」 (“from the perspective of…”) when they add no information; repeated 「さらに」 (“furthermore”), 「また」 (“also”), and 「加えて」 (“in addition”).
+- **Unsupported hedges and empty praise**: Avoid 「〜と言えるだろう」 (“one could say…”) and 「〜かもしれない」 (“may…”) when they weaken a claim without evidence; keep them for inferences, assumptions, readers' doubts, or a character's understanding. Avoid empty intensifiers such as 「非常に」 (“very”), 「極めて」 (“extremely”), and 「大いに」 (“greatly”) when they add no substance.
 
-悪い例：「本章では、〇〇の理論を正面から扱う」「この前提を、ここで正面から回収する」「多角的に分析すると、重要なのは〜である」。
-良い例：「本章では、〇〇の理論を扱う」「ここで、この前提を回収する」「評価の核心は、正しさを誰が知っているかにある」。
+Bad examples: 「本章では、〇〇の理論を正面から扱う」 (“This chapter addresses the theory of X head-on”), 「この前提を、ここで正面から回収する」 (“We will resolve this premise head-on”), 「多角的に分析すると、重要なのは〜である」 (“When analyzed from multiple angles, what matters is…”).
+Good examples: 「本章では、〇〇の理論を扱う」 (“This chapter covers the theory of X”), 「ここで、この前提を回収する」 (“Here, we resolve this premise”), 「評価の核心は、正しさを誰が知っているかにある」 (“The key to evaluation is who knows what is correct”).
 
-## 冗長の排除
+## Eliminate redundancy
 
-無駄な文章をなるべく残さない。
+Avoid unnecessary sentences as much as possible.
 
-- 同じ主張を言い換えて繰り返さない。一つの主張は一度だけ書く。
-- 隣接する節が同じことを別の角度で述べているなら、役割が重複している。片方に吸収して一つの節にまとめる。
-- 場面を描写した直後に、その内容を要約し直さない。意味づけの一文（「このような作業は、ほぼ完全に任せられる」など）だけを置く。
-- 同じ論理的役割を持つ並列の事実は、文を分けて重ねず一文にまとめる。その事実群の論理的地位は文頭の語で示す（「当然、経理部の月次処理も顧客の支払いも〜」）。
-- 読者が自力で補える中間段階の説明は書かない。
-- 数文にわたる議論を一文に圧縮できるなら、圧縮した一文だけを残す。要約の合図として「要するに」を使ってよい。
-- 接続や評価のためだけの文（「それ自体はよいことである」など）を置かない。
-- 想像上の読者との問答（問いを立てて一語で答える形など）を修辞として使わない。主張はそのまま述べる。読者の反応を演じて応答する形（「〜と感じたかもしれない。そのとおりである」）も同様に避け、譲歩は地の文で簡潔に行う（「もちろん、処置そのものは開発者が決める問題ではない」）。
-- 読者が抱きそうな発想を、メタな枠取り（「ここまでの話には自然な続きがある」「〜という発想である」）で紹介しない。その発想自体を直接書く。読者の疑問なら疑問文のまま書いてよい（「その保守も任せればよいのではないだろうか」）。
-- 「本書もそれを否定しない」のような、著者の立場の弁明や断りを書かない。事実の記述（「〜に書かせる場合が多い」）だけを置く。
-- 文脈を最短で読み手と共有できる文章にする。導出を一歩ずつ展開しなくても伝わるなら、構造に名前を与えて言い切る。
-- 本文でまだ導入していない概念や文書名を、先回りして持ち出さない。
-- ためらいのある弱い述語（「有効な対策であり」など）で済ませない。本文内の根拠で確定していることは強く具体的に言い切る（「活用において必須であり」など）。ただし、不確実性・可能性・仮定・読者の疑念を表すための弱い述語は保持する。語調を整えるための意図的な緩和（「必須だと言ってもいい」など）は許す。
-- 文章のリズムを作るための接続表現（「しかし一方で」など）は、冗長と見なさない。
+- State each claim only once; do not repeat the same claim in different words.
+- If adjacent sections say the same thing from different angles, their roles overlap. Absorb one into the other and combine them into a single section.
+- Do not recapitulate the scene immediately after describing it. Include only one sentence that gives meaning (such as “You can be left almost completely in charge of this kind of work.”).
+- Parallel facts that have the same logical role are combined into one sentence rather than being separated into separate sentences. The logical status of the group of facts is indicated by the first word in the sentence (“Of course, the accounting department's monthly processing and customer payments...”).
+- Do not provide intermediate explanations that the reader can complete on their own.
+- If you can compress an argument that spans several sentences into one sentence, leave only the compressed sentence. You may use 「要するに」 (“in short”) to signal a summary.
+- Don't include sentences that are just for connection or evaluation (such as "That in itself is a good thing").
+- Do not use questions and answers with an imaginary reader (such as asking a question and answering in one word) as rhetoric. State your claim as is. Similarly, avoid responding by acting out the reader's reaction (“You may have felt that way. That's right”), and make concessions in plain sentences (“Of course, the solution itself is not a matter for the developer to decide”).
+- Don't introduce ideas that readers are likely to have in a meta framework (“There is a natural continuation of the story up to this point”, “This is an idea that...”). Write down the idea itself. If the reader has a question, you can write it as a question (「その保守も任せればよいのではないだろうか」, “Couldn't that maintenance be delegated as well?”).
+- Do not write excuses or disclaimers for the author's position, such as “This book does not deny that.” Include only factual statements (“In many cases,...”).
+- Write a sentence that can share the context with the reader in the shortest possible time. If you can understand the derivation without developing it step by step, give the structure a name and state it.
+- Do not proactively bring up concepts or document names that have not yet been introduced in the main text.
+- Don't settle for hesitant, weak predicates (such as 「有効な対策であり」 “this is an effective countermeasure”). State strongly and specifically what has been established based on the evidence in the text (e.g., 「活用において必須であり」 “It is essential for utilization”). However, weak predicates that express uncertainty, possibility, assumptions, and reader doubts are retained. Deliberate relaxation to adjust the tone (e.g., 「必須だと言ってもいい」 “I don't mind saying it's essential”) is acceptable.
+- Conjunctive expressions that create the rhythm of a sentence (such as 「しかし一方で」 “but on the other hand”) are not considered redundant.
 
-## 見出しの付け方
+## How to add headings
 
-見出しは内容を特定できる具体的なものにする。その節が答える問い、または扱う対象を指す句にする。
+Make headings specific to the content. Use a phrase that refers to the question the section answers or the subject it covers.
 
-- 作業の手順だけを述べる見出し（「例に戻す」「〜を読み直す」など）や、情報量のない見出しにしない。その節が答える問い、または扱う対象を見出しにする。
-- 見出しを、節の結論を言い切る「セリフ」にしない。見出しの時点で読者がオチを知る状態を避ける。
-- 節で扱っている対象を指す名詞句でもよい。
-- 見出しが疑問形か断定形かは問わない。問うのは、扱う対象や読者の持つ問いを指しているかである。
-- 疑問形か、対象を指す名詞句かは、本文のトーンに合うほうを選ぶ。
+- Do not use headings that only describe the steps involved (such as “Go back to the example” or “Reread...”) or do not contain any information. Use a heading that describes the question the section answers or what it deals with.
+- Don't make the heading a "line" that concludes the section. Avoid situations in which the reader knows the punch line at the beginning of the headline.
+- It can also be a noun phrase that refers to the subject covered by the section.
+- It doesn't matter whether the heading is interrogative or definitive. The question to ask is whether it refers to the subject matter or the question that the reader has.
+- Choose questions or noun phrases that match the tone of the text.
 
-## 読者への誠実さ
+## Honesty toward the reader
 
-- 例が作為的に見えうる場合、それを隠さない。読者の疑念を先回りして認め、現実に十分あり得ることの根拠を短く添える。
-- その根拠は、著者の断定（「十分あり得る状況だ」）ではなく、読者自身の経験に訴える一般的事実や通説に求める（「この症状は珍しくないだろう」「〜という言い方もよく耳にする」）。
-- 確認していないことを、確認したかのように滑らかに書かない。
+- When an example may seem contrived, acknowledge that it may look artificial and briefly explain why it is plausible.
+- Base that explanation on general facts or conventional wisdom that appeal to the reader's own experience, such as `この症状は珍しくないだろう` or `〜という言い方もよく耳にする`, not on the author's assertion alone.
+- Don't write smoothly as if you have confirmed something that you have not confirmed.
