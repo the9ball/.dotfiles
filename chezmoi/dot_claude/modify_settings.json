@@ -1,15 +1,15 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
 
-~/.claude/settings.json のうち、plugin の取得元と有効・無効だけを .dotfiles の
-管理下に置く。Claude Code 自身が同じファイルへ permissions や hooks を書き込む
-ため、ファイル全体を置き換えるとそれらを巻き戻してしまう。modify_ テンプレート
-は現在の内容を .chezmoi.stdin で受け取れるので、管理対象のキーだけを上書きし、
-残りはそのまま書き戻す。
+Of ~/.claude/settings.json, only the plugin sources and their enabled/disabled
+state are placed under .dotfiles management. Claude Code itself writes permissions
+and hooks into the same file, so replacing the whole file would roll those back.
+A modify_ template receives the current content via .chezmoi.stdin, so it overwrites
+only the managed keys and writes everything else back unchanged.
 
-plugin 本体は .dotfiles へ vendor せず、marketplace から取得する。取得元と
-commit は .claude/.plugin-lock.json に記録する。復元手順は README.manual.md を
-参照する。
+The plugins themselves are not vendored into .dotfiles; they are fetched from the
+marketplace. The source and commit are recorded in .claude/.plugin-lock.json. See
+README.manual.md for the restore procedure.
 
 */ -}}
 {{- $settings := dict -}}
@@ -18,10 +18,10 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{- end -}}
 
 {{- /*
-  marketplace の取得元。plugin を有効化するとここから clone される。
-  Claude Code は marketplace 側の commit 固定に対応しない（ref はブランチとタグ
-  のみ）ため、ここでは既定のブランチを追う。取得された commit は
-  .claude/.plugin-lock.json に記録する。
+  Marketplace sources. Enabling a plugin clones it from here.
+  Claude Code does not support pinning a commit on the marketplace side (a ref can
+  only be a branch or tag), so this follows the default branch. The commit that
+  was fetched is recorded in .claude/.plugin-lock.json.
 */ -}}
 {{- $marketplaces := dict -}}
 {{- if hasKey $settings "extraKnownMarketplaces" -}}
@@ -38,8 +38,9 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{- $_ = set $settings "extraKnownMarketplaces" $marketplaces -}}
 
 {{- /*
-  有効・無効の状態。切り替えは UI ではなくこのテンプレートを書き換えて
-  chezmoi apply する。UI で切り替えても、次の apply でここの値に戻る。
+  Enabled/disabled state. Switch it by editing this template and running
+  chezmoi apply, not through the UI. A change made in the UI reverts to the value
+  here on the next apply.
 */ -}}
 {{- $enabledPlugins := dict -}}
 {{- if hasKey $settings "enabledPlugins" -}}
@@ -47,21 +48,21 @@ commit は .claude/.plugin-lock.json に記録する。復元手順は README.ma
 {{- end -}}
 
 {{- /*
-  codex plugin は false のまま記録する。有効化すると SessionStart、SessionEnd、
-  Stop のフックが動き出すため。
+  The codex plugin stays recorded as false, because enabling it starts the
+  SessionStart, SessionEnd, and Stop hooks.
 */ -}}
 {{- $_ = set $enabledPlugins "codex@openai-codex" false -}}
 
 {{- /*
-  dotnet plugin は skill 1 個と C# language server を追加する。フックは持たない。
-  C# ファイルを開くと dnx が roslyn-language-server の prerelease を NuGet から
-  取得して常駐させる。
+  The dotnet plugin adds one skill and a C# language server. It has no hooks.
+  When a C# file is opened, dnx fetches a prerelease of roslyn-language-server from
+  NuGet and keeps it resident.
 */ -}}
 {{- $_ = set $enabledPlugins "dotnet@dotnet-agent-skills" true -}}
 {{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
 
 {{- /*
-  回答後の入力欄に表示される prompt suggestion は不要なので無効化する。
+  Disable the prompt suggestions shown in the input box after a reply, since they are not needed.
 */ -}}
 {{- $_ = set $settings "promptSuggestionEnabled" false -}}
 
