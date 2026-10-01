@@ -43,3 +43,10 @@ packages:
 - name: astral-sh/uv@0.12.21
 - name: anthropics/claude-code@v2.1.285
 - name: BurntSushi/ripgrep@15.2.0
+- name: nektos/act@v0.2.89
+- name: rhysd/actionlint@v1.7.12
+- name: open-policy-agent/conftest@v0.71.0
+- name: github/git-sizer@v1.5.0
+- name: helm/helm@v4.3.0
+- name: PowerShell/PowerShell@v7.6.6
+- name: ip7z/7zip@26.03
