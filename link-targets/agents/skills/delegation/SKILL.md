@@ -40,11 +40,12 @@ Supplements `link-targets/agents/AGENTS.md`'s common contract and owns delegatio
 
 ### Role and model
 
+- For ordinary Codex search, investigation, implementation, and testing workers, explicitly specify model `gpt-6.1-sol` and reasoning effort `low` at startup and on continuation. For task creation/messaging, pass `model="gpt-6.1-sol"` and `thinking="low"`; for subagent spawning, pass `model="gpt-6.1-sol"` and `reasoning_effort="low"`. Choose a supported context fork that permits those overrides, such as `fork_turns="none"` with a self-contained request, rather than `fork_turns="all"`. If the runtime cannot apply the requested settings, report the limitation instead of silently inheriting or substituting settings. This worker rule does not change the primary chat or Advisor settings and does not authorize task creation or writes.
 - Role-specific model constraints are applied only to that role before lower-cost models are prioritized. Do not silently replace a judgment role with another role when it is unavailable.
 - `Advisor` is dispatched by specifying `gpt-6-sol` if model is not specified in the request, or `high` if reasoning effort is not specified. Rather than using the implicit inheritance of the parent agent's model/effort as the default for the Advisor, each specification made explicitly in the request overrides the corresponding default.
 - When specifying the model / reasoning effort of the Advisor, choose a context fork that can override them due to the runtime startup contract. Do not use a mode such as `fork_turns="all"` that fixes the inheritance of the parent's model/effort, but specify `none` or the necessary and sufficient number of history turns if available. If the runtime contract cannot be confirmed, it will not be started by guessing.
 - If an agent definition prohibits automatic startup, the agent definition takes precedence over general delegation defaults.
-- When available, choose the lowest-cost model that is sufficient to accomplish the task. If model-specific adjustments are required, read the corresponding model guide as well.
+- For other roles and products without a fixed model contract, choose the lowest-cost model that is sufficient to accomplish the task when available. If model-specific adjustments are required, read the corresponding model guide as well.
 
 ### Model guide correspondence table
 
