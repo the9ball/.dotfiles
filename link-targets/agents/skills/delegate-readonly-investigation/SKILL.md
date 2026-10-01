@@ -1,15 +1,15 @@
 ---
-name: delegate-luna-investigation
+name: delegate-readonly-investigation
 description: "[For Codex app only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations in reusable, user-visible GPT-6.1 Sol Low worker tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier delegated investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
 ---
 
-# Delegate Worker Investigation
+# Delegate Read-only Investigation
 
 > Codex app only. Never use this skill from Claude Code or another agent product. If the Codex task creation, listing, messaging, reading, or waiting capabilities are unavailable, report the limitation and stop. Do not substitute a different model or execution route silently.
 
 Coordinate an investigation from the primary Codex task. Keep the delegated task read-only, preserve its context across follow-ups, and return evidence to the primary task for verification and final judgment.
 
-The skill identifier remains `delegate-luna-investigation` for existing callers. Use model `gpt-6.1-sol` and reasoning effort `low` explicitly for worker creation and continuation. The primary chat and Advisor model/trigger rules are unchanged.
+Use model `gpt-6.1-sol` and reasoning effort `low` explicitly for worker creation and continuation. The primary chat and Advisor model/trigger rules are unchanged.
 
 ## Guardrails
 
@@ -43,7 +43,7 @@ Use observed degradation rather than turn count alone. Examples include repeated
 ## Find an Existing Delegated Task
 
 1. Prefer a previously retained `threadId` and `hostId` from the current primary task.
-2. If those identifiers are unavailable, list recent tasks and examine candidates with the title prefix `Subagent: [Sol調査]`; after verifying those candidates, also inspect the legacy title prefixes `Subagent: [Luna調査]` and `[Luna調査]` when no verified reusable candidate remains among the new-prefix candidates.
+2. If those identifiers are unavailable, list recent tasks and examine candidates with the title prefix `Subagent: [調査]`; after verifying those candidates, also inspect the legacy title prefixes `Subagent: [Sol調査]`, `Subagent: [Luna調査]`, and `[Luna調査]` when no verified reusable candidate remains among the new-prefix candidates.
 3. Read each plausible candidate and verify its initial delegation marker and workstream identity before reusing it. Accept the legacy marker `Delegated role: Luna read-only investigator` only for a matching investigation, and apply the explicit worker settings on continuation.
 4. Never reuse a task based on title alone, and never reuse an unrelated user-created task.
 
@@ -51,7 +51,7 @@ Use observed degradation rather than turn count alone. Examples include repeated
 
 1. List available projects and select the project matching the primary task.
 2. Use that project's saved local environment so the worker reads the same checkout as the primary task. Do not request a new worktree.
-3. Create a task with explicit `model="gpt-6.1-sol"`, `thinking="low"` (reasoning effort), and title `Subagent: [Sol調査] <short workstream>`.
+3. Create a task with explicit `model="gpt-6.1-sol"`, `thinking="low"` (reasoning effort), and title `Subagent: [調査] <short workstream>`.
 4. If creation still returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Resolve the ready task through the recent-task list and verify its delegation marker before continuing.
 5. Retain the ready task's `threadId` and `hostId` for follow-ups.
 
