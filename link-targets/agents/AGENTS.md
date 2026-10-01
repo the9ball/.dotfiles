@@ -59,6 +59,7 @@
 
 ## Delegation to subagents
 
+- For ordinary Codex investigation, implementation, and testing workers, explicitly specify model `gpt-6.1-sol` and reasoning effort `low` at startup and on continuation. Keep the primary chat's model/effort and Advisor model/trigger rules unchanged.
 - For details of individual workflows, apply the corresponding skill runtime contract after skill discovery. If the skill cannot be resolved, do not rely on guesswork, stop the necessary work and report.
 - Delegation does not expand authority or scope of approval. Complete “Check for thread mix-ups” first; before “Scope confirmation before file changes” is approved, only read-only work may be delegated. Changes by the delegatee are also limited to the approved scope. Do not run tasks that specify "one by one" or "in order" in parallel.
 - When writing to the same work tree, only one person is responsible for editing each file. If it cannot be divided, the main thread will not touch the same range until the delegate is completed.

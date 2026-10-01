@@ -1,4 +1,4 @@
 interface:
-  display_name: "Delegate Luna Investigation (Codex)"
-  short_description: "Codex-only routing for reusable Luna research tasks"
-  default_prompt: "Use $delegate-luna-investigation to delegate this bounded investigation to a reusable Luna Max task."
+  display_name: "Delegate Worker Investigation (Codex)"
+  short_description: "Codex-only routing for reusable Sol Low research tasks"
+  default_prompt: "Use $delegate-luna-investigation to delegate this bounded read-only investigation to a reusable worker with explicit model gpt-6.1-sol and reasoning effort low."
