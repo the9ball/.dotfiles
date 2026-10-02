@@ -1,6 +1,6 @@
 ---
 name: delegate-readonly-investigation
-description: "[For Codex app only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations in reusable, user-visible GPT-6.1 Sol Low worker tasks from a primary Codex task. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier delegated investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
+description: "[For Codex app only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations in reusable, user-visible worker tasks using externally selected model and effort settings. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier delegated investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
 ---
 
 # Delegate Read-only Investigation
@@ -9,7 +9,7 @@ description: "[For Codex app only. Not for use by Claude Code or other agents] C
 
 Coordinate an investigation from the primary Codex task. Keep the delegated task read-only, preserve its context across follow-ups, and return evidence to the primary task for verification and final judgment.
 
-Use model `gpt-6.1-sol` and reasoning effort `low` explicitly for worker creation and continuation. The primary chat and Advisor model/trigger rules are unchanged.
+Resolve model and reasoning effort independently from applicable external selections, following normal instruction precedence. Pass explicitly selected fields on creation and continuation. At creation, inherit unspecified fields from the primary task when supported; otherwise omit them and use the runtime's defaults. At continuation, leave unspecified fields unchanged. This skill supplies no fixed model or effort and does not change the primary chat's settings or Advisor role/trigger rules.
 
 ## Guardrails
 
@@ -22,7 +22,7 @@ Use model `gpt-6.1-sol` and reasoning effort `low` explicitly for worker creatio
 - Run sequentially: while the worker task is active, make the primary task wait and do not perform separate work against the shared checkout.
 - Leave any worktree decision to the user and the primary task. If they select another checkout, use that existing selection without changing it.
 - Keep integration, evidence verification, decisions, and the final response in the primary task.
-- Do not claim that GPT-6.1 Sol Low ran unless task activity or tool output identifies the effective settings; a requested setting alone does not prove execution.
+- Do not claim that a particular model or effort ran unless task activity or tool output identifies the effective settings; a requested setting alone does not prove execution.
 
 ## Decide Whether to Reuse
 
@@ -34,7 +34,7 @@ Treat these fields as the delegated workstream identity:
 - authorization and read-only boundary;
 - governing assumptions.
 
-Reuse the same worker task when those fields remain materially the same. Continue it for follow-up research, corrections, clarification, stronger evidence, and validation of the same conclusion, explicitly specifying `gpt-6.1-sol` / `low` even for a task previously run with different settings.
+Reuse the same worker task when those fields remain materially the same. Continue it for follow-up research, corrections, clarification, stronger evidence, and validation of the same conclusion. Apply any applicable explicit model or effort selection on continuation, and leave unspecified fields unchanged.
 
 Create a new worker task when any identity field changes materially, prior assumptions become obsolete, or stale context is visibly impairing quality or efficiency. Do not split solely because work enters a new phase. Prefer a concise handoff of confirmed facts and open questions over copying the full transcript.
 
@@ -51,13 +51,13 @@ Use observed degradation rather than turn count alone. Examples include repeated
 
 1. List available projects and select the project matching the primary task.
 2. Use that project's saved local environment so the worker reads the same checkout as the primary task. Do not request a new worktree.
-3. Create a task with explicit `model="gpt-6.1-sol"`, `thinking="low"` (reasoning effort), and title `Subagent: [調査] <short workstream>`.
+3. Create a task with title `Subagent: [調査] <short workstream>`. Pass applicable explicit model and reasoning effort selections through `model` and `thinking`; for unspecified fields, use supported inheritance from the primary task, or omit those fields when inheritance is unavailable. Report an unsupported explicit selection instead of silently substituting settings.
 4. If creation still returns only a `clientThreadId`, do not pass it to tools requiring a `threadId`. Resolve the ready task through the recent-task list and verify its delegation marker before continuing.
 5. Retain the ready task's `threadId` and `hostId` for follow-ups.
 
 Make the initial prompt self-contained and include:
 
-- marker: `Delegated role: read-only investigator (gpt-6.1-sol / low)`;
+- marker: `Delegated role: read-only investigator`, with requested model/effort and their source recorded separately when known;
 - objective and relevant context;
 - in-scope and out-of-scope artifacts;
 - constraints and authorization boundary;
@@ -72,7 +72,7 @@ Require concise findings that distinguish verified facts from inference and incl
 
 1. Wait for the delegated task rather than repeatedly polling it or doing other work against the shared checkout.
 2. Read its final result and inspect the cited evidence from the primary task when practical.
-3. If evidence is incomplete or a correction is needed, send a follow-up to the same task with explicit `model="gpt-6.1-sol"` and `thinking="low"`, preserving its conversation context. Do not inherit earlier model/effort settings.
+3. If evidence is incomplete or a correction is needed, send a follow-up to the same task, preserving its conversation context. Pass applicable explicit model/effort selections through `model` and `thinking`, and leave unspecified fields unchanged.
 4. State only the delta, new evidence, challenged conclusion, and required output in the follow-up.
 5. Wait again and repeat while the workstream identity remains stable.
 6. If the delegated task requests user approval or expanded authority, leave that decision to the user; do not answer on the user's behalf.

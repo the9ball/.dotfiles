@@ -1,4 +1,4 @@
 interface:
   display_name: "Delegate Read-only Investigation (Codex)"
   short_description: "Codex-only routing for reusable read-only research"
-  default_prompt: "Use $delegate-readonly-investigation to delegate this bounded read-only investigation to a reusable worker with explicit model gpt-6.1-sol and reasoning effort low."
+  default_prompt: "Use $delegate-readonly-investigation to delegate this bounded read-only investigation to a reusable worker, honoring external model and effort selections and preserving unspecified settings through supported inheritance or runtime defaults."

@@ -3,6 +3,8 @@
 # Keep runtime-owned state out of this file. The modify_ template preserves
 # projects, hooks.state, model availability, and other keys written by Codex.
 # Host-specific paths or integrations belong in codex-defaults.toml.local.
+# Model and reasoning effort defaults fill only missing target settings.
+# Existing selections are preserved; explicit .local overrides take precedence.
 
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
