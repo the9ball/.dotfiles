@@ -26,6 +26,7 @@ max_concurrent_threads_per_session = 10
 max_depth = 5
 
 [features]
+daemon_auto_start = false
 js_repl = false
 multi_agent = true
 default_mode_request_user_input = true
