@@ -6,6 +6,8 @@ parsed first and then overlaid with the repository defaults, so Codex-managed
 projects, hook state, model availability state, and any other unknown keys are
 preserved. Legacy sandbox and permission-profile keys are removed during the
 migration. auth.json is a separate file and is never read or written here.
+Shared model/effort defaults fill only missing keys. Existing selections are
+preserved, while explicit .local selections override them.
 
 */ -}}
 {{- $config := dict -}}
@@ -30,6 +32,21 @@ migration. auth.json is a separate file and is never read or written here.
 {{-   end -}}
 {{- end -}}
 {{- $defaults := fromToml (include ".chezmoitemplates/codex-personal-defaults.toml") -}}
+{{- range $selectionKey := list "model" "model_reasoning_effort" -}}
+{{-   if hasKey $config $selectionKey -}}
+{{-     $defaults = unset $defaults $selectionKey -}}
+{{-   end -}}
+{{- end -}}
+{{- if hasKey $config "agents" -}}
+{{-   $configuredAgents := index $config "agents" -}}
+{{-   $defaultAgents := index $defaults "agents" -}}
+{{-   range $selectionKey := list "default_subagent_model" "default_subagent_reasoning_effort" -}}
+{{-     if hasKey $configuredAgents $selectionKey -}}
+{{-       $defaultAgents = unset $defaultAgents $selectionKey -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $defaults = set $defaults "agents" $defaultAgents -}}
+{{- end -}}
 {{- $localDefaultsPath := printf "%s/.chezmoitemplates/codex-personal-defaults.toml.local" .chezmoi.sourceDir -}}
 {{- if (stat $localDefaultsPath) -}}
 {{-   $local := fromToml (include ".chezmoitemplates/codex-personal-defaults.toml.local") -}}

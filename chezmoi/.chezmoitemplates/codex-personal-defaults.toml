@@ -2,6 +2,8 @@
 # Runtime state such as projects, hooks.state, and tui.model_availability_nux
 # is intentionally kept in the destination config and is not managed here.
 # Host-specific absolute paths belong in codex-personal-defaults.toml.local.
+# Model and reasoning effort defaults fill only missing target settings.
+# Existing selections are preserved; explicit .local overrides take precedence.
 
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
