@@ -16,3 +16,6 @@ link-targets/agents/skills/dd-pup/
 # 個人用の private CLI 由来スキル。実体は追跡せず、各自の環境で用意する。
 link-targets/agents/skills/backlog-cli/
 link-targets/agents/skills/redmine-cli/
+
+# Claude デスクトップアプリが同期する Anthropic 提供スキル。実体は追跡しない。
+link-targets/agents/skills/synced/
