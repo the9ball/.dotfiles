@@ -39,6 +39,9 @@
 	autosquash = true
 [pull]
 	rebase = true
+[submodule]
+	# switch / checkout / pull などの作業ツリー更新時に、サブモジュールも追従させる。
+	recurse = true
 [fetch]
 	prune = true
 	showForcedUpdates = true
