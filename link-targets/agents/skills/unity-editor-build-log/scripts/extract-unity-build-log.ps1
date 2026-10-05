@@ -42,7 +42,7 @@ Exit Codes:
 #>
 [CmdletBinding()]
 param(
-    [string] $LogFilePath = 'C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log',
+    [string] $LogFilePath = (Join-Path $env:LOCALAPPDATA 'Unity\Editor\Editor.log'),
     [ValidateRange(1, 1000000)] [int] $MaximumOutputLines = 10000,
     [ValidateRange(1, 100000000)] [int] $MaximumOutputCharacters = 500000,
     [ValidateRange(1, 1073741824)] [long] $MaximumInputBytes = 100000000

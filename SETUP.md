@@ -54,7 +54,7 @@ Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`
 
 通常の`codex`は`CODEX_HOME`を設定せず、標準の`~/.codex`を仕事用アカウントとして使います。`~/.codex/config.toml`はリポジトリのポータブルなdefaultsを`modify_`方式でマージします。Codexが管理するプロジェクト履歴、hook状態、認証、ログ、セッションはリポジトリへ保存しません。
 個人用は`pcodex`（`~/.codex-personal`）、WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
-個人用の`default_permissions`は通常`personal-standard`です。共有ワークスペースに加えてGitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスを許可し、`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離しています。必要な場合だけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で緊急プロファイルを選択してください。絶対パスは`codex-personal-defaults.toml.local`にだけ置き、共有テンプレートには含めません。
+個人用の`default_permissions`は通常`personal-standard`です。共有ワークスペースに加えてGitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスを許可し、追加の書き込み許可は`personal-emergency`へ分離しています。必要な場合だけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で緊急プロファイルを選択してください。filesystem permission のパスは許可範囲であり、通常のcheckoutや作業場所の指定ではありません。絶対パスは`codex-personal-defaults.toml.local`にだけ置き、共有テンプレートには含めません。
 端末固有の仕事用Codex設定は`codex-defaults.toml.local`、個人用設定は`codex-personal-defaults.toml.local`へ置きます。作成手順は[`README.manual.md`](README.manual.md)を参照してください。
 
 GitHub CLI の認証状態確認用 hook は、共通スクリプトを`~/.agents/hooks/`に置き、chezmoiで各`CODEX_HOME`の`hooks.json`へ登録します。共通設定で使うPython 3.13は`chezmoi apply`が`uv`経由で導入し、hookもその管理下のPythonから起動します。初回やhook定義を変更した後は、そのホームでCodexを再起動し、`/hooks`から定義を確認して信頼してください。信頼状態はホームごとに必要です。詳細は[Codex Hooks](https://learn.chatgpt.com/docs/hooks)を参照してください。
