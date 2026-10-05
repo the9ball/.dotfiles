@@ -2,7 +2,8 @@
 # personal Codex profile. The destination is ignored by Git and is merged
 # after codex-personal-defaults.toml.
 #
-# Replace every angle-bracket placeholder after copying. The resulting paths
+# Replace every angle-bracket placeholder after copying; this example is not
+# a valid active configuration until all placeholders are replaced. The resulting paths
 # are host-local; keep WSL settings in the separate codex-wsl home instead.
 # Permission paths grant access; they do not select or recommend checkout locations.
 # Legacy sandbox_mode and sandbox_workspace_write keys are removed by the
@@ -10,8 +11,11 @@
 # Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
 
 [permissions.personal-standard.filesystem]
+# Directory containing the current user's GitHub CLI configuration; read-only.
 '<github-cli-config-path>' = "read"
 
 [permissions.personal-emergency.filesystem]
+# Additional host-local workspace that emergency operations may write.
 '<emergency-write-path>' = "write"
+# Host-local Git metadata workspace that emergency operations may write.
 '<git-metadata-write-path>' = "write"

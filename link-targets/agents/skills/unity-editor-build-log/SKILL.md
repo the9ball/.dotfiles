@@ -5,19 +5,19 @@ description: Safely extract, with a classification, the last completed Player Bu
 
 # Unity Editor build log
 
-The target is the default `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log`. When this skill applies, root delegates a self-contained investigation to a read-only subagent, which runs the bundled script to detect the boundaries and cut out the interval. Root does not display the whole log in advance; it verifies the classification, boundaries, summary, and masked latest block that the subagent returns, and then returns them to the user.
+The target is Unity's standard Windows `Editor.log` under the current user's local application-data directory. When this skill applies, root delegates a self-contained investigation to a read-only subagent, which runs the bundled script to detect the boundaries and cut out the interval. Root does not display the whole log in advance; it verifies the classification, boundaries, summary, and masked latest block that the subagent returns, and then returns them to the user.
 
 Include the following in the instructions to the subagent:
 
-1. Treat the fixed target `C:\Users\syasui\AppData\Local\Unity\Editor\Editor.log` as read-only, and run `C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1`.
+1. Treat the default Unity `Editor.log` resolved by the bundled script from the current user's local application-data directory as read-only, and run the bundled `scripts\extract-unity-build-log.ps1` from this Skill directory.
 2. If necessary, specify `-LogFilePath` only for fixture verification (the real log is not modified, and the file is not locked).
 3. Return to root the classification, the start and end lines, the result, whether it was truncated, and the masked latest block. Do not reprint secret values. On a non-zero exit, return only the error summary and do not guess at the body.
 
 Execution example:
 
 ```powershell
-& "C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1"
-& "C:\Users\syasui\.dotfiles\link-targets\agents\skills\unity-editor-build-log\scripts\extract-unity-build-log.ps1" -LogFilePath .\Editor.log -MaximumOutputLines 10000 -MaximumOutputCharacters 500000
+& .\scripts\extract-unity-build-log.ps1
+& .\scripts\extract-unity-build-log.ps1 -LogFilePath .\Editor.log -MaximumOutputLines 10000 -MaximumOutputCharacters 500000
 ```
 
 The script uses shared reads (`FileShare.ReadWrite` and `FileShare.Delete`) and pairs Player Build and Script Compilation as typed events in a single forward scan. Even when events of the same kind are nested, the start position is kept on a stack, so the outer interval is not lost. Method names in stack traces such as `BuildPlayerWindow`, `##### Output`, and `*** Tundra requires additional run` are not used as a start or an end. If the last start has no matching end, the script does not fall back to an old successful result; it exits non-zero as "the latest build is incomplete" (`最新未完了`). If no boundary can be detected, it likewise does not guess at the body and exits non-zero. In the output interval, keyed access tokens, Bearer, password, secret, client_secret/clientSecret, Authorization, serial/license key, api key, and the like are masked as `<redacted>`, and the common form in which the key and the value are on separate lines is handled too.
