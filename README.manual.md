@@ -234,7 +234,7 @@ Copy-Item chezmoi/.chezmoitemplates/codex-defaults.toml.local.example chezmoi/.c
 Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local
 ```
 
-コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。`codex-defaults.toml.local`は仕事用、`codex-personal-defaults.toml.local`は個人用Windowsプロファイル専用です。個人用は通常`personal-standard`を選び、GitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスだけを許可します。`D:\repository`と`C:\Users\<user>\work\gitmeta`への書き込みは`personal-emergency`へ分離されるため、必要な作業でだけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）を使います。個人用の絶対パスは共有テンプレートへ入れず、ホスト固有の`.local`へ置きます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、どちらのdefaultsにも書きません。
+コピーしたファイルに名前、メールアドレス、マシン固有のPATH、Codexの端末固有設定などを設定します。`codex-defaults.toml.local`は仕事用、`codex-personal-defaults.toml.local`は個人用Windowsプロファイル専用です。個人用は通常`personal-standard`を選び、GitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスだけを許可します。追加の書き込み許可は`personal-emergency`へ分離されるため、必要な作業でだけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）を使います。filesystem permission のパスは許可範囲であり、通常のcheckoutや作業場所の指定ではありません。個人用の絶対パスは共有テンプレートへ入れず、ホスト固有の`.local`へ置きます。`*.local`はGitの追跡対象外です。認証情報は保存せず、必要なツールの認証機能を使ってください。Codexの認証は`CODEX_HOME/auth.json`で管理し、どちらのdefaultsにも書きません。
 
 ### Git identityの切り替え
 

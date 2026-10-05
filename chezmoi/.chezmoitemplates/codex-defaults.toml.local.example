@@ -6,9 +6,10 @@
 # modify template; Permission Profiles remain authoritative.
 # Do not put credentials here; keep authentication in CODEX_HOME/auth.json.
 
-# Example:
+# Example (replace the placeholder after copying):
 # [permissions.default-permissions.filesystem]
-# "/mnt/d/repository" = "write"
+# "<workspace-write-path>" = "write"
+# The permission path grants access; it does not select or recommend a checkout location.
 #
 # [mcp_servers.example]
 # url = "https://example.invalid/mcp"
