@@ -6,7 +6,9 @@ Use the repository's established C# formatter and analyzer commands. For ordinar
 
 - Identify the owning project or solution explicitly. Pass changed files with `--include` using paths relative to the command's working directory. Files must belong to the selected workspace; a skipped or unloaded file has not been validated.
 - Respect the project's SDK selection and installed command's help. Use `--no-restore` when dependencies are already restored. Loading errors require resolving the project/dependency issue; do not hide them with exclusions.
-- For standalone C# files without a loadable project, `dotnet format whitespace --folder DIRECTORY` can handle formatting. This does not establish semantic style or analyzer coverage; report that limitation.
+- If no owning project or solution can be found or loaded, report native C# style and analyzer coverage as unverified. Do not automatically substitute a folder workspace for the missing project context.
+- Use `dotnet format whitespace . --folder --include RELATIVE_FILE_PATH` from the selected folder only as an explicitly selected fallback for simple folder-based whitespace formatting. It treats the argument as a folder of code files and does not establish project/solution loading, semantic style, or analyzer coverage. Confirm the intended files were loaded and report the limited coverage.
+- For code that depends on project context, such as Unity, generated sources, context-dependent partial types, conditional compilation, or analyzer/package configuration, use the project's supported formatting route. A successful folder check does not resolve a project-load failure or validate that context.
 
 ## Format and verify
 
