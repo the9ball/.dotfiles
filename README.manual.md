@@ -429,7 +429,7 @@ Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yam
 
 Windows版VS Codeのユーザー設定（`%APPDATA%\Code\User\settings.json`）は、ファイル全体を管理せず、[`chezmoi/AppData/Roaming/Code/User/modify_settings.json`](chezmoi/AppData/Roaming/Code/User/modify_settings.json)で次の3項目だけを管理します。
 
-- `terminal.integrated.profiles.windows["Codex Personal"].source`
+- `terminal.integrated.profiles.windows["Codex Personal"].path`（`pwsh.exe`。既存の`source`指定は削除）
 - `terminal.integrated.profiles.windows["Codex Personal"].env.CODEX_HOME`
 - `terminal.integrated.defaultProfile.windows`
 
