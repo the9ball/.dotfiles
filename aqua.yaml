@@ -16,7 +16,7 @@
 #   - all
 registries:
 - type: standard
-  ref: v4.571.0
+  ref: v4.572.0
 packages:
 - name: twpayne/chezmoi@v2.73.0
 - name: nodejs/node@v26.10.0
@@ -46,6 +46,12 @@ packages:
 - name: nektos/act@v0.2.89
 - name: rhysd/actionlint@v1.7.12
 - name: open-policy-agent/conftest@v0.71.0
+- name: editorconfig/editorconfig-core-go@v2.6.5
+  tags:
+  - code-formatting
+- name: editorconfig-checker/editorconfig-checker@v4.0.2
+  tags:
+  - code-formatting
 - name: github/git-sizer@v1.5.0
 - name: helm/helm@v4.3.0
 - name: PowerShell/PowerShell@v7.6.6
