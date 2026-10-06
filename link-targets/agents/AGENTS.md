@@ -12,12 +12,8 @@
 
 ## Code comment conventions
 
-- When the AI adds or modifies code, attach the standard documentation comment for that language or project to every named method and function, whether public or private. Use XML document comments in C#, Javadoc in Java, docstring in Python, etc.
-- Document comments should at least describe the role and purpose, and explain arguments, return values, exceptions, side effects, and preconditions as necessary. Even simple methods explain their role in one sentence.
-- For complex branches, business rules, workarounds, and performance improvements, use regular comments in the relevant sections to explain “why they are necessary” and “which assumptions they depend on.”
-- If the explanation changes due to implementation changes, update or delete existing comments.
-- Do not write comments speculating on specifications or reasons that cannot be confirmed.
-- Add a regular comment to unnamed lambda expressions and the like when they are complex.
+- When the AI adds or modifies code, standard documentation comments are mandatory for every named method and function, public or private, including simple methods and test methods/functions. Complex unnamed lambdas and similar constructs also require a regular comment stating their role.
+- Before adding or modifying program source code, including scripts, new files, tests, and comment-only source edits, read and apply `link-targets/agents/skills/code-commenting/SKILL.md` using the shared instruction-root resolution rules. Also read it when explicitly asked to review or revise code comments. This explicit route applies even if the host does not automatically discover the Skill. If the instruction root or Skill cannot be resolved and read, stop the dependent work and report the missing source; do not proceed by omitting the comment requirements.
 
 ## Precedence between skills and user instructions
 
