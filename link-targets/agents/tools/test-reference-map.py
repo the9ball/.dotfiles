@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import importlib.util
+import re
 import subprocess
 import sys
 import tempfile
@@ -438,23 +439,23 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-gpt-5.6.md",
+                "link-targets/agents/skills/delegation/references/model-guides/model-gpt-5.6.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-gpt-6.md",
+                "link-targets/agents/skills/delegation/references/model-guides/model-gpt-6.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-astra.md",
+                "link-targets/agents/skills/delegation/references/model-guides/model-astra.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-sol.md",
+                "link-targets/agents/skills/delegation/references/model-guides/model-sol.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
-                "link-targets/agents/guides/model-luna.md",
+                "link-targets/agents/skills/delegation/references/model-guides/model-luna.md",
             ),
             (
                 "link-targets/agents/skills/delegation/SKILL.md",
@@ -577,12 +578,13 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         )
 
     def test_gpt6_model_composition_is_explicit(self) -> None:
-        """Require GPT-6 family and current variant dependencies to stay separate."""
+        """Keep explicit model mappings, Skill links, and inventory in agreement."""
 
         map_path = (SCRIPT.parent.parent / "reference-map.json").resolve()
         document = json.loads(map_path.read_text(encoding="utf-8"))
         delegation = "link-targets/agents/skills/delegation/SKILL.md"
-        family = "link-targets/agents/guides/model-gpt-6.md"
+        family = "link-targets/agents/skills/delegation/references/model-guides/model-gpt-6.md"
+        reference_directory = "link-targets/agents/skills/delegation/references/model-guides/"
         edges = [
             edge
             for edge in document["edges"]
@@ -595,17 +597,53 @@ class ReferenceMapValidatorTests(unittest.TestCase):
         self.assertIn("GPT-6 family", family_edges[0]["when"])
 
         expected_variants = {
-            "gpt-6-astra": "link-targets/agents/guides/model-astra.md",
-            "gpt-6-sol": "link-targets/agents/guides/model-sol.md",
-            "gpt-6-luna": "link-targets/agents/guides/model-luna.md",
+            "gpt-6-astra": "link-targets/agents/skills/delegation/references/model-guides/model-astra.md",
+            "gpt-6-sol": "link-targets/agents/skills/delegation/references/model-guides/model-sol.md",
+            "gpt-6.1-sol": "link-targets/agents/skills/delegation/references/model-guides/model-sol.md",
+            "gpt-6-luna": "link-targets/agents/skills/delegation/references/model-guides/model-luna.md",
         }
         for model_id, variant_guide in expected_variants.items():
             matching = [
                 edge
                 for edge in edges
-                if model_id in edge["when"] and edge["to"] == variant_guide
+                if model_id in re.findall(r"gpt-[a-z0-9.-]+", edge["when"])
+                and edge["to"] == variant_guide
             ]
             self.assertEqual(len(matching), 1)
+
+        expected_compositions = {
+            model_id: {family, variant_guide}
+            for model_id, variant_guide in expected_variants.items()
+        }
+        for model_id in ("gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"):
+            expected_compositions[model_id] = {
+                reference_directory + "model-gpt-5.6.md"
+            }
+
+        actual_compositions: dict[str, set[str]] = {}
+        for reference_edge in edges:
+            if not reference_edge["to"].startswith(reference_directory):
+                continue
+            self.assertTrue(reference_edge["source_reference"])
+            for model_id in re.findall(r"gpt-[a-z0-9.-]+", reference_edge["when"]):
+                actual_compositions.setdefault(model_id, set()).add(reference_edge["to"])
+        self.assertEqual(actual_compositions, expected_compositions)
+
+        root = VALIDATOR.repository_root(map_path, document)
+        skill_text = (root / delegation).read_text(encoding="utf-8")
+        linked_compositions: dict[str, set[str]] = {}
+        for table_line in skill_text.splitlines():
+            selected_model = re.match(r"\| `(gpt-[a-z0-9.-]+)` \|", table_line)
+            if selected_model is None:
+                continue
+            linked_compositions[selected_model.group(1)] = {
+                (Path(delegation).parent / destination).as_posix()
+                for destination in re.findall(r"\]\(([^)]+)\)", table_line)
+            }
+        self.assertEqual(linked_compositions, expected_compositions)
+        for reference_paths in expected_compositions.values():
+            for reference_path in reference_paths:
+                self.assertTrue((root / reference_path).is_file(), reference_path)
 
         variant_paths = set(expected_variants.values())
         self.assertFalse(
@@ -616,12 +654,19 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             "variant guides must remain generation-independent",
         )
         retired_generation_specific_paths = {
+            "link-targets/agents/guides/model-gpt-5.6.md",
+            "link-targets/agents/guides/model-gpt-6.md",
+            "link-targets/agents/guides/model-astra.md",
+            "link-targets/agents/guides/model-sol.md",
+            "link-targets/agents/guides/model-luna.md",
             "link-targets/agents/guides/model-gpt-6-astra.md",
             "link-targets/agents/guides/model-gpt-6-sol.md",
             "link-targets/agents/guides/model-gpt-6-luna.md",
         }
         node_paths = {node["path"] for node in document["nodes"]}
         self.assertTrue(retired_generation_specific_paths.isdisjoint(node_paths))
+        for retired_path in retired_generation_specific_paths:
+            self.assertFalse((root / retired_path).exists(), retired_path)
 
     def test_edge_count_split_is_exact(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
