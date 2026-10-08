@@ -62,7 +62,7 @@ These references belong to the delegation caller. Read only the mapped reference
 | `gpt-5.6-terra` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
 | `gpt-5.6-luna` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
 
-For a listed GPT-6 model, the caller reads both the family and variant references when needed. Sol 6 and 6.1 intentionally share references; exact capability differences stay in the Sol metadata. Sharing guidance does not establish identical behavior. Variant names do not imply future family mappings. For an unlisted model, do not guess a reference mapping; if a required mapped reference is unavailable, stop the dependent model-specific adjustment and report it.
+For a listed GPT-6 model, the caller reads both the family and variant references when needed. Sol 6 and 6.1 intentionally share references; exact capability differences stay in the Sol metadata. Sharing guidance does not establish identical behavior. Variant names do not imply future family mappings. For an unlisted model, do not guess a reference mapping; if a required mapped reference is unavailable, apply the Runtime contract's fail-safe stop to the work that depends on it and report it. Do not dispatch with a required adjustment silently omitted.
 
 ### Validation of results
 

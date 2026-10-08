@@ -570,6 +570,10 @@ class ReferenceMapValidatorTests(unittest.TestCase):
             {
                 "link-targets/agents/guides/approval-request-workflow.design.md",
                 "link-targets/agents/guides/github.design.md",
+                "link-targets/agents/guides/model-gpt-5.6.md",
+                "link-targets/agents/guides/model-gpt-6-astra.md",
+                "link-targets/agents/guides/model-gpt-6-sol.md",
+                "link-targets/agents/guides/model-gpt-6-luna.md",
             },
         )
         self.assertEqual(

@@ -13,7 +13,7 @@ Caller-side reference for adapting a handoff or assessing results from an alread
 | `gpt-6-sol` | Complex coding and agentic workflows | `none`, `low`, `medium` (default), `high`, `xhigh`, `max` |
 | `gpt-6.1-sol` | Complex coding and professional work with near-Astra performance at a lower cost | `low`, `medium` (default), `high`, `xhigh`, `max` |
 
-These API facts do not replace the host's supported settings or applicable external selections. GPT-6.1 Sol does not support API `none` or `minimal`; report an unsupported explicit selection through the delegation contract rather than silently replacing it.
+These API facts do not replace the host's supported settings or applicable external selections. GPT-6.1 Sol does not support API `none` or `minimal`; report an explicit selection that the runtime cannot honor through the delegation contract rather than silently replacing it. API metadata alone is not grounds to reject a host-supported setting.
 
 Revalidate the exact model pages before changing this reference. The composition map determines coverage; the Sol name does not imply support for future IDs or families.
 
