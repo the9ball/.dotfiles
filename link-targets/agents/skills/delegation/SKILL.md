@@ -45,20 +45,24 @@ Supplements `link-targets/agents/AGENTS.md`'s common contract and owns delegatio
 - When explicit selections require overrides, choose a supported context fork that permits them, such as `fork_turns="none"` with a self-contained request. Inheritance modes such as `fork_turns="all"` may be used when they honor the applicable selections. If the runtime cannot honor a requested model or effort, report the limitation instead of silently substituting or inheriting another value.
 - Preserve judgment-role responsibilities and independence separately from model selection. Check any fixed settings in a role definition against applicable external selections before dispatch; a role name is not a reason to override those selections. If the requested role cannot honor them, report the limitation instead of silently replacing the role or settings. Advisor has no model or effort default in this skill.
 - If an agent definition prohibits automatic startup, the agent definition takes precedence over general delegation defaults.
-- Apply the same external-selection and inheritance rules to other roles and products. If model-specific adjustments are required, read the guide corresponding to the selected model as supplementary material.
+- Apply the same external-selection and inheritance rules to other roles and products. If model-specific adjustments to a handoff or result assessment are needed, the caller reads the corresponding references below.
 
-### Model guide correspondence table
+### Caller-side model references
 
-Read the guide corresponding to the selected model as supplementary material only when model-specific adjustments are needed. A model guide must not override the common contract or role/skill-specific contracts; confirm that it is available in the execution environment before applying it.
+These references belong to the delegation caller. Read only the mapped references when adapting a handoff or assessing results for an already selected model requires model-specific guidance. They do not select models or reasoning effort, define child policy, or change the common contract or role/skill-specific contracts. Do not automatically load them in the child or copy them wholesale into a handoff; incorporate only relevant task framing within the existing scope.
 
-| Selection model | Compatible guide |
-| --- | --- |
-| `gpt-6-astra` | `model-gpt-6-astra.md` |
-| `gpt-6-sol` | `model-gpt-6-sol.md` |
-| `gpt-6-luna` | `model-gpt-6-luna.md` |
-| `gpt-5.6` alias or GPT-5.6 family | `model-gpt-5.6.md` |
+| Selection model | Family guide | Variant guide |
+| --- | --- | --- |
+| `gpt-6-astra` | [GPT-6](references/model-guides/model-gpt-6.md) | [Astra](references/model-guides/model-astra.md) |
+| `gpt-6-sol` | [GPT-6](references/model-guides/model-gpt-6.md) | [Sol](references/model-guides/model-sol.md) |
+| `gpt-6.1-sol` | [GPT-6](references/model-guides/model-gpt-6.md) | [Sol](references/model-guides/model-sol.md) |
+| `gpt-6-luna` | [GPT-6](references/model-guides/model-gpt-6.md) | [Luna](references/model-guides/model-luna.md) |
+| `gpt-5.6` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
+| `gpt-5.6-sol` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
+| `gpt-5.6-terra` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
+| `gpt-5.6-luna` | [GPT-5.6](references/model-guides/model-gpt-5.6.md) | — |
 
-Models not in the correspondence table or guides that are not available will not be applied by guess.
+For a listed GPT-6 model, the caller reads both the family and variant references when needed. Sol 6 and 6.1 intentionally share references; exact capability differences stay in the Sol metadata. Sharing guidance does not establish identical behavior. Variant names do not imply future family mappings. For an unlisted model, do not guess a reference mapping; if a required mapped reference is unavailable, apply the Runtime contract's fail-safe stop to the work that depends on it and report it. Do not dispatch with a required adjustment silently omitted.
 
 ### Validation of results
 
