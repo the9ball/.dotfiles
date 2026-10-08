@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "receipt_id": "receipt-false-positive-rejection-candidate",
+  "mode": "fixture_only_observe_only",
+  "run_id": "run-false-positive-rejection-candidate",
+  "case_id": "false-positive-rejection",
+  "side": "candidate",
+  "fixture_manifest_sha256": "9dfff6226aa01fe81371e8a5d53b99a8ed95f4a67571ae47dcd435c3dec7a4dd",
+  "target_manifest_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "role_context_ids": { "reviewer": "ctx-fp-candidate-reviewer", "respondent": "ctx-fp-candidate-respondent" },
+  "model_identity": { "reviewer": "candidate-reviewer-fixture", "respondent": "candidate-respondent-fixture" },
+  "routing_status": "DECLARED_ONLY",
+  "dispatch_count": 0,
+  "runtime_dispatch_attempted": false,
+  "runtime_dispatch_enforcement_claimed": false
+}

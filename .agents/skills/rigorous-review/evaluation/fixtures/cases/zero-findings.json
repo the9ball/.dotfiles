@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "case_id": "zero-findings",
+  "scenario": "reliable_zero_findings",
+  "expected": {
+    "baseline": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [],
+  "packet_path": "../packets/zero-findings.json",
+  "runs": {
+    "baseline": {
+      "result_path": "../results/zero-findings.baseline.json",
+      "receipt_path": "../receipts/zero-findings.baseline.json",
+      "joint_record_path": "../records/zero-findings.baseline.json"
+    },
+    "candidate": {
+      "result_path": "../results/zero-findings.candidate.json",
+      "receipt_path": "../receipts/zero-findings.candidate.json",
+      "joint_record_path": "../records/zero-findings.candidate.json"
+    }
+  }
+}
