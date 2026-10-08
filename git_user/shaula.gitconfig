@@ -1,6 +1,6 @@
 [user]
 	name = Shaula
-	email = the9ball+github@gmail.com
+	email = 801466+the9ball@users.noreply.github.com
 
 # ~/.ssh/gitconfig.signing.shaula がない端末では署名しない。
 # 存在する場合は、同ファイルの user.signingKey に指定したShaula鍵を使う。
