@@ -31,7 +31,8 @@ substituting another contract.
 For an identifiable GitHub Issue/PR, when the user requests 「保守」,
 「レビュー保守」, `review-consolidation`, or clearly requests consolidation
 of review points or alignment of the current plan/state from review conclusions,
-read `~/.agents/skills/review-consolidation/SKILL.md` directly and apply its
+read `~/.agents/skills/review-consolidation/SKILL.md`
+(`link-targets/agents/skills/review-consolidation/SKILL.md`) directly and apply its
 discovery contract. This is a host-specific routing entry, not a separate
 normative contract or permission for external writes. Do not load it for mere
 review checks, individual replies, unrelated edits or quoted trigger terms.
