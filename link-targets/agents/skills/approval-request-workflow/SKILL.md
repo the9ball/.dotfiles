@@ -7,6 +7,8 @@ description: Used to discover and hand off explicit permission or judgment neede
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Explicit permission or judgment discovery is required before execution can proceed.
 - Negative trigger: No approval request, just normal build/test/review.
 - Conditional dependency: The external-operation-authorization Skill is applied only when an authorization-boundary responsibility arises. Redesign material is contained in this Skill's non-runtime Design section and is not applied in ordinary runtime.

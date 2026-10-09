@@ -9,7 +9,6 @@ link-targets/
 │   ├── AGENTS.md     # ~/.agents/AGENTS.md
 │   ├── guides/
 │   ├── hooks/        # shared in ~/.agents/hooks
-│   ├── reference-map.json
 │   ├── skills/       # shared between ~/.agents/skills and ~/.claude/skills
 │   └── tools/
 └── claude/

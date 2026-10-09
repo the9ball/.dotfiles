@@ -7,6 +7,8 @@ description: Used to get Git status, fix differences/review range, handle index.
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Handles Git status, index/ref, differential range, permission errors, lock, formatter/lint range control.
 - Negative trigger: This is normal text/code work that does not deal with Git state or scope.
 - Conditional dependency: Maintain the responsibility boundary between the common policy kernel and the commit-message Skill, and resolve only the dependencies that are needed.
@@ -16,7 +18,7 @@ description: Used to get Git status, fix differences/review range, handle index.
 
 Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-Before execution, resolve the loaded Skill's symlink / junction to the entity path, find `link-targets/agents/reference-map.json` from its ancestors, and fix the instruction root from `repository_root` in JSON. If map is not found, cannot be interpreted as a structure, or cannot be resolved to, fail-safely stops without guessing the work root or comparison criteria. The Git work root, comparison standard, termination, target identity, and exclusion range are fixed separately from the request and current Git state.
+Resolve the loaded Skill's final existing symlink/junction entity and apply the canonical instruction-root procedure in `link-targets/agents/guides/README.md` (Reference path). Fail closed on missing, ambiguous, broken, or escaping locations; never infer the instruction root from the work root or CWD. The work root and Git target remain fixed independently from the request.
 
 ## Guide
 
@@ -54,3 +56,5 @@ It supplements the responsibilities of `link-targets/agents/AGENTS.md`, root `AG
 
 - If a formatter, lint, or Git operation generates a large amount of out-of-scope changes, do not automatically include them; separate them, or stop and seek confirmation.
 - Destructive operations, history rewrites, force pushes, and lock deletions will not be performed unless the explicit authorization boundary of `link-targets/agents/AGENTS.md` is met.
+
+<!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->

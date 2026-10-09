@@ -7,6 +7,8 @@ description: Use when creating, updating, and reviewing implementation plans or 
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Create, update, and review implementation plans or runbooks.
 - Negative trigger: Simply editing work notes or short descriptive text without using the plan's ownership scope.
 - Conditional dependency: Maintain the common policy kernel and the execution lifecycle's approval, target, and review contract.
@@ -16,7 +18,7 @@ description: Use when creating, updating, and reviewing implementation plans or 
 
 Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. This skill is the normative owner of the plan/runbook and does not load the old guide path.
 
-If necessary, resolve the symlink / junction of the loaded Skill to the actual path, search for link-targets/agents/reference-map.json from its ancestors, and fix the instruction root from repository_root. This root is only for reference of the shared instruction, and the work root and Git target are fixed separately from the request.
+Resolve the loaded Skill's final existing symlink/junction entity and apply the canonical instruction-root procedure in `link-targets/agents/guides/README.md` (Reference path). Fail closed on missing, ambiguous, broken, or escaping locations; never infer the instruction root from the work root or CWD. The work root and Git target remain fixed independently from the request.
 
 The ability to execute the plan, approval status, external operations, and acceptance/rejection are left to each existing execution/authorization gate. This Skill does not replace them.
 

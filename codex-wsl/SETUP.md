@@ -224,3 +224,6 @@ WSLランチャーは`$HOME/.dotfiles/aqua.yaml`を明示します。
 - [Codexの環境変数](https://learn.chatgpt.com/docs/config-file/environment-variables)
 - [AGENTS.mdの探索規則](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 - [CodexのWSLガイド](https://learn.chatgpt.com/docs/windows/wsl)
+
+<!-- reference-kind: manual-navigation; target: codex-wsl/CODEX_HOME.md -->
+<!-- reference-kind: manual-navigation; target: link-targets/agents/skills/wsl-codex-exec/SKILL.md -->

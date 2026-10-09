@@ -7,6 +7,8 @@ description: Before adding or modifying program source code, including scripts, 
 
 ## Discovery contract
 
+- Host fallback: exempt; shared AGENTS explicitly routes code changes to this Skill
+
 - Positive trigger: Add or modify program source code, including scripts, new files, tests, and comment-only source edits; or explicitly review or revise code comments.
 - Negative trigger: Unrelated read-only investigation, Issue maintenance, or prose-only editing.
 - Conditional dependency: None. Formatting and commit-message workflows retain their own triggers and contracts.

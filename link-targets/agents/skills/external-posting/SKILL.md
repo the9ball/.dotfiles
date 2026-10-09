@@ -7,6 +7,8 @@ description: Used when posting the text to an external visible location such as 
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Compose or send text to an external location that is visible to other users.
 - Negative trigger: Only local verification or internal memo, no body sent externally.
 - Conditional dependency: The external operation authorization contract is resolved only when the posting's authorization boundary is needed.

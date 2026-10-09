@@ -175,3 +175,6 @@ Windows側の`~/.codex-personal`をWSL側の`CODEX_HOME`に指定すると、Win
 - [OpenAI公式のCodex CLI手順](https://learn.chatgpt.com/docs/codex/cli)
 - [Codexの環境変数](https://learn.chatgpt.com/docs/config-file/environment-variables)
 - [AGENTS.mdの探索規則](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+
+<!-- reference-kind: manual-navigation; target: codex-wsl/SETUP.md -->
+<!-- reference-kind: manual-navigation; target: link-targets/agents/skills/wsl-codex-exec/SKILL.md -->

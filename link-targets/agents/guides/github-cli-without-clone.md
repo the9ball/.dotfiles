@@ -1,6 +1,6 @@
 # Modify the contents of a GitHub repository without cloning
 
-> **Maintenance note:** This guide is an external shared reference referenced by GPT-Chat. It does not require an activation path in the repository runtime; its registration under `external_consumers` in `reference-map.json` is treated as the reason for keeping it.
+> **External consumer:** GPT-Chat; purpose: provide a persistent clone-free GitHub CLI reference outside repository runtime activation. This note is the preservation reason, not an activation path or a Claude compatibility shim.
 
 A practical guide to working with files, branches, commits, and pull requests on GitHub using the GitHub CLI (`gh`) and without `git clone`.
 The GitHub service/API normative contract prioritizes `link-targets/agents/skills/github/SKILL.md`, and this document is treated as a reference for operating methods. External write authorization follows `link-targets/agents/skills/external-operation-authorization/SKILL.md`. GitHub token / repository permission and the semantic authorization boundary granted by the user are treated as different things.

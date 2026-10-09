@@ -7,16 +7,18 @@ description: Used when execution-lifecycle-gate or an explicit review contract r
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: The execution-lifecycle-gate or explicit Advisor review contract requires a read-scope declaration to pass the target file to the Advisor.
 - Negative trigger: Regular review, short confirmation, grammar correction, etc. that do not require a fixed reading scope for the Independent Advisor.
-- Conditional dependency: Apply the execution lifecycle's independence and read-only conditions, and instruction-root resolution through reference-map.
+- Conditional dependency: Apply the execution lifecycle's independence and read-only conditions, and instruction-root resolution through the canonical placement procedure.
 - Failure mode: If skill contract, instruction root, target identity or required read scope cannot be resolved, stop in fail-safe and do not treat as CLEAR / PASS.
 
 ## Runtime contract
 
 Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. The owner of the shared Skill contract is this Skill and does not load the old guide path. Advisor output is treated as attributable advice, not as a ruling or implementation approval.
 
-The instruction root for the Advisor request resolves the loaded Skill's symlink / junction to the actual path, finds link-targets/agents/reference-map.json from its ancestors, and fixes it from the map's repository_root. This root is only for reference of the shared instruction, and the work root and Git target are fixed separately from the request. Do not implicitly reference the current working directory.
+Resolve the loaded Skill's final existing symlink/junction entity and apply the canonical instruction-root procedure in `link-targets/agents/guides/README.md` (Reference path). Fail closed on missing, ambiguous, broken, or escaping locations; never infer the instruction root from the work root or CWD. The work root and Git target remain fixed independently from the request.
 
 ## Guide
 

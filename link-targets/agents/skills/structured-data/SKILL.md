@@ -7,6 +7,8 @@ description: Used when reading structured data such as JSON as a value or hierar
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Interpret the structure of JSON or extract values/hierarchy.
 - Negative trigger: Only displaying full text or running a normal Markdown search, without interpreting structure.
 - Conditional dependency: There is no additional dependency contract; only the result of a structured parser is used.

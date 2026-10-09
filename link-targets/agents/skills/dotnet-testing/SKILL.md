@@ -7,6 +7,8 @@ description: Enforce timeouts and configuration contracts when running a .NET bu
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Run build or test of a .NET project.
 - Negative trigger: Only performs verification other than .NET or provides an explanation without executing any commands.
 - Conditional dependency: There is no additional dependency contract.
