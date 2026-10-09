@@ -1,25 +1,26 @@
 ---
 name: review-consolidation
-description: Only when explicitly called, compresses review information scattered in Issues/Pull Requests into discussion-point (論点) units, and aligns the current work plan and review state with REVIEW-SUMMARY and body.
+description: For explicit or semantically requested GitHub Issue/PR review maintenance, compresses review information scattered in Issues/Pull Requests into discussion-point (論点) units, and aligns the current work plan and review state with REVIEW-SUMMARY and body.
 ---
 
 # Review consolidation
 
 ## Discovery contract
 
-- Positive trigger: The user or target task explicitly calls `review-consolidation` and aggregates the review status of Issues/Pull Requests.
-- Negative trigger: Normal Issue/Pull Request operations, review response, HANDOFF, or maintenance without explicit invocation.
+- Positive trigger: For an identifiable GitHub Issue/PR, the user requests 「保守」, 「レビュー保守」, or `review-consolidation`, or clearly requests consolidation of review discussion points or updating the current plan/review state from review conclusions. Judge semantic requests by the intended outcome, not keywords alone.
+- Negative trigger: Mere reading/status checks, individual review replies, HANDOFF, unrelated edits or code fixes, quoted trigger words, and discussion or review of this Skill itself. Do not interpret 「保守」 outside GitHub Issue/PR context as a trigger. If the intended outcome cannot be resolved from context, ask only then.
 - Conditional dependency: The corresponding Skills for GitHub service, authorization, approval request, and external posting are resolved only when their responsibilities arise.
 - Failure mode: If a conditional dependency or target history cannot be resolved, stop in a fail-safe manner without guessing or silent fallback to another route.
 
 ## Runtime contract
 
-Only when this skill is explicitly discovered, the contract and orchestration below will be applied as a normative contract. Load conditional dependencies only when necessary, and fail-safely stop them without guesswork or silent omission if they cannot be resolved.
+When this skill is discovered for an applicable request, the contract and orchestration below will be applied as a normative contract. Load conditional dependencies only when necessary, and fail-safely stop them without guesswork or silent omission if they cannot be resolved.
 
 ## Guide
 
-This Skill does not have automatic triggers. Use only if the user or target task explicitly calls `review-consolidation`.
+Discovery may occur through host-specific instructions or Skill metadata; neither guarantees automatic activation across hosts. Select this Skill only for the positive trigger above, not for every Issue/PR read. If the canonical Skill cannot be loaded, stop rather than assuming its contract.
 Responsibilities are limited to semantically compressing scattered review information and aligning the current work plan and review state.
+Discovery or invocation does not authorize external changes. Apply existing operation-specific authorization to REVIEW-SUMMARY posting, body updates and Hide separately; a request to organize information only in the conversation is not permission to publish it. Do not disclose private or local information by virtue of Skill selection.
 
 ### Trigger and scope
 

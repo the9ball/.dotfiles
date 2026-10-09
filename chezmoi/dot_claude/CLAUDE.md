@@ -28,6 +28,16 @@ substituting another contract.
 | Checking authorization for an external operation | `~/.agents/guides/external-operation-authorization.md` (`link-targets/agents/guides/external-operation-authorization.md`) |
 | JSON structure or value extraction | `~/.agents/guides/structured-data.md` (`link-targets/agents/guides/structured-data.md`) |
 
+For an identifiable GitHub Issue/PR, when the user requests 「保守」,
+「レビュー保守」, `review-consolidation`, or clearly requests consolidation
+of review points or alignment of the current plan/state from review conclusions,
+read `~/.agents/skills/review-consolidation/SKILL.md`
+(`link-targets/agents/skills/review-consolidation/SKILL.md`) directly and apply its
+discovery contract. This is a host-specific routing entry, not a separate
+normative contract or permission for external writes. Do not load it for mere
+review checks, individual replies, unrelated edits or quoted trigger terms.
+If the canonical Skill cannot be read, stop and report.
+
 <!--
   The following is a Claude Code-specific operational note. In Opus 5 sessions, the system injects
   `Do not call the AgentTool unless the user requested it`, which can override the
