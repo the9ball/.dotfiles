@@ -46,6 +46,10 @@ Only this bounded block records retired paths. They must be absent and unused in
 - `link-targets/agents/guides/model-gpt-6-astra.md`
 - `link-targets/agents/guides/model-gpt-6-sol.md`
 - `link-targets/agents/guides/model-gpt-6-luna.md`
+- `link-targets/agents/guides/model-gpt-6.md`
+- `link-targets/agents/guides/model-astra.md`
+- `link-targets/agents/guides/model-sol.md`
+- `link-targets/agents/guides/model-luna.md`
 - `link-targets/agents/reference-map.json`
 - `link-targets/agents/tools/validate-reference-map.py`
 - `link-targets/agents/tools/test-reference-map.py`

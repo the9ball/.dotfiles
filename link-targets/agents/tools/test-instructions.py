@@ -365,6 +365,15 @@ class InstructionTests(unittest.TestCase):
             self.assertEqual(compositions[model], {prefix + "model-gpt-6.md", prefix + f"model-{variant}.md"})
         for model in ("gpt-5.6", "gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"):
             self.assertEqual(compositions[model], {prefix + "model-gpt-5.6.md"})
+        family_path = f"{VALIDATOR.SKILLS}/delegation/references/model-guides/model-gpt-6.md"
+        for variant in ("astra", "sol", "luna"):
+            variant_path = f"{VALIDATOR.SKILLS}/delegation/references/model-guides/model-{variant}.md"
+            self.assertNotIn(family_path, edges[variant_path], "variant guides remain generation-independent")
+        for filename in (
+            "model-gpt-5.6.md", "model-gpt-6.md", "model-astra.md", "model-sol.md", "model-luna.md",
+            "model-gpt-6-astra.md", "model-gpt-6-sol.md", "model-gpt-6-luna.md",
+        ):
+            self.assertFalse((root / VALIDATOR.GUIDES / filename).exists(), filename)
 
 
 if __name__ == "__main__":
