@@ -2,6 +2,7 @@
 
 This document is a design record for mapping the current contract of `task-complete-notify` to the reason for its adoption.
 The usage procedure and safety boundaries at runtime are based on the parent document [`SKILL.md`](../SKILL.md).
+<!-- reference-kind: owner-precedence; target: link-targets/agents/skills/task-complete-notify/SKILL.md -->
 
 ## Current invariants
 

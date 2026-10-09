@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -14,6 +15,7 @@ AGENTS = "link-targets/agents"
 GUIDES = f"{AGENTS}/guides"
 SKILLS = f"{AGENTS}/skills"
 ROUTER = "chezmoi/dot_claude/CLAUDE.md"
+HOST_LOCAL = f"{AGENTS}/AGENTS.local.md"
 LOGICAL_REFERENCE = re.compile(
     r"(?<![A-Za-z0-9_.-])((?:link-targets/agents|\.agents|codex-wsl)/[A-Za-z0-9][A-Za-z0-9._/-]*)"
 )
@@ -78,18 +80,23 @@ def resolve_target(root: Path, value: str) -> str:
 
 
 def source_paths(root: Path) -> list[str]:
-    """Enumerate tracked and candidate sources, using files in Git-free fixtures."""
-    result = subprocess.run(
-        ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode == 0:
-        return sorted(set(result.stdout.decode("utf-8").split("\0")) - {""})
+    """Preserve Git ignore boundaries or enumerate an explicitly Git-free tree."""
+    if os.path.lexists(root / ".git"):
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(root), "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+                capture_output=True,
+                check=False,
+            )
+        except OSError as error:
+            raise ValidationError("git inventory unavailable in worktree") from error
+        if result.returncode != 0:
+            raise ValidationError("git inventory unavailable in worktree")
+        return sorted(set(result.stdout.decode("utf-8").split("\0")) - {"", HOST_LOCAL})
     return sorted(
         path.relative_to(root).as_posix()
         for path in root.rglob("*")
-        if path.is_file() and ".git" not in path.parts
+        if path.is_file() and ".git" not in path.parts and path.relative_to(root).as_posix() != HOST_LOCAL
     )
 
 
@@ -119,8 +126,36 @@ def frontmatter_value(text: str, key: str) -> str | None:
     if not text.startswith("---\n") or "\n---\n" not in text[4:]:
         return None
     header = text[4:].split("\n---\n", 1)[0]
-    values = re.findall(rf"^{re.escape(key)}:\s*(.+)$", header, re.MULTILINE)
-    return values[0].strip() if len(values) == 1 else None
+    values = list(re.finditer(rf"^{re.escape(key)}:[ \t]*(.+)$", header, re.MULTILINE))
+    if len(values) != 1:
+        return None
+    value = values[0].group(1).strip()
+    if value in {">", "|", ">-", "|-", ">+", "|+"}:
+        continuation = re.match(r"\n((?:[ \t]+[^\n]*\n?)+)", header[values[0].end():])
+        return continuation.group(1).strip() if continuation and continuation.group(1).strip() else None
+    return value
+
+
+def check_frontmatter(path: str, text: str) -> None:
+    """Require discovery metadata on every canonical direct Skill entrypoint."""
+    if frontmatter_value(text, "name") != PurePosixPath(path).parent.name or not frontmatter_value(text, "description"):
+        raise ValidationError(f"invalid Skill frontmatter: {path}")
+
+
+def markdown_target(root: Path, source: str, destination: str) -> str | None:
+    """Resolve a local Markdown destination, excluding only the private overlay."""
+    destination = destination.strip("<>").split("#", 1)[0].split("?", 1)[0]
+    if not destination or destination.startswith(("/", "~")) or destination == "URL":
+        return None
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", destination):
+        return None
+    requested = (root / source).parent.joinpath(destination)
+    if Path(os.path.normpath(requested)) == root / HOST_LOCAL:
+        return None
+    try:
+        return requested.resolve(strict=True).relative_to(root).as_posix()
+    except (OSError, RuntimeError, ValueError) as error:
+        raise ValidationError(f"invalid Markdown target: {source} -> {destination}") from error
 
 
 def references(root: Path, source: str, text: str) -> set[str]:
@@ -128,24 +163,18 @@ def references(root: Path, source: str, text: str) -> set[str]:
     text = ANNOTATION.sub("", text)
     targets: set[str] = set()
     for match in MARKDOWN_LINK.finditer(text):
-        destination = match.group(1).strip("<>").split("#", 1)[0].split("?", 1)[0]
-        if not destination or destination.startswith(("/", "~")) or destination == "URL":
-            continue
-        if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", destination):
-            continue
-        try:
-            resolved = (root / source).parent.joinpath(destination).resolve(strict=True)
-            target = resolved.relative_to(root).as_posix()
-        except (OSError, RuntimeError, ValueError) as error:
-            raise ValidationError(f"invalid Markdown target: {source} -> {destination}") from error
-        if target != source:
+        target = markdown_target(root, source, match.group(1))
+        if target is not None and target != source:
             targets.add(target)
     for match in LOGICAL_REFERENCE.finditer(text):
         target = canonical_path(match.group(1).rstrip("/"))
+        if target == HOST_LOCAL:
+            continue
         # Logical runtime state (logs and generated settings) is not an
         # instruction asset; local Markdown links still validate any file type.
         if PurePosixPath(target).suffix not in {".md", ".py", ".ps1", ".sh", ".tmpl"}:
-            continue
+            if PurePosixPath(target).suffix or not os.path.lexists(root / target):
+                continue
         resolve_target(root, target)
         if target != source:
             targets.add(target)
@@ -162,6 +191,16 @@ def non_dependencies(root: Path, source: str, text: str, targets: set[str]) -> s
             raise ValidationError(f"unbacked or duplicate reference annotation: {source} -> {target}")
         if kind == "policy-precedence":
             allowed = source.endswith("/SKILL.md") and target == f"{AGENTS}/AGENTS.md"
+        elif kind == "owner-precedence":
+            owner = PurePosixPath(target)
+            allowed = (
+                target.startswith(SKILLS + "/") and owner.name == "SKILL.md" and len(owner.parts) == 5
+                and source == (owner.parent / "references/design.md").as_posix()
+                and (root / source).resolve(strict=True) == (root / target).resolve(strict=True).parent / "references/design.md"
+            )
+            if allowed:
+                links = [markdown_target(root, source, match.group(1)) for match in MARKDOWN_LINK.finditer(ANNOTATION.sub("", text))]
+                allowed = links.count(target) == 1
         elif kind == "manual-navigation":
             allowed = source in {f"{GUIDES}/README.md", "codex-wsl/SETUP.md", "codex-wsl/CODEX_HOME.md"}
         else:
@@ -172,7 +211,7 @@ def non_dependencies(root: Path, source: str, text: str, targets: set[str]) -> s
         # to hide a read command added in an otherwise navigational source.
         for paragraph in re.split(r"\n\s*\n", ANNOTATION.sub("", text)):
             for statement in re.split(r"(?<=[.!?])\s+|\n(?=- )", paragraph):
-                if not re.search(r"\b(read|load|apply|invoke|resolve)\b", statement, re.IGNORECASE):
+                if not re.search(r"\b(read|load|apply|invoke|resolve|use|follow|run)\b", statement, re.IGNORECASE):
                     continue
                 if target not in references(root, source, statement):
                     continue
@@ -204,9 +243,7 @@ def check_cycles(graph: dict[str, set[str]]) -> None:
 
 def check_discovery(path: str, text: str) -> str:
     """Validate one managed Skill's canonical discovery and fallback contract."""
-    expected_name = PurePosixPath(path).parent.name
-    if frontmatter_value(text, "name") != expected_name or not frontmatter_value(text, "description"):
-        raise ValidationError(f"invalid Skill frontmatter: {path}")
+    check_frontmatter(path, text)
     for heading in ("Discovery contract", "Runtime contract", "Guide"):
         if not re.search(rf"^## {heading}$", text, re.MULTILINE):
             raise ValidationError(f"missing Skill section {heading}: {path}")
@@ -215,8 +252,11 @@ def check_discovery(path: str, text: str) -> str:
         values = re.findall(rf"^- {label}: (.+)$", discovery, re.MULTILINE)
         if len(values) != 1 or not values[0].strip():
             raise ValidationError(f"invalid discovery {label}: {path}")
-        if label == "Failure mode" and not re.search(r"fail.safe|stop", values[0], re.IGNORECASE):
-            raise ValidationError(f"discovery must fail closed: {path}")
+        if label == "Failure mode":
+            positive = re.search(r"\bstop\b|fail[- ]?safe", values[0], re.IGNORECASE)
+            negative = re.search(r"\b(never|not|don't|do not|without)\s+(stop|fail)\b", values[0], re.IGNORECASE)
+            if not positive or negative:
+                raise ValidationError(f"discovery must fail closed: {path}")
     values = re.findall(r"^- Host fallback: (.+)$", discovery, re.MULTILINE)
     if len(values) != 1:
         raise ValidationError(f"missing unique host fallback declaration: {path}")
@@ -254,7 +294,9 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
         if name + ".md" in texts[owner]:
             raise ValidationError(f"hidden Skill-to-legacy loader: {owner}")
     # Host table rows remain authoritative even if a shim loses its heading.
-    routed_shims = {target for target in edges.get(ROUTER, set()) if target.startswith(GUIDES + "/")}
+    router_rows = "\n".join(line for line in texts.get(ROUTER, "").splitlines() if line.startswith("|"))
+    routed_shims = {canonical_path(match.group(1)) for match in LOGICAL_REFERENCE.finditer(router_rows)}
+    routed_shims = {target for target in routed_shims if target.startswith(GUIDES + "/")}
     if routed_shims != set(shims):
         raise ValidationError("host table and compatibility shims disagree")
     direct_owners = {
@@ -264,7 +306,9 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
     for path, text in texts.items():
         if not path.endswith("/SKILL.md"):
             continue
-        if path not in owners and path not in direct_owners and "## Discovery contract" not in text and "Host fallback:" not in text:
+        if path not in owners and path not in direct_owners and "## Discovery contract" not in text and not re.search(
+            r"^- (Host fallback|Positive trigger|Negative trigger|Conditional dependency|Failure mode):", text, re.MULTILINE
+        ):
             continue
         fallback = check_discovery(path, text)
         if fallback == "required":
@@ -276,9 +320,8 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
             direct_sources = {source for source, targets in edges.items() if path in targets}
             if not direct_sources.intersection({ROUTER, f"{AGENTS}/AGENTS.md"}):
                 raise ValidationError(f"exempt discovery Skill has no direct host/kernel route: {path}")
-    for source in (ROUTER, f"{AGENTS}/AGENTS.local.md"):
-        if source in texts and "Until Issue #75 is completed" not in texts[source]:
-            raise ValidationError(f"host fallback retirement condition missing: {source}")
+    if ROUTER in texts and "Until Issue #75 is completed" not in texts[ROUTER]:
+        raise ValidationError(f"host fallback retirement condition missing: {ROUTER}")
 
 
 def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
@@ -289,6 +332,8 @@ def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
     paths = source_paths(root)
     policy = read_source(root, f"{GUIDES}/README.md")
     retired, active_policy = retirement_record(policy)
+    existing_names = {PurePosixPath(path).name for path in paths if (root / path).is_file()}
+    retired_names = {PurePosixPath(path).name for path in retired} - existing_names
     for path in retired:
         if (root / path).exists() or (root / path).is_symlink():
             raise ValidationError(f"retired path still exists: {path}")
@@ -304,30 +349,28 @@ def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
         if path == f"{GUIDES}/README.md":
             content = active_policy.encode("utf-8")
         for retired_path in retired:
-            if retired_path.encode("utf-8") in content:
+            alias = ".agents" + retired_path[len(AGENTS):]
+            filename = PurePosixPath(retired_path).name
+            if retired_path.encode("utf-8") in content or alias.encode("utf-8") in content or (
+                filename in retired_names and re.search(rb"(?<![A-Za-z0-9_.-])" + re.escape(filename.encode()) + rb"(?![A-Za-z0-9_.-])", content)
+            ):
                 raise ValidationError(f"retired path used by active source: {path} -> {retired_path}")
     entrypoints = {
         path: read_source(root, path) for path in paths
         if path.startswith(SKILLS + "/") and path.endswith("/SKILL.md")
         and len(PurePosixPath(path).parts) == 5
     }
-    discovery_paths = {
-        path for path, text in entrypoints.items()
-        if "## Discovery contract" in text or "Host fallback:" in text
-    }
+    for path, text in entrypoints.items():
+        check_frontmatter(path, text)
     sources = {
         path for path in paths
         if (path.startswith(GUIDES + "/") and path.endswith(".md"))
-        or (path.startswith(AGENTS + "/") and PurePosixPath(path).name in {"AGENTS.md", "AGENTS.local.md"})
+        or (path.startswith(AGENTS + "/") and PurePosixPath(path).name == "AGENTS.md")
         or path in {"AGENTS.md", ROUTER, "README.manual.md", "codex-wsl/SETUP.md", "codex-wsl/CODEX_HOME.md"}
         or (path.startswith("link-targets/claude/agents/") and path.endswith(".md"))
         or (path.startswith("chezmoi/.chezmoiscripts/run_after_junctions.") and path.endswith(".tmpl"))
     }
-    sources.update(discovery_paths)
-    sources.update(
-        path for path, text in entrypoints.items()
-        if any(canonical_path(match.group(1)) in discovery_paths for match in LOGICAL_REFERENCE.finditer(text))
-    )
+    sources.update(entrypoints)
     texts: dict[str, str] = {}
     edges: dict[str, set[str]] = {}
     graph: dict[str, set[str]] = {}
