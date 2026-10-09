@@ -18,7 +18,7 @@ description: Used when execution-lifecycle-gate or an explicit review contract r
 
 Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. The owner of the shared Skill contract is this Skill and does not load the old guide path. Advisor output is treated as attributable advice, not as a ruling or implementation approval.
 
-Resolve the loaded Skill's final existing symlink/junction entity and apply the canonical instruction-root procedure in `link-targets/agents/guides/README.md` (Reference path). Fail closed on missing, ambiguous, broken, or escaping locations; never infer the instruction root from the work root or CWD. The work root and Git target remain fixed independently from the request.
+Resolve the loaded Skill's final existing symlink/junction entity and apply the canonical instruction-root procedure in `link-targets/agents/guides/README.md` (Reference path). Fail closed on missing, ambiguous, broken, or escaping locations; never infer the instruction root from the work root or CWD. Fix the work root and Git target from the request and current Git state, independently of the instruction root.
 
 ## Guide
 
