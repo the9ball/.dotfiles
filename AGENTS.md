@@ -14,4 +14,4 @@
 
 ## Issue・Pull Request 運用
 
-- Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、ユーザーまたは対象タスクが `review-consolidation` を明示的に呼び出した場合だけ `review-consolidation` Skill を使用する。通常の Issue / PR 操作から自動発動させない。
+- Issue / Pull Request に散在するレビュー情報を現在の work plan と review state へ集約する作業は、対象 Issue / PR に対する「保守」「レビュー保守」または `review-consolidation` の明示指定、もしくはレビュー論点の集約・レビュー結論に基づく現行計画や状態の更新が明確に求められた場合に `review-consolidation` Skill を使用する。単なる閲覧・レビュー確認・個別返信・無関係な修正では起動せず、外部操作の認可は別途確認する。
