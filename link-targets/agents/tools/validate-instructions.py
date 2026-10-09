@@ -266,6 +266,16 @@ def check_discovery(path: str, text: str) -> str:
     return value
 
 
+def has_contract_signal(text: str) -> bool:
+    """Detect #75 participation while excluding ordinary Runtime/Guide bullets."""
+    if "## Discovery contract" in text or re.search(r"^- Host fallback:", text, re.MULTILINE):
+        return True
+    preamble = re.split(r"^## (?:Runtime contract|Guide)[ \t]*$", text, maxsplit=1, flags=re.MULTILINE)[0]
+    return bool(re.search(
+        r"^- (Positive trigger|Negative trigger|Conditional dependency|Failure mode):", preamble, re.MULTILINE
+    ))
+
+
 def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
     """Derive router/shim/owner coverage and enforce the Issue 75 thin template."""
     shims = {
@@ -306,9 +316,7 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
     for path, text in texts.items():
         if not path.endswith("/SKILL.md"):
             continue
-        if path not in owners and path not in direct_owners and "## Discovery contract" not in text and not re.search(
-            r"^- (Host fallback|Positive trigger|Negative trigger|Conditional dependency|Failure mode):", text, re.MULTILINE
-        ):
+        if path not in owners and path not in direct_owners and not has_contract_signal(text):
             continue
         fallback = check_discovery(path, text)
         if fallback == "required":

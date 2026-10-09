@@ -23,6 +23,19 @@ sys.dont_write_bytecode = True
 SPEC.loader.exec_module(VALIDATOR)
 
 
+ROOT_PROCEDURE = (
+    "Strictly resolve the loaded Skill entrypoint through every symlink/junction to its existing final file; "
+    "enumerate its real ancestors whose last two components are `link-targets/agents` and which contain both "
+    "`AGENTS.md` and `guides/README.md`; require exactly one candidate, with the entrypoint and both sentinels "
+    "still contained after real-path resolution, and use that candidate's grandparent as the instruction root. "
+    "Stop on a missing, broken, escaping, malformed, or ambiguous location; never substitute CWD, the work root, "
+    "`.git`, home defaults, or a machine-specific absolute path. Resolve requested logical paths against this "
+    "fixed root and verify existence and real-path containment before reading. Fix the work root and Git target "
+    "from the request and current Git state, independently of the instruction root."
+)
+RESOLVER_NAMES = ("advisor-review", "delegation", "git-operations", "implementation-planning", "review-consolidation")
+
+
 def write(root: Path, path: str, text: str) -> Path:
     """Write one isolated UTF-8 fixture source and return its location."""
     destination = root / path
@@ -368,6 +381,60 @@ class InstructionTests(unittest.TestCase):
         write(self.root, path, text.replace("description: Standard work.", "description: >\n  Standard work."))
         VALIDATOR.validate(self.root)
 
+    def test_standard_guide_and_runtime_bullets_do_not_declare_discovery(self) -> None:
+        """Keep ordinary workflow examples outside the #75 participation signal."""
+        path = "link-targets/agents/skills/standard/SKILL.md"
+        text = "---\nname: standard\ndescription: Standard work.\n---\n# Standard\n"
+        for heading in ("Guide", "Runtime contract"):
+            for label in ("Positive trigger", "Negative trigger", "Conditional dependency", "Failure mode"):
+                with self.subTest(heading=heading, label=label):
+                    write(self.root, path, text + f"## {heading}\n- {label}: Example workflow.\n")
+                    VALIDATOR.validate(self.root)
+        write(self.root, path, text + "- Failure mode: Stop.\n## Guide\nExample workflow.\n")
+        self.rejects("missing Skill section Discovery contract")
+        write(self.root, path, text + "## Guide\n- Host fallback: required\n")
+        self.rejects("missing Skill section Discovery contract")
+        write(self.root, path, self.owner.read_text(encoding="utf-8").replace("name: example", "name: standard")
+              .replace("## Discovery contract", "## Discovery"))
+        self.rejects("missing Skill section Discovery contract")
+
+    def test_frontmatter_supported_scalar_subset(self) -> None:
+        """Fix the documented raw-scalar subset without claiming full YAML parsing."""
+        path = "link-targets/agents/skills/standard/SKILL.md"
+        template = "---\nname: standard\ndescription: Standard work.\n---\n# Standard\n"
+        write(self.root, path, "\ufeff" + template)
+        VALIDATOR.validate(self.root)
+        for description in ('Standard work.', '"Standard work."', '""', '>2', '| # note',
+                            ">\n  Standard work.", "|\n  Standard work.", ">-\n  Standard work.",
+                            "|-\n  Standard work.", ">+\n  Standard work.", "|+\n  Standard work."):
+            with self.subTest(description=description):
+                write(self.root, path, template.replace("Standard work.", description))
+                VALIDATOR.validate(self.root)
+        for indicator in (">", "|", ">-", "|-", ">+", "|+"):
+            with self.subTest(name_indicator=indicator):
+                write(self.root, path, template.replace("name: standard", f"name: {indicator}\n  standard"))
+                VALIDATOR.validate(self.root)
+        write(self.root, path, template.replace("name: standard", "name:standard"))
+        VALIDATOR.validate(self.root)
+        write(self.root, path, template.replace("name: standard", "name: standard\nname:"))
+        VALIDATOR.validate(self.root)
+        invalid_headers = (
+            template.replace("name: standard", 'name: "standard"'),
+            template.replace("name: standard", "name:\n  standard"),
+            template.replace("description: Standard work.", "description:\n  Standard work."),
+            template.replace("name: standard", "name: standard\nname: standard"),
+            template.replace("description: Standard work.", "description: Standard work.\ndescription: More work."),
+            template.replace("name: standard", "name: standard # comment"),
+            template.replace("name: standard", "name: standard\nname: "),
+            template.replace("name: standard", "name: standard\nname:\t"),
+            template.replace("---\nname:", "--- \nname:", 1),
+            template.replace("---\n# Standard\n", "---"),
+        )
+        for text in invalid_headers:
+            with self.subTest(text=text):
+                write(self.root, path, text)
+                self.rejects("invalid Skill frontmatter")
+
     def test_unreferenced_partial_discovery_contract_is_rejected(self) -> None:
         """Detect partial migrated contracts independently of inbound routes."""
         path = "link-targets/agents/skills/standard/SKILL.md"
@@ -451,11 +518,12 @@ class InstructionTests(unittest.TestCase):
             stream.write("| Other | `link-targets/agents/guides/ordinary.md` |\n")
         self.rejects("host table and compatibility shims disagree")
 
-    def test_git_binary_absence_uses_private_free_fixture_inventory(self) -> None:
-        """Fall back to filesystem inventory without importing the host overlay."""
+    def test_git_free_root_uses_filesystem_inventory_without_private_overlay(self) -> None:
+        """Enumerate a Git-free tree without invoking Git or importing the overlay."""
         write(self.root, VALIDATOR.HOST_LOCAL, "Private data\n").write_bytes(b"\xff")
-        with patch.object(VALIDATOR.subprocess, "run", side_effect=FileNotFoundError):
+        with patch.object(VALIDATOR.subprocess, "run", side_effect=FileNotFoundError) as invocation:
             texts, _ = VALIDATOR.validate(self.root)
+            invocation.assert_not_called()
         self.assertNotIn(VALIDATOR.HOST_LOCAL, texts)
 
     def test_git_worktree_inventory_failures_do_not_import_private_candidates(self) -> None:
@@ -595,6 +663,25 @@ class InstructionTests(unittest.TestCase):
         result = subprocess.run([sys.executable, "-B", str(SCRIPT)], cwd=self.root, capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def assert_resolver_procedures(self, texts: dict[str, str]) -> None:
+        """Require the full strict-root procedure in every self-contained resolver."""
+        for name in RESOLVER_NAMES:
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            self.assertIn(ROOT_PROCEDURE, " ".join(texts[path].split()), path)
+
+    def test_resolver_procedure_detects_containment_clause_removal(self) -> None:
+        """Reject losing containment even when all old keyword checks still pass."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        clause = ", with the entrypoint and both sentinels still contained after real-path resolution"
+        for name in RESOLVER_NAMES:
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            changed = dict(texts)
+            self.assertIn(clause, changed[path])
+            changed[path] = changed[path].replace(clause, "", 1)
+            with self.subTest(owner=name), self.assertRaises(AssertionError):
+                self.assert_resolver_procedures(changed)
+
     def test_repository_dependency_and_model_composition(self) -> None:
         """Preserve actual ownership, conditional closure and model combinations."""
         root = VALIDATOR.instruction_root(SCRIPT)
@@ -645,11 +732,12 @@ class InstructionTests(unittest.TestCase):
         }
         for source, targets in source_routes.items():
             self.assertTrue(targets.issubset(edges[source]), source)
-        for name in ("advisor-review", "delegation", "git-operations", "implementation-planning", "review-consolidation"):
+        self.assertIn("require the loaded file and both sentinels to remain inside that candidate after real-path resolution",
+                      texts[f"{VALIDATOR.GUIDES}/README.md"])
+        self.assert_resolver_procedures(texts)
+        for name in RESOLVER_NAMES:
             path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
             self.assertNotIn(f"{VALIDATOR.GUIDES}/README.md", edges[path])
-            for required_word in ("symlink/junction", "AGENTS.md", "guides/README.md", "exactly one", "grandparent"):
-                self.assertIn(required_word, texts[path])
         design = f"{VALIDATOR.SKILLS}/task-complete-notify/references/design.md"
         owner = f"{VALIDATOR.SKILLS}/task-complete-notify/SKILL.md"
         self.assertIn(design, edges[owner])
