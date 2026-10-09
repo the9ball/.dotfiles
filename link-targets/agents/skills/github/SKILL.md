@@ -110,7 +110,7 @@ The rules that do not immediately judge a single access/auth/connectivity failur
 
 #### Routing migration to skill entrypoint
 
-Skill discovery during GitHub operations and conditional load when obligations occur are currently guaranteed by the canonical `github` Skill and host routing instructions. We will continue to maintain progressive disclosure, keep approval-request and authorization as independent responsibilities, and do not constantly load approval-request just by writing GitHub.
+The canonical `github` Skill supplies discovery metadata, and host instructions supply explicit routing where configured; automatic discovery is not guaranteed across hosts (Issue #75). We will continue to maintain progressive disclosure, keep approval-request and authorization as independent responsibilities, and do not constantly load approval-request just by writing GitHub.
 
 #### Additional conditions for GitHub-specific rules
 
