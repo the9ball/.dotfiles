@@ -320,7 +320,7 @@ class InstructionTests(unittest.TestCase):
 
     def test_alias_mapping_neighbours_are_not_flagged(self) -> None:
         """Accept the published alias used with a path that is not prefixed by link-targets."""
-        write(self.root, "link-targets/agents/guides/ordinary.md", "# Ordinary guide\nSee `.agents/guides/example.md`.\n")
+        write(self.root, "link-targets/agents/guides/ordinary.md", "# Ordinary guide\nSee `.agents/guides/example.md` and `.agents/link-targets-old`.\n")
         with (self.root / VALIDATOR.ROUTER).open("a", encoding="utf-8") as stream:
             stream.write("Read `link-targets/agents/guides/ordinary.md`.\n")
         VALIDATOR.validate(self.root)

@@ -43,6 +43,8 @@ The exact `link-targets/agents/AGENTS.local.md` overlay is optional and private:
 
 A root with a `.git` directory or file requires successful Git inventory, including when the Git binary is unavailable; failures stop instead of importing ignored/private assets. A Git-free root uses filesystem enumeration even inside an unrelated parent checkout. External symlink targets fail closed, and non-ignored candidates intentionally affect validation. Retirement scanning covers those files except the sole history block below and the entire validator/test Python files (which contain regression data). Canonical paths and published aliases are forbidden in active sources; unambiguous retired filenames are also checked when no current inventoried asset shares that filename. Extensionless historical terms are audited in delivery's tracked-source search, not banned lexically. These static checks do not establish host activation.
 
+Two further checks are lexical. The host router must state that `~/.agents` is the `link-targets/agents` directory itself, and no inventoried source other than the validator and its tests, including the retirement history block, may append `link-targets` to a published `.agents` alias; a document that must record that mistake needs a coordinated validator change.
+
 Classification is descriptive, never authorization for activation, model suppression, authority, or safety gates. Model suppression/lazy loading requires explicit capability profiles and comparative experiments; repository, secret, Git and user-change protection remain independent of model conditions.
 
 ## Retirement history
