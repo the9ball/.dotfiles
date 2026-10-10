@@ -33,6 +33,18 @@ ROOT_PROCEDURE = (
     "fixed root and verify existence and real-path containment before reading. Fix the work root and Git target "
     "from the request and current Git state, independently of the instruction root."
 )
+SHIM_ROOT_SENTENCE = (
+    "Resolve that\nlogical path against the instruction root: the directory that contains the real\n"
+    "`link-targets` directory enclosing this shim, after resolving every\n"
+    "symlink/junction. Do not append it to a link that points at\n"
+    "`link-targets/agents` itself, because the logical path already includes\n"
+    "`link-targets/agents`. "
+)
+ROUTER_PREAMBLE = (
+    "Until Issue #75 is completed\n"
+    "`~/.agents` is the `link-targets/agents` directory itself: drop the leading\n"
+    "`link-targets/agents/` from a logical path to reach it under `~/.agents`.\n"
+)
 RESOLVER_NAMES = ("advisor-review", "delegation", "git-operations", "implementation-planning", "review-consolidation")
 
 
@@ -71,12 +83,11 @@ Perform the example work.
     write(root, "link-targets/agents/guides/example.md", """# Claude Code compatibility shim: example
 
 This temporary host fallback exists for Issue #75. The normative runtime
-contract is `link-targets/agents/skills/example/SKILL.md`. Read that Skill
+contract is `link-targets/agents/skills/example/SKILL.md`. """ + SHIM_ROOT_SENTENCE + """Read that Skill
 and apply its `## Guide` section; this shim defines no runtime rules of its
 own. If the Skill cannot be resolved, stop and report.
 """)
-    write(root, "chezmoi/dot_claude/CLAUDE.md", """Until Issue #75 is completed
-| Request family | Compatibility shim (canonical source) |
+    write(root, "chezmoi/dot_claude/CLAUDE.md", ROUTER_PREAMBLE + """| Request family | Compatibility shim (canonical source) |
 | --- | --- |
 | Example work | `link-targets/agents/guides/example.md` |
 """)
@@ -283,6 +294,42 @@ class InstructionTests(unittest.TestCase):
                 path.write_text(modified, encoding="utf-8")
                 self.rejects("shim|reference")
 
+    def test_shim_requires_instruction_root_sentence(self) -> None:
+        """Reject a shim that drops the instruction-root resolution sentence."""
+        self.change("link-targets/agents/guides/example.md", SHIM_ROOT_SENTENCE, "")
+        self.rejects("invalid shim owner/runtime rules/retirement")
+
+    def test_shim_root_sentence_rejects_home_alias_rewrite(self) -> None:
+        """Reject a shim that replaces root resolution with a host alias rule."""
+        self.change(
+            "link-targets/agents/guides/example.md",
+            "the directory that contains the real",
+            "the home alias, never the directory that contains the real",
+        )
+        self.rejects("invalid shim owner/runtime rules/retirement")
+
+    def test_alias_prefixed_logical_path_is_rejected_explicitly(self) -> None:
+        """Reject a link-targets path appended to a published alias in either separator form."""
+        for fragment in (
+            ".agents/link-targets/agents/skills/example/SKILL.md",
+            ".agents\\link-targets\\agents\\skills\\example\\SKILL.md",
+        ):
+            with self.subTest(fragment=fragment):
+                write(self.root, "link-targets/agents/guides/ordinary.md", f"# Ordinary guide\n`~/{fragment}`\n")
+                self.rejects("published alias prefixed with link-targets")
+
+    def test_alias_mapping_neighbours_are_not_flagged(self) -> None:
+        """Accept the published alias used with a path that is not prefixed by link-targets."""
+        write(self.root, "link-targets/agents/guides/ordinary.md", "# Ordinary guide\nSee `.agents/guides/example.md` and `.agents/link-targets-old`.\n")
+        with (self.root / VALIDATOR.ROUTER).open("a", encoding="utf-8") as stream:
+            stream.write("Read `link-targets/agents/guides/ordinary.md`.\n")
+        VALIDATOR.validate(self.root)
+
+    def test_router_requires_alias_mapping(self) -> None:
+        """Require the host router to state how the published alias maps to the root."""
+        self.change(VALIDATOR.ROUTER, ROUTER_PREAMBLE.split("\n", 1)[1], "")
+        self.rejects("host alias mapping missing")
+
     def test_duplicate_owner_and_hidden_legacy_loader(self) -> None:
         """Reject a second shim and an owner that reloads its legacy basename."""
         original = (self.root / "link-targets/agents/guides/example.md").read_text(encoding="utf-8")
@@ -306,7 +353,7 @@ class InstructionTests(unittest.TestCase):
         self.change("link-targets/agents/skills/example/SKILL.md", "Host fallback: required", "Host fallback: exempt; direct kernel routing")
         self.rejects("exempt discovery Skill has a shim")
         (self.root / "link-targets/agents/guides/example.md").unlink()
-        write(self.root, VALIDATOR.ROUTER, "Until Issue #75 is completed\n")
+        write(self.root, VALIDATOR.ROUTER, ROUTER_PREAMBLE)
         self.rejects("no direct host/kernel route")
         write(self.root, "link-targets/agents/AGENTS.md", "Read `link-targets/agents/skills/example/SKILL.md`.\n")
         VALIDATOR.validate(self.root)
@@ -314,7 +361,7 @@ class InstructionTests(unittest.TestCase):
     def test_removed_exempt_contract_still_managed(self) -> None:
         """Keep directly routed exemptions managed without discovery headings."""
         (self.root / "link-targets/agents/guides/example.md").unlink()
-        write(self.root, VALIDATOR.ROUTER, "Until Issue #75 is completed\n")
+        write(self.root, VALIDATOR.ROUTER, ROUTER_PREAMBLE)
         write(self.root, "link-targets/agents/AGENTS.md", "Read `link-targets/agents/skills/example/SKILL.md`.\n")
         text = self.owner.read_text(encoding="utf-8")
         self.owner.write_text(re.sub(r"## Discovery contract\n.*?## Runtime", "## Runtime", text, flags=re.DOTALL), encoding="utf-8")
@@ -447,7 +494,7 @@ class InstructionTests(unittest.TestCase):
     def test_required_owner_without_shim_has_specific_diagnostic(self) -> None:
         """Exercise the required-owner coverage branch after routes are removed."""
         (self.root / "link-targets/agents/guides/example.md").unlink()
-        write(self.root, VALIDATOR.ROUTER, "Until Issue #75 is completed\n")
+        write(self.root, VALIDATOR.ROUTER, ROUTER_PREAMBLE)
         self.rejects("required discovery Skill has no single shim")
 
     def test_missing_shim_on_new_required_skill(self) -> None:
