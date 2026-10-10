@@ -3,6 +3,7 @@
 set -eu
 
 # aqua.yaml checksum: {{ include "../aqua.yaml" | sha256sum }}
+# aqua-registry.yaml checksum: {{ include "../aqua-registry.yaml" | sha256sum }}
 # pre-commit-config.yaml checksum: {{ include "../.pre-commit-config.yaml" | sha256sum }}
 
 repo_root=$(dirname '{{ .chezmoi.sourceDir }}')

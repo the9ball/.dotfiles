@@ -15,9 +15,17 @@
 #   supported_envs:
 #   - all
 registries:
+- type: local
+  name: local
+  path: aqua-registry.yaml
 - type: standard
   ref: v4.573.1
 packages:
+# Native tmux builds for Linux and macOS (not available on Windows).
+- name: tmux/tmux-builds@v3.7c
+# Windows-native tmux-compatible session manager.
+- name: psmux/psmux@v3.3.8
+  registry: local
 - name: twpayne/chezmoi@v2.73.0
 - name: nodejs/node@v26.11.1
 - name: openai/codex@rust-v0.162.0

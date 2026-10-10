@@ -1,4 +1,5 @@
 {{- if ne .chezmoi.os "windows" }}
+.psmux.conf
 .codex/.codex-global-state.json
 AppData/
 {{- end }}
