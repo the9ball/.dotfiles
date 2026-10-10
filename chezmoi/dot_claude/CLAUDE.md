@@ -7,11 +7,15 @@
 Claude Code hosts may expose shared Skills through explicit slash invocation
 without automatically discovering every Skill from natural-language requests.
 Until Issue #75 is completed, use this host-wide fallback for a matching
-request family. Resolve the shared `~/.agents` link first, read the listed
-shim, then immediately read the exposed Skill `SKILL.md`; the Skill remains
-the only normative runtime source. Do not load a shim for an unrelated
-request. If either path cannot be resolved, stop and report instead of
-substituting another contract.
+request family. Resolve the shared `~/.agents` link first. `~/.agents` is the
+`link-targets/agents` directory itself: drop the leading `link-targets/agents/`
+from a logical path to reach it under `~/.agents` (for example
+`link-targets/agents/guides/commit-message.md` is
+`~/.agents/guides/commit-message.md`). Read the listed shim, then immediately
+read the exposed Skill `SKILL.md` at the path the shim names, mapped the same
+way; the Skill remains the only normative runtime source. Do not load a shim
+for an unrelated request. If either path cannot be resolved, stop and report
+instead of substituting another contract.
 
 | Request family | Compatibility shim (canonical source) |
 | --- | --- |

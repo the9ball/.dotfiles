@@ -23,6 +23,11 @@ MARKDOWN_LINK = re.compile(r"\]\(\s*([^\s)]+)")
 ANNOTATION = re.compile(
     r"<!-- reference-kind: ([a-z-]+); target: ([^\s]+) -->"
 )
+PREFIXED_ALIAS = re.compile(rb"\.agents[/\\]+link-targets(?![A-Za-z0-9_.-])")
+HOST_ALIAS_MAPPING = (
+    "~/.agents is the link-targets/agents directory itself: drop the leading "
+    "link-targets/agents/ from a logical path to reach it under ~/.agents"
+)
 RETIREMENT_START = "<!-- retired-paths:start -->"
 RETIREMENT_END = "<!-- retired-paths:end -->"
 
@@ -289,9 +294,13 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
         expected = (
             f"# Claude Code compatibility shim: {name} "
             "This temporary host fallback exists for Issue #75. The normative runtime "
-            f"contract is {owner}. Read that Skill and apply its ## Guide section; "
-            "this shim defines no runtime rules of its own. If the Skill cannot be "
-            "resolved, stop and report."
+            f"contract is {owner}. Resolve that logical path against the instruction "
+            "root: the directory that contains the real link-targets directory enclosing "
+            "this shim, after resolving every symlink/junction. Do not append it to a "
+            "link that points at link-targets/agents itself, because the logical path "
+            "already includes link-targets/agents. Read that Skill and apply its "
+            "## Guide section; this shim defines no runtime rules of its own. If the "
+            "Skill cannot be resolved, stop and report."
         )
         normalized = " ".join(text.replace("`", "").split())
         if normalized != expected:
@@ -330,6 +339,8 @@ def check_fallbacks(texts: dict[str, str], edges: dict[str, set[str]]) -> None:
                 raise ValidationError(f"exempt discovery Skill has no direct host/kernel route: {path}")
     if ROUTER in texts and "Until Issue #75 is completed" not in texts[ROUTER]:
         raise ValidationError(f"host fallback retirement condition missing: {ROUTER}")
+    if ROUTER in texts and HOST_ALIAS_MAPPING not in " ".join(texts[ROUTER].replace("`", "").split()):
+        raise ValidationError(f"host alias mapping missing: {ROUTER}")
 
 
 def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
@@ -354,6 +365,8 @@ def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
             continue
         resolve_target(root, path)
         content = (root / path).read_bytes()
+        if PREFIXED_ALIAS.search(content):
+            raise ValidationError(f"published alias prefixed with link-targets: {path}")
         if path == f"{GUIDES}/README.md":
             content = active_policy.encode("utf-8")
         for retired_path in retired:
