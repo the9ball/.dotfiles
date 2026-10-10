@@ -7,6 +7,8 @@ description: Used to handle subagent dispatch, reuse, handoff, evidence child, a
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Requires dispatch, reuse, handoff, evidence child, role, session or epoch identity decisions.
 - Negative trigger: This skill does not apply to short, self-contained tasks that do not involve delegation or session identity.
 - Conditional dependency: Resolve, under the necessary conditions, only the model guide that corresponds to the selected delegate model.
@@ -16,7 +18,7 @@ description: Used to handle subagent dispatch, reuse, handoff, evidence child, a
 
 Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-Before execution, resolve the loaded Skill's symlink / junction to the entity path, find `link-targets/agents/reference-map.json` from its ancestors, and fix the instruction root from `repository_root` in JSON. If map is not found, cannot be interpreted as a structure, or cannot be resolved to, stop in a fail-safe manner without guessing the work root. The work root and Git target are fixed separately from the request.
+Strictly resolve the loaded Skill entrypoint through every symlink/junction to its existing final file; enumerate its real ancestors whose last two components are `link-targets/agents` and which contain both `AGENTS.md` and `guides/README.md`; require exactly one candidate, with the entrypoint and both sentinels still contained after real-path resolution, and use that candidate's grandparent as the instruction root. Stop on a missing, broken, escaping, malformed, or ambiguous location; never substitute CWD, the work root, `.git`, home defaults, or a machine-specific absolute path. Resolve requested logical paths against this fixed root and verify existence and real-path containment before reading. Fix the work root and Git target from the request and current Git state, independently of the instruction root.
 
 ## Guide
 
@@ -88,3 +90,5 @@ For a listed GPT-6 model, the caller reads both the family and variant reference
 - Reuse the child context only when the runtime indicates success in restarting the same target/epoch. If the target or epoch changes, the packet, context, and judgment will be invalidated, and automatic transport and automatic retry will not be performed.
 - When performing preserving inheritance, the source evidence id, source/destination revision, delta manifest/hash, classification reason, and verification results are recorded as edges and separated from the packet reuse conditions. Successful restart of runtime alone is not grounds for reusing revision-bound packet/context/judgment.
 - If a judgment role returns `NEEDS_EVIDENCE`, root fixes the request, permission range, budget, and termination conditions and re-dispatches the evidence acquisition. If matching is not possible, maintain `NEEDS_EVIDENCE` or gate `BLOCKED`.
+
+<!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->

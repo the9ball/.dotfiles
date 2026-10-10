@@ -7,6 +7,8 @@ description: Used to read or write GitHub service/API issues, pull requests, rev
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Read or write resource on GitHub service/API.
 - Negative trigger: Operates only local checkout and Git transport of Git repository.
 - Conditional dependency: Apply the common policy kernel, and when redesign material is needed, refer to the non-runtime Design section in this Skill. Common authorization is not defined redundantly.
@@ -108,8 +110,10 @@ The rules that do not immediately judge a single access/auth/connectivity failur
 
 #### Routing migration to skill entrypoint
 
-Skill discovery during GitHub operations and conditional load when obligations occur are currently guaranteed by `github` Skill / `reference-map.json`. We will continue to maintain progressive disclosure, keep approval-request and authorization as independent responsibilities, and do not constantly load approval-request just by writing GitHub.
+The canonical `github` Skill supplies discovery metadata, and host instructions supply explicit routing where configured; automatic discovery is not guaranteed across hosts (Issue #75). We will continue to maintain progressive disclosure, keep approval-request and authorization as independent responsibilities, and do not constantly load approval-request just by writing GitHub.
 
 #### Additional conditions for GitHub-specific rules
 
 First, check whether a new rule candidate can be stably determined using normal GitHub knowledge and whether it is already owned by a common contract. Consider adding to the normative skill guide only if GitHub-specific differences in resource/effect/read-back are repeated in actual operations and cause uncertain decisions.
+
+<!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->

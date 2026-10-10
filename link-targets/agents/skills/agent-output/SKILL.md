@@ -7,6 +7,8 @@ description: Used to determine the code that can be copied in chat and the forma
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Outputs a copyable code or text to the chat that can be passed to other agents.
 - Negative trigger: Normal explanation or conversation that does not require any special output format.
 - Conditional dependency: There is no additional dependency contract.
@@ -32,3 +34,5 @@ Apart from `link-targets/agents/AGENTS.md`'s external posting/delegation approva
 - Do not separate the outer blocks by heading/section. Use 3 backticks for code blocks in the body of the text.
 - Place only the main text to be delivered in the outer block, and write any introductions, supplements, judgments, and notes outside.
 - The body text should be in a format that can be used by other agents without depending on the specific name of the destination.
+
+<!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->

@@ -7,6 +7,8 @@ description: Use when creating, updating, and reviewing implementation plans or 
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Create, update, and review implementation plans or runbooks.
 - Negative trigger: Simply editing work notes or short descriptive text without using the plan's ownership scope.
 - Conditional dependency: Maintain the common policy kernel and the execution lifecycle's approval, target, and review contract.
@@ -16,7 +18,7 @@ description: Use when creating, updating, and reviewing implementation plans or 
 
 Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. This skill is the normative owner of the plan/runbook and does not load the old guide path.
 
-If necessary, resolve the symlink / junction of the loaded Skill to the actual path, search for link-targets/agents/reference-map.json from its ancestors, and fix the instruction root from repository_root. This root is only for reference of the shared instruction, and the work root and Git target are fixed separately from the request.
+Strictly resolve the loaded Skill entrypoint through every symlink/junction to its existing final file; enumerate its real ancestors whose last two components are `link-targets/agents` and which contain both `AGENTS.md` and `guides/README.md`; require exactly one candidate, with the entrypoint and both sentinels still contained after real-path resolution, and use that candidate's grandparent as the instruction root. Stop on a missing, broken, escaping, malformed, or ambiguous location; never substitute CWD, the work root, `.git`, home defaults, or a machine-specific absolute path. Resolve requested logical paths against this fixed root and verify existence and real-path containment before reading. Fix the work root and Git target from the request and current Git state, independently of the instruction root.
 
 The ability to execute the plan, approval status, external operations, and acceptance/rejection are left to each existing execution/authorization gate. This Skill does not replace them.
 

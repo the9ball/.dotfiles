@@ -7,6 +7,8 @@ description: Apply formatting and history rules when creating or editing a Git c
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Create/edit a new commit message or amend target message.
 - Negative trigger: Does not create a commit message, just reads the existing history.
 - Conditional dependency: There is no additional dependency contract; the history of the current Git repository is checked directly.

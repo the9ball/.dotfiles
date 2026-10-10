@@ -26,7 +26,7 @@ Only when `~/.agents` is a managed symlink or junction to `link-targets/agents` 
 
 - `~/.agents/AGENTS.md` and `AGENTS.local.md` in the same directory (if it exists).
 - Instruction documents under `guides/`, the `SKILL.md` of a selected Skill, and `AGENTS.local.md` in the same directory as those files when they request it as additional instructions (if it exists), each only when the shared `AGENTS.md` or the selected Skill requires reading it directly for the current work as a normative procedure.
-- The minimum structured reference metadata within the same instruction tree that is directly needed to resolve what the shared instructions apply to, such as `reference-map.json`.
+- The canonical `guides/README.md` placement and instruction-root resolution rules, only when directly needed to resolve the applicable shared instructions. Root resolution uses the loaded instruction's final real path and canonical sentinels; it does not permit reading or executing files under `tools/`.
 
 Before reading, resolve each candidate to its final real path, and confirm that it falls under the canonical root as path components and does not leave it again through an additional symlink, junction, mount, or similar. Files under `tools/`, executable scripts, assets, lock files, binaries, and files not directly needed to apply the instructions are out of scope.
 

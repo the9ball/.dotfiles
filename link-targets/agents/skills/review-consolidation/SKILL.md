@@ -7,6 +7,8 @@ description: For explicit or semantically requested GitHub Issue/PR review maint
 
 ## Discovery contract
 
+- Host fallback: exempt; global Claude host instructions route maintenance directly to this Skill
+
 - Positive trigger: For an identifiable GitHub Issue/PR, the user requests 「保守」, 「レビュー保守」, or `review-consolidation`, or clearly requests consolidation of review discussion points or updating the current plan/review state from review conclusions. Judge semantic requests by the intended outcome, not keywords alone.
 - Negative trigger: Mere reading/status checks, individual review replies, HANDOFF, unrelated edits or code fixes, quoted trigger words, and discussion or review of this Skill itself. Do not interpret 「保守」 outside GitHub Issue/PR context as a trigger. If the intended outcome cannot be resolved from context, ask only then.
 - Conditional dependency: The corresponding Skills for GitHub service, authorization, approval request, and external posting are resolved only when their responsibilities arise.
@@ -100,7 +102,7 @@ The basic order is as follows.
 
 ### Orchestration and context management
 
-1. Resolve the symlink / junction of the loaded Skill to the actual path, find `link-targets/agents/reference-map.json` from its ancestor, and fix the instruction root from `repository_root` of map. The work root and Git target are fixed separately from the request.
+1. Strictly resolve the loaded Skill entrypoint through every symlink/junction to its existing final file; enumerate its real ancestors whose last two components are `link-targets/agents` and which contain both `AGENTS.md` and `guides/README.md`; require exactly one candidate, with the entrypoint and both sentinels still contained after real-path resolution, and use that candidate's grandparent as the instruction root. Stop on a missing, broken, escaping, malformed, or ambiguous location; never substitute CWD, the work root, `.git`, home defaults, or a machine-specific absolute path. Resolve requested logical paths against this fixed root and verify existence and real-path containment before reading. Fix the work root and Git target from the request and current Git state, independently of the instruction root.
 2. Apply `link-targets/agents/skills/github/SKILL.md` when dealing with GitHub service/API. Apply `link-targets/agents/skills/external-operation-authorization/SKILL.md` for external effects, `link-targets/agents/skills/approval-request-workflow/SKILL.md` for permission/judgment, and `link-targets/agents/skills/external-posting/SKILL.md` for user-visible posting only when necessary.
 3. Do not unnecessarily pour a large amount of raw comments / API responses into the main context. The use of subagents for acquisition, extraction, and organization is optional, and the main agent is responsible for final coverage and judgment.
 4. Do not add a fixed taxonomy, fixed body schema, comment-ID ledger, persistent snapshot, or phase state, and if the state is suspicious, reread the history and converge to the same semantic state.

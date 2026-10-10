@@ -7,6 +7,8 @@ description: Handles semantic authorization boundaries for operations with exter
 
 ## Discovery contract
 
+- Host fallback: required
+
 - Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.
 - Negative trigger: There is no operation with external effects, only local work/verification is performed.
 - Conditional dependency: The GitHub service, approval discovery, external posting, and review evidence Skills are each applied only when their own responsibilities arise, and the authorization boundary is not defined redundantly.
