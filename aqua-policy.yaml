@@ -1,0 +1,11 @@
+---
+# Allow the standard registry and only psmux from this repository's local registry.
+registries:
+- type: standard
+- type: local
+  name: local
+  path: aqua-registry.yaml
+packages:
+- registry: standard
+- name: psmux/psmux
+  registry: local
