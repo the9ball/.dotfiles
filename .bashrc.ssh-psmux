@@ -1,13 +1,35 @@
-# Attach only a native Windows SSH terminal, never a remote command or pipe.
+# Select only native Windows SSH terminals, never remote commands or pipes.
 case "${OSTYPE-}:$-" in
 	msys*:*i*|cygwin*:*i*) ;;
 	*) return 0 ;;
 esac
 
-if [ -z "${SSH_CONNECTION-}" ] || [ ! -t 0 ] || [ ! -t 1 ] ||
-	[ "${SHLVL-}" != 1 ] ||
-	[ -n "${BASH_EXECUTION_STRING-}" ] ||
-	[ -n "${TMUX-}" ] || [ -n "${PSMUX_SESSION-}" ] ||
+if [ ! -t 0 ] || [ ! -t 1 ] || [ -n "${BASH_EXECUTION_STRING-}" ]; then
+	return 0
+fi
+
+# Pane metadata survives reconnects and is regenerated for every new pane.
+case "${PSMUX_SESSION-}:${TMUX-}" in
+	ssh:/tmp/psmux-*/dotfiles-ssh,*) ;;
+	*)
+		if [ -z "${SSH_CONNECTION-}" ] || [ "${SHLVL-}" != 1 ] ||
+			[ -n "${TMUX-}" ] || [ -n "${PSMUX_SESSION-}" ]; then
+			return 0
+		fi
+		;;
+esac
+
+if [ -z "${__dotfiles_ssh_overlay_loaded-}" ]; then
+	if [ ! -r "$HOME/.bashrc.ssh" ]; then
+		printf '%s\n' 'SSH setup incomplete: apply ~/.bashrc.ssh before auto-attaching.' >&2
+		return 0
+	fi
+	. "$HOME/.bashrc.ssh"
+	__dotfiles_ssh_overlay_loaded=1
+fi
+
+# Bypassing attachment still keeps the direct SSH shell in its personal home.
+if [ -n "${TMUX-}" ] || [ -n "${PSMUX_SESSION-}" ] ||
 	[ "${PSMUX_SSH_AUTOATTACH-}" = 0 ] ||
 	[ -e "$HOME/.psmux-no-autoattach" ] ||
 	[ -n "${__dotfiles_psmux_autoattach_attempted-}" ]; then
@@ -22,6 +44,6 @@ if ! command -v psmux >/dev/null 2>&1; then
 fi
 
 # Retain the shell after detach or failure; the psmux server owns the session.
-if ! command psmux new-session -A -s main; then
+if ! command psmux -L dotfiles-ssh new-session -A -s ssh; then
 	printf '%s\n' 'psmux auto-attach failed; continuing in Git Bash.' >&2
 fi

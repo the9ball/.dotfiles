@@ -1,0 +1,2 @@
+# Use the personal Codex configuration for SSH sessions.
+export CODEX_HOME="$HOME/.codex-personal"

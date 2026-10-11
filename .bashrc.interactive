@@ -5,11 +5,6 @@
 # TTY が無いために警告を出すものをここに集約している。
 # 環境変数や関数定義など、非対話シェルでも必要なものはリポジトリ直下の .bashrc に置く。
 
-# The hook verifies Windows, SSH, interactive mode and terminal handles itself.
-if [ -r "$HOME/.dotfiles/.bashrc.ssh-psmux" ]; then
-	source "$HOME/.dotfiles/.bashrc.ssh-psmux"
-fi
-
 # Ctrl-S によるフロー制御を無効化する。TTY が無いと失敗するため対話シェル限定。
 stty stop undef
 
