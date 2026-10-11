@@ -490,9 +490,9 @@ Git が別の場所にある場合は、実在する `bin\bash.exe` のパスを
 既存ファイルの独自設定が表示されたら、その内容を保全してから進めてください。
 
 ```powershell
-chezmoi diff "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
-chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
-chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi diff "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
 ```
 
 以下は管理者 PowerShell で実行します。
@@ -520,14 +520,16 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 復元も失敗した場合は、保存したバックアップとエラーを使ってローカルで復旧してください。
 
 `DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
-既存接続を閉じずに別の SSH 接続で、Git Bash と `main` が起動することを確認します。
-デタッチ後に `psmux list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
+既存接続を閉じずに別の SSH 接続で、Git Bash と SSH 専用の `ssh` セッションが起動することを確認します。
+`printf '%s\n' "$CODEX_HOME"` がホーム配下の `.codex-personal` を指すことを確認します。
+デタッチ後に `psmux -L dotfiles-ssh list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
 続けて、同じクライアントから以下を検証します。
 
 - `ssh host 'printf "command-ok\n"'` と `ssh -t host 'printf "pty-command-ok\n"'` が psmux を起動せず終了する。
 - `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
 - SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
 - 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
+- SSH 用の新しいウィンドウ・分割ペインでも `CODEX_HOME` が個人用になり、通常のローカル Git Bash と `main` では元の設定が維持される。
 - `chezmoi apply --exclude=scripts` を上記のファイルに再実行しても、`verify` が成功する。
 
 実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
@@ -555,7 +557,25 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 既に Git Bash を使える環境では、`PSMUX_SSH_AUTOATTACH=0 bash` も自動アタッチを回避します。
 クライアントの環境変数送信はサーバーが受け付けるとは限らないため、SSH 接続前の回避にそれだけを使いません。
 `psmux` が見つからなければ `where.exe psmux` / `Get-Command psmux` で aqua の `bin` とユーザー PATH を確認し、新しい接続で試します。
-`main` の状態は `psmux list-sessions` で確認し、残したいセッションに対して `kill-session` は使いません。
+SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカル `main` は `psmux list-sessions` で確認します。
+残したいセッションに対して `kill-session` は使いません。
+
+#### CODEX_HOME の環境変数送信を整理する
+
+`CODEX_HOME` は SSH 用の Bash 設定で指定するため、Termius の Environment Variables と OpenSSH の `AcceptEnv CODEX_HOME` は不要です。
+削除するとクライアントから `CODEX_HOME` を選択する用途は使えなくなりますが、この方式の公開鍵認証・SSH 接続・SFTP には必要ありません。
+`sshd_config` は chezmoi で管理せず、自動編集や sshd の再起動もしません。
+
+手動追加した設定を削除する場合は、復旧用のローカル操作または RDP と現在の SSH 接続を確保し、管理者として `C:\ProgramData\ssh\sshd_config` を別ファイルへバックアップしてから編集します。
+この設定専用の二つのコメントと `AcceptEnv CODEX_HOME` だけを削除し、他の環境変数も指定した行なら `CODEX_HOME` だけを取り除いてください。
+`Match` ブロックの所属や他の認証・接続設定は変更しません。
+
+```powershell
+& "$env:WINDIR\System32\OpenSSH\sshd.exe" -t -f "$env:ProgramData\ssh\sshd_config"
+```
+
+構文確認が成功し、ほかに `CODEX_HOME` をクライアントから指定する用途がないことを確認してから、管理者が手動で `Restart-Service sshd` を実行します。
+別接続で公開鍵認証・SSH 用の `CODEX_HOME`・非対話コマンド・SFTP/SCP を確認し、失敗した場合はバックアップを復元します。
 
 シェルの互換性問題や SSH 起動失敗があれば、ローカルの管理者 PowerShell でバックアップを復元します。
 値が元から未設定だった場合は、新しく追加した値を削除します。
