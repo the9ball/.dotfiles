@@ -463,6 +463,138 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 
 これらのパスに通常のディレクトリや別のリンクがすでにある場合、スクリプトは上書きせず停止します。既存の内容とリンク先を確認し、必要なら手動で退避してから再実行してください。
 
+### Windows SSH の既定シェルと psmux
+
+Git Bash を既定シェルにする場合の任意設定です。
+PowerShell のプロファイルは追加せず、既存の Bash 起動ファイルを使います。
+設定後の SSH リモートコマンドは Bash の構文で解釈されるため、PowerShell/cmd 構文に依存するクライアント設定も確認してください。
+OpenSSH 9.5 系には Git Bash とコマンドなしの `ssh -T host` で[不具合の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があります。
+この経路を使うクライアントがある場合は、切り替え前後の検証を必須とし、失敗したら既定シェルを元へ戻してください。
+自動アタッチの条件では、この OpenSSH 側の問題を解消できません。
+
+まず、新しいローカル PowerShell で `psmux -V` と Git Bash の起動を確認します。
+このリポジトリのローカル registry を初めて使う端末では、`aqua-policy.yaml` の内容を確認してから信頼登録します。
+
+```powershell
+aqua policy allow "$HOME\.dotfiles\aqua-policy.yaml"
+aqua install --config "$HOME\.dotfiles\aqua.yaml"
+psmux -V
+
+$gitCommandPath = (Get-Command git.exe -ErrorAction Stop).Source
+$gitInstallationDirectory = Split-Path (Split-Path $gitCommandPath -Parent) -Parent
+$gitBashPath = Join-Path $gitInstallationDirectory 'bin\bash.exe'
+if (-not (Test-Path -LiteralPath $gitBashPath -PathType Leaf)) {
+    throw 'Locate the Git for Windows bin\bash.exe before continuing.'
+}
+& $gitBashPath --version
+```
+
+`git-bash.exe` は端末を開くランチャーなので、SSH の既定シェルには `bin\bash.exe` を指定します。
+Git が別の場所にある場合は、実在する `bin\bash.exe` のパスを端末上で確認してください。
+既存の `.psmux.conf` の `default-shell` もその実体を指すことを確認します。
+共有設定と異なる設置先の対応は、端末の設定を確認してから行います。
+
+次に、変更対象の chezmoi 差分だけを確認・適用します。
+既存ファイルの独自設定が表示されたら、その内容を保全してから進めてください。
+
+```powershell
+chezmoi diff "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+```
+
+以下は管理者 PowerShell で実行します。
+先にローカル操作または RDP で復旧できる状態と、現在の SSH 接続を残してください。
+変更する二つのレジストリ値だけを、未設定であることも含めてローカルへ保存します。
+バックアップは Git に追加しません。
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$gitCommandPath = (Get-Command git.exe -ErrorAction Stop).Source
+$gitInstallationDirectory = Split-Path (Split-Path $gitCommandPath -Parent) -Parent
+$gitBashPath = Join-Path $gitInstallationDirectory 'bin\bash.exe'
+if (-not (Test-Path -LiteralPath $gitBashPath -PathType Leaf)) {
+    throw 'Locate the Git for Windows bin\bash.exe before continuing.'
+}
+$openSshRegistryPath = 'HKLM:\SOFTWARE\OpenSSH'
+$shellBackupPath = Join-Path $HOME 'openssh-default-shell.backup.clixml'
+if (Test-Path -LiteralPath $shellBackupPath) {
+    throw 'A shell backup already exists. Preserve it before making another change.'
+}
+$currentShellProperties = Get-ItemProperty -LiteralPath $openSshRegistryPath
+$shellBackup = foreach ($propertyName in 'DefaultShell', 'DefaultShellCommandOption') {
+    $property = $currentShellProperties.PSObject.Properties[$propertyName]
+    [pscustomobject]@{
+        Name = $propertyName
+        Exists = $null -ne $property
+        Value = if ($null -ne $property) { $property.Value } else { $null }
+    }
+}
+$shellBackup | Export-Clixml -LiteralPath $shellBackupPath
+
+New-ItemProperty -LiteralPath $openSshRegistryPath -Name DefaultShell -Value $gitBashPath -PropertyType String -Force
+New-ItemProperty -LiteralPath $openSshRegistryPath -Name DefaultShellCommandOption -Value '-c' -PropertyType String -Force
+```
+
+`DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
+既存接続を閉じずに別の SSH 接続で、Git Bash と `main` が起動することを確認します。
+デタッチ後に `psmux list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
+続けて、同じクライアントから以下を検証します。
+
+- `ssh host 'printf "command-ok\n"'` と `ssh -t host 'printf "pty-command-ok\n"'` が psmux を起動せず終了する。
+- `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
+- SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
+- 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
+- `chezmoi apply --exclude=scripts` を上記のファイルに再実行しても、`verify` が成功する。
+
+実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
+リポジトリのテストは Windows の対話端末でアタッチ条件と除外条件を検証し、実 SSH の互換性を保証するものではありません。
+
+#### 自動アタッチの回避と復旧
+
+既定シェルが Git Bash の状態で、一度だけ起動ファイルを読まずに接続するには `ssh -t host 'bash --noprofile --norc -i'` を使います。
+Termius の起動コマンドにも `bash --noprofile --norc -i` を指定できます。
+通常の `ssh host command` は自動アタッチの対象外です。
+
+自動アタッチを継続的に止める場合は、ローカル PowerShell または復旧用接続でホームに `.psmux-no-autoattach` を作成します。
+SFTP で同名の空ファイルをホームへ置くこともできます。
+
+```powershell
+New-Item -ItemType File -Path "$HOME\.psmux-no-autoattach" -Force
+```
+
+再び有効にするときだけ、回避ファイルを削除します。
+
+```powershell
+Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
+```
+
+既に Git Bash を使える環境では、`PSMUX_SSH_AUTOATTACH=0 bash` も自動アタッチを回避します。
+クライアントの環境変数送信はサーバーが受け付けるとは限らないため、SSH 接続前の回避にそれだけを使いません。
+`psmux` が見つからなければ `where.exe psmux` / `Get-Command psmux` で aqua の `bin` とユーザー PATH を確認し、新しい接続で試します。
+`main` の状態は `psmux list-sessions` で確認し、残したいセッションに対して `kill-session` は使いません。
+
+シェルの互換性問題や SSH 起動失敗があれば、ローカルの管理者 PowerShell でバックアップを復元します。
+値が元から未設定だった場合は、新しく追加した値を削除します。
+
+```powershell
+$openSshRegistryPath = 'HKLM:\SOFTWARE\OpenSSH'
+$shellBackupPath = Join-Path $HOME 'openssh-default-shell.backup.clixml'
+foreach ($savedProperty in (Import-Clixml -LiteralPath $shellBackupPath)) {
+    if ($savedProperty.Name -notin 'DefaultShell', 'DefaultShellCommandOption') {
+        throw 'Unexpected property in shell backup.'
+    }
+    if ($savedProperty.Exists) {
+        New-ItemProperty -LiteralPath $openSshRegistryPath -Name $savedProperty.Name -Value $savedProperty.Value -PropertyType String -Force
+    } else {
+        Remove-ItemProperty -LiteralPath $openSshRegistryPath -Name $savedProperty.Name -ErrorAction SilentlyContinue
+    }
+}
+```
+
+別の SSH 接続で復旧を確認してから、元の接続を閉じてください。
+`ForceCommand` やパスワード認証の変更で回避しません。
+
 ## 5. 適用後の確認
 
 シェルを再起動するか設定を読み込み直し、Gitや必要なCLIが使えることを確認します。設定を更新したときは、次の順に実行します。

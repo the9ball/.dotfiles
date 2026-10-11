@@ -73,6 +73,24 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 ## Windows
 
+### Git Bash で SSH 接続時に psmux へ復帰する
+
+Git Bash を Windows OpenSSH の既定シェルにした環境では、対話型の SSH 接続から `psmux new-session -A -s main` を実行します。
+`main` がなければ作成し、あれば既存セッションへアタッチします。
+psmux 内のシェルは既存の `.psmux.conf` に従って Git Bash を使います。
+`Ctrl+b` の後に `d` でデタッチすると、接続元の Git Bash に戻ります。
+セッションを終了する `exit` や `kill-session` は、再接続まで作業を残したい場合には使いません。
+
+chezmoi が配置する `.bashrc` と `.bashrc.interactive` のランチャーから、リポジトリの `.bashrc.ssh-psmux` を読み込みます。
+Windows の Bash、対話フラグ、SSH 接続情報、標準入力と標準出力の端末判定がそろったときだけ起動します。
+`bash -c` / `bash -ic` のコマンド、入れ子の Bash、既存の tmux/psmux 内、ローカルシェル、パイプ接続では起動しません。
+psmux が見つからない場合や起動に失敗した場合は、エラーを表示して Git Bash を続行します。
+
+既定シェルの変更は管理者による手動設定です。
+`chezmoi apply` は OpenSSH のレジストリ、`sshd_config`、鍵、認証方式を変更しません。
+[README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。
+OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があるため、この設定を非対話 SSH まで検証済みとは扱いません。
+
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
