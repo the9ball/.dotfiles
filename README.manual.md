@@ -525,7 +525,7 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 デタッチ後に `psmux -L dotfiles-ssh list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
 続けて、同じクライアントから以下を検証します。
 
-- `ssh host 'printf "command-ok\n"'` と `ssh -t host 'printf "pty-command-ok\n"'` が psmux を起動せず終了する。
+- `ssh host 'printf "command-ok\n"'` が psmux を起動せず終了する。PTY 付きの `ssh -t host 'printf "pty-command-ok\n"'` は互換性の確認用で、この Windows 構成では引数不足になります。後述の引用符付き回避方法も確認する。
 - `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
 - SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
 - 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
@@ -534,6 +534,23 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 
 実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
 リポジトリのテストは Windows の対話端末でアタッチ条件と除外条件を検証し、実 SSH の互換性を保証するものではありません。
+
+#### PTY 付きリモートコマンドの引用符
+
+Windows OpenSSH 9.5p2 と Git Bash を使う環境では、`ssh -t host 'echo pty-command-ok'` が空行だけを返し、`printf` は引数不足になることを確認しました。
+[9.5 系の実装](https://github.com/PowerShell/openssh-portable/blob/v9.5.0.0/contrib/win32/win32compat/w32-doexec.c#L366)では、PTY 付きコマンドをシェルの `-c` の後へ引用符なしで連結します。
+`bash.exe -c echo pty-command-ok` になると Bash が実行する文字列は `echo` だけで、後続の単語はそのコマンドの引数になりません。
+この構成では、Linux / Android の Bash から次のようにコマンド全体を二重引用符で囲んで送ると、期待した文字列を返して終了することを実機確認しました。
+
+```bash
+ssh -t host '"echo pty-command-ok"'
+```
+
+これは当該 Windows 構成向けの回避方法です。PTY なしのコマンドや Linux サーバーへ一律に追加しません。
+複雑な引用符を含むコマンドは個別に確認してください。`DefaultShellEscapeArguments` や `sshd_config` の変更は行いません。
+画面消去で出力が読み取れない場合は、診断時だけ `2>&1 | cat -v` を付け、端末制御文字を文字として表示します。
+`Connection ... closed` はコマンド終了時にも表示されるため、それだけでは接続失敗と判断しません。
+この制約は自動アタッチの Bash フックで修正できず、コマンドなしの `ssh -T host` の既知の問題とも分けて扱います。
 
 #### SSH 専用の GitHub CLI 認証
 
@@ -569,8 +586,9 @@ gh api user --jq '.login'
 
 #### 自動アタッチの回避と復旧
 
-既定シェルが Git Bash の状態で、一度だけ起動ファイルを読まずに接続するには `ssh -t host 'bash --noprofile --norc -i'` を使います。
-Termius の起動コマンドにも `bash --noprofile --norc -i` を指定できます。
+既定シェルが Git Bash のこの Windows 構成で、Linux / Android の Bash から一度だけ起動ファイルを読まずに接続するには `ssh -t host '"bash --noprofile --norc -i"'` を使います。
+コマンド全体の二重引用符を省くとオプションが失われるため、復旧用の例でも引用符を維持してください。
+Termius の起動コマンド欄で同じ回避を使う方法は未検証です。送信される引用符と起動ファイルを読まないことを個別に確認してください。
 通常の `ssh host command` は自動アタッチの対象外です。
 
 自動アタッチを継続的に止める場合は、ローカル PowerShell または復旧用接続でホームに `.psmux-no-autoattach` を作成します。

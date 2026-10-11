@@ -114,6 +114,7 @@ chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$H
 `chezmoi apply` は OpenSSH のレジストリ、`sshd_config`、鍵、認証方式を変更しません。
 [README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。
 OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があるため、この設定を非対話 SSH まで検証済みとは扱いません。
+PTY 付きのリモートコマンドには引用符の制約もあるため、[実機確認した回避方法](README.manual.md#pty-付きリモートコマンドの引用符)を参照してください。
 
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
