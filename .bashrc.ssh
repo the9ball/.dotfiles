@@ -1,2 +1,5 @@
 # Use the personal Codex configuration for SSH sessions.
 export CODEX_HOME="$HOME/.codex-personal"
+
+# Keep SSH credentials separate from desktop Windows Credential Manager entries.
+export GH_CONFIG_DIR="$HOME/.config/gh-ssh"

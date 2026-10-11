@@ -35,6 +35,7 @@ run_case() (
 	local TMUX= PSMUX_SESSION= PSMUX_SSH_AUTOATTACH= BASH_EXECUTION_STRING=
 	local __dotfiles_psmux_autoattach_attempted=
 	local __dotfiles_ssh_overlay_loaded= SSH_OVERLAY_READS=0 CODEX_HOME=existing
+	local GH_CONFIG_DIR=existing-gh
 	export PATH HOME SSH_CONNECTION
 	printf 'SSH_OVERLAY_READS=$((SSH_OVERLAY_READS + 1))\nsource "%s/.bashrc.ssh"\n' "$repository_directory" > "$HOME/.bashrc.ssh"
 	: > "$PSMUX_TEST_LOG"
@@ -77,8 +78,10 @@ run_case() (
 	fi
 	if [[ $SSH_OVERLAY_READS -ne $expected_overlay ]] ||
 		[[ $expected_overlay == 1 && $CODEX_HOME != "$HOME/.codex-personal" ]] ||
-		[[ $expected_overlay == 0 && $CODEX_HOME != existing ]]; then
-		printf 'FAIL %s: unexpected SSH overlay or Codex home\n' "$scenario" >&2
+		[[ $expected_overlay == 0 && $CODEX_HOME != existing ]] ||
+		[[ $expected_overlay == 1 && $GH_CONFIG_DIR != "$HOME/.config/gh-ssh" ]] ||
+		[[ $expected_overlay == 0 && $GH_CONFIG_DIR != existing-gh ]]; then
+		printf 'FAIL %s: unexpected SSH overlay, Codex home or GitHub config directory\n' "$scenario" >&2
 		exit 1
 	fi
 	rm -f "$test_directory/.psmux-no-autoattach"
