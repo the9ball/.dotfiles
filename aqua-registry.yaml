@@ -5,7 +5,7 @@ packages:
   asset: psmux-{{.Version}}-windows-{{.Arch}}.zip
   format: zip
   files:
-  - name: psmux.exe
+  - name: psmux
   supported_envs:
   - windows/amd64
   - windows/arm64

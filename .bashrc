@@ -61,3 +61,8 @@ esac
 if [ -r "$HOME/.bashrc.local" ]; then
 	. "$HOME/.bashrc.local"
 fi
+
+# Select the SSH overlay after ordinary settings, before attaching to psmux.
+if [ -r "$HOME/.dotfiles/.bashrc.ssh-psmux" ]; then
+	. "$HOME/.dotfiles/.bashrc.ssh-psmux"
+fi

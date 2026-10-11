@@ -463,6 +463,180 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 
 これらのパスに通常のディレクトリや別のリンクがすでにある場合、スクリプトは上書きせず停止します。既存の内容とリンク先を確認し、必要なら手動で退避してから再実行してください。
 
+### Windows SSH の既定シェルと psmux
+
+Git Bash を既定シェルにする場合の任意設定です。
+PowerShell のプロファイルは追加せず、既存の Bash 起動ファイルを使います。
+設定後の SSH リモートコマンドは Bash の構文で解釈されるため、PowerShell/cmd 構文に依存するクライアント設定も確認してください。
+OpenSSH 9.5 系には Git Bash とコマンドなしの `ssh -T host` で[不具合の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があります。
+この経路を使うクライアントがある場合は、切り替え前後の検証を必須とし、失敗したら既定シェルを元へ戻してください。
+自動アタッチの条件では、この OpenSSH 側の問題を解消できません。
+
+まず、新しいローカル PowerShell で `psmux -V` を確認します。
+このリポジトリのローカル registry を初めて使う端末では、`aqua-policy.yaml` の内容を確認してから信頼登録します。
+
+```powershell
+aqua policy allow "$HOME\.dotfiles\aqua-policy.yaml"
+aqua install --config "$HOME\.dotfiles\aqua.yaml"
+psmux -V
+```
+
+`git-bash.exe` は端末を開くランチャーなので、SSH の既定シェルには `bin\bash.exe` を指定します。
+Git が別の場所にある場合は、実在する `bin\bash.exe` のパスを端末上で確認してください。
+既存の `.psmux.conf` の `default-shell` もその実体を指すことを確認します。
+共有設定と異なる設置先の対応は、端末の設定を確認してから行います。
+
+次に、変更対象の chezmoi 差分だけを確認・適用します。
+既存ファイルの独自設定が表示されたら、その内容を保全してから進めてください。
+
+```powershell
+chezmoi diff "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+```
+
+以下は管理者 PowerShell で実行します。
+先にローカル操作または RDP で復旧できる状態と、現在の SSH 接続を残してください。
+変更する二つのレジストリ値だけを、未設定であることも含めてローカルへ保存します。
+バックアップは Git に追加しません。
+設定・復旧処理は [`scripts/windows-ssh-shell.ps1`](scripts/windows-ssh-shell.ps1) にまとめています。
+管理者権限のない PowerShell でも、`-WhatIf` で Git Bash の検出と変更予定を確認できます。
+
+```powershell
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Enable -WhatIf
+```
+
+確認後、管理者 PowerShell で適用します。
+
+```powershell
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Enable
+```
+
+Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\bash.exe` の実体を指定します。
+バックアップの既定の保存先は `~/openssh-default-shell.backup.clixml` です。
+別の管理者アカウントで実行する場合は、`-BackupPath` に同じ保存先を明示し、復旧時もそのパスを指定します。
+既存バックアップがあると設定を停止するため、再設定時は元のバックアップを保全してから進めてください。
+設定途中で失敗した場合は元の値へ戻す処理を試みます。
+復元も失敗した場合は、保存したバックアップとエラーを使ってローカルで復旧してください。
+
+`DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
+既存接続を閉じずに別の SSH 接続で、Git Bash と SSH 専用の `ssh` セッションが起動することを確認します。
+`printf '%s\n' "$CODEX_HOME"` がホーム配下の `.codex-personal` を指すことを確認します。
+デタッチ後に `psmux -L dotfiles-ssh list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
+続けて、同じクライアントから以下を検証します。
+
+- `ssh host 'printf "command-ok\n"'` が psmux を起動せず終了する。PTY 付きの `ssh -t host 'printf "pty-command-ok\n"'` は互換性の確認用で、この Windows 構成では引数不足になります。後述の引用符付き回避方法も確認する。
+- `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
+- SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
+- 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
+- SSH 用の新しいウィンドウ・分割ペインでも `CODEX_HOME` が個人用になり、通常のローカル Git Bash と `main` では元の設定が維持される。
+- `chezmoi apply --exclude=scripts` を上記のファイルに再実行しても、`verify` が成功する。
+
+実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
+リポジトリのテストは Windows の対話端末でアタッチ条件と除外条件を検証し、実 SSH の互換性を保証するものではありません。
+
+#### PTY 付きリモートコマンドの引用符
+
+Windows OpenSSH 9.5p2 と Git Bash を使う環境では、`ssh -t host 'echo pty-command-ok'` が空行だけを返し、`printf` は引数不足になることを確認しました。
+[9.5 系の実装](https://github.com/PowerShell/openssh-portable/blob/v9.5.0.0/contrib/win32/win32compat/w32-doexec.c#L366)では、PTY 付きコマンドをシェルの `-c` の後へ引用符なしで連結します。
+`bash.exe -c echo pty-command-ok` になると Bash が実行する文字列は `echo` だけで、後続の単語はそのコマンドの引数になりません。
+この構成では、Linux / Android の Bash から次のようにコマンド全体を二重引用符で囲んで送ると、期待した文字列を返して終了することを実機確認しました。
+
+```bash
+ssh -t host '"echo pty-command-ok"'
+```
+
+これは当該 Windows 構成向けの回避方法です。PTY なしのコマンドや Linux サーバーへ一律に追加しません。
+複雑な引用符を含むコマンドは個別に確認してください。`DefaultShellEscapeArguments` や `sshd_config` の変更は行いません。
+画面消去で出力が読み取れない場合は、診断時だけ `2>&1 | cat -v` を付け、端末制御文字を文字として表示します。
+`Connection ... closed` はコマンド終了時にも表示されるため、それだけでは接続失敗と判断しません。
+この制約は自動アタッチの Bash フックで修正できず、コマンドなしの `ssh -T host` の既知の問題とも分けて扱います。
+
+#### SSH 専用の GitHub CLI 認証
+
+SSH の Network ログオンでは Windows Credential Manager の保存トークンを取得できない場合があります。
+この構成では `gh auth status` が `HTTP 401: Bad credentials` と `tokenSource: default` を返し、保存トークンの読み取り `CredReadW` がエラー 1312（ログオンセッションなし）になることを確認しました。
+これはトークン失効を示す証拠ではありません。[Windows の仕様](https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw)では Network ログオンに資格情報セットが関連付けられないため、SSH 専用の保存先を使います。
+SSH 専用設定は `.bashrc.local` の後に `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を設定します。
+通常の Git Bash とローカル psmux `main` の設定・認証ファイルは変更しません。
+SSH 用の新しいウィンドウ・ペインでも、セッション名と名前空間の判定により同じ設定を読み込みます。
+既存のペインや Codex の環境は自動更新されないため、新しい SSH ペインで確認し、Codex もそのペインから起動し直してください。
+
+```bash
+printf 'GH_CONFIG_DIR=%s\n' "$GH_CONFIG_DIR"
+printf 'CODEX_HOME=%s\n' "$CODEX_HOME"
+```
+
+保存先が `$HOME/.config/gh-ssh`、Codex のホームが `$HOME/.codex-personal` であることを確認します。
+`GH_TOKEN` / `GITHUB_TOKEN` が設定されていると保存ファイルより優先されるため、認証に使うペインではそれらを設定しません。値を表示しないでください。
+ログイン前に SSH 専用ディレクトリを作成し、Windows のプロパティ → セキュリティ → 詳細設定で継承を無効にし、現在のユーザー・SYSTEM・Administrators だけにアクセスを許可します。
+通常の GitHub CLI ディレクトリの権限は変更しません。PowerShell の `icacls "$env:USERPROFILE\.config\gh-ssh"` で権限を確認できます。
+
+```bash
+gh auth login --web --insecure-storage
+gh auth status
+gh api user --jq '.login'
+```
+
+ブラウザ認証とコード入力は本人が行い、認証コードやトークンを作業ログ・Issue・PRへ貼り付けません。
+`--insecure-storage` はトークンを暗号化せず `gh-ssh` 配下へ保存します。ACL を制限しても同じユーザーや管理者から読めるため、このディレクトリを Git 管理・共有・平文バックアップの対象に含めないでください。
+ユーザー名が `the9ball` であることを確認し、新しい SSH ペインとそこから起動した Codex でも同じコマンドを確認します。
+認証を更新するときは、同じ SSH 専用保存先と ACL を再確認してから `gh auth login --web --insecure-storage` を再実行します。
+失敗した場合は保存先・トークン環境変数の有無・ACL を確認し、デスクトップ側の認証を logout / refresh しません。
+
+#### 自動アタッチの回避と復旧
+
+既定シェルが Git Bash のこの Windows 構成で、Linux / Android の Bash から一度だけ起動ファイルを読まずに接続するには `ssh -t host '"bash --noprofile --norc -i"'` を使います。
+コマンド全体の二重引用符を省くとオプションが失われるため、復旧用の例でも引用符を維持してください。
+Termius の起動コマンド欄で同じ回避を使う方法は未検証です。送信される引用符と起動ファイルを読まないことを個別に確認してください。
+通常の `ssh host command` は自動アタッチの対象外です。
+
+自動アタッチを継続的に止める場合は、ローカル PowerShell または復旧用接続でホームに `.psmux-no-autoattach` を作成します。
+SFTP で同名の空ファイルをホームへ置くこともできます。
+
+```powershell
+New-Item -ItemType File -Path "$HOME\.psmux-no-autoattach" -Force
+```
+
+再び有効にするときだけ、回避ファイルを削除します。
+
+```powershell
+Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
+```
+
+既に Git Bash を使える環境では、`PSMUX_SSH_AUTOATTACH=0 bash` も自動アタッチを回避します。
+クライアントの環境変数送信はサーバーが受け付けるとは限らないため、SSH 接続前の回避にそれだけを使いません。
+`psmux` が見つからなければ `where.exe psmux` / `Get-Command psmux` で aqua の `bin` とユーザー PATH を確認し、新しい接続で試します。
+SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカル `main` は `psmux list-sessions` で確認します。
+残したいセッションに対して `kill-session` は使いません。
+
+#### CODEX_HOME の環境変数送信を整理する
+
+`CODEX_HOME` は SSH 用の Bash 設定で指定するため、Termius の Environment Variables と OpenSSH の `AcceptEnv CODEX_HOME` は不要です。
+削除するとクライアントから `CODEX_HOME` を選択する用途は使えなくなりますが、この方式の公開鍵認証・SSH 接続・SFTP には必要ありません。
+`sshd_config` は chezmoi で管理せず、自動編集や sshd の再起動もしません。
+
+手動追加した設定を削除する場合は、復旧用のローカル操作または RDP と現在の SSH 接続を確保し、管理者として `C:\ProgramData\ssh\sshd_config` を別ファイルへバックアップしてから編集します。
+この設定専用の二つのコメントと `AcceptEnv CODEX_HOME` だけを削除し、他の環境変数も指定した行なら `CODEX_HOME` だけを取り除いてください。
+`Match` ブロックの所属や他の認証・接続設定は変更しません。
+
+```powershell
+& "$env:WINDIR\System32\OpenSSH\sshd.exe" -t -f "$env:ProgramData\ssh\sshd_config"
+```
+
+構文確認が成功し、ほかに `CODEX_HOME` をクライアントから指定する用途がないことを確認してから、管理者が手動で `Restart-Service sshd` を実行します。
+別接続で公開鍵認証・SSH 用の `CODEX_HOME`・非対話コマンド・SFTP/SCP を確認し、失敗した場合はバックアップを復元します。
+
+シェルの互換性問題や SSH 起動失敗があれば、ローカルの管理者 PowerShell でバックアップを復元します。
+値が元から未設定だった場合は、新しく追加した値を削除します。
+
+```powershell
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Restore
+```
+
+別の SSH 接続で復旧を確認してから、元の接続を閉じてください。
+`ForceCommand` やパスワード認証の変更で回避しません。
+
 ## 5. 適用後の確認
 
 シェルを再起動するか設定を読み込み直し、Gitや必要なCLIが使えることを確認します。設定を更新したときは、次の順に実行します。

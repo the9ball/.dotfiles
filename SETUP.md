@@ -73,6 +73,49 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 ## Windows
 
+### Git Bash で SSH 接続時に psmux へ復帰する
+
+Git Bash を Windows OpenSSH の既定シェルにした環境では、対話型の SSH 接続から `psmux -L dotfiles-ssh new-session -A -s ssh` を実行します。
+SSH 専用の名前空間 `dotfiles-ssh` に `ssh` がなければ作成し、あれば既存セッションへアタッチします。
+ローカル用の `main` と分離し、既存のセッションや作業は削除・改名しません。
+psmux 内のシェルは既存の `.psmux.conf` に従って Git Bash を使います。
+`Ctrl+b` の後に `d` でデタッチすると、接続元の Git Bash に戻ります。
+セッションを終了する `exit` や `kill-session` は、再接続まで作業を残したい場合には使いません。
+
+chezmoi が配置する `.bashrc` のランチャーから通常の設定を読み込み、端末の `.bashrc.local` の後に `.bashrc.ssh-psmux` を実行します。
+Windows の Bash、対話フラグ、SSH 接続情報、標準入力と標準出力の端末判定がそろったときだけ起動します。
+`bash -c` / `bash -ic` のコマンド、入れ子の Bash、既存の tmux/psmux 内、ローカルシェル、パイプ接続では起動しません。
+psmux が見つからない場合や起動に失敗した場合は、エラーを表示して Git Bash を続行します。
+
+SSH 専用設定は、chezmoi が配置する `~/.bashrc.ssh` のランチャーを介してリポジトリの `.bashrc.ssh` から読み込みます。
+`CODEX_HOME="$HOME/.codex-personal"` を設定し、Termius の環境変数送信や `AcceptEnv CODEX_HOME` には依存しません。
+`GH_CONFIG_DIR="$HOME/.config/gh-ssh"` も SSH 専用に設定し、通常の GitHub CLI 認証設定と分離します。
+初回認証は [SSH 専用の GitHub CLI 認証](README.manual.md#ssh-専用の-github-cli-認証)に従い、保存先の ACL を確認してから実行してください。
+SSH セッション内では、psmux が各ペインへ渡す `PSMUX_SESSION=ssh` と `TMUX` の名前空間を合わせて判定します。
+再接続時や新しいウィンドウ・ペインでも、古い `SSH_CONNECTION` に依存せず個人用設定を読み込みます。
+通常のローカルシェルと非対話 SSH コマンドでは上書きしません。
+SSH 用のペインから起動した子プロセスは、この環境を継承します。
+ローカルから明示的に SSH 専用セッションへアタッチした場合も個人用設定になります。
+自動アタッチを回避しても、対話型の SSH シェルには専用設定を適用します。
+`~/.bashrc.ssh` が未配置なら警告して自動アタッチを見送るため、次の対象を差分確認後に適用してください。
+
+```powershell
+chezmoi diff "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
+```
+
+既存の `main` から環境を自動移行せず、起動済みの Codex や既存ペインの環境も書き換えません。
+新しい SSH 接続で `ssh` に入り、`printf '%s\n' "$CODEX_HOME"` を確認してください。
+新しいウィンドウ・分割ペインと、切断後の再接続でも確認します。
+必要な作業は `main` に残して保存・終了を個別に判断してください。
+
+既定シェルの変更は管理者による手動設定です。
+`chezmoi apply` は OpenSSH のレジストリ、`sshd_config`、鍵、認証方式を変更しません。
+[README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。
+OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があるため、この設定を非対話 SSH まで検証済みとは扱いません。
+PTY 付きのリモートコマンドには引用符の制約もあるため、[実機確認した回避方法](README.manual.md#pty-付きリモートコマンドの引用符)を参照してください。
+
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
