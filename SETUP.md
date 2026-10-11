@@ -89,6 +89,8 @@ psmux が見つからない場合や起動に失敗した場合は、エラー�
 
 SSH 専用設定は、chezmoi が配置する `~/.bashrc.ssh` のランチャーを介してリポジトリの `.bashrc.ssh` から読み込みます。
 `CODEX_HOME="$HOME/.codex-personal"` を設定し、Termius の環境変数送信や `AcceptEnv CODEX_HOME` には依存しません。
+`GH_CONFIG_DIR="$HOME/.config/gh-ssh"` も SSH 専用に設定し、通常の GitHub CLI 認証設定と分離します。
+初回認証は [SSH 専用の GitHub CLI 認証](README.manual.md#ssh-専用の-github-cli-認証)に従い、保存先の ACL を確認してから実行してください。
 SSH セッション内では、psmux が各ペインへ渡す `PSMUX_SESSION=ssh` と `TMUX` の名前空間を合わせて判定します。
 再接続時や新しいウィンドウ・ペインでも、古い `SSH_CONNECTION` に依存せず個人用設定を読み込みます。
 通常のローカルシェルと非対話 SSH コマンドでは上書きしません。

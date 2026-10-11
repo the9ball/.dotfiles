@@ -535,6 +535,38 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
 リポジトリのテストは Windows の対話端末でアタッチ条件と除外条件を検証し、実 SSH の互換性を保証するものではありません。
 
+#### SSH 専用の GitHub CLI 認証
+
+SSH の Network ログオンでは Windows Credential Manager の保存トークンを取得できない場合があります。
+この構成では `gh auth status` が `HTTP 401: Bad credentials` と `tokenSource: default` を返し、保存トークンの読み取り `CredReadW` がエラー 1312（ログオンセッションなし）になることを確認しました。
+これはトークン失効を示す証拠ではありません。[Windows の仕様](https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw)では Network ログオンに資格情報セットが関連付けられないため、SSH 専用の保存先を使います。
+SSH 専用設定は `.bashrc.local` の後に `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を設定します。
+通常の Git Bash とローカル psmux `main` の設定・認証ファイルは変更しません。
+SSH 用の新しいウィンドウ・ペインでも、セッション名と名前空間の判定により同じ設定を読み込みます。
+既存のペインや Codex の環境は自動更新されないため、新しい SSH ペインで確認し、Codex もそのペインから起動し直してください。
+
+```bash
+printf 'GH_CONFIG_DIR=%s\n' "$GH_CONFIG_DIR"
+printf 'CODEX_HOME=%s\n' "$CODEX_HOME"
+```
+
+保存先が `$HOME/.config/gh-ssh`、Codex のホームが `$HOME/.codex-personal` であることを確認します。
+`GH_TOKEN` / `GITHUB_TOKEN` が設定されていると保存ファイルより優先されるため、認証に使うペインではそれらを設定しません。値を表示しないでください。
+ログイン前に SSH 専用ディレクトリを作成し、Windows のプロパティ → セキュリティ → 詳細設定で継承を無効にし、現在のユーザー・SYSTEM・Administrators だけにアクセスを許可します。
+通常の GitHub CLI ディレクトリの権限は変更しません。PowerShell の `icacls "$env:USERPROFILE\.config\gh-ssh"` で権限を確認できます。
+
+```bash
+gh auth login --web --insecure-storage
+gh auth status
+gh api user --jq '.login'
+```
+
+ブラウザ認証とコード入力は本人が行い、認証コードやトークンを作業ログ・Issue・PRへ貼り付けません。
+`--insecure-storage` はトークンを暗号化せず `gh-ssh` 配下へ保存します。ACL を制限しても同じユーザーや管理者から読めるため、このディレクトリを Git 管理・共有・平文バックアップの対象に含めないでください。
+ユーザー名が `the9ball` であることを確認し、新しい SSH ペインとそこから起動した Codex でも同じコマンドを確認します。
+認証を更新するときは、同じ SSH 専用保存先と ACL を再確認してから `gh auth login --web --insecure-storage` を再実行します。
+失敗した場合は保存先・トークン環境変数の有無・ACL を確認し、デスクトップ側の認証を logout / refresh しません。
+
 #### 自動アタッチの回避と復旧
 
 既定シェルが Git Bash の状態で、一度だけ起動ファイルを読まずに接続するには `ssh -t host 'bash --noprofile --norc -i'` を使います。
