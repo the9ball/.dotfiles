@@ -472,21 +472,13 @@ OpenSSH 9.5 系には Git Bash とコマンドなしの `ssh -T host` で[不具
 この経路を使うクライアントがある場合は、切り替え前後の検証を必須とし、失敗したら既定シェルを元へ戻してください。
 自動アタッチの条件では、この OpenSSH 側の問題を解消できません。
 
-まず、新しいローカル PowerShell で `psmux -V` と Git Bash の起動を確認します。
+まず、新しいローカル PowerShell で `psmux -V` を確認します。
 このリポジトリのローカル registry を初めて使う端末では、`aqua-policy.yaml` の内容を確認してから信頼登録します。
 
 ```powershell
 aqua policy allow "$HOME\.dotfiles\aqua-policy.yaml"
 aqua install --config "$HOME\.dotfiles\aqua.yaml"
 psmux -V
-
-$gitCommandPath = (Get-Command git.exe -ErrorAction Stop).Source
-$gitInstallationDirectory = Split-Path (Split-Path $gitCommandPath -Parent) -Parent
-$gitBashPath = Join-Path $gitInstallationDirectory 'bin\bash.exe'
-if (-not (Test-Path -LiteralPath $gitBashPath -PathType Leaf)) {
-    throw 'Locate the Git for Windows bin\bash.exe before continuing.'
-}
-& $gitBashPath --version
 ```
 
 `git-bash.exe` は端末を開くランチャーなので、SSH の既定シェルには `bin\bash.exe` を指定します。
@@ -507,34 +499,25 @@ chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$H
 先にローカル操作または RDP で復旧できる状態と、現在の SSH 接続を残してください。
 変更する二つのレジストリ値だけを、未設定であることも含めてローカルへ保存します。
 バックアップは Git に追加しません。
+設定・復旧処理は [`scripts/windows-ssh-shell.ps1`](scripts/windows-ssh-shell.ps1) にまとめています。
+管理者権限のない PowerShell でも、`-WhatIf` で Git Bash の検出と変更予定を確認できます。
 
 ```powershell
-$ErrorActionPreference = 'Stop'
-$gitCommandPath = (Get-Command git.exe -ErrorAction Stop).Source
-$gitInstallationDirectory = Split-Path (Split-Path $gitCommandPath -Parent) -Parent
-$gitBashPath = Join-Path $gitInstallationDirectory 'bin\bash.exe'
-if (-not (Test-Path -LiteralPath $gitBashPath -PathType Leaf)) {
-    throw 'Locate the Git for Windows bin\bash.exe before continuing.'
-}
-$openSshRegistryPath = 'HKLM:\SOFTWARE\OpenSSH'
-$shellBackupPath = Join-Path $HOME 'openssh-default-shell.backup.clixml'
-if (Test-Path -LiteralPath $shellBackupPath) {
-    throw 'A shell backup already exists. Preserve it before making another change.'
-}
-$currentShellProperties = Get-ItemProperty -LiteralPath $openSshRegistryPath
-$shellBackup = foreach ($propertyName in 'DefaultShell', 'DefaultShellCommandOption') {
-    $property = $currentShellProperties.PSObject.Properties[$propertyName]
-    [pscustomobject]@{
-        Name = $propertyName
-        Exists = $null -ne $property
-        Value = if ($null -ne $property) { $property.Value } else { $null }
-    }
-}
-$shellBackup | Export-Clixml -LiteralPath $shellBackupPath
-
-New-ItemProperty -LiteralPath $openSshRegistryPath -Name DefaultShell -Value $gitBashPath -PropertyType String -Force
-New-ItemProperty -LiteralPath $openSshRegistryPath -Name DefaultShellCommandOption -Value '-c' -PropertyType String -Force
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Enable -WhatIf
 ```
+
+確認後、管理者 PowerShell で適用します。
+
+```powershell
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Enable
+```
+
+Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\bash.exe` の実体を指定します。
+バックアップの既定の保存先は `~/openssh-default-shell.backup.clixml` です。
+別の管理者アカウントで実行する場合は、`-BackupPath` に同じ保存先を明示し、復旧時もそのパスを指定します。
+既存バックアップがあると設定を停止するため、再設定時は元のバックアップを保全してから進めてください。
+設定途中で失敗した場合は元の値へ戻す処理を試みます。
+復元も失敗した場合は、保存したバックアップとエラーを使ってローカルで復旧してください。
 
 `DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
 既存接続を閉じずに別の SSH 接続で、Git Bash と `main` が起動することを確認します。
@@ -578,18 +561,7 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 値が元から未設定だった場合は、新しく追加した値を削除します。
 
 ```powershell
-$openSshRegistryPath = 'HKLM:\SOFTWARE\OpenSSH'
-$shellBackupPath = Join-Path $HOME 'openssh-default-shell.backup.clixml'
-foreach ($savedProperty in (Import-Clixml -LiteralPath $shellBackupPath)) {
-    if ($savedProperty.Name -notin 'DefaultShell', 'DefaultShellCommandOption') {
-        throw 'Unexpected property in shell backup.'
-    }
-    if ($savedProperty.Exists) {
-        New-ItemProperty -LiteralPath $openSshRegistryPath -Name $savedProperty.Name -Value $savedProperty.Value -PropertyType String -Force
-    } else {
-        Remove-ItemProperty -LiteralPath $openSshRegistryPath -Name $savedProperty.Name -ErrorAction SilentlyContinue
-    }
-}
+powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Restore
 ```
 
 別の SSH 接続で復旧を確認してから、元の接続を閉じてください。
