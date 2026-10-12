@@ -89,13 +89,13 @@ psmux が見つからない場合や起動に失敗した場合は、エラー�
 
 SSH 専用設定は、chezmoi が配置する `~/.bashrc.ssh` のランチャーを介してリポジトリの `.bashrc.ssh` から読み込みます。
 `CODEX_HOME="$HOME/.codex-personal"` を設定し、Termius の環境変数送信や `AcceptEnv CODEX_HOME` には依存しません。
-`GH_CONFIG_DIR="$HOME/.config/gh-ssh"` も SSH 専用に設定し、通常の GitHub CLI 認証設定と分離します。
+`GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を SSH と Windows psmux 内で共通に使い、psmux 外の通常の GitHub CLI 認証設定と分離します。
 初回認証は [SSH 専用の GitHub CLI 認証](README.manual.md#ssh-専用の-github-cli-認証)に従い、保存先の ACL を確認してから実行してください。
-SSH セッション内では、`PSMUX_SESSION=ssh` または warm ペインの `PSMUX_SESSION=__warm__` と、`TMUX` の `dotfiles-ssh` 名前空間を合わせて判定します。
-再接続時や新しいウィンドウ・ペインでも、古い `SSH_CONNECTION` に依存せず個人用設定を読み込みます。
-通常のローカルシェルと非対話 SSH コマンドでは上書きしません。
-SSH 用のペインから起動した子プロセスは、この環境を継承します。
-ローカルから明示的に SSH 専用セッションへアタッチした場合も個人用設定になります。
+Windows psmux 内では、空でない `PSMUX_SESSION` または `TMUX` の `/tmp/psmux-` ソケットパスで判定し、`main`、`ssh`、warm ペインなど全セッションに個人用設定を適用します。
+セッション名、ソケットの名前空間、`SSH_CONNECTION` の有無には依存せず、入れ子の Bash、非対話コマンド、パイプでも同じ設定を使います。
+これらの環境変数は実行コンテキストの目印であり、認証やセキュリティ境界の証明ではありません。
+psmux 外の通常のローカルシェルと非対話 SSH コマンドでは上書きしません。
+psmux のペインから起動した子プロセスは、この環境を継承します。
 自動アタッチを回避しても、対話型の SSH シェルには専用設定を適用します。
 `~/.bashrc.ssh` が未配置なら警告して自動アタッチを見送るため、次の対象を差分確認後に適用してください。
 
@@ -105,8 +105,9 @@ chezmoi apply --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HO
 chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$HOME\.bashrc.ssh" "$HOME\.psmux.conf" "$HOME\.bash_profile"
 ```
 
-既存の `main` から環境を自動移行せず、起動済みの Codex や既存ペインの環境も書き換えません。
-新しい SSH 接続で `ssh` に入り、`printf '%s\n' "$CODEX_HOME"` を確認してください。
+既存ペインには `source ~/.bashrc` で反映できます。通常の設定を再読み込みした後も個人用設定を再適用します。
+起動済みの Codex などのアプリケーションには自動反映されないため、更新済みのペインから起動し直してください。
+`printf '%s\n' "$CODEX_HOME" "$GH_CONFIG_DIR"` で `.codex-personal` と `.config/gh-ssh` を確認してください。
 新しいウィンドウ・分割ペインと、切断後の再接続でも確認します。
 必要な作業は `main` に残して保存・終了を個別に判断してください。
 
