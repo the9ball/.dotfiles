@@ -529,7 +529,7 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 - `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
 - SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
 - 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
-- SSH 用の新しいウィンドウ・分割ペインでも `CODEX_HOME` が個人用になり、通常のローカル Git Bash と `main` では元の設定が維持される。
+- psmux の全セッション・新しいウィンドウ・分割ペインで `CODEX_HOME` と `GH_CONFIG_DIR` が個人用になり、psmux 外の通常のローカル Git Bash では元の設定が維持される。
 - `chezmoi apply --exclude=scripts` を上記のファイルに再実行しても、`verify` が成功する。
 
 実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
@@ -557,10 +557,10 @@ ssh -t host '"echo pty-command-ok"'
 SSH の Network ログオンでは Windows Credential Manager の保存トークンを取得できない場合があります。
 この構成では `gh auth status` が `HTTP 401: Bad credentials` と `tokenSource: default` を返し、保存トークンの読み取り `CredReadW` がエラー 1312（ログオンセッションなし）になることを確認しました。
 これはトークン失効を示す証拠ではありません。[Windows の仕様](https://learn.microsoft.com/en-us/windows/win32/api/wincred/nf-wincred-credreadw)では Network ログオンに資格情報セットが関連付けられないため、SSH 専用の保存先を使います。
-SSH 専用設定は `.bashrc.local` の後に `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を設定します。
-通常の Git Bash とローカル psmux `main` の設定・認証ファイルは変更しません。
-SSH 用の新しいウィンドウ・ペインでも、セッション名と名前空間の判定により同じ設定を読み込みます。
-既存のペインや Codex の環境は自動更新されないため、新しい SSH ペインで確認し、Codex もそのペインから起動し直してください。
+SSH と Windows psmux の全セッションで、`.bashrc.local` の後に `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を設定します。
+psmux 外の通常の Git Bash の設定・認証ファイルは変更しません。ローカル psmux の `main` も SSH 用の保存先を使います。
+psmux のセッション名や名前空間にかかわらず、新しいウィンドウ・ペイン、非対話の子コマンドでも同じ設定を読み込みます。
+既存ペインには `source ~/.bashrc` で反映し、`CODEX_HOME` と `GH_CONFIG_DIR` を確認してください。起動済みの Codex はそのペインから起動し直します。
 
 ```bash
 printf 'GH_CONFIG_DIR=%s\n' "$GH_CONFIG_DIR"

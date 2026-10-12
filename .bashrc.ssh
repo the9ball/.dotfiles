@@ -1,4 +1,4 @@
-# Use the personal Codex configuration for SSH sessions.
+# Use the personal Codex configuration for SSH sessions and all Windows psmux shells.
 export CODEX_HOME="$HOME/.codex-personal"
 
 # Keep SSH credentials separate from desktop Windows Credential Manager entries.
