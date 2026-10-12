@@ -45,6 +45,10 @@ run_case() (
 		tmux) TMUX='/tmp/psmux-test,1,0' ;;
 		psmux) PSMUX_SESSION=main ;;
 		ssh-pane) PSMUX_SESSION=ssh; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0; SSH_CONNECTION= ;;
+		warm-pane) PSMUX_SESSION=__warm__; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0; SSH_CONNECTION= ;;
+		warm-nested-pane) PSMUX_SESSION=__warm__; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0; SHLVL=2 ;;
+		warm-wrong-socket) PSMUX_SESSION=__warm__; TMUX=/tmp/psmux-123/default,456,0 ;;
+		warm-no-socket) PSMUX_SESSION=__warm__ ;;
 		stale-pane) PSMUX_SESSION=ssh; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0; SSH_CONNECTION=old ;;
 		nested-pane) PSMUX_SESSION=ssh; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0; SHLVL=2 ;;
 		wrong-socket) PSMUX_SESSION=ssh; TMUX=/tmp/psmux-123/default,456,0 ;;
@@ -91,9 +95,9 @@ run_case() (
 run_case attach 1 1
 run_case repeat 1 1
 run_case failure 1 1
-for scenario in bypass-env bypass-file missing ssh-pane stale-pane nested-pane; do
+for scenario in bypass-env bypass-file missing ssh-pane warm-pane warm-nested-pane stale-pane nested-pane; do
 	run_case "$scenario" 0 1
 done
-for scenario in local linux tmux psmux command nested missing-overlay wrong-socket wrong-session input-pipe output-pipe noninteractive interactive-command; do
+for scenario in local linux tmux psmux command nested missing-overlay wrong-socket wrong-session warm-wrong-socket warm-no-socket input-pipe output-pipe noninteractive interactive-command; do
 	run_case "$scenario" 0 0
 done

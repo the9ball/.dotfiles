@@ -8,9 +8,9 @@ if [ ! -t 0 ] || [ ! -t 1 ] || [ -n "${BASH_EXECUTION_STRING-}" ]; then
 	return 0
 fi
 
-# Pane metadata survives reconnects and is regenerated for every new pane.
+# Warm panes may retain their internal session name in the dedicated SSH namespace.
 case "${PSMUX_SESSION-}:${TMUX-}" in
-	ssh:/tmp/psmux-*/dotfiles-ssh,*) ;;
+	ssh:/tmp/psmux-*/dotfiles-ssh,*|__warm__:/tmp/psmux-*/dotfiles-ssh,*) ;;
 	*)
 		if [ -z "${SSH_CONNECTION-}" ] || [ "${SHLVL-}" != 1 ] ||
 			[ -n "${TMUX-}" ] || [ -n "${PSMUX_SESSION-}" ]; then
