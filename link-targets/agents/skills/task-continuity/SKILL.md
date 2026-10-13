@@ -1,6 +1,6 @@
 ---
 name: task-continuity
-description: Maintain an evidence-checked external Markdown state record for long-running tasks. Use automatically when work is likely to span many turns or context compaction, includes multi-phase investigation and implementation, expands in scope, coordinates multiple subagents or persistent workstreams across turns, crosses sessions, or when a task-continuity hook requests evaluation or recovery. After approval, bind the memo to the current host session and maintain it while the task is underway. Task completion does not require lifecycle status or a close operation. Do not use for short Q&A, isolated edits, or brief reviews.
+description: Maintain an evidence-checked external Markdown state record only when the user explicitly invokes task-continuity for an identified task. After resolving write approval, maintain and recover that same task's memo across turns and compaction. Discussion, installation, editing, long-running work, and hooks alone do not activate this skill.
 ---
 
 # Task Continuity
@@ -9,10 +9,31 @@ Use a disposable Markdown memo as external working state. Treat it as easier to
 recover than conversation memory, but less authoritative than current primary
 evidence.
 
-## Evaluate continuity risk
+## Require explicit user invocation
 
-Use this workflow when at least one hard trigger or two soft triggers
-apply.
+Start this workflow only when the user names `$task-continuity`, selects this
+skill in the host UI, or unambiguously requests using task-continuity for an
+identified task. Discussing, reviewing, installing, editing, or cleaning up
+the skill is not an invocation for the work being discussed.
+
+Long work, compaction, context loss, subagents, hooks, standing write approval,
+and existing memos or bindings do not activate this workflow. Do not infer an
+invocation from these conditions or automatically enable it after a failure.
+
+Once explicitly invoked, continuous maintenance and recovery of that same
+verified task do not require another invocation on every turn. Revalidate the
+invocation's task scope at recovery boundaries; a different task needs its own
+explicit invocation. Activation is separate from write approval, binding, and
+legacy lifecycle metadata. A binding alone does not prove activation.
+
+Hooks may act only when the host can independently establish this explicit
+activation for the current task. Otherwise keep them unregistered or inert
+and use the manual workflow after an explicit invocation.
+
+## Evaluate continuity risk after invocation
+
+After explicit invocation, use these criteria to assess the value of a memo.
+They never select or activate the skill automatically.
 
 Hard triggers:
 

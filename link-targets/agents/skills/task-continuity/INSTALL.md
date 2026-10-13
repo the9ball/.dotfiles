@@ -13,6 +13,23 @@ The installing agent generates its own runtime implementation and stores it,
 together with all session state and ownership records, under the host's own
 home directory. Do not add generated scripts to this shared skill directory.
 
+## Explicit-only operation
+
+The user must explicitly invoke task-continuity for an identified task before
+any runtime behavior begins. Installation, risk criteria, standing write
+approval, and existing bindings do not activate it. Codex metadata disables
+implicit invocation; this does not disable separately installed hook handlers.
+
+Install hooks only when the adapter can independently verify explicit
+activation for the same task, separately from write permission and binding.
+Otherwise leave handlers unregistered or inert and retain manual use after
+explicit invocation. Updating these shared files does not migrate an existing
+generated helper. Pause unconditional legacy handlers by removing only exact
+owned registrations after approval; preserve runtime files, registry state,
+memos, approval markers, and unrelated settings. Restoring registrations must
+check conflicts and preserve subsequent unrelated changes rather than overwrite
+settings with an old full-file backup. Reinstallation must satisfy this gate.
+
 This source contract uses status-free session-to-memo bindings. An already
 installed generated helper may still require legacy `status: active` metadata
 and expose activation or close commands. Regenerate and reinstall that helper
@@ -114,8 +131,8 @@ not treat a `systemMessage`, a warning, a log line, or UI/event-stream output as
 model-visible unless the host's current official documentation explicitly
 guarantees that the model receives it. When a host lacks a documented
 model-visible output for the prompt-submission or session-start event, mark
-automatic risk evaluation and recovery injection unsupported for that host,
-offer only the supported mechanical compact behavior, explain the activation
+invoked-task risk evaluation and recovery injection unsupported for that host,
+offer only explicitly activated supported mechanical compact behavior, explain the activation
 limitation, and obtain explicit approval for that degraded installation.
 
 Host notes (current primary targets):
@@ -153,7 +170,7 @@ never survive a failed or incomplete run.
 6. Uninstallation removes only entries whose complete structural identity
    still matches the ownership record.
 7. Uninstallation with nothing installed is a byte-for-byte no-op.
-8. On a host with documented model-visible output, `UserPromptSubmit` emits
+8. After verified explicit invocation, on a host with documented model-visible output, `UserPromptSubmit` emits
    risk-evaluation context without writing files.
 9. On a host without documented model-visible output, the installer reports
    the unsupported behavior and does not claim that UI-only output satisfies
@@ -241,6 +258,12 @@ never survive a failed or incomplete run.
 32. Generated `SessionStart` context contains no `TASK_CONTINUITY_CLOSE`, and
     the runtime exposes no close command/action that can mutate a binding when
     task work ends.
+
+33. Without verified explicit invocation for the current task, all handlers
+    remain inert: no memo read, injected context, binding, registry write,
+    compact append, or recovery. Standing approval and legacy bindings alone
+    do not activate them. Same-task continuation after invocation remains
+    eligible subject to the existing identity and approval checks.
 
 Run the host's own configuration validator or launch a disposable new session
 when available. If neither is possible, label the result `fixture-only`; do not

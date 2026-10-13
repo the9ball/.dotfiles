@@ -4,9 +4,25 @@ This contract defines behavior, not an implementation language. The installing
 agent must adapt it to the current Claude Code or Codex hook specification and
 the runtimes available on the destination system.
 
+## Explicit activation prerequisite
+
+Every behavior below requires independently verified explicit user invocation
+of task-continuity for the current identified task. This includes memo reads,
+model-visible context, binding and registry operations, compact appends, and
+recovery. Discussion, installation, long work, context loss, standing approval,
+existing bindings, and legacy status are not activation evidence.
+
+Same-task maintenance and recovery after invocation do not require per-turn
+invocation. Revalidate that scope at boundaries alongside the existing checks.
+Activation is separate from write permission, binding provenance, and lifecycle
+metadata; this contract adds no registry schema. If the adapter cannot prove
+activation independently of those records, keep handlers unregistered or inert
+and retain manual use after explicit invocation. An unverified task receives
+no continuity context or runtime I/O, including automatic binding or recovery.
+
 ## Required events
 
-Install the currently supported equivalents of:
+Subject to the explicit activation prerequisite, install the currently supported equivalents of:
 
 - `UserPromptSubmit`
 - `PreCompact`
@@ -148,8 +164,9 @@ These `TASK_CONTINUITY_*` names are text labels in injected model context.
 They are not environment variables and must not be read from the process
 environment unless a host adapter separately documents such an interface.
 
-Before binding, context must ask the model to evaluate continuity risk and
-invoke `$task-continuity` when its trigger criteria apply. Without standing
+Before binding for an explicitly activated task, context must ask the model
+to evaluate continuity risk within that invocation's scope. It must not ask
+the model to invoke the skill automatically. Without standing
 approval, it must state that no file may be written before task-scoped
 approval. With standing approval, it must state the exact permitted
 directory and that another confirmation is unnecessary for covered runtime
@@ -184,7 +201,7 @@ degradation, and keep the skill's manual fallback available.
 
 ## UserPromptSubmit
 
-When no valid session-to-memo binding exists:
+After explicit activation, when no valid session-to-memo binding exists:
 
 - Add the session ID and proposed default memo path to model-visible context.
 - Ask the model to evaluate task continuity risk.
@@ -358,7 +375,7 @@ fork/resume/recovery boundary, add model-visible context that requires:
 5. Appending reconciliation results for unresolved emergency records.
 6. Resuming continuous maintenance.
 
-When no binding exists, provide continuity-risk context and the bind interface
+After explicit activation, when no binding exists, provide continuity-risk context and the bind interface
 as applicable. Do not inherit a parent session's binding into an unbound fork.
 
 ## Installation ownership
