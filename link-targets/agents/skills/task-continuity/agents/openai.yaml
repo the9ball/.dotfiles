@@ -4,4 +4,4 @@ interface:
   default_prompt: "Use $task-continuity to preserve and verify this long-running task state."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false
