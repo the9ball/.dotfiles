@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 Use only when the user explicitly requests `code-review`, `/code-review`, `$code-review`, or this two-phase method. Checklist maintenance is a separate explicit mode. This review supplies evidence, not permission to edit, publish, accept risk, or bypass existing Advisor and execution gates.
 
+Confirm that this resolved entrypoint supplies the loaded contract. If a host has a built-in or another installed command with the same name, use an explicit source path; an unqualified command or catalog label alone does not establish which implementation ran.
+
 ## Root and reviewer boundaries
 
 Root fixes the target and coordinates; reviewers are independent read-only children. Root must not open, search, embed, or preload [checklist.md](checklist.md) or [checklist-maintenance.md](checklist-maintenance.md) during a review. Pass their resolved locations, never their contents. Phase 1 must not read either file. Phase 2 reads only the checklist; the maintenance guide is read only by an explicitly requested maintenance worker. Do not preload these references through a host's child-skill loading feature.
