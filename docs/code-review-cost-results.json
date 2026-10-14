@@ -1,0 +1,2311 @@
+{
+  "schema_version": 1,
+  "measurement_date": "2026-10-15",
+  "comparison_scope": "review-only, two ordered pairs per host; no repairs",
+  "fixture_base": "9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766",
+  "fixture_candidate": "7f9d01249580a586982ce7c58a3484e5dcbc5006",
+  "fixture_files": {
+    "account.py": "\"\"\"Small account utilities with caller-provided validated inputs.\"\"\"\n\n\ndef read_note(record, requester_id):\n    \"\"\"Return the owner's note; reject any different requester with PermissionError.\"\"\"\n    if requester_id != record[\"owner_id\"]:\n        raise PermissionError(\"Not the record owner\")\n    return record[\"note\"]\n\n\ndef discount(amount):\n    \"\"\"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\"\"\"\n    return amount * 0.9 if amount >= 100 else amount\n\n\ndef add_tag(tags, tag):\n    \"\"\"Return a fresh outer list with the tag, preserving input and allowing duplicates.\"\"\"\n    return [*tags, tag]\n",
+    "usage.md": "# Account utility contracts\n\nCallers supply a built-in dictionary containing `owner_id` and `note`, nonempty\nstring owner/requester IDs, a finite nonnegative `int` or `float` amount, and a\nbuilt-in tag list. Input validation beyond these preconditions is outside scope.\n\n`read_note(record, requester_id)` returns `record[\"note\"]` when requester ID\nequals owner ID; otherwise it raises `PermissionError` before returning the note.\n`discount(amount)` returns `amount * 0.9` for amounts at least 100 and returns\n`amount` otherwise. Floating-point representation and rounding policy are outside\nscope. `add_tag(tags, tag)` returns a fresh outer list containing the original\nelements followed by the tag. The input list is unchanged; duplicate tags are\nallowed. The functions require no new dependency or infrastructure.\n"
+  },
+  "fixture_sha256": {
+    "account.py": "fcd5f5e22681bd864a56865b81c61ebba8dccf4d6debe8cec2e183a0ee4142f6",
+    "usage.md": "b6e6dceabe974050240ba579e383864c6156bfb6e15ea52e09fd8261101c2b25"
+  },
+  "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
+  "free_prompt_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+  "summary": [
+    {
+      "host": "codex",
+      "ordinary": 0.0256022,
+      "phase1": 0.046784,
+      "full": 0.0066874,
+      "phase2": 0.0438722,
+      "two": 0.0973436,
+      "ratio": 3.8021576270789232,
+      "root_ordinary": 0.053683,
+      "root_two": 0.14612920000000001,
+      "root_inclusive_ratio": 3.0708480271223384
+    },
+    {
+      "host": "claude",
+      "ordinary": 0.027715899999999998,
+      "phase1": 0.0161066,
+      "full": 0.0147766,
+      "phase2": 0.06778619999999999,
+      "two": 0.09866939999999999,
+      "ratio": 3.5600287199766196,
+      "root_ordinary": 0.059505999999999996,
+      "root_two": 0.21912600000000002,
+      "root_inclusive_ratio": 3.643527600293046
+    }
+  ],
+  "admitted_calls": [
+    {
+      "host": "codex",
+      "label": "round1-ordinary-ordinary",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.97292184829712,
+      "started_unix": 1792015906.4286425,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 178,
+        "reasoning_output_tokens": 100
+      },
+      "estimated_usd": 0.046514,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior was assessed by inspection only; no automated format, lint, or test checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "98e9d0b380004895b27f8a75b07c1d90773c9eccde9d0316810313649b0e0e67",
+      "session_id": "01a13c78-b839-7372-b2bb-eafaf3f994f0",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round1-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.250140428543091,
+      "started_unix": 1792015915.4220695,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26413,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 92,
+        "reasoning_output_tokens": 37
+      },
+      "estimated_usd": 0.053746,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Completed free review reports no findings and covers both manifest paths. Inspection-only verification matches the supplied requirements; no automated checks are required. Allow the next stage."
+      },
+      "input_sha256": "0d4e45bccd5b184d9d20c330c74916dd97059dd885b41514fa8dd738996f1252",
+      "output_sha256": "c320a056925923f001f46787dd0f6a98ec3fe4c57372a6c397258bfed677f311",
+      "session_id": "01a13c78-db48-7e73-b140-e173e6822c8f",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase1",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.274463415145874,
+      "started_unix": 1792015921.6829689,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 173,
+        "reasoning_output_tokens": 93
+      },
+      "estimated_usd": 0.046464,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior was assessed from the supplied diff only; no tests, format checks, or lint checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "b33f2c231bc13ec7b6df2d82bd4d5c5c03cd13855ba69c746a1fa1b59f188a52",
+      "session_id": "01a13c78-f39e-7142-864a-1aca9c0c05ab",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.661097764968872,
+      "started_unix": 1792015930.9770904,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26415,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 95,
+        "reasoning_output_tokens": 34
+      },
+      "estimated_usd": 0.05378,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Phase 1 reports zero findings and complete coverage of account.py and usage.md. No automated checks are required or claimed. Allow progression to the required post-Clean full open-ended review."
+      },
+      "input_sha256": "7b1a33b9abe6985e3c7a544b7d468a6166c8323e3c90eaa4aadcb51ff5b11a84",
+      "output_sha256": "95242570c8f8638e51f16b9cf28e38f4d5adb5f58e975a340aa639e499d6d408",
+      "session_id": "01a13c79-17f3-7cb1-bccb-74e46ffc5ded",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-full",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.370293855667114,
+      "started_unix": 1792015937.6479282,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 19584,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 175,
+        "reasoning_output_tokens": 95
+      },
+      "estimated_usd": 0.0092744,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior was assessed from the supplied diff only; no tests, formatting checks, or lint checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "42080bae243b0975dc8de7b0b59c9e30890748d85295c4bcd0b6f0167ba9745d",
+      "session_id": "01a13c79-3206-77b1-8c09-755ed42dc6a7",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-full-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.724885940551758,
+      "started_unix": 1792015948.0391989,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26537,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 94,
+        "reasoning_output_tokens": 27
+      },
+      "estimated_usd": 0.054014,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages report zero findings and complete coverage of account.py and usage.md for the verified fixed target. No automated checks are required or claimed. Allow progression to Phase2; checklist accounting is not yet supplied."
+      },
+      "input_sha256": "ea9393ed23b6fd44fe94ee1783c26cd5f2d6fba20600526ddcf265f805658b89",
+      "output_sha256": "6def8376e6e5ab6c2f65337dd539ba8c235f6298a5d7294cb8fb645a366b5f9d",
+      "session_id": "01a13c79-5aaa-72f3-b2b4-916aa0585885",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase2",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 27.42569327354431,
+      "started_unix": 1792015954.7850106,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 46096,
+        "cached_input_tokens": 22400,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1243,
+        "reasoning_output_tokens": 115
+      },
+      "estimated_usd": 0.062062,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          {
+            "path": "account.py",
+            "lines": "1-18",
+            "result": "Reviewed all additions."
+          },
+          {
+            "path": "usage.md",
+            "lines": "1-13",
+            "result": "Reviewed all additions against the implementation."
+          }
+        ],
+        "unverified": [],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Function and parameter names communicate their account utility roles.",
+            "evidence": "7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:4-18 declares read_note, discount and add_tag with parameters matching the contracts in usage.md:7-13."
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "The empty base has no surrounding naming conventions to compare.",
+            "evidence": "9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 to 7f9d01249580a586982ce7c58a3484e5dcbc5006: the complete supplied scope consists of new account.py:1-18 and usage.md:1-13; the review requirements explicitly establish no existing coding conventions."
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Every named function has the required role docstring, including relevant behavior.",
+            "evidence": "7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5 documents ownership and rejection; account.py:12 documents the discount threshold; account.py:17 documents list freshness, input preservation and duplicate handling."
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Documentation matches the implementation under the stated preconditions. Ownership is checked before note access, the discount uses the documented threshold and expression, and tag addition creates a fresh outer list without modifying the input.",
+            "evidence": "7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5-8 matches usage.md:7-8; account.py:12-13 matches usage.md:9-11; account.py:17-18 matches usage.md:11-13. Preconditions and exclusions appear in usage.md:3-5 and :10-11."
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The complete additions contain no unreachable branches or obsolete behavior. All three functions are documented exported utilities; absence of internal callers does not establish dead code.",
+            "evidence": "9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 to 7f9d01249580a586982ce7c58a3484e5dcbc5006: no replaced paths exist in the supplied empty-base comparison. Inspected account.py:1-18 and usage.md:1-13."
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "No library, service or internal-module dependency is introduced.",
+            "evidence": "7f9d01249580a586982ce7c58a3484e5dcbc5006: the complete account.py:1-18 uses only built-in operations and PermissionError; usage.md:13 accurately states that no new dependency or infrastructure is required."
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The single proposed commit keeps the utility implementation and its companion contracts together as one coherent rollback unit.",
+            "evidence": "9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 to 7f9d01249580a586982ce7c58a3484e5dcbc5006: the supplied commit adds only account.py:1-18 and usage.md:1-13 for the same utility feature."
+          }
+        ]
+      },
+      "input_sha256": "64086e2b6fe791d67b380cb3b996e39137ae32d2f527837fe3ded3ddabe42d02",
+      "output_sha256": "2d3ab97cb462806441b1c1235bbd52040eb1589ce6e96d34c9f7c1c088b38bc3",
+      "session_id": "01a13c79-7503-7c31-845a-92e7feb25650",
+      "tool_calls": 1,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.727792739868164,
+      "started_unix": 1792015982.2301106,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27543,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 111,
+        "reasoning_output_tokens": 37
+      },
+      "estimated_usd": 0.056196,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages cover the complete scope with no findings. Phase2 accounts for exactly CRQ-001 through CRQ-007 with applicability, result, reason and evidence; no applicable check is unverified. No automated checks are required or claimed."
+      },
+      "input_sha256": "df1c0bf05319c6690e6ddcbbcbbc2a3e089af6391caa542cf8cc67f50318d03e",
+      "output_sha256": "295f985f56c668cc0b515cf3a9778490a588c113d75cac8bca7a51179ac0623b",
+      "session_id": "01a13c79-e042-75f1-9846-fd8748f8f79d",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase1",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 11.176739692687988,
+      "started_unix": 1792015988.9686491,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 237,
+        "reasoning_output_tokens": 68
+      },
+      "estimated_usd": 0.047104,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [
+          {
+            "location": "account.py:12",
+            "concrete_evidence": "The phrase \"Return a ten-percent discount\" could mean the discount value, while the function returns the amount after applying the discount.",
+            "impact": "Changing the wording to \"Return the amount after a ten-percent discount\" would make the docstring more precise."
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior and automated test, lint, and formatting checks were not executed.",
+          "Commit identities and diff hash were not independently verified; review used the supplied complete diff."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "01a3cae8542b74a6c586d072401412dda61ee8e6dc8fd32cbacc1b26def79dfb",
+      "session_id": "01a13c79-fa85-75c1-9375-5deb1be50f94",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 1
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.114598512649536,
+      "started_unix": 1792016000.1629057,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26494,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 112,
+        "reasoning_output_tokens": 46
+      },
+      "estimated_usd": 0.054108,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Free-review coverage includes account.py and usage.md with zero material defects. The docstring wording suggestion is optional. Identities are coordinator-verified; automated checks are not required or claimed. Allow the next stage."
+      },
+      "input_sha256": "1d18e73b0971007afaaec906da7c982e9d9904820a1263b7fd63400aa2ccd75f",
+      "output_sha256": "a13ba4ae76db643f254639b8071c8886aad9f3f32d3d9d5f824887bd217ff47e",
+      "session_id": "01a13c7a-263e-7391-a516-26bd86c65ac2",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-full",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.698135852813721,
+      "started_unix": 1792016007.294958,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 22144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 144,
+        "reasoning_output_tokens": 58
+      },
+      "estimated_usd": 0.0041004,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Review was limited to the supplied complete diff; no tools, tests, formatters, or linters were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "d0e88f49bccb86c9e1f83ec70e07c9d6fda317ea19a0af6e98e98ad5029a6b57",
+      "session_id": "01a13c7a-4241-7493-93ce-aa86d4261c6f",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-full-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.349244832992554,
+      "started_unix": 1792016015.0109522,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26617,
+        "cached_input_tokens": 19584,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 119,
+        "reasoning_output_tokens": 51
+      },
+      "estimated_usd": 0.0172144,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages cover account.py and usage.md, including the required post-Clean full review. One optional docstring wording suggestion remains. Coordinator verified identities; no automated checks are required. Phase 2 may proceed."
+      },
+      "input_sha256": "4ed08b540bcbb7164d33e7911b9c5be4c573c587914d441f0650cea87dd86bd7",
+      "output_sha256": "418ea3fe82d6783e176ee3c80340928d9915a7c22b3f0285413a0c0a7e50cae4",
+      "session_id": "01a13c7a-6048-7b63-b89f-8570b3e992c4",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase2",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 25.892008066177368,
+      "started_unix": 1792016023.3701756,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 46096,
+        "cached_input_tokens": 41984,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1326,
+        "reasoning_output_tokens": 78
+      },
+      "estimated_usd": 0.0256824,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": {
+          "commit": "7f9d01249580a586982ce7c58a3484e5dcbc5006",
+          "base": "9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766",
+          "paths": [
+            {
+              "path": "account.py",
+              "lines": "1-18",
+              "result": "Reviewed all additions; implementation satisfies the documented contracts under the stated preconditions."
+            },
+            {
+              "path": "usage.md",
+              "lines": "1-13",
+              "result": "Reviewed all additions; contracts agree with the implementation."
+            }
+          ]
+        },
+        "unverified": [],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Function and parameter names communicate the documented operations and domain roles.",
+            "evidence": "At 7f9d01249580a586982ce7c58a3484e5dcbc5006, account.py:4-18 declares read_note, discount and add_tag with descriptive parameters; usage.md:7-13 describes their public roles."
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "The stated empty base has no existing naming conventions to compare against.",
+            "evidence": "The complete supplied additions in account.py:1-18 and usage.md:1-13 at 7f9d01249580a586982ce7c58a3484e5dcbc5006 introduce the entire feature relative to 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766; the review requirements explicitly establish that no existing conventions exist."
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Each named function has the required role docstring, including relevant behavior and contracts.",
+            "evidence": "At 7f9d01249580a586982ce7c58a3484e5dcbc5006, account.py:5 documents ownership rejection, account.py:12 documents the discount threshold, and account.py:17 documents fresh-list behavior, input preservation and duplicates."
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Documentation agrees with ownership enforcement, discount calculation and shallow list construction under the explicit preconditions.",
+            "evidence": "At 7f9d01249580a586982ce7c58a3484e5dcbc5006, account.py:5-8 matches usage.md:7-8; account.py:12-13 matches usage.md:9-11; account.py:17-18 matches usage.md:11-13. Preconditions and excluded validation or rounding requirements appear at usage.md:3-5 and usage.md:10-11."
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The additions contain no superseded helpers, unreachable branches or obsolete descriptions. All three functions are documented public entry points; absence of internal callers does not establish dead code.",
+            "evidence": "Inspected the complete bounded scope account.py:1-18 and usage.md:1-13 at 7f9d01249580a586982ce7c58a3484e5dcbc5006 against the stated empty base 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766."
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "No library, service or internal-module dependency is added or newly used.",
+            "evidence": "At 7f9d01249580a586982ce7c58a3484e5dcbc5006, the complete account.py:1-18 uses only built-in operations and PermissionError; usage.md:13 accurately states that no new dependency or infrastructure is required."
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The single proposed commit keeps the utility implementation and its companion contracts together as one coherent rollback unit.",
+            "evidence": "The supplied range 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766..7f9d01249580a586982ce7c58a3484e5dcbc5006 contains the single proposed commit 7f9d01249580a586982ce7c58a3484e5dcbc5006, adding account.py:1-18 and usage.md:1-13 for the same utility feature."
+          }
+        ]
+      },
+      "input_sha256": "64086e2b6fe791d67b380cb3b996e39137ae32d2f527837fe3ded3ddabe42d02",
+      "output_sha256": "a172c913929045e2c3191c8ebd7dcb6fc6162616a57bce1268ce932095704484",
+      "session_id": "01a13c7a-80d8-76a2-adf5-ac3a0b763d63",
+      "tool_calls": 1,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.202162027359009,
+      "started_unix": 1792016049.2862847,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27738,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 147,
+        "reasoning_output_tokens": 60
+      },
+      "estimated_usd": 0.056946,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Full scope and post-Clean review are complete. CRQ-001 through CRQ-007 are each accounted for with applicability, result, reason and evidence; no applicable check is unverified. Coordinator-verified identities are accepted, and no automated checks are required. The optional docstring wording suggestion does not block."
+      },
+      "input_sha256": "4f68f781b1d5c67b2b465f3cfa064bebde80ad1322bb4ccc7782ba2e3f3063bc",
+      "output_sha256": "6f0665e6af38ab70139626fd53fbd00069f53780850fd4b59bcfd0a8d70b3dd6",
+      "session_id": "01a13c7a-e60b-7e53-adfd-c468d08f107c",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "codex",
+      "label": "round2-ordinary-ordinary",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.830807209014893,
+      "started_unix": 1792016056.5003865,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 22144,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 203,
+        "reasoning_output_tokens": 112
+      },
+      "estimated_usd": 0.0046904,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Review was limited to the supplied complete diff; repository contents and commit identities were not independently verified.",
+          "No automated format, lint, or test checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "18a6c32365f429f0ccbc7b5d8249fe6c94db091e381fbedc88d34eb02451ec88",
+      "session_id": "01a13c7b-0273-70e1-8969-d749876b9258",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 0
+    },
+    {
+      "host": "codex",
+      "label": "round2-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.269781827926636,
+      "started_unix": 1792016065.3524055,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26425,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 77,
+        "reasoning_output_tokens": 24
+      },
+      "estimated_usd": 0.05362,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Free-review receipt covers both manifest paths with zero findings. Identity verification is supplied by the coordinator; no automated checks are required. Allow next stage."
+      },
+      "input_sha256": "70d184f37af00a00cce5060e8af5a50c14ae08886844ccea7a8dffc4a9f2356f",
+      "output_sha256": "6eb8173ef0c503cae16cec20398ba5caeff0b5337bfa5702ed7062bb5ecce136",
+      "session_id": "01a13c7b-2502-7323-88f5-8cda20939c1a",
+      "tool_calls": 0,
+      "model_usage_receipt": null,
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round1-ordinary-ordinary",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 13.102731227874756,
+      "started_unix": 1792015086.5392435,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 756,
+        "cached_input_tokens": 1556,
+        "cache_creation_input_tokens": 3087
+      },
+      "estimated_usd": 0.040135199999999996,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12",
+            "evidence": "`discount` の docstring は \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" です。実装は割引後の価格 `amount * 0.9` を返し、usage.md もそう定めています。ところが \"Return a ten-percent discount\" は、割引額そのもの（`amount * 0.1`）を返すようにも読めます。",
+            "impact": "要件は、名前付き関数すべてに役割を正確に表す docstring を求めています。この文言は戻り値の意味を取り違えさせるおそれがあり、呼び出し側が割引後の価格に重ねて割引を適用するといった誤用につながりかねません。動作には問題ありませんが、ドキュメントの正確性に関わる軽微な問題です。"
+          }
+        ],
+        "optional_suggestions": [
+          {
+            "location": "account.py:12",
+            "evidence": "例として \"Return amount reduced by ten percent when at least 100, otherwise amount unchanged.\" のように書けば、戻り値が割引後の価格であることがはっきりします。",
+            "impact": "docstring と usage.md の契約の対応がひと目で分かるようになります。好みの範囲の提案です。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "テスト、format、lint のチェックは実行していません（review-only のため）。実行時の動作は静的な読解だけで評価しています。"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "f2ad5738b846496f66c2607e64b7635ad4ab4df16115f4d8b066c91badee5155",
+      "session_id": "196eb1a5-b20b-4e60-a408-596b9a34dca1",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 756,
+          "cacheReadInputTokens": 1556,
+          "cacheCreationInputTokens": 3087,
+          "webSearchRequests": 0,
+          "costUSD": 0.040135199999999996,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 248,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round1-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.463520050048828,
+      "started_unix": 1792015099.6668365,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 546,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 6023
+      },
+      "estimated_usd": 0.05957,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "free-review ステージ round1-ordinary-ordinary は、manifest の全 path（account.py、usage.md）をカバーしています。material な欠陥は 0 件です。minor は 1 件で、account.py:12 の discount の docstring の文言（'Return a ten-percent discount'）が割引額とも読める点です。ただし実装と usage.md の契約は一致しているため、文言が曖昧なだけで誤りではないと判断し、minor に分類しました。この benchmark は review-only なので、修正せず報告のみとします。optional の提案 1 件は gate の判定に影響しません。format、lint、test は実行していませんが、要件はこれらを求めていないため、判定には使っていません。free-review ステージではチェックリスト ID の集計は不要です。"
+      },
+      "input_sha256": "8a985b59f04e50c5ca12da1a979fd1dae745fe0e90b6d6824c2a417efe836c1b",
+      "output_sha256": "614970ff771e98686f231f28e9cb8bee19d1bdf77767294a9531649118db6061",
+      "session_id": "7dbb2922-a1cf-4a96-aa58-182037e06859",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 546,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 6023,
+          "webSearchRequests": 0,
+          "costUSD": 0.05957,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 252,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-phase1",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.758959770202637,
+      "started_unix": 1792015108.1473289,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 761,
+        "cached_input_tokens": 4643,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.0161566,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12",
+            "evidence": "`discount` の docstring は \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" です。一方、実装（account.py:13）と usage.md が定める契約は、割引額（`amount * 0.1`）ではなく割引後の金額（`amount * 0.9`）を返すことです。\"Return a ten-percent discount\" という書き方は、割引額そのものを返すとも読めます。後半の \"otherwise unchanged\" から割引後の金額だと推測はできますが、はっきりとは書かれていません。",
+            "impact": "要件では docstring が役割を正確に表すことが求められています。この書き方だと、呼び出し側が戻り値を割引額と誤解し、さらに元の金額から差し引くなどの誤用が起こり得ます。動作上の不具合ではありませんが、ドキュメントの正確性が少し下がります。"
+          }
+        ],
+        "optional_suggestions": [
+          {
+            "location": "account.py:12",
+            "evidence": "docstring は \"Return the amount reduced by ten percent (amount * 0.9) when amount is at least 100; otherwise return amount unchanged.\" のように書くと、usage.md の文言と一致して曖昧さがなくなります。",
+            "impact": "任意の改善案です。docstring と usage.md の対応が明確になります。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "テストの実行や format/lint は行っていません。レビューは提示された diff を読んで確認した結果のみに基づきます。"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "b3096cc32c44c3fb277a65db36e48f265dca9804515648aa7ef2103f8f503381",
+      "session_id": "b53c1bbf-173e-4661-87d6-410409624ee1",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 761,
+          "cacheReadInputTokens": 4643,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0161566,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 212,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.025449991226196,
+      "started_unix": 1792015118.925893,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 505,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 6068
+      },
+      "estimated_usd": 0.059109999999999996,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "Phase1 の自由レビューでは material defect が 0 件です。coverage は manifest の全パス（account.py、usage.md）を網羅しています。minor は 1 件で、account.py:12 の discount docstring が、戻り値を割引額とも割引後の金額とも読める点です。usage.md の契約と実装は一致しているため、ドキュメント正確性に関する軽微な指摘と分類しました。これは review-only ベンチマークのため修正せず、記録のみとします。format/lint/test は要件上、主張の対象外です。この段階のゲート条件を満たすので、次段階へ進めます。"
+      },
+      "input_sha256": "9a4f6b92600d78e42421e47896fcb07642ba6b6d4c83358fcf12569e5942f5aa",
+      "output_sha256": "f9cf01b1dfba0afd3f1ac6ed782539705b365fd4497cf79bedeef52f06066fd0",
+      "session_id": "cb8d7940-5aad-4858-bd0b-417a7c7662a0",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 505,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 6068,
+          "webSearchRequests": 0,
+          "costUSD": 0.059109999999999996,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 263,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-full",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.220044136047363,
+      "started_unix": 1792015126.9666002,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 640,
+        "cached_input_tokens": 4643,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.0137366,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12",
+            "evidence": "`discount` の docstring は \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" となっている。一方、実装 (`amount * 0.9`) と usage.md の契約は、10% 割引を適用した後の金額を返すものである。\"Return a ten-percent discount\" という書き方では、割引額そのもの (`amount * 0.1`) を返すとも読める。",
+            "impact": "docstring の役割説明があいまいなため、呼び出し側が戻り値を割引額と誤解するおそれがある。要件の「accurate role docstrings」に照らすと軽微な正確性の不足にあたる。例: \"Return the amount with a ten-percent discount applied when at least 100; otherwise return it unchanged.\""
+          }
+        ],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "自動化された format/lint/test は実行していない(要件どおりレビューのみ)。"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "63c67a3412571177587bb490540a1684977fbe10efef94286cb1b07e347a01fd",
+      "session_id": "b5f576c7-62d0-4be7-ae3f-80eaa83d9e93",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 640,
+          "cacheReadInputTokens": 4643,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0137366,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 274,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 0
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-full-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.522567987442017,
+      "started_unix": 1792015136.2090504,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 772,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 6508
+      },
+      "estimated_usd": 0.06797,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "最新の完了ステージ round1-two-phase-full（Clean 到達後の全体レビュー）と、それ以前の round1-two-phase-phase1 のどちらでも material 指摘は 0 件です。両受領記録は同じ入力（input_sha256 9ec03ce5…）に対するもので、マニフェストの全パス（account.py、usage.md）をカバーしています。minor 指摘は両ステージとも account.py:12 の discount docstring に関するものです。\"ten-percent discount\" が割引額とも読める曖昧さを指しており、根本原因が同じなので 1 件に統合しました。この指摘は動作上の不具合ではなく、docstring の正確性の軽微な不足と判断します。今回はレビューのみのベンチマークのため、修正はせず報告に留めます。任意の提案（docstring の書き換え案）は件数に含めていません。format/lint/test は要件どおり実行も主張もしていないため、検証の欠落には当たりません。Phase2 のチェックリスト結果はまだ受け取っていません。そのため CRQ-001〜CRQ-007 の照合は Phase2 の受領時に行います。free-review ステージは material 0 件で全体カバーも完了しているため、次の段階へ進んでよいと判断します。"
+      },
+      "input_sha256": "0bfd1137610772ee8de2e604398de342512340b6303a876faaac50186fc4ba07",
+      "output_sha256": "7d742100948bd9f0625019357e4cd1b0129108a5280ae0e29e280a54f6117478",
+      "session_id": "1953f3a1-2dd7-4360-a83c-827288f08235",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 772,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 6508,
+          "webSearchRequests": 0,
+          "costUSD": 0.06797,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 297,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-phase2",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 27.462902784347534,
+      "started_unix": 1792015146.7470345,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2493,
+        "cached_input_tokens": 7024,
+        "cache_creation_input_tokens": 4294
+      },
+      "estimated_usd": 0.0856328,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "id": "M-1",
+            "checklist_id": "CRQ-004",
+            "location": "account.py:12 (candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006)",
+            "evidence": "`discount` の docstring は \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" です。一方、account.py:13 の実装は `amount * 0.9` を返します。usage.md:9-10 でも、戻り値は `amount * 0.9`(割引後の金額)と定義されています。\"Return a ten-percent discount\" という書き方では、割引額そのもの(`amount * 0.1`)を返すようにも読めます。後半の \"otherwise unchanged\" から割引後の金額を指すと推測はできますが、主語が曖昧です。",
+            "impact": "呼び出し側が docstring だけを見て、戻り値を割引額と誤解するおそれがあります。その場合、二重に差し引くなどの誤用につながります。実装と usage.md の契約は正しいので、問題は文書の精度に限られます。"
+          }
+        ],
+        "optional_suggestions": [
+          {
+            "location": "account.py:11",
+            "suggestion": "関数名 `discount` は名詞なので、割引額を返すのか割引後の金額を返すのかが名前だけでは分かりません。`apply_discount` や `discounted_amount` のような名前のほうが意図が伝わります。ただし usage.md:9 が `discount(amount)` という名前を契約として公開しているため、変更は任意です。",
+            "reason": "好みの範囲です。契約上、名前は確定しています。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "自動 format/lint/test は実行していません(要件どおり、レビューのみです)。"
+        ],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "`read_note`、`add_tag`、引数の `record`、`requester_id`、`amount`、`tags`、`tag` は、役割と操作をそのまま表しています。`discount` はやや曖昧ですが、usage.md:9 が契約名として定めているため、任意の提案にとどめました。",
+            "evidence": "7f9d012 account.py:4,11,16; usage.md:7,9,11"
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "base 9cdf0cf は空のツリーで、比較できる既存の命名規約がありません。要件にも「No existing coding conventions exist」と明記されています。",
+            "evidence": "確認した範囲は base 9cdf0cf のツリー(diff 上、account.py と usage.md はどちらも new file)と requirements の記述です。"
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "要件は、名前付き関数すべてに役割を説明する docstring を求めています。3 関数すべてに docstring があり、名前の繰り返しではなく、拒否条件・閾値・非破壊性などの契約を説明しています。モジュール docstring もあります。",
+            "evidence": "7f9d012 account.py:1,5,12,17"
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "FINDING",
+            "reason": "`read_note`(account.py:5 と 6-8、usage.md:7-8)と `add_tag`(account.py:17 と 18、usage.md:11-13)は、docstring・実装・usage.md が一致しています。`discount` の docstring の \"a ten-percent discount\" は、戻り値(割引後の金額)を曖昧に表現しています(M-1)。",
+            "evidence": "7f9d012 account.py:12-13 と usage.md:9-10 の対比"
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "base は空で、置き換えや削除される経路がありません。追加された 3 関数はすべて usage.md で公開 API として契約化されており、到達しない分岐もありません。",
+            "evidence": "確認した範囲は base 9cdf0cf → 7f9d012 の diff 全体(new file 2 件のみ)です。"
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "新しいライブラリ、サービス、内部モジュールへの依存は追加されていません。usage.md:13 にも、新しい依存やインフラは不要と明記されています。",
+            "evidence": "7f9d012 account.py:1-18 に import 文はありません。usage.md:13 を確認しました。"
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "レビュー対象は単一のコミットで、実装(account.py)と契約文書(usage.md)だけをまとめた一つのユーティリティ機能です。無関係な変更は混ざっておらず、まとめてロールバックできます。",
+            "evidence": "commit range 9cdf0cf..7f9d012(1 コミット: 7f9d012 feat(account): add documented contract-correct utilities)、paths: account.py, usage.md"
+          }
+        ]
+      },
+      "input_sha256": "2131b215c3409316f22284ede9c9ab7ed6a67d8ae85c893a03ca2df1330ecabf",
+      "output_sha256": "cf8f1062994447987b7c8473cb8f629b1d9dc464ad6de4c8219b87f9d6e7cff1",
+      "session_id": "0538ff6b-42fd-4931-b6e2-5fa5ea22230e",
+      "tool_calls": 1,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 2493,
+          "cacheReadInputTokens": 7024,
+          "cacheCreationInputTokens": 4294,
+          "webSearchRequests": 0,
+          "costUSD": 0.0856328,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 625,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round1-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 11.174330711364746,
+      "started_unix": 1792015174.2339523,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 856,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 8407
+      },
+      "estimated_usd": 0.084842,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "Phase1 初回レビューと post-Clean 全体レビューの両方で、material defect は 0 件、対象 account.py と usage.md の coverage は完全です。Phase2 は CRQ-001〜CRQ-007 の 7 件が過不足なく揃い、すべてに applicability、result、reason、evidence があります。APPLICABLE のうち UNVERIFIED のものはありません。NOT_APPLICABLE(CRQ-002/005/006)には理由と根拠があります。3 段階で報告された minor は、いずれも account.py:12 の discount docstring が戻り値を割引額とも読める曖昧さを指す同一の欠陥なので、1 件にまとめました。実装と usage.md の契約は一致しており、動作への影響はないため minor と判断します(CRQ-004 FINDING)。この benchmark はレビューのみのため、この minor は修正せずに報告として残します。optional suggestion は件数に含めていません。自動 format/lint/test は要件どおり実行も主張もしていません。"
+      },
+      "input_sha256": "6ef11a92eb987cfeab6fda5bf7fd9c2ad581cdb3e0b6b6a32a7f4ab44a2fad14",
+      "output_sha256": "1efe4ef2428c81e020289fc5409980b87ab02bedc171eeafb21a01cdcd5287ab",
+      "session_id": "7a9b9c4f-d2ff-4eca-9c99-38c682fa474e",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 856,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 8407,
+          "webSearchRequests": 0,
+          "costUSD": 0.084842,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 472,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-phase1",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.315605163574219,
+      "started_unix": 1792015185.4219382,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 756,
+        "cached_input_tokens": 4643,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.0160566,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12",
+            "evidence": "`discount` の docstring は \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" となっている。一方、実装（account.py:13）と usage.md:9 の契約では、戻り値は割引後の金額 `amount * 0.9` である。割引額そのもの（`amount * 0.1`）は返さない。後半の \"otherwise unchanged\" から割引後の金額と読み取れなくもないが、\"Return a ten-percent discount\" は割引額を返すとも読める。",
+            "impact": "要件では、名前付き関数の docstring が役割を正確に表すことが必須とされている。この文言では、呼び出し側が戻り値を割引額と誤解するおそれがある。動作は契約どおりなので、影響は文書の正確性に限られる。例えば \"Return the amount reduced by ten percent when it is at least 100, otherwise unchanged.\" のように直すと明確になる。"
+          }
+        ],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "自動の format/lint/test チェックは実行していない（要件で求められておらず、ツールも使わないため）。"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "0c8e33835440a6a3d1ada70e3ea155e3e717e045948f2e57f91eb5f163612a7f",
+      "session_id": "972f22bf-4b23-42d3-8fda-02c9ce6f3d18",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 756,
+          "cacheReadInputTokens": 4643,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0160566,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 322,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 0
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 12.258152723312378,
+      "started_unix": 1792015195.757177,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 908,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 5951
+      },
+      "estimated_usd": 0.066234,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "Phase1（round2-two-phase-phase1）では material な欠陥が 0 件でした。カバレッジは manifest の全パス（account.py, usage.md）と一致しており、完全です。minor は 1 件で、account.py:12 の discount の docstring の文言が曖昧なことです。\"Return a ten-percent discount\" は割引額を返すとも読めますが、後半の \"otherwise unchanged\" と合わせれば割引後の金額を返すと読めます。実装と usage.md:9 の契約は一致しているため、影響は文書の明確さに限られます。よって minor に分類しました。今回はレビューのみのベンチマークなので、この minor は報告にとどめ、修正しません。自動の format/lint/test チェックは要件上求められておらず、実施したとも主張していません。free-review 段階の通過条件を満たすため、次へ進みます。"
+      },
+      "input_sha256": "1b8deb54c5cc58d95d802526ccfd8b119ce3d3e1a2590e037e38809dfbf12120",
+      "output_sha256": "5463c9948a8484324c920ce4ecc4f467d72ee99f94eccc4fb024ae0f8511197d",
+      "session_id": "2a7faf0c-ebf4-42bd-82dc-29dac510251c",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 908,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 5951,
+          "webSearchRequests": 0,
+          "costUSD": 0.066234,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 572,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-full",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.713440179824829,
+      "started_unix": 1792015208.030902,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 744,
+        "cached_input_tokens": 4643,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.0158166,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12",
+            "evidence": "docstring が \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" となっている。実装（account.py:13）は `amount * 0.9`、つまり割引後の金額を返し、割引額（`amount * 0.1`）は返さない。usage.md も「`amount * 0.9` を返す」と定めている。",
+            "impact": "\"Return a ten-percent discount\" は「10% の割引額を返す」とも読める。この読み方では戻り値の役割を誤解するため、正確な役割 docstring という要件を十分に満たしていない。後半の \"otherwise unchanged\" から割引後の金額だと推測はできるが、たとえば \"Return the amount reduced by ten percent when at least 100, otherwise the amount unchanged.\" のように明確に書くべき。"
+          }
+        ],
+        "optional_suggestions": [
+          {
+            "location": "usage.md:8",
+            "evidence": "\"otherwise it raises `PermissionError` before returning the note.\" と書かれているが、実装では例外を送出した場合 note は一切返さない。",
+            "impact": "契約上の誤りではない。ただ \"instead of returning the note\" と書けば、note が返されないことがより明確に伝わる。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "自動 format / lint / test は実行していない（要件どおりレビューのみ）"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "9825d14cf2e4fc86a785caf7322d531f241dfe31264e976b7af2fa44f606e86e",
+      "session_id": "270ca1b7-bed9-4977-80d1-86b8df9ff493",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 744,
+          "cacheReadInputTokens": 4643,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.0158166,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 241,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-full-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 12.670396327972412,
+      "started_unix": 1792015218.7706985,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 937,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 6530
+      },
+      "estimated_usd": 0.07144600000000001,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "自由レビュー段階（round2-two-phase-phase1 と round2-two-phase-full）はどちらも material_findings が 0 件で、固定マニフェストの全パス（account.py、usage.md）をカバーしている。minor は account.py:12 の discount の docstring の曖昧さ（『ten-percent discount』が割引額とも読める）1 件。両ラウンドで報告されたが同一の欠陥なので 1 件に統合した。動作は usage.md の契約（amount * 0.9）と一致しており、『otherwise unchanged』からも割引後の金額と読めるため、役割記述の誤りではなく文言の明確さの問題として minor に分類した。本ベンチマークでは修正しない報告対象として扱う。usage.md:8 の提案は optional のため件数に含めない。自動 format/lint/test は要件どおり主張も実行もしていない。Phase2 の結果は今回の入力にないため、CRQ-001〜CRQ-007 の照合は Phase2 段階で行う。"
+      },
+      "input_sha256": "464a457b5c315e90f45554fcceff84b6654eb99580d73415f5e6160401ddcde7",
+      "output_sha256": "c19d3156dbd7238a258cf2c51d4870183a757bb9b01918625b09e41a81690a5e",
+      "session_id": "08d7f848-6f79-4eb9-87a7-146c1bd3c342",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 937,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 6530,
+          "webSearchRequests": 0,
+          "costUSD": 0.07144600000000001,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 556,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-phase2",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 26.321471452713013,
+      "started_unix": 1792015231.4633448,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2383,
+        "cached_input_tokens": 11318,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.049939599999999994,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [
+          {
+            "location": "account.py:11-12 (candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006)",
+            "evidence": "関数名 `discount` と docstring の \"Return a ten-percent discount ...\" は、割引額（amount * 0.1）を返すとも読めます。実装（account.py:13 `amount * 0.9`）と usage.md:9-10 は割引後の金額を返す契約です。docstring 後半の \"otherwise unchanged\" から割引後の金額を指すと読み取れるため、不正確とまではいえません。",
+            "impact": "読み手が戻り値を割引額と誤解する余地がわずかに残ります。任意で、名前を `apply_discount` にするか、docstring を \"Return the amount reduced by ten percent ...\" とすれば明確になります。契約違反ではないため任意の提案です。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "このレビューでは自動の format/lint/test を実行していません（要件どおり、実行したとは主張しません）。"
+        ],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "追加された識別子 read_note、record、requester_id、discount、amount、add_tag、tags、tag は、usage.md の契約上の役割を表しています。`discount` は動詞形のほうが明確ですが、docstring と usage.md が意味を補っているため欠陥とはしません（任意提案に記載）。",
+            "evidence": "account.py:4,11,16 と usage.md:7-12（candidate 7f9d012）"
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "base には既存のコードも命名規約もないため、比較できる周辺規約がありません。",
+            "evidence": "base 9cdf0cf は空の比較基点で、diff の追加ファイルは account.py と usage.md の 2 つだけです（いずれも new file）。要件にも \"No existing coding conventions exist in that base\" とあります。"
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "要件は全関数に役割を示す docstring を求めています。3 関数とモジュールのすべてに docstring があり、名前の繰り返しではなく、権限エラー、閾値、非破壊性・重複許容といった契約を述べています。",
+            "evidence": "account.py:1、5、12、17（candidate 7f9d012）"
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "read_note は owner_id と一致しない場合に PermissionError を送出し、一致する場合に note を返します（docstring・usage.md:7-8 と一致）。discount は amount >= 100 のときに amount * 0.9、それ以外は amount を返します（usage.md:9-10 と一致）。add_tag は [*tags, tag] で新しい外側リストを作り、入力を変更せず重複も許容します（usage.md:11-13 と一致）。新しい依存はありません（usage.md:13 と一致）。",
+            "evidence": "account.py:5-8、12-13、17-18 と usage.md:3-13（candidate 7f9d012）"
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "空の base への新規追加のみで、置き換えや削除されたパスがありません。追加コード内にも到達不能な分岐はありません。",
+            "evidence": "diff の 2 ファイルとも new file mode（base 9cdf0cf → candidate 7f9d012）です。account.py:1-18 に未使用のヘルパーや到達不能な分岐はありません。"
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "新しいライブラリ、サービス、内部モジュールの依存は追加されていません。",
+            "evidence": "account.py:1-18 に import 文はありません。usage.md:13 にも \"require no new dependency or infrastructure\" とあります。"
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "1 つのコミットに、実装と契約文書という 1 つのユーティリティ機能だけが含まれています。無関係な変更は混ざっておらず、同時に必要な account.py と usage.md が同じロールバック単位にまとまっています。",
+            "evidence": "コミット範囲は 9cdf0cf..7f9d012 で、7f9d012 \"feat(account): add documented contract-correct utilities\" の変更パスは account.py と usage.md のみです。"
+          }
+        ]
+      },
+      "input_sha256": "2131b215c3409316f22284ede9c9ab7ed6a67d8ae85c893a03ca2df1330ecabf",
+      "output_sha256": "f7d43f642df1f16119a4f9ef7a9e7fab57670ad80a4b7581cf3bbea8da1493ec",
+      "session_id": "797921b0-4417-4759-877f-52da1d1c2b62",
+      "tool_calls": 1,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 4,
+          "outputTokens": 2383,
+          "cacheReadInputTokens": 11318,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.049939599999999994,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 492,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 0,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round2-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 14.096961498260498,
+      "started_unix": 1792015257.8102288,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 1098,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 8278
+      },
+      "estimated_usd": 0.08865,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "material な指摘は 0 件です。Phase 1 と post-Clean full review はどちらも account.py と usage.md を全体カバーし、material defect はありませんでした。Phase 2 は CRQ-001〜CRQ-007 をちょうど 7 件返し、各 ID に applicability、result、reason、evidence がそろっています。APPLICABLE の項目はすべて PASS で、UNVERIFIED はありません。NOT_APPLICABLE の項目にはいずれも理由と根拠があります。minor は 1 件で、account.py:12 の discount の docstring \"Return a ten-percent discount\" が割引額を返すとも読める点です。Phase 1 と full review では同じ指摘が重複していたため 1 件に統合しました。Phase 2 はこれを optional とし、CRQ-003 を PASS としています。root としては、役割 docstring の正確性という要件に照らして minor 1 件に分類します。本 benchmark は review-only のため、この minor は報告のみで修正しません。自動の format/lint/test は実行も主張もしていません。"
+      },
+      "input_sha256": "2494fe3cb09cea703d7fa5658bb13b7772e6b90de5c3f8e9c57add7096d3c03c",
+      "output_sha256": "ded45e7fb0a7cfb74332e86e39f6fe2b79dc0cc4356fec72d7c5a65d6d2b524b",
+      "session_id": "25abe1f3-0514-4a3e-82cc-af65baee0962",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 1098,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 8278,
+          "webSearchRequests": 0,
+          "costUSD": 0.08865,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 699,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    },
+    {
+      "host": "claude",
+      "label": "round2-ordinary-ordinary",
+      "role": "review",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.14238953590393,
+      "started_unix": 1792015271.9239616,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 718,
+        "cached_input_tokens": 4643,
+        "cache_creation_input_tokens": 0
+      },
+      "estimated_usd": 0.015296599999999999,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [
+          {
+            "location": "account.py:12（discount の docstring）",
+            "evidence": "docstring には \"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\" と書かれています。一方、実装と usage.md の契約では、戻り値は割引後の金額 `amount * 0.9` です。\"Return a ten-percent discount\" という表現は、割引額（`amount * 0.1`）を返すとも読めます。後半の \"otherwise unchanged\" から割引後の金額だと推測はできますが、前半だけでは区別できません。",
+            "impact": "要件では docstring の正確さが求められています。この表現では、呼び出し側が戻り値を割引額と誤解し、さらに減算してしまうおそれがあります。動作に欠陥はなく、ドキュメントの明確さだけの問題です。"
+          }
+        ],
+        "optional_suggestions": [
+          {
+            "location": "account.py:12",
+            "suggestion": "docstring を \"Return the amount reduced by ten percent when at least 100, otherwise the amount unchanged.\" のように書き換え、戻り値が割引後の金額であることを明記することを提案します。"
+          }
+        ],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "テスト、フォーマッタ、リンタは実行していません（要件に従い、差分の読み取りによる静的レビューのみです）。"
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "1252aec1e588d415da43cb4951ff980d91a0fce520dadde7d10b4d36fdb02e4c",
+      "session_id": "538d1cfe-9925-4a40-ae2b-1e7b3bcfbc4b",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 718,
+          "cacheReadInputTokens": 4643,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0.015296599999999999,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 240,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": 1
+    },
+    {
+      "host": "claude",
+      "label": "round2-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "claude-opus-5-5",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.311508655548096,
+      "started_unix": 1792015282.0915213,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 2,
+        "output_tokens": 550,
+        "cached_input_tokens": 2290,
+        "cache_creation_input_tokens": 5997
+      },
+      "estimated_usd": 0.059441999999999995,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 1,
+        "reason": "自由レビュー段階 round2-ordinary-ordinary の結果です。カバレッジは固定マニフェストの全パス（account.py、usage.md）と一致しています。重大な欠陥は0件です。account.py:12 の discount docstring は、冒頭の「Return a ten-percent discount」だけを読むと割引額を返すとも取れます。ただし後半の「otherwise unchanged」と実装・usage.md の契約から、割引後の金額を返すと解釈できます。ドキュメントの明確さの問題で動作には影響しないため、minor に分類しました。レビュー専用のベンチマークなので修正はせず、minor として報告します。提案1件は optional として扱います。自動チェックは要件どおり主張されていないため、検証不足には当たりません。これらの条件から次の段階へ進めます。"
+      },
+      "input_sha256": "53c591712792fb9021d94125522d1acfdde8a91eedddd145408307ab0df49f75",
+      "output_sha256": "9b0f02a629a045cf63ceec2c06cee84720a96d583526f83de2f4204083197878",
+      "session_id": "4becb095-e30d-4f9e-a0e9-6f921e10b42c",
+      "tool_calls": 0,
+      "model_usage_receipt": {
+        "claude-opus-5-5": {
+          "inputTokens": 2,
+          "outputTokens": 550,
+          "cacheReadInputTokens": 2290,
+          "cacheCreationInputTokens": 5997,
+          "webSearchRequests": 0,
+          "costUSD": 0.059441999999999995,
+          "contextWindow": 1000000,
+          "maxOutputTokens": 128000,
+          "thinkingTokens": 236,
+          "canonicalModel": "claude-opus-5-5",
+          "provider": "firstParty",
+          "costBasis": "list"
+        }
+      },
+      "material_count": 0,
+      "minor_count": 1,
+      "optional_count": null
+    }
+  ],
+  "excluded_codex_host_diagnostic_calls": [
+    {
+      "host": "codex",
+      "label": "round1-ordinary-ordinary",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.545705318450928,
+      "started_unix": 1792015086.4763806,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 189,
+        "reasoning_output_tokens": 39
+      },
+      "estimated_usd": 0.046624,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          {
+            "path": "account.py",
+            "result": "Reviewed all additions. All three functions satisfy the documented contracts and have accurate role docstrings."
+          },
+          {
+            "path": "usage.md",
+            "result": "Reviewed all additions. Preconditions and contracts are consistent with the implementation."
+          }
+        ],
+        "unverified": [
+          "Review was limited to the supplied diff; repository state and commit identities were not independently verified.",
+          "No automated format, lint, or test checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "75ace238a9e66879ef67b2456e93d910f70829e2ca3310109390e4ad73987eaf"
+    },
+    {
+      "host": "codex",
+      "label": "round1-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 10.49000883102417,
+      "started_unix": 1792015095.0443463,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26471,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 83,
+        "reasoning_output_tokens": 24
+      },
+      "estimated_usd": 0.053772,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "The ordinary free-review stage reports zero findings and complete coverage of account.py and usage.md. The coordinator verified target identities; no automated checks are required. Allow the next stage."
+      },
+      "input_sha256": "6614ff69980160bc888076af27e09aa664fa6decb296b9476dc62d65972c65b7",
+      "output_sha256": "04f07e4b5905eafe3153f4bd8bd47824866af9ba8b56d9556783b071c5cff25f"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase1",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 8.01413106918335,
+      "started_unix": 1792015105.5463352,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 176,
+        "reasoning_output_tokens": 82
+      },
+      "estimated_usd": 0.046494,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Review is based solely on the supplied diff; repository state and commit identities were not independently verified.",
+          "No tests, formatters, linters, or runtime checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "4231cd97d122b371c9ccccd8194b9c6964d2ece0b671f9ca793d22ed228a9c55"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.0035271644592285,
+      "started_unix": 1792015113.5811663,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26428,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 105,
+        "reasoning_output_tokens": 44
+      },
+      "estimated_usd": 0.053906,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Phase 1 reports zero findings and complete coverage of account.py and usage.md. The coordinator verified target identities; no automated checks are required. Allow the next full open-ended review stage."
+      },
+      "input_sha256": "37a06ffc804acb47e56979d0a4894f5721838399694afd5d63d053548579a35f",
+      "output_sha256": "ca4710c2646a78fcf558a7824b0625ff3fe0fb814903c2a49caad7e2b5bd7dba"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-full",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.266052722930908,
+      "started_unix": 1792015120.6103184,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 23193,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 159,
+        "reasoning_output_tokens": 81
+      },
+      "estimated_usd": 0.047976,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior was assessed by inspection only; no automated format, lint, or test checks were run."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "fac4a628ca78a4b95c1ed1a599282ae0cc072f8fc69edab1cfcefb356459e25a"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-full-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.512176275253296,
+      "started_unix": 1792015129.9007692,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27374,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 111,
+        "reasoning_output_tokens": 42
+      },
+      "estimated_usd": 0.055858,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Initial and post-Clean full free reviews cover account.py and usage.md with zero findings. Identities are externally verified, and no automated checks are required. Allow progression to Phase2; checklist ID accounting is not yet due."
+      },
+      "input_sha256": "7c1abc9cc0b294eba7aa7646d408f1bab0926807c95cee0f0c3e782ae2cba3b3",
+      "output_sha256": "b419dd4a34e3070d0c04e03bfd6b2f409ca55a2a8dea40dba6e2684639b7cf20"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase2",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 52.87004351615906,
+      "started_unix": 1792015137.4338436,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 149572,
+        "cached_input_tokens": 121600,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1453,
+        "reasoning_output_tokens": 27
+      },
+      "estimated_usd": 0.082634,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Automated format, lint, and test checks were not run or claimed. Review used the supplied complete diff and commit metadata; repository contents and diff hash were not independently verified."
+        ],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Function and parameter names communicate their account utility roles.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:4,11,16 declare read_note(record, requester_id), discount(amount), and add_tag(tags, tag); usage.md:7-13 documents their corresponding operations."
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "The stated empty base has no relevant surrounding naming conventions.",
+            "evidence": "Base 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 to candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: the complete supplied scope adds account.py:1-18 and usage.md:1-13; requirements explicitly state no existing coding conventions."
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "All three named functions have required role docstrings describing their relevant contracts.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5 documents owner access and PermissionError; account.py:12 documents the discount threshold; account.py:17 documents a fresh outer list, input preservation, and duplicates."
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Docstrings and usage contracts agree with the implementation under the stated preconditions.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5-8 and usage.md:7-8 agree on owner equality and rejection before note return; account.py:12-13 and usage.md:9-11 agree on amount * 0.9 at amounts >= 100; account.py:17-18 and usage.md:11-13 agree on shallow list creation, order, input preservation, and duplicates."
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The complete additions contain no superseded paths, unreachable branches, or obsolete descriptions. All three functions are documented exported utilities.",
+            "evidence": "Base 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 is stated empty. Inspected candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006 scope: account.py:1-18 and usage.md:1-13; usage.md:7-13 supplies the retention purpose for every function."
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "No library, service, or internal module dependency is added or newly used.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: inspected complete account.py:1-18, which uses only built-in operations and PermissionError; usage.md:13 explicitly states no new dependency or infrastructure."
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The single proposed commit keeps implementation and companion contracts together as the stated utility feature and rollback unit.",
+            "evidence": "Reviewed range 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766..7f9d01249580a586982ce7c58a3484e5dcbc5006; supplied commit is 'feat(account): add documented contract-correct utilities'. account.py:1-18 and usage.md:1-13 contain only the three utilities and their contracts."
+          }
+        ]
+      },
+      "input_sha256": "2131b215c3409316f22284ede9c9ab7ed6a67d8ae85c893a03ca2df1330ecabf",
+      "output_sha256": "42f015a86fe965ae06e7973f97d6020e71b12cd9d41caab1b761cfd1ab39edf8"
+    },
+    {
+      "host": "codex",
+      "label": "round1-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.216497421264648,
+      "started_unix": 1792015190.3354404,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27586,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 142,
+        "reasoning_output_tokens": 58
+      },
+      "estimated_usd": 0.056592,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages cover the complete fixed scope with no findings. Phase2 accounts for exactly CRQ-001 through CRQ-007 with applicability, result, reason and evidence; no applicable check is unverified. Identity verification is supplied by the coordinator, and no automated checks are required or claimed."
+      },
+      "input_sha256": "70f5dbe777029c37f1ae05251fbdefafa1b693151befe0870e639c1b2010e5a2",
+      "output_sha256": "6732957d5a1f18c633214e63b1c259b5a9a9cf279bfd1dfbd6993e09a13b8e63"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase1",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.659918308258057,
+      "started_unix": 1792015199.5699193,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 23193,
+        "cached_input_tokens": 23040,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 161,
+        "reasoning_output_tokens": 82
+      },
+      "estimated_usd": 0.00422,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "Runtime behavior and automated format, lint, and test checks were not verified; review was limited to the supplied complete diff."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "ef8f6a9d83856b95fc7b8a883116f562242e1c6d2b46a356ae23a789f5324b82"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase1-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.791833162307739,
+      "started_unix": 1792015209.2521856,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27243,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 96,
+        "reasoning_output_tokens": 36
+      },
+      "estimated_usd": 0.055446,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Phase 1 reports zero findings and complete coverage of account.py and usage.md. Automated checks are not required or claimed. Allow the next stage; this is not final review completion."
+      },
+      "input_sha256": "167ab98fb054688b7ac1e013bf47426d3e3dbfc1c3cb30aabec5e91cc553bffc",
+      "output_sha256": "888cebe3357bd9d46acbc8aecb3a0a1e0ba174d16c0e172bca0332d4740f54ad"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-full",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 9.977107048034668,
+      "started_unix": 1792015217.0568357,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 13056,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 247,
+        "reasoning_output_tokens": 109
+      },
+      "estimated_usd": 0.0223976,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          {
+            "path": "account.py",
+            "reviewed": "All additions; all three implementations and role docstrings match the documented contracts."
+          },
+          {
+            "path": "usage.md",
+            "reviewed": "All additions; preconditions, behavior, dependencies, and scope exclusions."
+          }
+        ],
+        "unverified": [
+          "Runtime behavior was not tested.",
+          "No automated formatting, lint, or test checks were performed."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "998dadbf400f9f7e258ec83e6212f12fe19d93f9575129551491f88baa445dd3"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-full-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 7.4226884841918945,
+      "started_unix": 1792015227.0541854,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26583,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 101,
+        "reasoning_output_tokens": 38
+      },
+      "estimated_usd": 0.054176,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages report zero findings and complete coverage of account.py and usage.md. The required post-Clean full review is complete; automated checks were not required. Allow progression to Phase2."
+      },
+      "input_sha256": "3dfd41befbdd900d484fa61c55ffe6380476a04fd83ecada2b05f3bba7d3fedd",
+      "output_sha256": "fa073f83a20caa22de086aa35833a93ca85d3d095512933d0a728590e60f4e90"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase2",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 36.200926542282104,
+      "started_unix": 1792015234.4904366,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 144347,
+        "cached_input_tokens": 123264,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 1407,
+        "reasoning_output_tokens": 122
+      },
+      "estimated_usd": 0.0685624,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          {
+            "path": "account.py",
+            "lines": "1-18",
+            "result": "Reviewed all additions; the three implementations satisfy usage.md under the stated preconditions."
+          },
+          {
+            "path": "usage.md",
+            "lines": "1-13",
+            "result": "Reviewed all additions; documented contracts agree with the implementations."
+          }
+        ],
+        "unverified": [
+          "Automated format, lint and test checks were not run, as instructed."
+        ],
+        "checklist_results": [
+          {
+            "id": "CRQ-001",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Function and parameter names communicate their operations and domain roles.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:4-18; usage.md:7-13 names and describes the same public operations."
+          },
+          {
+            "id": "CRQ-002",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "The stated empty base has no surrounding naming conventions.",
+            "evidence": "Base 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766 to candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: complete supplied additions account.py:1-18 and usage.md:1-13; requirements explicitly state no existing coding conventions."
+          },
+          {
+            "id": "CRQ-003",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Every named function has the required role docstring, including its relevant behavior.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5 documents ownership rejection; :12 documents the discount threshold; :17 documents fresh-list behavior, input preservation and duplicates."
+          },
+          {
+            "id": "CRQ-004",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "Docstrings and usage contracts accurately describe authorization, threshold behavior and list construction under the stated preconditions.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: account.py:5-8 agrees with usage.md:7-8; account.py:12-13 agrees with usage.md:9-11; account.py:17-18 agrees with usage.md:11-13."
+          },
+          {
+            "id": "CRQ-005",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "No superseded implementation exists in the empty base. All added functions are documented public utilities, and their branches are reachable under the preconditions.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: bounded inspection of the complete account.py:1-18 and usage.md:1-13 additions reveals no obsolete helpers, unreachable branches or descriptions of removed behavior."
+          },
+          {
+            "id": "CRQ-006",
+            "applicability": "NOT_APPLICABLE",
+            "result": "NOT_APPLICABLE",
+            "reason": "No library, service or internal-module dependency is added or newly used.",
+            "evidence": "Candidate 7f9d01249580a586982ce7c58a3484e5dcbc5006: complete account.py:1-18 uses only built-in operations and PermissionError; usage.md:13 accurately states no new dependency or infrastructure."
+          },
+          {
+            "id": "CRQ-007",
+            "applicability": "APPLICABLE",
+            "result": "PASS",
+            "reason": "The single proposed commit keeps the utility feature and its companion contracts together as one coherent rollback unit.",
+            "evidence": "Supplied range 9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766..7f9d01249580a586982ce7c58a3484e5dcbc5006 contains the single proposed commit 7f9d01249580a586982ce7c58a3484e5dcbc5006, adding account.py:1-18 and usage.md:1-13 with no unrelated changes."
+          }
+        ]
+      },
+      "input_sha256": "2131b215c3409316f22284ede9c9ab7ed6a67d8ae85c893a03ca2df1330ecabf",
+      "output_sha256": "e5cc0be50c55c3f64dad083ac5a8f6c5a765b75ea37601d2682e58f10e404de5"
+    },
+    {
+      "host": "codex",
+      "label": "round2-two-phase-phase2-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.903648853302002,
+      "started_unix": 1792015270.722522,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 27590,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 106,
+        "reasoning_output_tokens": 30
+      },
+      "estimated_usd": 0.05624,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Both free-review stages cover the complete fixed scope with zero findings. Phase2 accounts for exactly CRQ-001 through CRQ-007 with applicability, result, reason and evidence; no applicable check is unverified. Automated checks were outside the stated review requirements."
+      },
+      "input_sha256": "714471a74a847f8ba07bd1b2ca6c7784e886b7e1488f81943b7f1ffbfec715fa",
+      "output_sha256": "41dd3905482c2c571a83cf9c1bccfd6fddff5ea41da94958d0284661ce1f8032"
+    },
+    {
+      "host": "codex",
+      "label": "round2-ordinary-ordinary",
+      "role": "review",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 11.86482858657837,
+      "started_unix": 1792015277.6428227,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 22367,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 183,
+        "reasoning_output_tokens": 104
+      },
+      "estimated_usd": 0.046564,
+      "result": {
+        "material_findings": [],
+        "minor_findings": [],
+        "optional_suggestions": [],
+        "coverage": [
+          "account.py",
+          "usage.md"
+        ],
+        "unverified": [
+          "No tests, format checks, or lint checks were run; review was limited to the supplied complete diff."
+        ],
+        "checklist_results": []
+      },
+      "input_sha256": "9ec03ce57ef789f6d7e060d3c663acb5f22af451d8a1fe946c62021b20a24aad",
+      "output_sha256": "3d807a78c03c527c636ded5d165436d65c5a0a506e17a595118bc8c832f665a3"
+    },
+    {
+      "host": "codex",
+      "label": "round2-ordinary-ordinary-gate",
+      "role": "root_control",
+      "model": "gpt-6.1-sol (configured; effective model field not emitted)",
+      "effort_requested": "medium",
+      "elapsed_seconds": 6.145118951797485,
+      "started_unix": 1792015289.531615,
+      "cli_exit": 0,
+      "usage": {
+        "input_tokens": 26414,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 54,
+        "reasoning_output_tokens": 0
+      },
+      "estimated_usd": 0.053368,
+      "result": {
+        "gate": "ALLOW",
+        "material_count": 0,
+        "minor_count": 0,
+        "reason": "Free-review receipt covers account.py and usage.md with no findings. Automated checks are not required or claimed; Phase2 checklist accounting does not apply to this stage."
+      },
+      "input_sha256": "f0c01b30d94df4182ff91eda069e33c412acc4276a44da5926a6720ea9e8ba70",
+      "output_sha256": "a4b8931ee18f672876051998ed1f3424566a3192e45313bd952a27c86b00ea30"
+    }
+  ],
+  "portable_prompt_transcripts": {
+    "ordinary_and_free_review": "You are an independent read-only reviewer of the complete fixed\nbase-to-candidate difference below. Review freely against the requirements,\nincluding concrete correctness defects and minor quality issues. Separate optional\npreferences. Do not edit, run tests, publish, launch other agents, inspect unrelated\nfiles, or use tools. Do not read code-review/SKILL.md, checklist.md or its maintenance\nguide. No other review findings or intended answers are supplied. Evaluate only\nthe final candidate, not invented malformed inputs outside stated preconditions.\nReturn exactly one JSON object with material_findings, minor_findings and\noptional_suggestions arrays, coverage (all changed paths), unverified array, and\nchecklist_results array (empty for free review). Each finding needs location,\nconcrete evidence and impact. No prose outside JSON. Do not report tokens/model\nfrom self-estimates. Do not omit a real material defect to satisfy a budget.\n\n{\"base\": \"9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766\", \"candidate\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006\", \"diff_sha256\": \"6823efa470f8e93406b5d3503aabf000e49b6dae38e222c51b4c3de9fb787f6a\", \"paths\": [\"account.py\", \"usage.md\"], \"commit\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006 feat(account): add documented contract-correct utilities\", \"requirements\": \"Three functions export the contracts in usage.md. All named\\nfunctions require accurate role docstrings. All inputs satisfy usage.md's explicit\\npreconditions; extra input validation, type hints, rounding policy and deep copying\\nare not required. Review all additions against the empty base. No existing coding\\nconventions exist in that base. account.py and usage.md form one utility feature and\\none rollback unit in the single proposed commit. No automated format/lint/test\\nchecks are claimed by this review. Comparison is review-only: no fixes or reruns.\\n\"}\nComplete diff:\ndiff --git a/account.py b/account.py\nnew file mode 100644\nindex 0000000..e2e94a8\n--- /dev/null\n+++ b/account.py\n@@ -0,0 +1,18 @@\n+\"\"\"Small account utilities with caller-provided validated inputs.\"\"\"\n+\n+\n+def read_note(record, requester_id):\n+    \"\"\"Return the owner's note; reject any different requester with PermissionError.\"\"\"\n+    if requester_id != record[\"owner_id\"]:\n+        raise PermissionError(\"Not the record owner\")\n+    return record[\"note\"]\n+\n+\n+def discount(amount):\n+    \"\"\"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\"\"\"\n+    return amount * 0.9 if amount >= 100 else amount\n+\n+\n+def add_tag(tags, tag):\n+    \"\"\"Return a fresh outer list with the tag, preserving input and allowing duplicates.\"\"\"\n+    return [*tags, tag]\ndiff --git a/usage.md b/usage.md\nnew file mode 100644\nindex 0000000..6c4b488\n--- /dev/null\n+++ b/usage.md\n@@ -0,0 +1,13 @@\n+# Account utility contracts\n+\n+Callers supply a built-in dictionary containing `owner_id` and `note`, nonempty\n+string owner/requester IDs, a finite nonnegative `int` or `float` amount, and a\n+built-in tag list. Input validation beyond these preconditions is outside scope.\n+\n+`read_note(record, requester_id)` returns `record[\"note\"]` when requester ID\n+equals owner ID; otherwise it raises `PermissionError` before returning the note.\n+`discount(amount)` returns `amount * 0.9` for amounts at least 100 and returns\n+`amount` otherwise. Floating-point representation and rounding policy are outside\n+scope. `add_tag(tags, tag)` returns a fresh outer list containing the original\n+elements followed by the tag. The input list is unchanged; duplicate tags are\n+allowed. The functions require no new dependency or infrastructure.\n",
+    "codex_phase2": "You are an independent read-only reviewer of the complete fixed\nbase-to-candidate difference below. Evaluate ONLY the actual checklist criteria,\nincluding concrete correctness defects and minor quality issues. Separate optional\npreferences. Do not edit, run tests, publish, launch other agents, inspect unrelated files. Use a read tool ONLY for the checklist path below. Do not read code-review/SKILL.md or its maintenance guide. No other review findings or intended answers are supplied. Evaluate only\nthe final candidate, not invented malformed inputs outside stated preconditions.\nReturn exactly one JSON object with material_findings, minor_findings and\noptional_suggestions arrays, coverage (all changed paths), unverified array, and\nchecklist_results array (one entry for each active stable checklist ID). Each finding needs location,\nconcrete evidence and impact. No prose outside JSON. Do not report tokens/model\nfrom self-estimates. Do not omit a real material defect to satisfy a budget.\n\n{\"base\": \"9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766\", \"candidate\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006\", \"diff_sha256\": \"6823efa470f8e93406b5d3503aabf000e49b6dae38e222c51b4c3de9fb787f6a\", \"paths\": [\"account.py\", \"usage.md\"], \"commit\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006 feat(account): add documented contract-correct utilities\", \"requirements\": \"Three functions export the contracts in usage.md. All named\\nfunctions require accurate role docstrings. All inputs satisfy usage.md's explicit\\npreconditions; extra input validation, type hints, rounding policy and deep copying\\nare not required. Review all additions against the empty base. No existing coding\\nconventions exist in that base. account.py and usage.md form one utility feature and\\none rollback unit in the single proposed commit. No automated format/lint/test\\nchecks are claimed by this review. Comparison is review-only: no fixes or reruns.\\n\"}\nComplete diff:\ndiff --git a/account.py b/account.py\nnew file mode 100644\nindex 0000000..e2e94a8\n--- /dev/null\n+++ b/account.py\n@@ -0,0 +1,18 @@\n+\"\"\"Small account utilities with caller-provided validated inputs.\"\"\"\n+\n+\n+def read_note(record, requester_id):\n+    \"\"\"Return the owner's note; reject any different requester with PermissionError.\"\"\"\n+    if requester_id != record[\"owner_id\"]:\n+        raise PermissionError(\"Not the record owner\")\n+    return record[\"note\"]\n+\n+\n+def discount(amount):\n+    \"\"\"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\"\"\"\n+    return amount * 0.9 if amount >= 100 else amount\n+\n+\n+def add_tag(tags, tag):\n+    \"\"\"Return a fresh outer list with the tag, preserving input and allowing duplicates.\"\"\"\n+    return [*tags, tag]\ndiff --git a/usage.md b/usage.md\nnew file mode 100644\nindex 0000000..6c4b488\n--- /dev/null\n+++ b/usage.md\n@@ -0,0 +1,13 @@\n+# Account utility contracts\n+\n+Callers supply a built-in dictionary containing `owner_id` and `note`, nonempty\n+string owner/requester IDs, a finite nonnegative `int` or `float` amount, and a\n+built-in tag list. Input validation beyond these preconditions is outside scope.\n+\n+`read_note(record, requester_id)` returns `record[\"note\"]` when requester ID\n+equals owner ID; otherwise it raises `PermissionError` before returning the note.\n+`discount(amount)` returns `amount * 0.9` for amounts at least 100 and returns\n+`amount` otherwise. Floating-point representation and rounding policy are outside\n+scope. `add_tag(tags, tag)` returns a fresh outer list containing the original\n+elements followed by the tag. The input list is unchanged; duplicate tags are\n+allowed. The functions require no new dependency or infrastructure.\n\nRead actual checklist at <repository>\\link-targets\\agents\\skills\\code-review\\checklist.md\nReturn every active stable ID with applicability/result/reason/evidence.\nFor this Windows host, use exactly one exec_command read:\n    shell='<cmd-shell>', login=false,\n    cmd='type <repository>\\link-targets\\agents\\skills\\code-review\\checklist.md'.\n    This direct read path was verified by the coordinator. Do not use PowerShell or\n    MCP/remote filesystem tools. If this one read fails, stop with unverified evidence,\n    do not discover alternate tools or diagnose the environment during this review.\n    ",
+    "claude_phase2": "You are an independent read-only reviewer of the complete fixed\nbase-to-candidate difference below. Evaluate ONLY the actual checklist criteria,\nincluding concrete correctness defects and minor quality issues. Separate optional\npreferences. Do not edit, run tests, publish, launch other agents, inspect unrelated files. Use a read tool ONLY for the checklist path below. Do not read code-review/SKILL.md or its maintenance guide. No other review findings or intended answers are supplied. Evaluate only\nthe final candidate, not invented malformed inputs outside stated preconditions.\nReturn exactly one JSON object with material_findings, minor_findings and\noptional_suggestions arrays, coverage (all changed paths), unverified array, and\nchecklist_results array (one entry for each active stable checklist ID). Each finding needs location,\nconcrete evidence and impact. No prose outside JSON. Do not report tokens/model\nfrom self-estimates. Do not omit a real material defect to satisfy a budget.\n\n{\"base\": \"9cdf0cfdf5482690d1fdd0a7f1d4a9eb60727766\", \"candidate\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006\", \"diff_sha256\": \"6823efa470f8e93406b5d3503aabf000e49b6dae38e222c51b4c3de9fb787f6a\", \"paths\": [\"account.py\", \"usage.md\"], \"commit\": \"7f9d01249580a586982ce7c58a3484e5dcbc5006 feat(account): add documented contract-correct utilities\", \"requirements\": \"Three functions export the contracts in usage.md. All named\\nfunctions require accurate role docstrings. All inputs satisfy usage.md's explicit\\npreconditions; extra input validation, type hints, rounding policy and deep copying\\nare not required. Review all additions against the empty base. No existing coding\\nconventions exist in that base. account.py and usage.md form one utility feature and\\none rollback unit in the single proposed commit. No automated format/lint/test\\nchecks are claimed by this review. Comparison is review-only: no fixes or reruns.\\n\"}\nComplete diff:\ndiff --git a/account.py b/account.py\nnew file mode 100644\nindex 0000000..e2e94a8\n--- /dev/null\n+++ b/account.py\n@@ -0,0 +1,18 @@\n+\"\"\"Small account utilities with caller-provided validated inputs.\"\"\"\n+\n+\n+def read_note(record, requester_id):\n+    \"\"\"Return the owner's note; reject any different requester with PermissionError.\"\"\"\n+    if requester_id != record[\"owner_id\"]:\n+        raise PermissionError(\"Not the record owner\")\n+    return record[\"note\"]\n+\n+\n+def discount(amount):\n+    \"\"\"Return a ten-percent discount for amounts at least 100, otherwise unchanged.\"\"\"\n+    return amount * 0.9 if amount >= 100 else amount\n+\n+\n+def add_tag(tags, tag):\n+    \"\"\"Return a fresh outer list with the tag, preserving input and allowing duplicates.\"\"\"\n+    return [*tags, tag]\ndiff --git a/usage.md b/usage.md\nnew file mode 100644\nindex 0000000..6c4b488\n--- /dev/null\n+++ b/usage.md\n@@ -0,0 +1,13 @@\n+# Account utility contracts\n+\n+Callers supply a built-in dictionary containing `owner_id` and `note`, nonempty\n+string owner/requester IDs, a finite nonnegative `int` or `float` amount, and a\n+built-in tag list. Input validation beyond these preconditions is outside scope.\n+\n+`read_note(record, requester_id)` returns `record[\"note\"]` when requester ID\n+equals owner ID; otherwise it raises `PermissionError` before returning the note.\n+`discount(amount)` returns `amount * 0.9` for amounts at least 100 and returns\n+`amount` otherwise. Floating-point representation and rounding policy are outside\n+scope. `add_tag(tags, tag)` returns a fresh outer list containing the original\n+elements followed by the tag. The input list is unchanged; duplicate tags are\n+allowed. The functions require no new dependency or infrastructure.\n\nRead actual checklist at <repository>\\link-targets\\agents\\skills\\code-review\\checklist.md\nReturn every active stable ID with applicability/result/reason/evidence."
+  },
+  "prompt_transcript_note": "Portable copies normalize newlines and replace host paths; receipt hashes identify original input bytes. No checklist body is included."
+}

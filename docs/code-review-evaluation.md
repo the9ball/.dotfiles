@@ -96,6 +96,8 @@ Claude classifies the wrong threshold documentation as material and stops earlie
 
 ## Measured cost and measurement limits
 
+The later [review-only cost measurement](code-review-cost.md) separates ordinary review, initial Phase 1, post-Clean full review, Phase 2 and Root control on a fixed normal-case fixture. The historical Claude convergence-to-ordinary ratio below (about 8.9x) is not a review-only multiplier. Stage receipts for the new measurement are retained separately in [JSON](code-review-cost-results.json).
+
 Ordinary measurements cover one initial reviewer pass. Two-phase measurements cover correction convergence, post-Clean full review, checklist review and necessary local/evidence checks. Their work boundaries differ, so a percentage cost-saving or speed comparison would be misleading. Diagnostic startup/plan-mode/slash probes, deliberately failing V3 and missing-evidence probes, implementation Advisors, outer primary orchestration and internal automatic approval reviews are excluded from the positive comparison totals, not asserted cost-free.
 
 | Host / arm | Successful reviewer spawns | Other reviewer dispatches | Observed elapsed boundary | Token counters | USD estimate |
