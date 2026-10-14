@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0",
+  "case_id": "high-critical-findings",
+  "scenario": "important_discovery_parity",
+  "expected": {
+    "baseline": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [
+    { "proposition_id": "critical-001", "severity": "critical", "metrics": ["discovery", "gate", "evidence", "coverage"] },
+    { "proposition_id": "high-001", "severity": "high", "metrics": ["discovery", "gate", "evidence", "coverage"] }
+  ],
+  "packet_path": "../packets/high-critical-findings.json",
+  "runs": {
+    "baseline": { "result_path": "../results/high-critical-findings.baseline.json", "receipt_path": "../receipts/high-critical-findings.baseline.json" },
+    "candidate": { "result_path": "../results/high-critical-findings.candidate.json", "receipt_path": "../receipts/high-critical-findings.candidate.json" }
+  }
+}
