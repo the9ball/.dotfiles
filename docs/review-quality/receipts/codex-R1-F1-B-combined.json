@@ -1,0 +1,131 @@
+{
+  "session_id": "01a13d86-748a-7b83-a1e2-0d6a4f9022cc",
+  "usage": {
+    "input_tokens": 23138,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2263,
+    "reasoning_output_tokens": 430
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.068906,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:27",
+        "cause": "The flush loop runs only while at least one full batch remains.",
+        "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
+        "trigger": "With batch_size=20, enqueue one notice and call flush(): no transport call occurs. Flushing 21 notices sends 20 and leaves one queued.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size."
+      },
+      {
+        "id": "F2",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:31",
+        "cause": "The transport exception handler catches Exception instead of limiting recovery to ConnectionError.",
+        "impact": "Invalid payload ValueError exceptions are hidden from the caller, contrary to the explicit requirement.",
+        "trigger": "Queue a full batch whose transport.send call raises ValueError: flush() returns its accumulated results without propagating the error.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: every Exception from transport.send causes a silent loop exit."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58",
+        "cause": "DeliveryService.dispatch now returns a dictionary while command_response still expects a list of delivered identifiers.",
+        "impact": "The scheduler response changes shape and reports an incorrect delivery count.",
+        "trigger": "After successfully delivering 20 notices, command_response returns count=1 and ids={\"delivered\": [1, ..., 20]} instead of count=20 and a flat identifier list. With no deliveries, it still reports count=1.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list in a dictionary; dispatch.py:63-64 calculates len(delivered) and returns that dictionary as ids. The embedded base returns the list directly."
+      }
+    ],
+    "checklist_findings": [],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The affected names batch, batch_size, pending, and completed communicate their dispatch roles. The delivered return-shape defect is recorded separately as F3.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-37 and 54-64: inspected affected bindings, declarations, and callers.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The changed expressions retain the surrounding queue, batch, notice, and delivery vocabulary; no competing terminology is introduced.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:9-37 and 48-64: compared initialization, enqueue, flush, service dispatch, and command response.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "UNVERIFIED",
+        "result": "UNVERIFIED",
+        "reason": "Affected methods have role-oriented docstrings, but repository documentation and comment rules were not embedded. Compliance with any additional mandatory requirements cannot be established.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-25 and 54-55 contain the affected method docstrings. No repository comment-policy source is included in the frozen evidence.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The command-response docstring identifies existing scheduler clients as its consumers, but the changed service return value breaks that documented compatibility context. This shares the underlying cause of F3.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:62 describes existing scheduler clients; dispatch.py:58 and 63-64 produce the incompatible response. Also inspected affected flush and dispatch descriptions at lines 25 and 55.",
+        "finding_ids": [
+          "F3"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The replaced statements leave no superseded helper, abandoned branch, or obsolete behavior comment in the supplied file. All declarations are retained; no code is declared dead based on missing external callers.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:1-69 and the complete embedded base-to-candidate diff: inspected the entire supplied file and its internal references.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "The complete change adds no library, service, or internal-module dependency. It continues to use the existing injected transport and deque.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:3, 9-15, and 24-37; inspected the complete supplied file and diff for imports and dependency use.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied single commit subject and file list suggest one dispatch change, but no commit ID, parent linkage, or per-commit patch establishes the actual reviewed sequence and rollback boundaries.",
+        "evidence": "The frozen comparison names base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 and candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86. The commits entry supplies only the subject 'Batch notice dispatch and retain temporarily unavailable deliveries' and dispatch.py; relevant commit IDs are unavailable.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "dispatch.py:1-69 at candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86; complete supplied base, candidate, and diff inspected."
+    ],
+    "limitations": [
+      "Review used only embedded frozen evidence. No tools were used and no tests were executed; failing conditions are derived by static inspection.",
+      "Repository documentation rules and identifiable commit history were not supplied, limiting CRQ-003 and CRQ-007.",
+      "F3 is reported once under free_findings and referenced by the checklist to avoid duplicating its underlying cause.",
+      "The substantive defects remain unresolved; checklist passes do not establish correctness or authorize workflow advancement."
+    ]
+  },
+  "label": "codex-R1-F1-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "elapsed_seconds": 54.851080894470215,
+  "input_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
+  "raw_output_sha256": "26c62f61fdee8661ce781f33ba52dad4f9a287219d5f242201caa0e61149e363",
+  "started_unix": 1792033583.8285606,
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "admission_correction": "Original exact-string coverage rejection; verified original file+line declaration and candidate identity; no reviewer rerun",
+  "source_runner_sha256": "66b07b396ae3345c2643059cbd8bbba842e6e18001a30ced28987723ccf598b4",
+  "timestamp_note": "Start recovered from raw output file creation timestamp"
+}

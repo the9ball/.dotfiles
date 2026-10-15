@@ -185,6 +185,21 @@ def resolve_codex_settings():
     return configuration["model"], configuration["model_reasoning_effort"]
 
 
+def verify_coverage(actual_coverage, expected_coverage):
+    """Accept complete file declarations with optional reviewer-provided line details."""
+    resolved_files = []
+    for declaration in actual_coverage:
+        matches = [
+            name for name in expected_coverage
+            if declaration == name or declaration.startswith(name + ":")
+        ]
+        if len(matches) != 1:
+            raise RuntimeError("Incomplete or unexpected changed-file coverage")
+        resolved_files.append(matches[0])
+    if set(resolved_files) != set(expected_coverage):
+        raise RuntimeError("Incomplete or unexpected changed-file coverage")
+
+
 def invoke(host, label, prompt, output_directory, settings, expected_coverage):
     """Run one fresh reviewer with file-based input and a private raw receipt."""
     private_directory = Path(tempfile.mkdtemp(prefix="issue138-probe-quality-"))
@@ -233,8 +248,7 @@ def invoke(host, label, prompt, output_directory, settings, expected_coverage):
         ]
         if receipt["session_id"] in {previous["session_id"] for previous in previous_receipts}:
             raise RuntimeError("Reused reviewer session identity")
-        if set(receipt["result"]["coverage"]) != set(expected_coverage):
-            raise RuntimeError("Incomplete or unexpected changed-file coverage")
+        verify_coverage(receipt["result"]["coverage"], expected_coverage)
         if host == "claude":
             baseline_models = {
                 tuple(previous["effective_model"])
@@ -297,7 +311,7 @@ def prepare():
     print(json.dumps(manifest, indent=2))
 
 
-def run(host, round_number):
+def run(host, round_number, resume=False):
     """Execute one counterbalanced round and stop before exceeding the host allowance."""
     manifest = json.loads((DIRECTORY / "manifest.json").read_text(encoding="utf-8"))
     fixture_bytes = (DIRECTORY / "fixtures.json").read_bytes()
@@ -331,15 +345,22 @@ def run(host, round_number):
             stages = ["free"] if arm == "A" else ["combined"] if arm == "B" else ["free", "checklist"]
             for stage in stages:
                 label = f"{host}-R{round_number}-{fixture['id']}-{arm}-{stage}"
-                if (output_directory / (label + ".json")).exists():
-                    raise RuntimeError("Refusing to overwrite or rerun a completed observation")
-                if calls >= 32 or spent + 0.40 > 5.0:
-                    raise RuntimeError("Preregistered per-host launch/cost allowance exhausted")
                 expected_coverage = [
                     name for name in sorted(set(fixture["base_files"]) | set(fixture["candidate_files"]))
                     if fixture["base_files"].get(name) != fixture["candidate_files"].get(name)
                 ]
-                receipt = invoke(host, label, make_prompt(fixture, stage, checklist_bytes.decode("utf-8")), output_directory, settings, expected_coverage)
+                prompt = make_prompt(fixture, stage, checklist_bytes.decode("utf-8"))
+                completed_path = output_directory / (label + ".json")
+                if completed_path.exists():
+                    previous_receipt = json.loads(completed_path.read_text(encoding="utf-8"))
+                    if not resume or previous_receipt["input_sha256"] != digest(prompt):
+                        raise RuntimeError("Refusing to overwrite or rerun a completed observation")
+                    verify_coverage(previous_receipt["result"]["coverage"], expected_coverage)
+                    print(json.dumps({"retained_without_rerun": label}), flush=True)
+                    continue
+                if calls >= 32 or spent + 0.40 > 5.0:
+                    raise RuntimeError("Preregistered per-host launch/cost allowance exhausted")
+                receipt = invoke(host, label, prompt, output_directory, settings, expected_coverage)
                 spent += receipt["estimated_usd"]
                 calls += 1
                 print(json.dumps({"completed": label, "seconds": round(receipt["elapsed_seconds"], 2), "estimated_usd": receipt["estimated_usd"], "host_total_usd": spent}), flush=True)
@@ -350,10 +371,11 @@ if __name__ == "__main__":
     parser.add_argument("operation", choices=("prepare", "run"))
     parser.add_argument("--host", choices=("codex", "claude"))
     parser.add_argument("--round", type=int, choices=(1, 2), default=1)
+    parser.add_argument("--resume", action="store_true", help="Retain verified completed observations without rerunning them")
     arguments = parser.parse_args()
     if arguments.operation == "prepare":
         prepare()
     elif arguments.host:
-        run(arguments.host, arguments.round)
+        run(arguments.host, arguments.round, arguments.resume)
     else:
         parser.error("run requires --host")
