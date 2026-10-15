@@ -31,7 +31,7 @@
       "checklist_relation": "OUTSIDE",
       "checklist_rationale": "The checklist covers naming, structure, dependencies, documentation, and unused code; this inventory invariant requires behavioral reasoning across modules and is outside those quality rows.",
       "expected_finding": "Independent line validation against initial stock ignores shared canonical SKU demand; Request succeeds and available inventory becomes -1",
-      "matching_rules_and_near_misses": "Must connect catalog alias resolution with aggregate demand and identify accepted oversubscription; generic validation complaints do not match"
+      "matching_rules_and_near_misses": "Must identify independent validation of repeated canonical SKU demand against unchanged availability and accepted aggregate oversubscription. Different aliases, repeated identical products, or repeated canonical SKU lines are equivalent triggers; alias terminology is not required. Generic validation complaints do not match"
     },
     {
       "id": "M2",
@@ -67,7 +67,7 @@
       "id": "Q2",
       "severity": "P3",
       "category": "dead-code",
-      "cause": "replacement_capacity is an internal helper with no call sites or export mechanism",
+      "cause": "replacement_capacity has no references or documented external contract within the complete supplied service",
       "trigger": "Inspect all modules for replacement_capacity references",
       "impact": "Unused maintenance surface after replacement flow moved to quantity deltas",
       "reproduction": "Static full-repository inspection",
@@ -75,8 +75,8 @@
       "commit": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
       "checklist_relation": "CRQ-005",
       "checklist_rationale": "The finding directly concerns the unused-code row.",
-      "expected_finding": "replacement_capacity is an internal helper with no call sites or export mechanism; Unused maintenance surface after replacement flow moved to quantity deltas",
-      "matching_rules_and_near_misses": "Must name the unused helper and absence of references; speculative dead-code claims do not match"
+      "expected_finding": "replacement_capacity has no references or documented external contract within the complete supplied service; Unused maintenance surface after replacement flow moved to quantity deltas",
+      "matching_rules_and_near_misses": "Must name the unused helper and bounded absence of references. Optional cleanup can validly identify this cause without claiming runtime harm; speculative dead-code claims do not match"
     }
   ],
   "private_reproduction_source": "\"\"\"Evaluator-only invariant checks, never included in the review repository.\"\"\"\nimport unittest\nfrom api import ReservationAPI\nfrom catalog import Catalog\nfrom expiry import expire\nfrom repository import Repository\n\n\nclass InvariantTests(unittest.TestCase):\n    def test_alias_inventory(self):\n        \"\"\"Aggregate alias demand cannot exceed inventory.\"\"\"\n        repository = Repository({\"A\": 5})\n        api = ReservationAPI(repository, Catalog({\"red\": \"A\", \"scarlet\": \"A\"}))\n        with self.assertRaises(ValueError):\n            if hasattr(api, \"reserve_batch\"):\n                api.reserve_batch([{\"product\": \"red\", \"quantity\": 3},\n                                   {\"product\": \"scarlet\", \"quantity\": 3}], 100)\n            else:\n                api.allocator.reserve_many([(\"A\", 3), (\"A\", 3)], 100)\n        self.assertEqual(repository.available(\"A\"), 5)\n\n    def test_adjusted_expiry(self):\n        \"\"\"Expiry restores the current reservation quantity.\"\"\"\n        repository = Repository({\"A\": 10})\n        api = ReservationAPI(repository, Catalog({\"red\": \"A\"}))\n        original = api.reserve(\"red\", 4, 100)\n        api.replace(original[\"id\"], 2)\n        expire(repository, 100)\n        self.assertEqual(repository.available(\"A\"), 10)\n",

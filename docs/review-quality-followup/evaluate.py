@@ -3,12 +3,18 @@
 import argparse
 from collections import defaultdict
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 import random
 
 
 DIRECTORY = Path(__file__).resolve().parent
+SPECIFICATION = importlib.util.spec_from_file_location(
+    "fixed_review_controller", DIRECTORY / "run.py"
+)
+CONTROLLER = importlib.util.module_from_spec(SPECIFICATION)
+SPECIFICATION.loader.exec_module(CONTROLLER)
 
 
 def read_json(path):
@@ -25,7 +31,7 @@ def receipts(interval):
     """Select complete individual observations while excluding auxiliary event logs."""
     selected = []
     for path in sorted((DIRECTORY / "receipts").glob("*.json")):
-        if path.name.endswith((".events.json", ".execution.json", ".failure.json")):
+        if path.name.endswith((".events.json", ".execution.json", ".failure.json", ".launch.json")):
             continue
         receipt = read_json(path)
         if receipt["measurement"] == interval:
@@ -63,17 +69,18 @@ def audit(interval):
     expected_ids = {"CRQ-" + str(number).zfill(3) for number in range(1, 8)}
     by_label = {receipt["label"]: receipt for receipt in observations}
     for receipt in observations:
+        launch = read_json(DIRECTORY / "receipts" / (receipt["label"] + ".launch.json"))
+        assert launch["state"] == "COMPLETED"
+        event_log = read_json(DIRECTORY / "receipts" / (receipt["label"] + ".events.json"))
+        replay = CONTROLLER.TRANSPORT.parse_receipt(
+            receipt["host"], "\n".join(json.dumps(event) for event in event_log["events"])
+        )
+        for field in ("result", "usage", "session_id", "estimated_usd", "tool_calls"):
+            assert replay[field] == receipt[field], "receipt differs from retained events"
         assert receipt["cli_exit"] == 0 and not receipt["tool_calls"]
         assert receipt["input_sha256"] == manifest["prompts"][receipt["stage"]]
         assert receipt["stdin_sha256"] == receipt["input_sha256"]
-        declarations = receipt["result"]["coverage"]
-        for expected_file in manifest["changed_files"]:
-            assert any(
-                (declaration.get("file", declaration.get("path")) == expected_file)
-                if isinstance(declaration, dict) else
-                (declaration == expected_file or declaration.startswith(expected_file + ":"))
-                for declaration in declarations
-            ), "declared file coverage missing"
+        CONTROLLER.TRANSPORT.verify_coverage(receipt["result"]["coverage"], manifest["changed_files"])
         if receipt["stage"] in ("combined", "checklist"):
             identifiers = [row["id"] for row in receipt["result"]["checklist_results"]]
             assert len(identifiers) == 7 and set(identifiers) == expected_ids

@@ -86,6 +86,10 @@ def prepare():
         "changed_files": public["changed_files"],
         "prompts": {}, "reviewer_launch_cap": 20, "estimated_usd_ceiling": 12,
         "per_next_call_reservation_usd": 0.75,
+        "cli_versions": {
+            "codex": subprocess.check_output([shutil.which("codex.exe"), "--version"], text=True).strip(),
+            "claude": subprocess.check_output([shutil.which("claude.exe"), "--version"], text=True).strip(),
+        },
         "effective_settings_attestation": "Codex backend model/effort and Claude effort unavailable",
     }
     if manifest["codex_settings"][0] != "gpt-6.1-sol":
@@ -123,11 +127,15 @@ def invoke(host, label, stage, manifest):
     receipt_directory = DIRECTORY / "receipts"
     receipt_directory.mkdir(exist_ok=True)
     completed_path = receipt_directory / (label + ".json")
-    if completed_path.exists():
-        raise RuntimeError("Refusing to rerun an existing observation")
-    attempts = list(receipt_directory.glob("*.execution.json"))
+    if list(receipt_directory.glob(label + ".*.json")) or completed_path.exists():
+        raise RuntimeError("Refusing to overwrite any existing launch artifact")
+    if list(receipt_directory.glob("*.failure.json")):
+        raise RuntimeError("An unresolved failed launch blocks continuation and cost accounting")
+    attempts = list(receipt_directory.glob("*.launch.json"))
+    if any(read_json(path)["state"] != "COMPLETED" for path in attempts):
+        raise RuntimeError("An unresolved durable launch reservation blocks continuation")
     admitted = [read_json(path) for path in receipt_directory.glob("*.json")
-                if not path.name.endswith((".execution.json", ".failure.json", ".events.json"))]
+                if not path.name.endswith((".execution.json", ".failure.json", ".events.json", ".launch.json"))]
     if len(attempts) >= manifest["reviewer_launch_cap"]:
         raise RuntimeError("Launch allowance exhausted")
     spent = sum(receipt["estimated_usd"] for receipt in admitted)
@@ -155,6 +163,13 @@ def invoke(host, label, stage, manifest):
             "--output-format", "stream-json", "--verbose", "--print",
         ]
     started = time.time()
+    launch_path = receipt_directory / (label + ".launch.json")
+    launch = {
+        "label": label, "host": host, "stage": stage, "state": "RESERVED",
+        "started_unix": started, "budget_reservation_usd": 0.75,
+        "input_sha256": digest(prompt),
+    }
+    write_json(launch_path, launch)
     with input_path.open("rb") as input_file, output_path.open("wb") as output_file, error_path.open("wb") as error_file:
         process = subprocess.Popen(
             arguments, cwd=temporary_directory, stdin=input_file,
@@ -198,6 +213,8 @@ def invoke(host, label, stage, manifest):
             **execution, "error": str(error), "admitted": False,
         })
         raise
+    launch.update(state="COMPLETED", cli_exit=exit_code, estimated_usd=receipt["estimated_usd"])
+    write_json(launch_path, launch)
     if temporary_directory.parent.resolve() != Path(tempfile.gettempdir()).resolve():
         raise RuntimeError("Unexpected temporary parent")
     for path in (input_path, output_path, error_path):

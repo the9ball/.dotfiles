@@ -52,7 +52,7 @@
       ],
       "returncode": 1,
       "stdout": "",
-      "stderr": "test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity. ... FAIL\n\n======================================================================\nFAIL: test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<fixture>\\private_checks.py\", line 29, in test_adjusted_expiry\n    self.assertEqual(repository.available(\"A\"), 10)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 12 != 10\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (failures=1)\n"
+      "stderr": "test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity. ... FAIL\n\n======================================================================\nFAIL: test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<fixture>\\private_checks.py\", line 29, in test_adjusted_expiry\n    self.assertEqual(repository.available(\"A\"), 10)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 12 != 10\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
     }
   }
 }
