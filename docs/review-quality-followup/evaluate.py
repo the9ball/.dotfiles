@@ -52,6 +52,7 @@ def blind(interval):
         packet.append({
             "anonymous_id": anonymous_id, "findings": findings,
             "limitations": receipt["result"]["limitations"],
+            "checklist_observations": receipt["result"]["checklist_results"],
         })
     write_json(DIRECTORY / (interval + "-blind-packet.json"), {"observations": packet})
     write_json(DIRECTORY / (interval + "-blinding-map.json"), mapping)
@@ -113,7 +114,7 @@ def aggregate(interval):
     assert {grade["anonymous_id"] for grade in grades} == set(mapping)
     assert len(grades) == len(mapping)
     by_label = {mapping[grade["anonymous_id"]]: grade for grade in grades}
-    cells = defaultdict(lambda: {"detected": set(), "stages": {}, "usd": 0, "seconds": 0, "usage": defaultdict(int),
+    cells = defaultdict(lambda: {"detected": set(), "recognized_unverified": set(), "stages": {}, "usd": 0, "seconds": 0, "usage": defaultdict(int),
                                 "false_positives": 0, "severity_overstatements": 0, "optional_mandatory": 0})
     for receipt in observations:
         host, trial, arm, stage = receipt["label"].split("-")
@@ -121,6 +122,9 @@ def aggregate(interval):
         detected = {match["defect_id"] for match in grade["matches"]}
         cell = cells[(host, trial, arm)]
         cell["detected"].update(detected)
+        cell["recognized_unverified"].update(
+            item["defect_id"] for item in grade.get("recognized_unverified", [])
+        )
         cell["stages"][stage] = sorted(detected)
         cell["usd"] += receipt["estimated_usd"]
         cell["seconds"] += receipt["elapsed_seconds"]
@@ -132,6 +136,7 @@ def aggregate(interval):
     output_cells = []
     for (host, trial, arm), cell in sorted(cells.items()):
         cell["detected"] = sorted(cell["detected"])
+        cell["recognized_unverified"] = sorted(cell["recognized_unverified"])
         cell["usage"] = dict(cell["usage"])
         output_cells.append({"host": host, "trial": trial, "arm": arm, **cell})
     host_totals = []
