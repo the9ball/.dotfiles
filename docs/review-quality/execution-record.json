@@ -87,5 +87,18 @@
     "claude_authentication": "Two expired OAuth attempts reported zero usage/cost. After explicit user retry, same-route status returned loggedIn=true with claude.ai; first successful reviewer receipt identifies claude-opus-5-5. No coordinator credential or persistent configuration change.",
     "launch_extension_authorization": "Explicit user reply: 65起動まで許可する; reviewer estimate cap remains10USD"
   },
+  "measurement_completion": {
+    "admitted_observations": 64,
+    "codex_observations": 32,
+    "claude_observations": 32,
+    "model_backed_launches_including_excluded_duplicate": 65,
+    "scored_finding_entries": 193,
+    "primary_reviewer_estimate_usd": 4.9622918,
+    "known_reviewer_estimate_including_duplicate_usd": 5.0306318,
+    "main_study": "NOT_STARTED; ceiling and evidence-design limitations require fresh preregistration",
+    "hypotheses": {"H1": "INDETERMINATE", "H2": "INDETERMINATE", "H3": "INDETERMINATE"},
+    "checklist_audits": ["checklist-audit.json", "checklist-audit-claude.json"],
+    "final_report_review": "PENDING"
+  },
   "history_operations": "No amend, fixup, rebase, squash, force push, or existing-history rewrite"
 }

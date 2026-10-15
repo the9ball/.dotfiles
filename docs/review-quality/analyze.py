@@ -104,6 +104,10 @@ def aggregate():
             for identifier in row.get("finding_ids", [])
         }
         accounted = set()
+        scored_ids = [item["finding_id"] for field in ("matches", "extras", "duplicates") for item in grade[field]]
+        if len(scored_ids) != len(set(scored_ids)):
+            raise ValueError("Finding classified more than once")
+        truth_by_finding = {item["finding_id"]: item["truth_id"] for item in grade["matches"]}
         for match in grade["matches"]:
             truth_id = match["truth_id"]
             finding_id = match["finding_id"]
@@ -124,9 +128,20 @@ def aggregate():
             accounted.add(extra["finding_id"])
             cell["extras"].append({"observation_id": observation_id, **extra})
         for duplicate in grade["duplicates"]:
-            if duplicate["finding_id"] not in finding_ids:
+            finding_id = duplicate["finding_id"]
+            if finding_id not in finding_ids or duplicate["duplicate_of"] not in finding_ids:
                 raise ValueError("Unknown duplicate finding")
-            accounted.add(duplicate["finding_id"])
+            # A repeated cause can satisfy a section's coverage without adding a new defect.
+            truth_id = truth_by_finding.get(duplicate["duplicate_of"])
+            if truth_id is not None:
+                section = assignment["finding_mapping"][finding_id]["section"]
+                if section == "free_findings":
+                    cell["free_matched"].add(truth_id)
+                else:
+                    cell["checklist_array_matched"].add(truth_id)
+                if section == "checklist_findings" or str(assignment["finding_mapping"][finding_id]["original_id"]) in checklist_references:
+                    cell["checklist_matched"].add(truth_id)
+            accounted.add(finding_id)
             cell["duplicates"].append({"observation_id": observation_id, **duplicate})
         if accounted != finding_ids:
             raise ValueError("Not every finding was scored: " + observation_id)

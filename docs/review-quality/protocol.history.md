@@ -98,3 +98,11 @@ P1 means a serious defect under the contract, not exclusively a security defect;
 severity scoring must not infer overstatement solely from absence of security
 impact. Earlier Codex findings contain no optional/commit extras affected by
 these corrections. This is a disclosed scoring correction, not a reviewer rerun.
+
+Final reconciliation found B repeating the same quality cause in free and
+checklist sections. The aggregator had credited only the selected canonical
+match's section, creating an artificial checklist miss when the equivalent
+checklist finding was marked duplicate. Section coverage now follows validated
+duplicate links while retaining their duplicate count and deduplicating defect
+recall. All finding classifications must be disjoint. Existing observations
+verify both hosts' checklist-seed coverage at10/10; no reviewer was rerun.

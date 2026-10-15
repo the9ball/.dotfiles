@@ -789,8 +789,8 @@
       "p1_total": 0,
       "quality_union_found": 3,
       "quality_total": 3,
-      "quality_checklist_found": 0,
-      "quality_checklist_literal_array_found": 0,
+      "quality_checklist_found": 3,
+      "quality_checklist_literal_array_found": 3,
       "material_free_found": 0,
       "matched": [
         "F2-Q1",
@@ -802,7 +802,11 @@
         "F2-Q2",
         "F2-Q3"
       ],
-      "checklist_matched": [],
+      "checklist_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
       "extras": [],
       "duplicates": [
         {
@@ -2190,8 +2194,8 @@
       "unverified_ids": [],
       "applicability_disagreements": [],
       "result_disagreements": [
-        "CRQ-007",
-        "CRQ-004"
+        "CRQ-004",
+        "CRQ-007"
       ]
     },
     {
@@ -2299,8 +2303,8 @@
       "unverified_ids": [],
       "applicability_disagreements": [],
       "result_disagreements": [
-        "CRQ-007",
-        "CRQ-004"
+        "CRQ-004",
+        "CRQ-007"
       ]
     },
     {
@@ -2403,9 +2407,9 @@
         "CRQ-003"
       ],
       "result_disagreements": [
+        "CRQ-004",
         "CRQ-007",
-        "CRQ-003",
-        "CRQ-004"
+        "CRQ-003"
       ]
     },
     {
@@ -2528,9 +2532,9 @@
         "CRQ-003"
       ],
       "result_disagreements": [
+        "CRQ-004",
         "CRQ-007",
-        "CRQ-003",
-        "CRQ-004"
+        "CRQ-003"
       ]
     },
     {
@@ -2547,9 +2551,9 @@
         "CRQ-003"
       ],
       "result_disagreements": [
+        "CRQ-004",
         "CRQ-007",
-        "CRQ-003",
-        "CRQ-004"
+        "CRQ-003"
       ]
     },
     {

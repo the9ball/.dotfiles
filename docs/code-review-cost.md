@@ -2,7 +2,7 @@
 
 The later [anchoring-quality pilot](code-review-quality.md) measures combined
 checklist context versus independent contexts with equal post-Clean pass counts.
-Its Codex C/B ratio is 1.5728; Claude is unmeasured. That work boundary differs
+Its C/B ratios are 1.5728 for Codex and 1.5446 for Claude Code. That work boundary differs
 from this report's ordinary-versus-three-review comparison.
 
 ## Result and interpretation
