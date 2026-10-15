@@ -1,0 +1,88 @@
+{
+  "session_id": "01a13d99-f083-7940-afbf-a3d4ba57d005",
+  "usage": {
+    "input_tokens": 22424,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 971,
+    "reasoning_output_tokens": 187
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.054558,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.metadata",
+        "cause": "The cache key contains only report_id and omits tenant.",
+        "impact": "A tenant can receive another tenant's export and filename, bypassing the database adapter's ownership checks.",
+        "trigger": "Tenant A downloads report ID X, then tenant B requests the same ID through the same service instance.",
+        "evidence": "key = report_id shares the cached entry across tenants. On a cache hit, repository.lookup(tenant, report_id) is skipped, and download reads the cached export path."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.resolve_export",
+        "cause": "String-prefix comparison replaces directory-aware containment checking.",
+        "impact": "Downloads can read files outside the permitted export storage root.",
+        "trigger": "With storage root /srv/exports, metadata supplies ../exports-private/secret.csv and that file exists.",
+        "evidence": "The resolved target /srv/exports-private/secret.csv starts with /srv/exports, so the new check accepts it. The original is_relative_to check rejects this sibling directory."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "reports.py: ReportService.metadata and ReportService.replace_repository",
+        "cause": "Cached metadata persists indefinitely when the repository is replaced.",
+        "impact": "Previously requested reports cannot obtain refreshed metadata from the replacement repository. Downloads retain old filenames or content and can fail if the old export path is removed.",
+        "trigger": "Cache a report, rotate to a database adapter returning an updated path or filename for that report, then download it again.",
+        "evidence": "replace_repository changes only self.repository. metadata queries that repository only for keys absent from self.cache; rotate_connection performs no cache invalidation."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: ReportService.download",
+        "cause": "The descriptive local variable metadata is renamed to zz.",
+        "impact": "The path and filename accesses become less readable without changing behavior.",
+        "trigger": "Maintaining or reviewing the download implementation.",
+        "evidence": "The diff replaces metadata with zz at all three uses. Restoring a descriptive name is an optional readability improvement."
+      },
+      {
+        "id": "F5",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: _format_content_disposition",
+        "cause": "An unused helper is added for a retired response adapter.",
+        "impact": "The change introduces maintenance surface that does not contribute to caching or repository replacement.",
+        "trigger": "Maintaining the newly added helper despite no active caller.",
+        "evidence": "All implementation and callers are included, and none references _format_content_disposition. Its docstring explicitly identifies the consumer as retired. Removing it is optional cleanup."
+      }
+    ],
+    "coverage": [
+      "reports.py"
+    ],
+    "limitations": [
+      "Review used only the embedded frozen base, candidate, diff, and requirements; no tools or external sources were used.",
+      "No tests were executed. Failing conditions are established by static inspection.",
+      "Database adapter implementations and runtime storage contents are not supplied; findings describe concrete conditions under which the shown code fails."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F3-A-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034860.730779,
+  "elapsed_seconds": 25.150355577468872,
+  "input_sha256": "29ac401547caf6f5a35caa419717ce3fec7540f8dd9aaa10c188ecec8292968a",
+  "raw_output_sha256": "ce244260a2e79f2217db1ff95cf97c7f1a426eb7344a38fc6be8de7ffcc84603",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

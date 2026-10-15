@@ -162,7 +162,7 @@ def aggregate():
                 for key, value in item["usage"].items():
                     if isinstance(value, (int, float)):
                         usage[key] += value
-            costs.append({"host": host, "arm": arm, "launches": len(selected), "estimated_usd": sum(item["estimated_usd"] for item in selected), "elapsed_seconds": sum(item["elapsed_seconds"] for item in selected), "usage": dict(usage)})
+            costs.append({"host": host, "arm": arm, "launches": len(selected), "status": "MEASURED" if selected else "NOT_MEASURED", "estimated_usd": sum(item["estimated_usd"] for item in selected) if selected else None, "elapsed_seconds": sum(item["elapsed_seconds"] for item in selected) if selected else None, "usage": dict(usage)})
     for label, receipt in sorted(receipts.items()):
         host, trial, fixture_id, arm, stage = label.split("-")
         if arm == "A" or stage == "free":

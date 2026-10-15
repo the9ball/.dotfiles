@@ -51,6 +51,13 @@ wire-byte hashes must make this distinction. The extra paid duplicate counts
 against the global model-launch budget and is disclosed separately from the
 primary B/C reviewer ratio.
 
+R2/F1/C1 used a file name followed by an em dash and a complete-inspection
+statement. Its saved execution record and final answer were intact. The same
+coverage normalizer now accepts a known file name followed by ordinary annotation
+boundaries (colon, whitespace, dash or parenthesis), while rejecting different
+file names and missing inventory entries. This third representation is retained
+from the original answer with exact saved timing; it triggers no paid rerun.
+
 Claude's first correctly resolved process returned an expired OAuth error, zero
 usage and zero CLI-estimated cost. It is recorded separately from the two aqua
 wrapper diagnostics. No automatic authentication refresh or alternate account

@@ -195,7 +195,9 @@ def verify_coverage(actual_coverage, expected_coverage):
             raise RuntimeError("Unrecognized coverage declaration")
         matches = [
             name for name in expected_coverage
-            if declaration == name or declaration.startswith(name + ":")
+            if declaration == name or (
+                declaration.startswith(name) and declaration[len(name)] in ": \t\r\n—–("
+            )
         ]
         if len(matches) != 1:
             raise RuntimeError("Incomplete or unexpected changed-file coverage")
