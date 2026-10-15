@@ -195,14 +195,14 @@ def invoke(host, label, prompt, output_directory, settings, expected_coverage):
     if host == "codex":
         model, effort = settings
         arguments = [
-            shutil.which("codex"), "exec", "--json", "--ephemeral", "--approve-for-me",
+            shutil.which("codex.exe" if os.name == "nt" else "codex"), "exec", "--json", "--ephemeral", "--approve-for-me",
             "--skip-git-repo-check", "--ignore-user-config", "--model", model,
             "-c", "model_reasoning_effort=" + effort,
             "-c", "project_doc_max_bytes=0", "-",
         ]
     else:
         arguments = [
-            shutil.which("claude"), "--safe-mode", "--no-session-persistence",
+            shutil.which("claude.exe" if os.name == "nt" else "claude"), "--safe-mode", "--no-session-persistence",
             "--permission-mode", "plan", "--permission-prompts", "none",
             "--disallowedTools", "*", "--max-budget-usd", "0.40",
             "--output-format", "stream-json", "--verbose", "--print",
@@ -316,7 +316,10 @@ def run(host, round_number):
         raise RuntimeError("Codex model or effort changed after preregistration")
     if settings[0] != "gpt-6.1-sol":
         raise RuntimeError("Pricing has not been validated for configured model")
-    previous = list(output_directory.glob(host + "-*.json"))
+    previous = [
+        path for path in output_directory.glob(host + "-*.json")
+        if not path.name.endswith(".failure.json")
+    ]
     spent = sum(json.loads(path.read_text(encoding="utf-8"))["estimated_usd"] for path in previous)
     calls = len(previous)
     if round_number == 2:

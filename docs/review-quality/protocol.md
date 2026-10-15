@@ -90,7 +90,7 @@ are saved in the report and runner.
 ## Budget and pilot decision
 
 This is a bounded pilot, not a commitment to automatic main measurement. Maximum
-64 reviewer launches, no hidden replacement runs and no correction reruns.
+64 model-backed reviewer launches, no hidden replacement runs and no correction reruns.
 Reviewer API-rate equivalent budget is **10 USD total**, split 5 USD per host;
 before a call reserve 0.40 USD and stop launching if the host budget cannot cover
 it. Claude also receives its per-process 0.40 USD CLI guard. Codex usage is known
@@ -110,6 +110,16 @@ performed only if the inputs and scoring remain valid. Fixture/protocol changes
 after measurement invalidate pooling and require a new preregistration; do not
 silently rerun until an effect appears. If the pilot saturates or cannot expose
 anchoring, stop after its planned trials and propose a minimal harder follow-up.
+
+Before any model-backed run, two aqua wrapper processes rejected uppercase
+`.EXE` executable names returned by Python's command lookup. Both exited in
+under one second with empty model-output files and no session/usage. They are
+retained as two excluded startup diagnostics, not successful reviews or hidden
+paid retries. Explicit lowercase `.exe` lookup passed the same-process Python
+version check for both CLIs. The revised preregistration therefore permits those
+two failed wrappers plus the original maximum 64 reviewer processes (66 total
+wrapper/process attempts). Source, prompts, truth, orders and reviewer budget
+are unchanged. No measurement existed before this correction.
 
 ## Scoring
 
