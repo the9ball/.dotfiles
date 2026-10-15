@@ -36,7 +36,46 @@ describe('formatLine', () => {
       },
       now,
     )
-    expect(line).toBe('25%｜5時間 12% 1h30m｜週 41% 2d0h')
+    expect(line).toBe('25%｜5時間 13% 1h30m｜週 41% 2d0h')
+  })
+
+  /** Checks that rate-limit percentages round up and whole values stay as they are. */
+  test('rounds rate-limit percentages up', () => {
+    const line = formatLine(
+      {
+        context: { window: 200_000, percent: 10 },
+        rateLimits: [
+          { kind: 'five_hour', percentUsed: 47.1 },
+          { kind: 'seven_day', percentUsed: 42 },
+        ],
+      },
+      now,
+    )
+    expect(line).toBe('10%｜5時間 48%｜週 42%')
+  })
+
+  /** Checks that an unparseable reset time omits the countdown instead of showing NaN. */
+  test('omits the countdown when the reset time is unparseable', () => {
+    const line = formatLine(
+      { context: { window: 200_000, percent: 5 }, rateLimits: [{ kind: 'five_hour', percentUsed: 3, resetsAt: 'not a date' }] },
+      now,
+    )
+    expect(line).toBe('5%｜5時間 3%｜週 --')
+  })
+
+  /** Checks that a percentage that is not a finite number shows the placeholder instead of NaN. */
+  test('shows the placeholder when the percentage is not a finite number', () => {
+    const line = formatLine(
+      {
+        context: { window: 200_000, percent: 5 },
+        rateLimits: [
+          { kind: 'five_hour', percentUsed: Number.NaN, resetsAt: new Date(now + 60_000).toISOString() },
+          { kind: 'seven_day', percentUsed: Number.POSITIVE_INFINITY },
+        ],
+      },
+      now,
+    )
+    expect(line).toBe('5%｜5時間 --｜週 --')
   })
 
   /** Checks the placeholders when no figures are known yet. */

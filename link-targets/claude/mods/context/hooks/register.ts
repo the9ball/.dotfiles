@@ -26,12 +26,14 @@ export const formatRemaining = (ms: number): string => {
  * @param label The window's display label.
  * @param limit The window's figures, or `undefined` when the session reports no such window.
  * @param now The current time in epoch milliseconds, used to compute the time until reset.
- * @returns `<label> <percent>% <remaining>`, without the remaining time when no reset is reported, or `<label> --` when the window is absent.
+ * @returns `<label> <percent>% <remaining>`, without the remaining time when the reset time is missing or unparseable, or `<label> --` when the window is absent or its percentage is not a finite number.
  */
 const formatLimit = (label: string, limit: SessionRateLimit | undefined, now: number): string => {
-  if (!limit) return `${label} --`
-  const reset = limit.resetsAt ? ` ${formatRemaining(Date.parse(limit.resetsAt) - now)}` : ''
-  return `${label} ${Math.round(limit.percentUsed)}%${reset}`
+  if (!limit || !Number.isFinite(limit.percentUsed)) return `${label} --`
+  const resetsAt = limit.resetsAt ? Date.parse(limit.resetsAt) : Number.NaN
+  const reset = Number.isFinite(resetsAt) ? ` ${formatRemaining(resetsAt - now)}` : ''
+  // Round up so a rate limit never reads as further away than it is.
+  return `${label} ${Math.ceil(limit.percentUsed)}%${reset}`
 }
 
 /**

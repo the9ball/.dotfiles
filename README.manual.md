@@ -737,7 +737,7 @@ npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill 
 
 `chezmoi apply`は`link-targets/claude/mods`を`~/.claude/mods`へ共有リンクとして公開し（Windowsではジャンクション）、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)が`~/.claude/settings.json`の`env.CLAUDE_CODE_PLUGIN_DIRS`に`~/.claude/mods/context`の絶対パスを設定します。`env`の他のキーはそのまま書き戻しますが、`CLAUDE_CODE_PLUGIN_DIRS`自体はテンプレートの管理値なので、手動で追加したフォルダは次の適用で消えます。読み込むmodを増やす場合はテンプレートを書き換えてください。
 
-適用後は新しいClaude Codeセッションを開始してください。対話セッションはフォルダを監視するため、以後の編集は保存時に再読み込みされます。
+適用後は新しいClaude Codeセッションを開始してください。ターミナルの対話セッションはフォルダを監視するため、以後の編集は保存時に再読み込みされます。デスクトップアプリやSDKのように長時間動くセッションは、`CLAUDE_CODE_PLUGIN_DIR_WATCH=1`を同じく`env`に設定した場合だけフォルダを監視します。このリポジトリでは設定していないため、編集は新しいセッションを開始すると反映されます。
 
 変更後は、リポジトリのルートで次を実行して検証します。
 
