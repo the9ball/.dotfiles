@@ -1,0 +1,220 @@
+{
+  "identity": {
+    "target_commit": "c18cbc5709a34c8092b25109287c95cbc7e5f094",
+    "epoch": "score-pilot-c18cbc5",
+    "read_scope": {
+      "paths": [
+        "docs/review-quality-followup/pilot-blind-packet.json",
+        "docs/review-quality-followup/artifacts/truth.json",
+        "docs/review-quality-followup/artifacts/evidence.json",
+        "docs/review-quality-followup/artifacts/reproduction-results.json"
+      ],
+      "mode": "全文",
+      "materialization": "reference",
+      "primary_scope": "Entire file for each declared path",
+      "surrounding_context": "Other declared files",
+      "dependency_closure": "Declared four-file set only",
+      "actual_read": "All four files in full; truncated evidence output was completed through structural reads.",
+      "additional_subject_paths": []
+    },
+    "verified_blobs": {
+      "docs/review-quality-followup/pilot-blind-packet.json": "69d0e69f83700ca725d337bc3d6787d4c6ed93a6",
+      "docs/review-quality-followup/artifacts/truth.json": "1c20c06a50ce3c346a04fe2c7c0074027543f23c",
+      "docs/review-quality-followup/artifacts/evidence.json": "ea199ac5f6b9d967f4eb865151d716f39853d2db",
+      "docs/review-quality-followup/artifacts/reproduction-results.json": "11033ec700820fd89a12c31dc59cd785b72cbae7"
+    },
+    "limitations": [
+      "Each reference was retrieved using git show at the fixed commit and identified using git rev-parse commit:path.",
+      "Blinding is partial: observation text can imply review focus. No treatment mapping, ranking, or inference was used.",
+      "No tests were executed. Reproduction results are supplied records, not independent reruns.",
+      "The initially abbreviated artifact paths were clarified by the coordinator before reading.",
+      "No model or reasoning-effort setting is asserted."
+    ]
+  },
+  "observations": [
+    {
+      "anonymous_id": "O001",
+      "matches": [
+        {
+          "finding_id": "F1",
+          "defect_id": "M1",
+          "rationale": "Identifies unchanged initial availability, aggregate repeated-SKU demand, and accepted negative stock through a reachable 6+6 versus 10 batch."
+        },
+        {
+          "finding_id": "F2",
+          "defect_id": "M2",
+          "rationale": "Connects in-place reservation quantity changes to the unchanged release snapshot and incorrect restoration at expiry."
+        },
+        {
+          "finding_id": "F4",
+          "defect_id": "Q1",
+          "rationale": "Specifies the concrete documented reservations versus returned items mismatch and resulting failed lookup."
+        }
+      ],
+      "false_positives": [],
+      "severity_overstatements": [
+        {
+          "finding_id": "F2",
+          "claimed": "P1",
+          "reference": "P2",
+          "reason": "Frozen semantics classify adjustment followed by expiry corruption as P2; the underlying cause remains correct."
+        }
+      ],
+      "optional_mandatory": [],
+      "duplicates": [],
+      "optional_suggestions": [],
+      "additional_findings": [
+        {
+          "finding_id": "F3",
+          "cause": "Replacement accepts a still-active reservation after its deadline because it has no clock or deadline comparison.",
+          "validity": "Supported by the explicit before-expiry requirement and supplied source; pre-existing in the base, outside the frozen denominator, and not automatically a mandatory target-change finding.",
+          "evidence": "requirements restrict adjustments to before expiry; candidate replace checks active only, API forwards directly, and expire deactivates only when invoked. No expiry-first scheduling guarantee is supplied. Base replace also lacks deadline enforcement."
+        }
+      ],
+      "notes": [
+        "Q2 is not identified.",
+        "Deadline acceptance is independent of the stale release quantity cause."
+      ]
+    },
+    {
+      "anonymous_id": "O002",
+      "matches": [
+        {
+          "finding_id": "Q1",
+          "defect_id": "Q1",
+          "rationale": "Identifies reservations/items documentation mismatch and the consumer lookup failure."
+        },
+        {
+          "finding_id": "limitation[1]",
+          "defect_id": "M1",
+          "rationale": "Material routing explicitly identifies unchanged per-SKU validation, repeated canonical demand, and committed negative stock."
+        },
+        {
+          "finding_id": "limitation[2]",
+          "defect_id": "M2",
+          "rationale": "Material routing connects unchanged scheduled release quantity with wrong restoration after adjustment and expiry."
+        }
+      ],
+      "false_positives": [],
+      "severity_overstatements": [
+        {
+          "finding_id": "Q1",
+          "claimed": "P2",
+          "reference": "P3",
+          "reason": "Frozen semantics classify this documentation mismatch without demonstrated inventory corruption as P3."
+        }
+      ],
+      "optional_mandatory": [],
+      "duplicates": [],
+      "optional_suggestions": [],
+      "additional_findings": [
+        {
+          "finding_id": "limitation[3]",
+          "cause": "Replacement checks active status without enforcing the reservation deadline.",
+          "validity": "Supported against the explicit before-expiry requirement; pre-existing in the base and separate from the frozen denominator. Target-change mandatory status requires root adjudication.",
+          "evidence": "Candidate and base replace lack a time comparison; the supplied expiry worker closes reservations only when invoked. The supplied contract gives no expiry-first ordering guarantee."
+        }
+      ],
+      "notes": [
+        "limitation[0] concerns review-process completion, not a product defect; its prerequisite claim cannot be adjudicated from the permitted evidence.",
+        "limitation[4] describes verification limits, not an additional finding.",
+        "Material observations receive matching credit despite their placement in limitations.",
+        "Q2 is not identified."
+      ]
+    },
+    {
+      "anonymous_id": "O003",
+      "matches": [
+        {
+          "finding_id": "F1",
+          "defect_id": "M1",
+          "rationale": "Identifies independent initial-stock checks for repeated canonical demand and a reachable overselling batch."
+        },
+        {
+          "finding_id": "F2",
+          "defect_id": "M2",
+          "rationale": "Explains the stale scheduled quantity and both under-credit and over-credit variants at expiry."
+        },
+        {
+          "finding_id": "Q1",
+          "defect_id": "Q1",
+          "rationale": "Identifies the concrete reservations/items mismatch and failed documented lookup."
+        }
+      ],
+      "false_positives": [],
+      "severity_overstatements": [
+        {
+          "finding_id": "F2",
+          "claimed": "P1",
+          "reference": "P2",
+          "reason": "Adjustment followed by expiry corruption has frozen severity P2."
+        },
+        {
+          "finding_id": "Q1",
+          "claimed": "P2",
+          "reference": "P3",
+          "reason": "The documentation mismatch has frozen severity P3."
+        }
+      ],
+      "optional_mandatory": [],
+      "duplicates": [],
+      "optional_suggestions": [],
+      "additional_findings": [
+        {
+          "finding_id": "F3",
+          "cause": "Replacement accepts overdue active reservations without establishing a future deadline.",
+          "validity": "Supported against the explicit before-expiry requirement; already present in the base and excluded from the frozen denominator. Not automatically mandatory for the target change.",
+          "evidence": "replace has no current-time input or comparison in either revision; expire closes due records only on invocation, and no expiry-first dispatch guarantee is specified."
+        }
+      ],
+      "notes": [
+        "Q2 is not identified.",
+        "Increase/decrease examples are variants of M2, not duplicate finding entries."
+      ]
+    },
+    {
+      "anonymous_id": "O004",
+      "matches": [
+        {
+          "finding_id": "F1",
+          "defect_id": "M1",
+          "rationale": "Identifies unchanged per-SKU availability during validation and reachable aggregate oversubscription."
+        },
+        {
+          "finding_id": "F2",
+          "defect_id": "M2",
+          "rationale": "Connects quantity replacement to the retained release snapshot and incorrect stock restoration at expiry."
+        },
+        {
+          "finding_id": "F4",
+          "defect_id": "Q1",
+          "rationale": "Identifies reservations/items documentation mismatch and failed consumer access."
+        }
+      ],
+      "false_positives": [],
+      "severity_overstatements": [
+        {
+          "finding_id": "F2",
+          "claimed": "P1",
+          "reference": "P2",
+          "reason": "Frozen semantics assign adjustment followed by expiry corruption P2."
+        }
+      ],
+      "optional_mandatory": [],
+      "duplicates": [],
+      "optional_suggestions": [],
+      "additional_findings": [
+        {
+          "finding_id": "F3",
+          "cause": "Replacement accepts a reservation at or after its deadline while active remains set.",
+          "validity": "Supported against the explicit before-expiry requirement; pre-existing in the base and outside the frozen denominator. Its asserted mandatory target-change status requires root adjudication.",
+          "evidence": "Candidate and base replace check active without checking time; expiry processing alone closes overdue reservations. The supplied single-thread contract does not guarantee expiry-before-request ordering."
+        }
+      ],
+      "notes": [
+        "Q2 is not identified.",
+        "F3 is not classified as an optional suggestion or false cause: an explicit before-expiry contract exists, while change attribution remains separate."
+      ]
+    }
+  ]
+}
