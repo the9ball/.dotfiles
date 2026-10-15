@@ -1,0 +1,20 @@
+{{ if eq .chezmoi.os "windows" -}}
+$ErrorActionPreference = 'Stop'
+
+# The 00- target name reserves the first before-script slot for this guard.
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$aquaPolicy = Join-Path $repoRoot 'aqua-policy.yaml'
+# Keep this reviewed digest literal: deriving it from the template input would
+# automatically approve policy changes instead of requiring a new review.
+$expectedPolicySha256 = 'c778ce202758b7a5f9c5942140f685ddc814dfa946af35aa0886ec459513e72f'
+$actualPolicySha256 = (Get-FileHash -LiteralPath $aquaPolicy -Algorithm SHA256).Hash
+if ($actualPolicySha256 -ne $expectedPolicySha256) {
+    throw 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in both aqua-policy scripts.'
+}
+
+$aqua = (Get-Command aqua -ErrorAction Stop).Source
+& $aqua policy allow $aquaPolicy
+if ($LASTEXITCODE -ne 0) {
+    throw "aqua policy allow failed (exit code: $LASTEXITCODE)"
+}
+{{- end }}

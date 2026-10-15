@@ -38,12 +38,23 @@ chezmoi verify --exclude=scripts
 
 `chezmoi apply`は、次の処理を実行します。
 
+- 設定ファイルの変更前に`aqua-policy.yaml`のSHA-256を検証し、固定した確認済みの値と一致する場合だけ`aqua policy allow`を実行する。
 - `aqua install`：`aqua.yaml`に定義されたCLIを導入する。
 - `uv python install`と`uv pip install`：Python 3.13とPyYAML 6.0.3を導入する。
 - Windows：`winget import`で`winget.json`に定義されたAWS CLIとaws-vaultを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開する。
+
+ポリシーのハッシュ不一致、ファイル欠落、検証コマンドの失敗、承認失敗があれば、設定ファイルの変更前に適用を停止します。
+ポリシーを変更するときは、`aqua-policy.yaml`と`aqua-registry.yaml`の内容を確認し、`chezmoi/.chezmoiscripts/run_before_00-aqua-policy.ps1.tmpl`と`run_before_00-aqua-policy.sh.tmpl`の固定ハッシュを更新します。
+`run_before`内の名前順でガードを先頭にするため、`00-`をガード用に予約し、ほかの`run_before`には後続の名前を付けます。
+ポリシーからハッシュを自動生成するテンプレートにはしません。
+この検証は信頼したリポジトリのスクリプトを実行する前提で、ポリシーの変更を検出します。
+ローカルレジストリの定義を変更するときも、配布元と実行内容を別途確認してください。
+
+初回の`aqua install`など、chezmoiを経由しない導入では、この自動承認は実行されません。
+ローカルレジストリが未承認なら、[Windows SSHの手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、内容を確認して手動で信頼登録してから再実行します。
 
 既存環境から移行する場合は、`chezmoi apply`の前に[`link-targets/README.md`](link-targets/README.md)の手順でruntime link / junctionを張り直してください。管理スクリプトはtarget mismatchを自動修復しません。
 
