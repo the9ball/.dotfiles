@@ -38,7 +38,7 @@ def blind():
     packet = {
         "fixtures": [
             {key: fixture[key] for key in (
-                "id", "requirements", "base_files", "candidate_files", "ground_truth"
+                "id", "requirements", "base_files", "candidate_files", "commits", "ground_truth"
             )}
             for fixture in fixtures
         ],

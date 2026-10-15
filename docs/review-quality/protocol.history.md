@@ -83,3 +83,18 @@ Claude OAuth and the original runner produced a successful first observation.
 The result identifies `claude-opus-5-5`; effective effort remains unavailable.
 The original fixed inputs, arm order, CLI flags and model-default policy were
 retained. No authentication or persistent setting was changed by the coordinator.
+
+The first Claude scoring pass exposed two scoring-packet limitations: anonymous
+fixture data omitted the synthetic commit subjects/file lists supplied to every
+reviewer, and the initial extra-finding taxonomy conflated explicitly optional
+suggestions with false defect claims. The scoring packet now includes those
+same commit summaries (still no host/arm labels). Explicit optional suggestions
+receive a separate `optional_suggestion` classification, without defect credit
+or a false-positive penalty; unsupported mandatory claims remain distinguishable.
+Commit summaries still cannot prove real ancestry or per-commit contents.
+The scorer rechecks affected anonymous findings against the supplemented packet.
+Known truth, reviewer inputs, answers and primary recall denominators are fixed.
+P1 means a serious defect under the contract, not exclusively a security defect;
+severity scoring must not infer overstatement solely from absence of security
+impact. Earlier Codex findings contain no optional/commit extras affected by
+these corrections. This is a disclosed scoring correction, not a reviewer rerun.
