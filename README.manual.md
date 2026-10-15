@@ -474,12 +474,21 @@ OpenSSH 9.5 系には Git Bash とコマンドなしの `ssh -T host` で[不具
 
 まず、新しいローカル PowerShell で `psmux -V` を確認します。
 このリポジトリのローカル registry を初めて使う端末では、`aqua-policy.yaml` の内容を確認してから信頼登録します。
+`chezmoi apply`では、`run_before_aqua-policy`が設定ファイルの変更前にポリシーのSHA-256を検証し、スクリプトに固定した確認済みの値と一致するときだけ信頼登録します。
+ハッシュが異なる場合や検証、承認に失敗した場合は停止します。
+以下の手動登録は、chezmoi導入前など、`aqua install`を直接実行するときに使います。
 
 ```powershell
 aqua policy allow "$HOME\.dotfiles\aqua-policy.yaml"
 aqua install --config "$HOME\.dotfiles\aqua.yaml"
 psmux -V
 ```
+
+ポリシー変更時は、許可範囲とローカル registry の配布元をレビューしてから、PowerShell版とPOSIX版の`run_before_aqua-policy`にある固定ハッシュを更新します。
+コメントや改行だけの変更もハッシュ不一致になります。
+`python -B tests/aqua-policy.py -v`で、実際のchezmoiテンプレートから生成したスクリプトの正常系と異常系を検証できます。
+テストにはAqua、導入済みのchezmoi、PowerShell 7、POSIXシェル（WindowsではGit Bash）を使います。
+テスト用のaquaを隔離した環境で実行し、通常の承認状態は変更しません。
 
 `git-bash.exe` は端末を開くランチャーなので、SSH の既定シェルには `bin\bash.exe` を指定します。
 Git が別の場所にある場合は、実在する `bin\bash.exe` のパスを端末上で確認してください。

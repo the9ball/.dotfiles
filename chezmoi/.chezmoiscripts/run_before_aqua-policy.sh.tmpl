@@ -1,0 +1,27 @@
+{{ if ne .chezmoi.os "windows" -}}
+#!/bin/sh
+set -eu
+
+source_directory='{{ .chezmoi.sourceDir }}'
+repo_root=${source_directory%/*}
+aqua_policy="$repo_root/aqua-policy.yaml"
+# Keep this reviewed digest literal so a policy change cannot approve itself.
+expected_policy_sha256='c778ce202758b7a5f9c5942140f685ddc814dfa946af35aa0886ec459513e72f'
+
+if command -v sha256sum >/dev/null 2>&1; then
+    policy_checksum_output=$(sha256sum "$aqua_policy")
+elif command -v shasum >/dev/null 2>&1; then
+    policy_checksum_output=$(shasum -a 256 "$aqua_policy")
+else
+    echo 'Cannot verify aqua-policy.yaml: sha256sum or shasum is required.' >&2
+    exit 1
+fi
+actual_policy_sha256=${policy_checksum_output%% *}
+if [ "$actual_policy_sha256" != "$expected_policy_sha256" ]; then
+    echo 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in both aqua-policy scripts.' >&2
+    exit 1
+fi
+
+aqua_command=$(command -v aqua)
+"$aqua_command" policy allow "$aqua_policy"
+{{- end }}
