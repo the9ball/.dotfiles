@@ -1,30 +1,7 @@
 [
   {
-    "observation_id": "Ofa5756737271",
-    "label": "codex-R2-F2-C-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      }
-    }
-  },
-  {
-    "observation_id": "Ocba9537bbd65",
-    "label": "codex-R1-F1-C-checklist",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "O27105890662b",
-    "label": "codex-R2-F3-C-free",
+    "observation_id": "O27dc77e475d7",
+    "label": "codex-R1-F3-B-combined",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -39,36 +16,18 @@
         "original_id": "F3"
       },
       "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
+        "section": "checklist_findings",
+        "original_id": "Q1"
       },
       "f005": {
-        "section": "free_findings",
-        "original_id": "F5"
+        "section": "checklist_findings",
+        "original_id": "Q2"
       }
     }
   },
   {
-    "observation_id": "O3a17013902df",
-    "label": "codex-R1-F2-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      }
-    }
-  },
-  {
-    "observation_id": "O455085a012b4",
-    "label": "claude-R1-F4-C-checklist",
+    "observation_id": "Ob2ae952de6c5",
+    "label": "claude-R2-F4-B-combined",
     "finding_mapping": {
       "f001": {
         "section": "checklist_findings",
@@ -77,235 +36,8 @@
     }
   },
   {
-    "observation_id": "O0c5a69a9a671",
-    "label": "claude-R1-F1-C-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
-      }
-    }
-  },
-  {
-    "observation_id": "Od97a0f71a577",
-    "label": "codex-R2-F1-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      }
-    }
-  },
-  {
-    "observation_id": "O7f33c6a7485d",
-    "label": "codex-R1-F4-B-combined",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "O225d57daf01b",
-    "label": "codex-R2-F3-B-combined",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "checklist_findings",
-        "original_id": "Q1"
-      },
-      "f005": {
-        "section": "checklist_findings",
-        "original_id": "Q2"
-      }
-    }
-  },
-  {
-    "observation_id": "O940d0cc7c062",
-    "label": "codex-R1-F1-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
-      }
-    }
-  },
-  {
-    "observation_id": "Od0d2994d5115",
-    "label": "codex-R2-F4-C-free",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "O1fac7f366985",
-    "label": "codex-R1-F3-C-checklist",
-    "finding_mapping": {
-      "f001": {
-        "section": "checklist_findings",
-        "original_id": "Q1"
-      },
-      "f002": {
-        "section": "checklist_findings",
-        "original_id": "Q2"
-      },
-      "f003": {
-        "section": "checklist_findings",
-        "original_id": "Q3"
-      }
-    }
-  },
-  {
-    "observation_id": "O0f457bdc1227",
-    "label": "codex-R2-F4-C-checklist",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "Oc24bdd6a3076",
-    "label": "claude-R1-F2-C-checklist",
-    "finding_mapping": {
-      "f001": {
-        "section": "checklist_findings",
-        "original_id": "QF-1"
-      },
-      "f002": {
-        "section": "checklist_findings",
-        "original_id": "QF-2"
-      },
-      "f003": {
-        "section": "checklist_findings",
-        "original_id": "QF-3"
-      }
-    }
-  },
-  {
-    "observation_id": "Odc7a48434a78",
-    "label": "codex-R2-F2-B-combined",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "checklist_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "checklist_findings",
-        "original_id": "F3"
-      }
-    }
-  },
-  {
-    "observation_id": "O5f3c77dc8766",
-    "label": "claude-R1-F3-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
-      },
-      "f005": {
-        "section": "free_findings",
-        "original_id": "F5"
-      }
-    }
-  },
-  {
-    "observation_id": "Oea7957530fc6",
-    "label": "codex-R1-F2-C-checklist",
-    "finding_mapping": {
-      "f001": {
-        "section": "checklist_findings",
-        "original_id": "Q1"
-      },
-      "f002": {
-        "section": "checklist_findings",
-        "original_id": "Q2"
-      },
-      "f003": {
-        "section": "checklist_findings",
-        "original_id": "Q3"
-      }
-    }
-  },
-  {
-    "observation_id": "O7f6c7b645713",
-    "label": "claude-R1-F1-B-combined",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
-      },
-      "f005": {
-        "section": "checklist_findings",
-        "original_id": "C1"
-      }
-    }
-  },
-  {
-    "observation_id": "Oaf357adbc861",
-    "label": "codex-R1-F2-C-free",
+    "observation_id": "Ofb0cd237861f",
+    "label": "codex-R2-F2-A-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -340,8 +72,8 @@
     }
   },
   {
-    "observation_id": "Od249287376e1",
-    "label": "claude-R1-F1-A-free",
+    "observation_id": "O4ca5c3194c2a",
+    "label": "claude-R2-F3-C-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -358,60 +90,20 @@
       "f004": {
         "section": "free_findings",
         "original_id": "F4"
-      }
-    }
-  },
-  {
-    "observation_id": "Oc68e36db7e2e",
-    "label": "codex-R2-F1-C-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "free_findings",
-        "original_id": "F4"
-      }
-    }
-  },
-  {
-    "observation_id": "O27dc77e475d7",
-    "label": "codex-R1-F3-B-combined",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
-      },
-      "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
-      },
-      "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      },
-      "f004": {
-        "section": "checklist_findings",
-        "original_id": "Q1"
       },
       "f005": {
-        "section": "checklist_findings",
-        "original_id": "Q2"
+        "section": "free_findings",
+        "original_id": "F5"
+      },
+      "f006": {
+        "section": "free_findings",
+        "original_id": "F6"
       }
     }
   },
   {
-    "observation_id": "O52e099a40181",
-    "label": "claude-R1-F2-C-free",
+    "observation_id": "Oec6555230e2d",
+    "label": "codex-R1-F1-C-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -428,40 +120,86 @@
     }
   },
   {
-    "observation_id": "Of10f59bff42f",
-    "label": "codex-R2-F1-C-checklist",
+    "observation_id": "Ofbbe4fcc7744",
+    "label": "claude-R2-F3-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "free_findings",
+        "original_id": "F5"
+      },
+      "f006": {
+        "section": "free_findings",
+        "original_id": "F6"
+      },
+      "f007": {
+        "section": "checklist_findings",
+        "original_id": "C1"
+      },
+      "f008": {
+        "section": "checklist_findings",
+        "original_id": "C2"
+      }
+    }
+  },
+  {
+    "observation_id": "Oc24bdd6a3076",
+    "label": "claude-R1-F2-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "QF-1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "QF-2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "QF-3"
+      }
+    }
+  },
+  {
+    "observation_id": "Obea23ffb3d3b",
+    "label": "claude-R2-F4-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CF-1"
+      }
+    }
+  },
+  {
+    "observation_id": "O1fac7f366985",
+    "label": "codex-R1-F3-C-checklist",
     "finding_mapping": {
       "f001": {
         "section": "checklist_findings",
         "original_id": "Q1"
-      }
-    }
-  },
-  {
-    "observation_id": "Od25eaf3a9dd8",
-    "label": "claude-R1-F2-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
       },
       "f002": {
-        "section": "free_findings",
-        "original_id": "F2"
+        "section": "checklist_findings",
+        "original_id": "Q2"
       },
       "f003": {
-        "section": "free_findings",
-        "original_id": "F3"
-      }
-    }
-  },
-  {
-    "observation_id": "Od63bdbebbb46",
-    "label": "claude-R1-F1-C-checklist",
-    "finding_mapping": {
-      "f001": {
         "section": "checklist_findings",
-        "original_id": "CQ-1"
+        "original_id": "Q3"
       }
     }
   },
@@ -492,13 +230,8 @@
     }
   },
   {
-    "observation_id": "Of58d6f0e7a30",
-    "label": "codex-R1-F4-C-checklist",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "Ofb0cd237861f",
-    "label": "codex-R2-F2-A-free",
+    "observation_id": "O52e099a40181",
+    "label": "claude-R1-F2-C-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -511,6 +244,173 @@
       "f003": {
         "section": "free_findings",
         "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "Oc2ebf29c409f",
+    "label": "codex-R1-F3-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "free_findings",
+        "original_id": "F5"
+      }
+    }
+  },
+  {
+    "observation_id": "O90b4d240c3a0",
+    "label": "codex-R2-F1-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "Odc7a48434a78",
+    "label": "codex-R2-F2-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "O694612eba784",
+    "label": "claude-R2-F1-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CF-1"
+      }
+    }
+  },
+  {
+    "observation_id": "O3a17013902df",
+    "label": "codex-R1-F2-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "O0410e141dde6",
+    "label": "claude-R2-F3-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CQ-1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "CQ-2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "CQ-3"
+      },
+      "f004": {
+        "section": "checklist_findings",
+        "original_id": "CQ-4"
+      }
+    }
+  },
+  {
+    "observation_id": "Od249287376e1",
+    "label": "claude-R1-F1-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      }
+    }
+  },
+  {
+    "observation_id": "O17d9d8d19ff7",
+    "label": "claude-R2-F2-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CF-1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "CF-2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "CF-3"
+      }
+    }
+  },
+  {
+    "observation_id": "O0f457bdc1227",
+    "label": "codex-R2-F4-C-checklist",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "Od63bdbebbb46",
+    "label": "claude-R1-F1-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CQ-1"
       }
     }
   },
@@ -541,27 +441,109 @@
     }
   },
   {
-    "observation_id": "O9a970d554f07",
-    "label": "codex-R1-F4-C-free",
-    "finding_mapping": {}
-  },
-  {
-    "observation_id": "Od4c57aabb978",
-    "label": "claude-R1-F2-B-combined",
+    "observation_id": "Of10f59bff42f",
+    "label": "codex-R2-F1-C-checklist",
     "finding_mapping": {
       "f001": {
         "section": "checklist_findings",
+        "original_id": "Q1"
+      }
+    }
+  },
+  {
+    "observation_id": "O752bebdb545c",
+    "label": "claude-R1-F4-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
         "original_id": "F1"
       },
       "f002": {
-        "section": "checklist_findings",
+        "section": "free_findings",
+        "original_id": "F2"
+      }
+    }
+  },
+  {
+    "observation_id": "O940d0cc7c062",
+    "label": "codex-R1-F1-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
         "original_id": "F2"
       },
       "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      }
+    }
+  },
+  {
+    "observation_id": "O31a723887ddf",
+    "label": "codex-R1-F2-B-combined",
+    "finding_mapping": {
+      "f001": {
         "section": "checklist_findings",
+        "original_id": "Q1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "Q2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "Q3"
+      }
+    }
+  },
+  {
+    "observation_id": "Od25eaf3a9dd8",
+    "label": "claude-R1-F2-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
         "original_id": "F3"
       }
     }
+  },
+  {
+    "observation_id": "Od97a0f71a577",
+    "label": "codex-R2-F1-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "Of58d6f0e7a30",
+    "label": "codex-R1-F4-C-checklist",
+    "finding_mapping": {}
   },
   {
     "observation_id": "O1481023073db",
@@ -582,8 +564,30 @@
     }
   },
   {
-    "observation_id": "O31a723887ddf",
-    "label": "codex-R1-F2-B-combined",
+    "observation_id": "O0e6fbc067715",
+    "label": "claude-R2-F1-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      }
+    }
+  },
+  {
+    "observation_id": "Oea7957530fc6",
+    "label": "codex-R1-F2-C-checklist",
     "finding_mapping": {
       "f001": {
         "section": "checklist_findings",
@@ -596,6 +600,295 @@
       "f003": {
         "section": "checklist_findings",
         "original_id": "Q3"
+      }
+    }
+  },
+  {
+    "observation_id": "O0c5a69a9a671",
+    "label": "claude-R1-F1-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      }
+    }
+  },
+  {
+    "observation_id": "Oaf357adbc861",
+    "label": "codex-R1-F2-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "Od75f30fdaed1",
+    "label": "claude-R2-F2-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "O7f6c7b645713",
+    "label": "claude-R1-F1-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "checklist_findings",
+        "original_id": "C1"
+      }
+    }
+  },
+  {
+    "observation_id": "Of55cca3b46f2",
+    "label": "claude-R2-F2-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "Oc68e36db7e2e",
+    "label": "codex-R2-F1-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      }
+    }
+  },
+  {
+    "observation_id": "O455085a012b4",
+    "label": "claude-R1-F4-C-checklist",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "CF-1"
+      }
+    }
+  },
+  {
+    "observation_id": "O5f3c77dc8766",
+    "label": "claude-R1-F3-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "free_findings",
+        "original_id": "F5"
+      }
+    }
+  },
+  {
+    "observation_id": "O27105890662b",
+    "label": "codex-R2-F3-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "free_findings",
+        "original_id": "F5"
+      }
+    }
+  },
+  {
+    "observation_id": "Ocba9537bbd65",
+    "label": "codex-R1-F1-C-checklist",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "Oac336555f8f4",
+    "label": "claude-R2-F4-C-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      }
+    }
+  },
+  {
+    "observation_id": "Od4c57aabb978",
+    "label": "claude-R1-F2-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "checklist_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "checklist_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "checklist_findings",
+        "original_id": "F3"
+      }
+    }
+  },
+  {
+    "observation_id": "O225d57daf01b",
+    "label": "codex-R2-F3-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "checklist_findings",
+        "original_id": "Q1"
+      },
+      "f005": {
+        "section": "checklist_findings",
+        "original_id": "Q2"
+      }
+    }
+  },
+  {
+    "observation_id": "O7f33c6a7485d",
+    "label": "codex-R1-F4-B-combined",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "O9a970d554f07",
+    "label": "codex-R1-F4-C-free",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "O1bdec9487ec2",
+    "label": "claude-R2-F2-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "checklist_findings",
+        "original_id": "C1"
+      },
+      "f005": {
+        "section": "checklist_findings",
+        "original_id": "C2"
+      },
+      "f006": {
+        "section": "checklist_findings",
+        "original_id": "C3"
       }
     }
   },
@@ -705,8 +998,34 @@
     }
   },
   {
-    "observation_id": "O0c60cf22df89",
-    "label": "codex-R1-F1-B-combined",
+    "observation_id": "Oaed3baed7e24",
+    "label": "claude-R2-F1-B-combined",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      },
+      "f002": {
+        "section": "free_findings",
+        "original_id": "F2"
+      },
+      "f003": {
+        "section": "free_findings",
+        "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
+      },
+      "f005": {
+        "section": "checklist_findings",
+        "original_id": "C1"
+      }
+    }
+  },
+  {
+    "observation_id": "Ofa5756737271",
+    "label": "codex-R2-F2-C-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -723,8 +1042,8 @@
     }
   },
   {
-    "observation_id": "O90b4d240c3a0",
-    "label": "codex-R2-F1-B-combined",
+    "observation_id": "O0c60cf22df89",
+    "label": "codex-R1-F1-B-combined",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -751,8 +1070,8 @@
     }
   },
   {
-    "observation_id": "Oec6555230e2d",
-    "label": "codex-R1-F1-C-free",
+    "observation_id": "O117921f843d2",
+    "label": "claude-R2-F1-C-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -765,13 +1084,12 @@
       "f003": {
         "section": "free_findings",
         "original_id": "F3"
+      },
+      "f004": {
+        "section": "free_findings",
+        "original_id": "F4"
       }
     }
-  },
-  {
-    "observation_id": "O3dc8aa7f5a4d",
-    "label": "codex-R2-F4-A-free",
-    "finding_mapping": {}
   },
   {
     "observation_id": "O8295f9894de8",
@@ -779,8 +1097,28 @@
     "finding_mapping": {}
   },
   {
-    "observation_id": "Oc2ebf29c409f",
-    "label": "codex-R1-F3-A-free",
+    "observation_id": "O3dc8aa7f5a4d",
+    "label": "codex-R2-F4-A-free",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "Of3fde907c494",
+    "label": "claude-R2-F4-A-free",
+    "finding_mapping": {
+      "f001": {
+        "section": "free_findings",
+        "original_id": "F1"
+      }
+    }
+  },
+  {
+    "observation_id": "Od0d2994d5115",
+    "label": "codex-R2-F4-C-free",
+    "finding_mapping": {}
+  },
+  {
+    "observation_id": "O854afcfd7d13",
+    "label": "claude-R2-F3-A-free",
     "finding_mapping": {
       "f001": {
         "section": "free_findings",
@@ -801,20 +1139,10 @@
       "f005": {
         "section": "free_findings",
         "original_id": "F5"
-      }
-    }
-  },
-  {
-    "observation_id": "O752bebdb545c",
-    "label": "claude-R1-F4-A-free",
-    "finding_mapping": {
-      "f001": {
-        "section": "free_findings",
-        "original_id": "F1"
       },
-      "f002": {
+      "f006": {
         "section": "free_findings",
-        "original_id": "F2"
+        "original_id": "F6"
       }
     }
   }
