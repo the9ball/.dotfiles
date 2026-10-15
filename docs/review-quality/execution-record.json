@@ -25,7 +25,7 @@
     "source": "User section 8",
     "spot_review": "SKIPPED; full bounded experiment/report review covers the unit",
     "additional_design_correction_checkpoints": 2,
-    "final_adviser": "PENDING"
+    "final_adviser": "CLEAR for descriptive publication; source e6cec938772cd77bef6ef3426db4dfaac0976a62; full source-bound attestation in final-adviser.json"
   },
   "design_advice": {
     "independent_context": "design_adviser; fork_turns=none; unspecified model/effort inherited, effective metadata unavailable",
@@ -98,7 +98,7 @@
     "main_study": "NOT_STARTED; ceiling and evidence-design limitations require fresh preregistration",
     "hypotheses": {"H1": "INDETERMINATE", "H2": "INDETERMINATE", "H3": "INDETERMINATE"},
     "checklist_audits": ["checklist-audit.json", "checklist-audit-claude.json"],
-    "final_report_review": "PENDING"
+    "final_report_review": "CLEAR for descriptive publication; not an adoption decision or measurement; final-adviser.json"
   },
   "history_operations": "No amend, fixup, rebase, squash, force push, or existing-history rewrite"
 }
