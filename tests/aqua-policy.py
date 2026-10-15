@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -124,6 +125,30 @@ class AquaPolicyTests(unittest.TestCase):
         """Keep the reviewed fixture independent from the scripts' literal digests."""
         self.assertEqual(hashlib.sha256(self.policy.read_bytes()).hexdigest(), REVIEWED_SHA256)
 
+    def test_before_script_names_reserve_guard_slot(self):
+        """Reserve 00- for both guards and require later numbers only for before scripts."""
+        guard_names = {
+            "run_before_00-aqua-policy.ps1.tmpl",
+            "run_before_00-aqua-policy.sh.tmpl",
+        }
+        found_guards = set()
+        for script in SCRIPT_DIRECTORY.rglob("*"):
+            if not script.is_file():
+                continue
+            match = re.fullmatch(r"run_(?:(?:once|onchange)_)?before_(.+)", script.name)
+            if not match:
+                continue
+            relative_name = script.relative_to(SCRIPT_DIRECTORY).as_posix()
+            with self.subTest(script=relative_name):
+                if relative_name in guard_names:
+                    found_guards.add(relative_name)
+                else:
+                    self.assertRegex(
+                        match.group(1), r"^[1-9][0-9]-",
+                        "00- is reserved for the policy guards; use 10-, 20-, etc.",
+                    )
+        self.assertEqual(found_guards, guard_names)
+
     def test_matching_policy_is_approved(self):
         """Approve the matching policy on Windows, Linux, and macOS selectors."""
         for platform in ("windows", "linux", "darwin"):
@@ -199,6 +224,8 @@ class AquaPolicyTests(unittest.TestCase):
         scripts.mkdir(parents=True)
         home = fixture / "home"
         home.mkdir()
+        for repository_file in ("AGENTS.md", ".chezmoiignore"):
+            shutil.copyfile(REPOSITORY / "chezmoi" / repository_file, source / repository_file)
         for dependency in ("aqua.yaml", "aqua-registry.yaml", "winget.json", ".pre-commit-config.yaml"):
             shutil.copyfile(REPOSITORY / dependency, fixture / dependency)
         policy = fixture / "aqua-policy.yaml"
@@ -278,6 +305,7 @@ class AquaPolicyTests(unittest.TestCase):
                 with self.subTest(platform=platform, outcome=outcome):
                     fixture, source, home, config, marker, active = self.make_apply_fixture(platform, outcome)
                     result = self.run_apply_fixture(platform, fixture, source, home, config)
+                    self.assertFalse((home / "AGENTS.md").exists())
                     calls = self.log.read_text(encoding="utf-8").splitlines() if self.log.exists() else []
                     if outcome == "match":
                         self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))

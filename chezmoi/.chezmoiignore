@@ -3,6 +3,9 @@
 .codex/.codex-global-state.json
 AppData/
 {{- end }}
+
+# Keep repository instructions out of the destination home directory.
+AGENTS.md
 {{- if eq .chezmoi.os "windows" }}
 .codex-wsl/
 {{- end }}
