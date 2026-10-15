@@ -20,3 +20,6 @@ link-targets/agents/skills/redmine-cli/
 
 # Claude デスクトップアプリが同期する Anthropic 提供スキル。実体は追跡しない。
 link-targets/agents/skills/synced/
+
+# Claude Code が mod の読み込み時に書き出す型定義。生成物なので追跡しない。
+link-targets/claude/mods/*/.claude-plugin/types/

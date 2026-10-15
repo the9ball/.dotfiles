@@ -1,8 +1,8 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /*
 
-Of ~/.claude/settings.json, only the plugin sources and their enabled/disabled
-state are placed under .dotfiles management. Claude Code itself writes permissions
+Of ~/.claude/settings.json, only the keys set below (such as the plugin sources
+and their enabled/disabled state) are placed under .dotfiles management. Claude Code itself writes permissions
 and hooks into the same file, so replacing the whole file would roll those back.
 A modify_ template receives the current content via .chezmoi.stdin, so it overwrites
 only the managed keys and writes everything else back unchanged.
@@ -65,5 +65,19 @@ README.manual.md for the restore procedure.
   Disable the prompt suggestions shown in the input box after a reply, since they are not needed.
 */ -}}
 {{- $_ = set $settings "promptSuggestionEnabled" false -}}
+
+{{- /*
+  Load the mods published at ~/.claude/mods (a link to link-targets/claude/mods)
+  from disk. Claude Code reads CLAUDE_CODE_PLUGIN_DIRS from this env block, as
+  absolute paths joined by the platform's path-list separator. The value is
+  managed here, so a folder added to it by hand reverts on the next apply.
+  Other env keys are written back unchanged.
+*/ -}}
+{{- $env := dict -}}
+{{- if hasKey $settings "env" -}}
+{{-   $env = index $settings "env" -}}
+{{- end -}}
+{{- $_ = set $env "CLAUDE_CODE_PLUGIN_DIRS" (joinPath .chezmoi.homeDir ".claude" "mods" "context") -}}
+{{- $_ = set $settings "env" $env -}}
 
 {{- $settings | toPrettyJson -}}

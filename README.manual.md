@@ -413,7 +413,7 @@ chezmoi verify --exclude=scripts
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
 - Windowsでは`winget.json`に定義されたAWS CLIとaws-vaultのインストール
 - `prek`のGit hook設定
-- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開（Windowsではジャンクション）
+- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
 - Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）
 
 既存環境から移行する場合は、[`link-targets/README.md`](link-targets/README.md)の手順でruntime link / junctionを張り直してから`chezmoi apply`を実行してください。管理スクリプトはtarget mismatchを自動修復しません。
@@ -693,7 +693,7 @@ Claude CodeからCodexを呼び出す`codex@openai-codex`と、.NET開発のskil
 
 Claude Codeはmarketplace側のcommit固定に対応しません（`ref`はブランチとタグのみ）。ロックのcommitは、取得時点を記録して更新時の差分確認に使うもので、再現を保証するものではありません。
 
-marketplaceの登録とpluginの有効・無効は、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)を正とします。このテンプレートは`~/.claude/settings.json`のうち`extraKnownMarketplaces`と`enabledPlugins`だけを上書きし、`permissions`や`hooks`など他のキーは現在の内容をそのまま書き戻します。Claude Code自身が同じファイルへ書き込むため、ファイル全体を管理すると、その書き込みを巻き戻してしまうためです。
+marketplaceの登録とpluginの有効・無効は、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)を正とします。このテンプレートは`~/.claude/settings.json`のうち`extraKnownMarketplaces`と`enabledPlugins`など管理対象のキーだけを上書きし、`permissions`や`hooks`など他のキーは現在の内容をそのまま書き戻します。Claude Code自身が同じファイルへ書き込むため、ファイル全体を管理すると、その書き込みを巻き戻してしまうためです。
 
 有効・無効の切り替えは、UIではなくテンプレートを書き換えて適用します。UIで切り替えても、次の適用でテンプレートの値に戻ります。
 
@@ -730,6 +730,21 @@ npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill 
 `link-targets/agents/skills/dd-readonly-delegate`は、このリポジトリで管理する共有スキルです。第三者スキルの導入コマンドでは復元しません。
 
 このスキルはDatadogのメトリクス、ログ、ダッシュボード、ドキュメントの参照に使用します。単発の読み取り調査はサブエージェントへ委譲し、継続的な調査ではメインスレッドが関連スキルとMCPの文脈を保持します。
+
+### Claude Code modの導入
+
+`link-targets/claude/mods/context`は、Claude Codeの下部ステータス行にコンテキスト使用率と利用上限（5時間枠・週間枠）の使用率・リセットまでの時間を表示するmodです。marketplaceを経由せず、このリポジトリを正本としてディスクから直接読み込みます。
+
+`chezmoi apply`は`link-targets/claude/mods`を`~/.claude/mods`へ共有リンクとして公開し（Windowsではジャンクション）、[`chezmoi/dot_claude/modify_settings.json`](chezmoi/dot_claude/modify_settings.json)が`~/.claude/settings.json`の`env.CLAUDE_CODE_PLUGIN_DIRS`に`~/.claude/mods/context`の絶対パスを設定します。`env`の他のキーはそのまま書き戻しますが、`CLAUDE_CODE_PLUGIN_DIRS`自体はテンプレートの管理値なので、手動で追加したフォルダは次の適用で消えます。読み込むmodを増やす場合はテンプレートを書き換えてください。
+
+適用後は新しいClaude Codeセッションを開始してください。対話セッションはフォルダを監視するため、以後の編集は保存時に再読み込みされます。
+
+変更後は、リポジトリのルートで次を実行して検証します。
+
+`````sh
+claude plugin validate link-targets/claude/mods/context
+claude plugin test link-targets/claude/mods/context
+`````
 
 ## Datadog MCPの設定
 
