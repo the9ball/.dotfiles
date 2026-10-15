@@ -1,7 +1,11 @@
 {
   "fixture_file_sha256": "c1b4df9605299e6203498bed5427f2a67f57909f89792da50eb19caf91375188",
   "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
-  "runner_sha256": "6c22d5fb65fe356e0336660f4e8acde950384e5382f883046550065f85e9f14c",
+  "runner_sha256": "7a26b0859ce4d3a78b3c5a740a8abdd954618c74261831ba3a9f4c62055a86fe",
+  "codex_settings": [
+    "gpt-6.1-sol",
+    "medium"
+  ],
   "fixtures": [
     {
       "id": "F1",

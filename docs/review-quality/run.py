@@ -279,6 +279,7 @@ def prepare():
         "fixture_file_sha256": digest((DIRECTORY / "fixtures.json").read_bytes()),
         "checklist_sha256": digest(checklist_bytes),
         "runner_sha256": digest(Path(__file__).read_bytes()),
+        "codex_settings": list(resolve_codex_settings()),
         "fixtures": [],
     }
     evidence_directory = DIRECTORY / "evidence"
@@ -311,6 +312,8 @@ def run(host, round_number):
     output_directory = DIRECTORY / "receipts"
     output_directory.mkdir(exist_ok=True)
     settings = resolve_codex_settings()
+    if list(settings) != manifest["codex_settings"]:
+        raise RuntimeError("Codex model or effort changed after preregistration")
     if settings[0] != "gpt-6.1-sol":
         raise RuntimeError("Pricing has not been validated for configured model")
     previous = list(output_directory.glob(host + "-*.json"))
