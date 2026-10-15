@@ -72,14 +72,14 @@ class AquaPolicyTests(unittest.TestCase):
         command.write_text("#!/bin/sh\n" + body, encoding="utf-8", newline="\n")
         command.chmod(0o755)
 
-    def render(self, platform):
-        """Render a platform-specific guard with the real chezmoi template engine."""
+    def render(self, platform, template=None, source=None):
+        """Render a source script for an OS selector and optional repository fixture."""
         extension = "ps1" if platform == "windows" else "sh"
-        template = SCRIPT_DIRECTORY / f"run_before_aqua-policy.{extension}.tmpl"
+        template = template or SCRIPT_DIRECTORY / f"run_before_00-aqua-policy.{extension}.tmpl"
         result = subprocess.run(
             [
                 self.chezmoi,
-                "--source", str(self.source),
+                "--source", str(source or self.source),
                 "--destination", str(self.home),
                 "--config", str(self.configuration),
                 "--persistent-state", str(self.root / "chezmoi-state.boltdb"),
@@ -90,7 +90,7 @@ class AquaPolicyTests(unittest.TestCase):
             check=True,
             timeout=30,
         )
-        script = self.root / f"policy-{platform}.{extension}"
+        script = self.root / f"{platform}-{template.stem}"
         script.write_bytes(result.stdout)
         return script
 
@@ -191,37 +191,111 @@ class AquaPolicyTests(unittest.TestCase):
         self.assertIn(b"sha256sum or shasum is required", result.stderr)
         self.assertFalse(self.log.exists())
 
-    def test_apply_rejects_policy_before_changing_files(self):
-        """Run real chezmoi apply and ensure a rejected policy prevents file writes."""
-        platform = "windows" if os.name == "nt" else "linux"
+    def make_apply_fixture(self, platform, outcome):
+        """Render the real script inventory and replace non-guard effects with markers."""
+        fixture = self.root / f"{platform}-{outcome}"
+        source = fixture / "chezmoi"
+        scripts = source / ".chezmoiscripts"
+        scripts.mkdir(parents=True)
+        home = fixture / "home"
+        home.mkdir()
+        for dependency in ("aqua.yaml", "aqua-registry.yaml", "winget.json", ".pre-commit-config.yaml"):
+            shutil.copyfile(REPOSITORY / dependency, fixture / dependency)
+        policy = fixture / "aqua-policy.yaml"
+        policy.write_bytes(self.policy.read_bytes())
+        if outcome == "mismatch":
+            policy.write_bytes(policy.read_bytes() + b"# changed\n")
+        self.environment["AQUA_TEST_EXIT"] = "23" if outcome == "approval-failure" else "0"
+        self.log.unlink(missing_ok=True)
+        active_scripts = []
+        for template in sorted(SCRIPT_DIRECTORY.rglob("*")):
+            if not template.is_file():
+                continue
+            relative = template.relative_to(SCRIPT_DIRECTORY)
+            destination = scripts / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            rendered = self.render(platform, template, source).read_bytes()
+            if not rendered.strip():
+                destination.write_bytes(b"")
+                continue
+            active_scripts.append(relative.as_posix())
+            if relative.name.startswith("run_before_00-aqua-policy."):
+                destination.write_bytes(rendered)
+            else:
+                self.write_effect_marker(destination, relative.as_posix(), platform)
         extension = "ps1" if platform == "windows" else "sh"
-        scripts = self.source / ".chezmoiscripts"
-        scripts.mkdir()
-        shutil.copyfile(
-            SCRIPT_DIRECTORY / f"run_before_aqua-policy.{extension}.tmpl",
-            scripts / f"run_before_aqua-policy.{extension}.tmpl",
-        )
-        (self.source / "dot_guard-marker").write_text("after\n", encoding="utf-8")
-        marker = self.home / ".guard-marker"
+        sentinel = scripts / f"run_before_10-test-side-effect.{extension}"
+        self.write_effect_marker(sentinel, "additional-before", platform)
+        (source / "dot_guard-marker").write_text("after\n", encoding="utf-8")
+        marker = home / ".guard-marker"
         marker.write_text("before\n", encoding="utf-8")
-        self.policy.write_bytes(self.policy.read_bytes() + b"# changed\n")
-        result = subprocess.run(
+        configuration = fixture / "chezmoi.toml"
+        if platform == "windows":
+            interpreter = self.powershell
+            arguments = ["-NoProfile", "-File"]
+        else:
+            interpreter = self.shell
+            arguments = [
+                "-c", 'PATH="$AQUA_TEST_BIN:$PATH"; export PATH; . "$1"', "policy-test"
+            ]
+        if not interpreter:
+            self.skipTest(f"interpreter for {platform} is required")
+        configuration.write_text(
+            f"[interpreters.{extension}]\ncommand = {json.dumps(interpreter)}\n"
+            f"args = {json.dumps(arguments)}\n",
+            encoding="utf-8",
+        )
+        return fixture, source, home, configuration, marker, active_scripts
+
+    def write_effect_marker(self, destination, label, platform):
+        """Replace a script's external effects with a trace while preserving its name."""
+        if platform == "windows":
+            content = f"Add-Content -LiteralPath $env:AQUA_TEST_LOG -Value 'script:{label}'\n"
+        else:
+            content = f'#!/bin/sh\nprintf "%s\\n" "script:{label}" >> "$AQUA_TEST_LOG"\n'
+        destination.write_text(content, encoding="utf-8", newline="\n")
+
+    def run_apply_fixture(self, platform, fixture, source, home, configuration):
+        """Apply an isolated platform fixture with chezmoi's actual script scheduler."""
+        return subprocess.run(
             [
                 self.chezmoi,
-                "--source", str(self.source),
-                "--destination", str(self.home),
-                "--config", str(self.configuration),
-                "--persistent-state", str(self.root / "chezmoi-state.boltdb"),
+                "--source", str(source),
+                "--destination", str(home),
+                "--config", str(configuration),
+                "--persistent-state", str(fixture / "chezmoi-state.boltdb"),
+                "--override-data", json.dumps({"chezmoi": {"os": platform}}),
                 "apply", "--force",
             ],
             env=self.environment,
             capture_output=True,
             timeout=30,
         )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn(b"reviewed SHA-256", result.stderr)
-        self.assertEqual(marker.read_text(encoding="utf-8"), "before\n")
-        self.assertFalse(self.log.exists())
+    def test_apply_orders_actual_scripts_before_any_effects(self):
+        """Stop before other scripts and writes, and prove those effects run on success."""
+        for platform in ("windows", "linux", "darwin"):
+            for outcome in ("mismatch", "approval-failure", "match"):
+                with self.subTest(platform=platform, outcome=outcome):
+                    fixture, source, home, config, marker, active = self.make_apply_fixture(platform, outcome)
+                    result = self.run_apply_fixture(platform, fixture, source, home, config)
+                    calls = self.log.read_text(encoding="utf-8").splitlines() if self.log.exists() else []
+                    if outcome == "match":
+                        self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+                        self.assertTrue(calls[0].startswith("policy allow "), calls)
+                        expected = {f"script:{name}" for name in active if "00-aqua-policy" not in name}
+                        expected.add("script:additional-before")
+                        self.assertEqual(set(calls[1:]), expected)
+                        self.assertEqual(len(calls) - 1, len(expected))
+                        self.assertEqual(marker.read_text(encoding="utf-8"), "after\n")
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertEqual(marker.read_text(encoding="utf-8"), "before\n")
+                        if outcome == "mismatch":
+                            self.assertIn(b"reviewed SHA-256", result.stderr)
+                            self.assertEqual(calls, [])
+                        else:
+                            self.assertEqual(len(calls), 1)
+                            self.assertTrue(calls[0].startswith("policy allow "), calls)
 
 
 if __name__ == "__main__":

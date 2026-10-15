@@ -1,6 +1,7 @@
 {{ if eq .chezmoi.os "windows" -}}
 $ErrorActionPreference = 'Stop'
 
+# The 00- target name reserves the first before-script slot for this guard.
 $repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
 $aquaPolicy = Join-Path $repoRoot 'aqua-policy.yaml'
 # Keep this reviewed digest literal: deriving it from the template input would

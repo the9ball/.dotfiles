@@ -2,6 +2,7 @@
 #!/bin/sh
 set -eu
 
+# The 00- target name reserves the first before-script slot for this guard.
 source_directory='{{ .chezmoi.sourceDir }}'
 repo_root=${source_directory%/*}
 aqua_policy="$repo_root/aqua-policy.yaml"
