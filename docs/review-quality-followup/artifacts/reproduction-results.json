@@ -1,0 +1,58 @@
+{
+  "base": {
+    "test_alias_inventory": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "private_checks.InvariantTests.test_alias_inventory"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_alias_inventory (private_checks.InvariantTests.test_alias_inventory)\nAggregate alias demand cannot exceed inventory. ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nOK\n"
+    },
+    "test_adjusted_expiry": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "private_checks.InvariantTests.test_adjusted_expiry"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity. ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nOK\n"
+    }
+  },
+  "candidate": {
+    "test_alias_inventory": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "private_checks.InvariantTests.test_alias_inventory"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "test_alias_inventory (private_checks.InvariantTests.test_alias_inventory)\nAggregate alias demand cannot exceed inventory. ... FAIL\n\n======================================================================\nFAIL: test_alias_inventory (private_checks.InvariantTests.test_alias_inventory)\nAggregate alias demand cannot exceed inventory.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<fixture>\\private_checks.py\", line 14, in test_alias_inventory\n    with self.assertRaises(ValueError):\n         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\nAssertionError: ValueError not raised\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+    },
+    "test_adjusted_expiry": {
+      "command": [
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "-v",
+        "private_checks.InvariantTests.test_adjusted_expiry"
+      ],
+      "returncode": 1,
+      "stdout": "",
+      "stderr": "test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity. ... FAIL\n\n======================================================================\nFAIL: test_adjusted_expiry (private_checks.InvariantTests.test_adjusted_expiry)\nExpiry restores the current reservation quantity.\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"<fixture>\\private_checks.py\", line 29, in test_adjusted_expiry\n    self.assertEqual(repository.available(\"A\"), 10)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 12 != 10\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (failures=1)\n"
+    }
+  }
+}

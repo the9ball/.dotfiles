@@ -1,0 +1,29 @@
+{
+  "series": "reservation-20261015-v1",
+  "controller_sha256": "32b6ead66d88face66ff57803b9784ed8b0db831ce52efd190cf9ebe74c1d668",
+  "transport_sha256": "0b3df409fca60cb5b4140bf2ab3a320c5505b76d898e4535387a0d74c97a9cfc",
+  "evidence_sha256": "07822a3563736762c0fd1754a7cd86d32bdc1f00952d5397404855b18a3c59a9",
+  "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
+  "codex_settings": [
+    "gpt-6.1-sol",
+    "medium"
+  ],
+  "claude_settings": "unchanged host defaults; no override",
+  "base_sha": "fcdc1ba6ef2ab53821d7a691e7c3b5b6e152d086",
+  "candidate_sha": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+  "changed_files": [
+    "allocation.py",
+    "api.py",
+    "README.md",
+    "test_reservations.py"
+  ],
+  "prompts": {
+    "free": "02d84e62e702f0ec4599b3872fee8b7b07b08d73b5847c65a15feeaadce63127",
+    "combined": "7c0caa4eeafdd528fcbdcab25d91934ed7c7d94d77f67dd0e7565d51d86a8f2e",
+    "checklist": "bee29a83c378440e44d10a3c38e1c4d24a2e5c42674839bc192ed8f47e9841a4"
+  },
+  "reviewer_launch_cap": 20,
+  "estimated_usd_ceiling": 12,
+  "per_next_call_reservation_usd": 0.75,
+  "effective_settings_attestation": "Codex backend model/effort and Claude effort unavailable"
+}
