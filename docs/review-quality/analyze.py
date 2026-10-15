@@ -90,7 +90,7 @@ def aggregate():
     if len(sessions) != len(set(sessions)):
         raise ValueError("Session reuse")
     # Combine independent phase observations into one paired treatment result.
-    cells = defaultdict(lambda: {"matched": set(), "free_matched": set(), "checklist_matched": set(), "extras": [], "duplicates": [], "severity_overstatements": [], "optional_as_required": []})
+    cells = defaultdict(lambda: {"matched": set(), "free_matched": set(), "checklist_matched": set(), "checklist_array_matched": set(), "extras": [], "duplicates": [], "severity_overstatements": [], "optional_as_required": []})
     for observation_id, grade in grades.items():
         assignment = mapping[observation_id]
         label = assignment["label"]
@@ -98,6 +98,11 @@ def aggregate():
         cell = cells[(host, trial, fixture_id, arm)]
         truth = {item["id"]: item for item in fixtures[fixture_id]["ground_truth"]}
         finding_ids = {item["id"] for item in observations[observation_id]["findings"]}
+        checklist_references = {
+            str(identifier)
+            for row in receipts[label]["result"]["checklist_results"] if row.get("result") == "FINDING"
+            for identifier in row.get("finding_ids", [])
+        }
         accounted = set()
         for match in grade["matches"]:
             truth_id = match["truth_id"]
@@ -106,7 +111,12 @@ def aggregate():
                 raise ValueError("Invalid finding or ground-truth identity")
             cell["matched"].add(truth_id)
             section = assignment["finding_mapping"][finding_id]["section"]
-            cell["free_matched" if section == "free_findings" else "checklist_matched"].add(truth_id)
+            if section == "free_findings":
+                cell["free_matched"].add(truth_id)
+            else:
+                cell["checklist_array_matched"].add(truth_id)
+            if section == "checklist_findings" or str(assignment["finding_mapping"][finding_id]["original_id"]) in checklist_references:
+                cell["checklist_matched"].add(truth_id)
             accounted.add(finding_id)
         for extra in grade["extras"]:
             if extra["finding_id"] not in finding_ids:
@@ -137,6 +147,7 @@ def aggregate():
             "p1_misses": len(severe - cell["matched"]), "p1_total": len(severe),
             "quality_union_found": len(minor & cell["matched"]), "quality_total": len(minor),
             "quality_checklist_found": len(minor & cell["checklist_matched"]),
+            "quality_checklist_literal_array_found": len(minor & cell["checklist_array_matched"]),
             "material_free_found": len(material & cell["free_matched"]),
             **{field: sorted(cell[field]) for field in ("matched", "free_matched", "checklist_matched")},
             **{field: cell[field] for field in ("extras", "duplicates", "severity_overstatements", "optional_as_required")},

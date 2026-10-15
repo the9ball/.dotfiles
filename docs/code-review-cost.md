@@ -1,5 +1,10 @@
 # Review-only cost measurement for Issue #138 / PR #139
 
+The later [anchoring-quality pilot](code-review-quality.md) measures combined
+checklist context versus independent contexts with equal post-Clean pass counts.
+Its Codex C/B ratio is 1.5728; Claude is unmeasured. That work boundary differs
+from this report's ordinary-versus-three-review comparison.
+
 ## Result and interpretation
 
 Two ordered pairs per host, measured on 2026-10-15, give **3.80x for Codex** and **3.56x for Claude Code** when dividing the sum of two-phase reviewer estimates by the sum of ordinary reviewer estimates. These are descriptive results for this fixture and observed cache state, not stable intrinsic multipliers. Every two-phase arm includes exactly three independent reviews: initial free review, post-Clean full free review, and checklist review. No repair or local rereview is included.

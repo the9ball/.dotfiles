@@ -1,0 +1,1193 @@
+{
+  "quality_cells": [
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F1",
+      "arm": "A",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [],
+      "extras": [
+        {
+          "observation_id": "O940d0cc7c062",
+          "finding_id": "f004",
+          "classification": "valid_unseeded",
+          "reason": "Batching introduces repeated list(self.pending) conversion before slicing. With n notices, fixed batch_size=1, and successful atomic sends, the changed loop copies n+(n-1)+...+1 references, unlike the base single-pass drain. The stated 100,000-notice trigger and quadratic time/large temporary allocation impact follow directly from the supplied source."
+        }
+      ],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F1",
+      "arm": "B",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [
+        "F1-M1"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F1",
+      "arm": "C",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F2",
+      "arm": "A",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F2",
+      "arm": "B",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 3,
+      "quality_checklist_literal_array_found": 3,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [],
+      "checklist_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F2",
+      "arm": "C",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 3,
+      "quality_checklist_literal_array_found": 3,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "checklist_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F3",
+      "arm": "A",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F3",
+      "arm": "B",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 2,
+      "quality_checklist_literal_array_found": 2,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3"
+      ],
+      "checklist_matched": [
+        "F3-M2",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F3",
+      "arm": "C",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 2,
+      "quality_checklist_literal_array_found": 2,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "checklist_matched": [
+        "F3-M2",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F4",
+      "arm": "A",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F4",
+      "arm": "B",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F4",
+      "arm": "C",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F1",
+      "arm": "A",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F1",
+      "arm": "B",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [
+        "F1-M1"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F1",
+      "arm": "C",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 3,
+      "outside_total": 3,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "free_matched": [
+        "F1-M1",
+        "F1-M2",
+        "F1-M3"
+      ],
+      "checklist_matched": [
+        "F1-M1"
+      ],
+      "extras": [
+        {
+          "observation_id": "Oc68e36db7e2e",
+          "finding_id": "f004",
+          "classification": "valid_unseeded",
+          "reason": "The batching change converts the entire remaining deque before slicing on each successful batch. For a large backlog N and fixed batch size B, copies total N+(N-B)+... = O(N squared/B), whereas the base drains in one pass. The stated successful successive-batch trigger and allocation/copying impact are supported by source. This unseeded performance regression remains outside the frozen truth denominator."
+        }
+      ],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F2",
+      "arm": "A",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F2",
+      "arm": "B",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 3,
+      "quality_checklist_literal_array_found": 2,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [
+        "F2-Q2"
+      ],
+      "checklist_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F2",
+      "arm": "C",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 3,
+      "quality_total": 3,
+      "quality_checklist_found": 3,
+      "quality_checklist_literal_array_found": 3,
+      "material_free_found": 0,
+      "matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "free_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "checklist_matched": [
+        "F2-Q1",
+        "F2-Q2",
+        "F2-Q3"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F3",
+      "arm": "A",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F3",
+      "arm": "B",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 2,
+      "quality_checklist_literal_array_found": 2,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3"
+      ],
+      "checklist_matched": [
+        "F3-M2",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F3",
+      "arm": "C",
+      "material_found": 3,
+      "material_total": 3,
+      "outside_found": 2,
+      "outside_total": 2,
+      "p1_misses": 0,
+      "p1_total": 2,
+      "quality_union_found": 2,
+      "quality_total": 2,
+      "quality_checklist_found": 2,
+      "quality_checklist_literal_array_found": 2,
+      "material_free_found": 3,
+      "matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "free_matched": [
+        "F3-M1",
+        "F3-M2",
+        "F3-M3",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "checklist_matched": [
+        "F3-M2",
+        "F3-Q1",
+        "F3-Q2"
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F4",
+      "arm": "A",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F4",
+      "arm": "B",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F4",
+      "arm": "C",
+      "material_found": 0,
+      "material_total": 0,
+      "outside_found": 0,
+      "outside_total": 0,
+      "p1_misses": 0,
+      "p1_total": 0,
+      "quality_union_found": 0,
+      "quality_total": 0,
+      "quality_checklist_found": 0,
+      "quality_checklist_literal_array_found": 0,
+      "material_free_found": 0,
+      "matched": [],
+      "free_matched": [],
+      "checklist_matched": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    }
+  ],
+  "paired_material": [
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F1",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F2",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F3",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R1",
+      "fixture": "F4",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F1",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F2",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F3",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    },
+    {
+      "host": "codex",
+      "trial": "R2",
+      "fixture": "F4",
+      "A_found_B_missed": [],
+      "B_missed_C_found": [],
+      "B_found_C_missed": [],
+      "A_found_C_missed": []
+    }
+  ],
+  "costs": [
+    {
+      "host": "codex",
+      "arm": "A",
+      "launches": 8,
+      "status": "MEASURED",
+      "estimated_usd": 0.3713468,
+      "elapsed_seconds": 146.67015171051025,
+      "usage": {
+        "input_tokens": 177552,
+        "cached_input_tokens": 18688,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 5175,
+        "reasoning_output_tokens": 975
+      }
+    },
+    {
+      "host": "codex",
+      "arm": "B",
+      "launches": 8,
+      "status": "MEASURED",
+      "estimated_usd": 0.4995648,
+      "elapsed_seconds": 375.25171756744385,
+      "usage": {
+        "input_tokens": 185996,
+        "cached_input_tokens": 21888,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 16916,
+        "reasoning_output_tokens": 2618
+      }
+    },
+    {
+      "host": "codex",
+      "arm": "C",
+      "launches": 16,
+      "status": "MEASURED",
+      "estimated_usd": 0.7856992,
+      "elapsed_seconds": 492.4951093196869,
+      "usage": {
+        "input_tokens": 363514,
+        "cached_input_tokens": 77952,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 20678,
+        "reasoning_output_tokens": 3152
+      }
+    },
+    {
+      "host": "claude",
+      "arm": "A",
+      "launches": 0,
+      "status": "NOT_MEASURED",
+      "estimated_usd": null,
+      "elapsed_seconds": null,
+      "usage": {}
+    },
+    {
+      "host": "claude",
+      "arm": "B",
+      "launches": 0,
+      "status": "NOT_MEASURED",
+      "estimated_usd": null,
+      "elapsed_seconds": null,
+      "usage": {}
+    },
+    {
+      "host": "claude",
+      "arm": "C",
+      "launches": 0,
+      "status": "NOT_MEASURED",
+      "estimated_usd": null,
+      "elapsed_seconds": null,
+      "usage": {}
+    }
+  ],
+  "checklist_mechanical_audit": [
+    {
+      "label": "codex-R1-F1-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-003",
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [
+        "CRQ-003"
+      ],
+      "result_disagreements": [
+        "CRQ-003",
+        "CRQ-004",
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R1-F1-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-003",
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [
+        "CRQ-003"
+      ],
+      "result_disagreements": [
+        "CRQ-003",
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R1-F2-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R1-F2-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R1-F3-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R1-F3-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R1-F4-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R1-F4-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R2-F1-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-003",
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [
+        "CRQ-003"
+      ],
+      "result_disagreements": [
+        "CRQ-003",
+        "CRQ-004",
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R2-F1-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-003",
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [
+        "CRQ-003"
+      ],
+      "result_disagreements": [
+        "CRQ-003",
+        "CRQ-004",
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R2-F2-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R2-F2-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R2-F3-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R2-F3-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007",
+        "CRQ-002"
+      ]
+    },
+    {
+      "label": "codex-R2-F4-B-combined",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007"
+      ]
+    },
+    {
+      "label": "codex-R2-F4-C-checklist",
+      "row_count": 7,
+      "unique_ids": 7,
+      "missing_ids": [],
+      "extra_ids": [],
+      "unverified_ids": [
+        "CRQ-007"
+      ],
+      "applicability_disagreements": [],
+      "result_disagreements": [
+        "CRQ-007"
+      ]
+    }
+  ],
+  "session_count": 32,
+  "unique_session_count": 32
+}

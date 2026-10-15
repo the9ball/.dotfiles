@@ -65,3 +65,15 @@ was attempted. The authentication failure consumes one additional diagnostic
 process attempt beyond the premeasurement wrapper count; it does not consume a
 model-backed reviewer trial. Any further Claude run depends on user-reported
 authentication recovery. No model-backed reviewer is silently replaced.
+
+The user subsequently selected reauthentication and continuation on both hosts,
+and explicitly increased the model-backed launch ceiling from 64 to 65 while
+keeping the 10 USD reviewer estimate ceiling unchanged. The increase covers
+only the one accidental duplicate; planned primary trial counts are unchanged.
+A same-route recovery check still reported no login, and one subsequent CLI
+attempt returned the same expired OAuth error with zero usage and zero cost.
+That attempt is preserved separately as `claude-auth-retry.*`; it is not a
+model-backed trial. The coordinator should have stopped after the negative
+login check instead of invoking the runner. No further authentication retry is
+made until the user reports completed reauthentication; no credentials are
+changed by the coordinator.

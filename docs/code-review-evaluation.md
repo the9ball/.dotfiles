@@ -1,5 +1,9 @@
 # Issue #138 implementation and runtime evaluation
 
+The later [anchoring-quality pilot](code-review-quality.md) compares A/B/C on
+new frozen fixtures. Its Codex results and missing Claude measurement are separate
+from this implementation/convergence evaluation; H1/H2/H3 remain indeterminate.
+
 Date: 2026-10-15 JST. Design source: [Issue #138](https://github.com/the9ball/.dotfiles/issues/138), its [REVIEW-SUMMARY](https://github.com/the9ball/.dotfiles/issues/138#issuecomment-6172286907), [DIG-LOG](https://github.com/the9ball/.dotfiles/issues/138#issuecomment-6172285984), and [preimplementation measurements](https://github.com/the9ball/.dotfiles/issues/138#issuecomment-6173038586).
 
 ## Implementation and execution contract
