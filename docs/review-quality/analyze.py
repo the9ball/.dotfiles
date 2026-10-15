@@ -84,6 +84,7 @@ def aggregate():
     sessions = [receipt["session_id"] for receipt in receipts.values()]
     if len(sessions) != len(set(sessions)):
         raise ValueError("Session reuse")
+    # Combine independent phase observations into one paired treatment result.
     cells = defaultdict(lambda: {"matched": set(), "free_matched": set(), "checklist_matched": set(), "extras": [], "duplicates": [], "severity_overstatements": [], "optional_as_required": []})
     for observation_id, grade in grades.items():
         assignment = mapping[observation_id]

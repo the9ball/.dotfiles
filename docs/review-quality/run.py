@@ -189,6 +189,10 @@ def verify_coverage(actual_coverage, expected_coverage):
     """Accept complete file declarations with optional reviewer-provided line details."""
     resolved_files = []
     for declaration in actual_coverage:
+        if isinstance(declaration, dict):
+            declaration = declaration.get("file", declaration.get("path"))
+        if not isinstance(declaration, str):
+            raise RuntimeError("Unrecognized coverage declaration")
         matches = [
             name for name in expected_coverage
             if declaration == name or declaration.startswith(name + ":")
@@ -230,6 +234,11 @@ def invoke(host, label, prompt, output_directory, settings, expected_coverage):
         )
         exit_code = process.wait()
     elapsed = time.time() - started
+    write_json(output_directory / (label + ".execution.jsonl"), {
+        "label": label, "host": host, "cli_exit": exit_code,
+        "started_unix": started, "elapsed_seconds": elapsed,
+        "input_sha256": digest(prompt), "raw_output_sha256": digest(output_path.read_bytes()),
+    })
     if exit_code:
         write_json(output_directory / (label + ".failure.json"), {
             "label": label, "host": host, "cli_exit": exit_code,
@@ -258,7 +267,7 @@ def invoke(host, label, prompt, output_directory, settings, expected_coverage):
                 raise RuntimeError("Claude effective model is missing or ambiguous")
             if baseline_models and tuple(receipt["effective_model"]) not in baseline_models:
                 raise RuntimeError("Claude effective model changed across observations")
-    except (ValueError, KeyError, RuntimeError) as error:
+    except (ValueError, KeyError, RuntimeError, TypeError, AttributeError) as error:
         write_json(output_directory / (label + ".failure.json"), {
             "label": label, "host": host, "cli_exit": exit_code,
             "elapsed_seconds": elapsed, "input_sha256": digest(prompt),

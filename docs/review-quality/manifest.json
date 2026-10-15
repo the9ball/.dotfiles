@@ -1,7 +1,7 @@
 {
   "fixture_file_sha256": "c1b4df9605299e6203498bed5427f2a67f57909f89792da50eb19caf91375188",
   "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
-  "runner_sha256": "89d2453a808aecbccc887f31184e7c234e1a1beeaf815306db63b79d47ac3373",
+  "runner_sha256": "a356cb24b88d6ada8b7ad0a24d81e9b65675e83d2a7c00e46bed5f4cbf7e9a09",
   "codex_settings": [
     "gpt-6.1-sol",
     "medium"

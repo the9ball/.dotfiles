@@ -20,6 +20,17 @@ original source remains recoverable from Git. Final independent review must
 verify this preservation rather than claim its earlier design verdict covers
 the changed runner. No fourth design checkpoint is requested.
 
+A subsequent B/F2/R1 answer represented the same declaration as an object with
+`file`, `scope` and `identity`. Its source coverage and candidate identity were
+also complete. The parser now accepts explicit `file`/`path` objects as well as
+strings; unrecognized shapes and unknown/missing files still stop. No prompt or
+finding was changed and this original observation was also retained. Its exact
+process duration had not been persisted before the parser exception: the receipt
+labels its duration as reconstructed from raw-output creation/last-write times,
+not an exact subprocess measurement. Subsequent invocations save execution
+timings before parsing, avoiding that loss. These are two output-representation
+corrections, not model retries or fixture tuning after seeing detection results.
+
 Claude's first correctly resolved process returned an expired OAuth error, zero
 usage and zero CLI-estimated cost. It is recorded separately from the two aqua
 wrapper diagnostics. No automatic authentication refresh or alternate account
