@@ -16,6 +16,18 @@ import tomllib
 DIRECTORY = Path(__file__).resolve().parent
 REPOSITORY = DIRECTORY.parent.parent
 CHECKLIST = REPOSITORY / "link-targets/agents/skills/code-review/checklist.md"
+FREE_OUTPUT_INSTRUCTION = """
+Return one JSON object without Markdown fences, with free_findings (array),
+coverage (array of every inspected changed file), and limitations (array).
+Each finding: id (local unique identifier), severity (P1/P2/P3), category
+(material/quality/optional), location (file and line or symbol), cause, impact,
+trigger (concrete failing condition), evidence. Deduplicate by underlying cause.
+Use the given requirements and repository evidence; distinguish mandatory fixes
+from optional preferences. Do not infer missing requirements. Do not claim tests
+were executed. All evidence is embedded; do not use tools, inspect files, spawn
+agents, access external services, or modify anything. This is a single inspection
+of a frozen change, not permission to advance a production workflow.
+"""
 OUTPUT_INSTRUCTION = """
 Return one JSON object, without Markdown fences, with these keys:
 free_findings: array of findings from unrestricted review (empty when not requested).
@@ -94,7 +106,8 @@ def make_prompt(fixture, stage, checklist_text):
             "unrestricted review. Record out-of-scope evidence only as a routing limitation.\n"
             "<checklist>\n" + checklist_text + "\n</checklist>"
         )
-    return instruction + "\n" + OUTPUT_INSTRUCTION + "\nFrozen evidence:\n" + evidence
+    output_instruction = FREE_OUTPUT_INSTRUCTION if stage == "free" else OUTPUT_INSTRUCTION
+    return instruction + "\n" + output_instruction + "\nFrozen evidence:\n" + evidence
 
 
 def extract_object(text):
@@ -151,6 +164,8 @@ def parse_receipt(host, content):
             for block in event.get("message", {}).get("content", []):
                 if isinstance(block, dict) and block.get("type") == "tool_use":
                     tools.append(block.get("name"))
+    result.setdefault("checklist_findings", [])
+    result.setdefault("checklist_results", [])
     for key in ("free_findings", "checklist_findings", "checklist_results", "coverage", "limitations"):
         if not isinstance(result.get(key), list):
             raise RuntimeError("Missing or invalid response field: " + key)
@@ -170,7 +185,7 @@ def resolve_codex_settings():
     return configuration["model"], configuration["model_reasoning_effort"]
 
 
-def invoke(host, label, prompt, output_directory, settings):
+def invoke(host, label, prompt, output_directory, settings, expected_coverage):
     """Run one fresh reviewer with file-based input and a private raw receipt."""
     private_directory = Path(tempfile.mkdtemp(prefix="issue138-probe-quality-"))
     input_path = private_directory / "input.txt"
@@ -211,6 +226,24 @@ def invoke(host, label, prompt, output_directory, settings):
     content = output_path.read_text(encoding="utf-8-sig")
     try:
         receipt = parse_receipt(host, content)
+        previous_receipts = [
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in output_directory.glob("*.json")
+            if not path.name.endswith(".failure.json")
+        ]
+        if receipt["session_id"] in {previous["session_id"] for previous in previous_receipts}:
+            raise RuntimeError("Reused reviewer session identity")
+        if set(receipt["result"]["coverage"]) != set(expected_coverage):
+            raise RuntimeError("Incomplete or unexpected changed-file coverage")
+        if host == "claude":
+            baseline_models = {
+                tuple(previous["effective_model"])
+                for previous in previous_receipts if previous["host"] == "claude"
+            }
+            if not receipt["effective_model"] or len(receipt["effective_model"]) != 1:
+                raise RuntimeError("Claude effective model is missing or ambiguous")
+            if baseline_models and tuple(receipt["effective_model"]) not in baseline_models:
+                raise RuntimeError("Claude effective model changed across observations")
     except (ValueError, KeyError, RuntimeError) as error:
         write_json(output_directory / (label + ".failure.json"), {
             "label": label, "host": host, "cli_exit": exit_code,
@@ -296,11 +329,13 @@ def run(host, round_number):
                     raise RuntimeError("Refusing to overwrite or rerun a completed observation")
                 if calls >= 32 or spent + 0.40 > 5.0:
                     raise RuntimeError("Preregistered per-host launch/cost allowance exhausted")
-                receipt = invoke(host, label, make_prompt(fixture, stage, checklist_bytes.decode("utf-8")), output_directory, settings)
+                expected_coverage = [
+                    name for name in sorted(set(fixture["base_files"]) | set(fixture["candidate_files"]))
+                    if fixture["base_files"].get(name) != fixture["candidate_files"].get(name)
+                ]
+                receipt = invoke(host, label, make_prompt(fixture, stage, checklist_bytes.decode("utf-8")), output_directory, settings, expected_coverage)
                 spent += receipt["estimated_usd"]
                 calls += 1
-                if host == "claude" and receipt["effective_model"] != ["claude-opus-5-5"]:
-                    raise RuntimeError("Unexpected effective Claude model; do not pool")
                 print(json.dumps({"completed": label, "seconds": round(receipt["elapsed_seconds"], 2), "estimated_usd": receipt["estimated_usd"], "host_total_usd": spent}), flush=True)
 
 

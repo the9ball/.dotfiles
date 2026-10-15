@@ -1,33 +1,33 @@
 {
   "fixture_file_sha256": "c1b4df9605299e6203498bed5427f2a67f57909f89792da50eb19caf91375188",
   "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
-  "runner_sha256": "d59b6dc89bdb925db4e0b7ed456f7469bb91aec13676de66f061ebe58fe11638",
+  "runner_sha256": "6c22d5fb65fe356e0336660f4e8acde950384e5382f883046550065f85e9f14c",
   "fixtures": [
     {
       "id": "F1",
       "evidence_sha256": "279c15cfa90ee27ccc24e6bf2bcc308b938b789d3ad2ca27ebe70465c701aded",
-      "free_prompt_sha256": "29485109464783e1238374952335a01b857657e3a2250a8d90d75aff162a7396",
+      "free_prompt_sha256": "9e673594171865719e8bbfddb680c525f9f9f7aa81588f17c07715183b2a0f4b",
       "combined_prompt_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
       "checklist_prompt_sha256": "58a13a790242ed010d71b8789bfbc76dc8ac59784c4fc97ebcf2df05a7bf79e3"
     },
     {
       "id": "F2",
       "evidence_sha256": "bf63251016dbde190984e58058bec75c5a7f38d9a555fdb4075caffd9d17acfd",
-      "free_prompt_sha256": "8cfc6eae65facf408ffb4f7be7d4b7cbe6e8468775ab7777ea24f91e644ff8f8",
+      "free_prompt_sha256": "bb7147f9e74da2314cf71127a08e18529b15591256f4cab9ffc7823e75e440b6",
       "combined_prompt_sha256": "e25dee3b3bedeed2598238a13ef30662064f55ede6048c10385bca3a1d8a9dd2",
       "checklist_prompt_sha256": "2b43321f3ae1baafc74d2682973f43bbb296c19fcdf195442c26cefadf576719"
     },
     {
       "id": "F3",
       "evidence_sha256": "e6b00e5e86db0624d8053d4c832baaa3ab92751f533639df871b6d4e9c9f00e4",
-      "free_prompt_sha256": "1dbea428a8f7ec01376d61b720750366320142a57a0132b39cc838c6498c2a21",
+      "free_prompt_sha256": "29ac401547caf6f5a35caa419717ce3fec7540f8dd9aaa10c188ecec8292968a",
       "combined_prompt_sha256": "392289f79d31e1aedba16b9c4e20a4bb3e0979752d650fcce9fcb0e827edf64f",
       "checklist_prompt_sha256": "da230a79824248a8b1385faace90bd98972e6c63d584360f22a30e2717a7a890"
     },
     {
       "id": "F4",
       "evidence_sha256": "ba99d9e7f28ba3808f93054bf268e0063ca4ddd7aa258257a69e604ed7a1d555",
-      "free_prompt_sha256": "8ccfb49c32029d55556c462fed75fef0184f45fd08554a0c727976487b25c135",
+      "free_prompt_sha256": "70a938e00f5db34b3cbabd8211bb451e56e6aebbf2e181da036f51ae9be2f1ce",
       "combined_prompt_sha256": "27825e8b131f59a52fad9afae28b0f42a11ee79599ddcfed872c33302adefea4",
       "checklist_prompt_sha256": "ba18fd950c66634b93edf7909ff49103ed4904d27439d945246e1a770507c0d5"
     }

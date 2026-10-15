@@ -80,8 +80,9 @@ MCP/configuration and instruction-file discovery. At preregistration the selecte
 fields are `gpt-6.1-sol` / `medium`; the primary chat remains unchanged. All Codex
 arms use identical execution configuration. The stream does not independently
 attest the backend model/effort. Claude safe-mode calls omit model/effort overrides
-and use the same host defaults in every arm; the result must identify
-`claude-opus-5-5` consistently. Effective Claude effort is not independently
+and use the same host defaults in every arm; the result must identify one backend
+model consistently across all calls, using the first receipt as the baseline.
+No backend model is inferred from a default alias. Effective Claude effort is not independently
 attested. These are host-specific comparisons; do not pool host quality as if
 settings or models were equivalent across products. CLI versions and arguments
 are saved in the report and runner.
