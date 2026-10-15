@@ -44,7 +44,7 @@ chezmoi verify --exclude=scripts
 - Windows：`winget import`で`winget.json`に定義されたAWS CLIとaws-vaultを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
-- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`へ共有リンクとして公開する。
+- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
 
 ポリシーのハッシュ不一致、ファイル欠落、検証コマンドの失敗、承認失敗があれば、設定ファイルの変更前に適用を停止します。
 ポリシーを変更するときは、`aqua-policy.yaml`と`aqua-registry.yaml`の内容を確認し、`chezmoi/.chezmoiscripts/run_before_00-aqua-policy.ps1.tmpl`と`run_before_00-aqua-policy.sh.tmpl`の固定ハッシュを更新します。
