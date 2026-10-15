@@ -2,6 +2,7 @@
 
 import argparse
 from collections import defaultdict
+import hashlib
 import json
 from pathlib import Path
 import random
@@ -44,15 +45,19 @@ def blind():
         "observations": [],
     }
     mapping = []
-    for position, receipt in enumerate(receipts, 1):
-        observation_id = f"O{position:03d}"
+    for receipt in receipts:
+        observation_id = "O" + hashlib.sha256(receipt["session_id"].encode("utf-8")).hexdigest()[:12]
         fixture_id = receipt["label"].split("-")[2]
         findings = []
         finding_mapping = {}
         for section in ("free_findings", "checklist_findings"):
             for finding in receipt["result"][section]:
                 finding_id = f"f{len(findings) + 1:03d}"
-                anonymous_finding = dict(finding)
+                anonymous_finding = {
+                    key: finding[key] for key in (
+                        "severity", "category", "location", "cause", "impact", "trigger", "evidence"
+                    ) if key in finding
+                }
                 anonymous_finding["id"] = finding_id
                 findings.append(anonymous_finding)
                 finding_mapping[finding_id] = {"section": section, "original_id": finding.get("id")}

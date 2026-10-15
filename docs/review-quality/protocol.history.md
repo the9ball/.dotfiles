@@ -31,6 +31,26 @@ not an exact subprocess measurement. Subsequent invocations save execution
 timings before parsing, avoiding that loss. These are two output-representation
 corrections, not model retries or fixture tuning after seeing detection results.
 
+During F2 recovery, a byte-hash assertion compared the Windows CRLF input file to
+the canonical LF prompt hash. The assertion correctly stopped recovery, but the
+shell continued to the next command and accidentally restarted the controller.
+One B/F2 duplicate completed (0.068340 USD estimate). Root stopped only the owned
+controller, preserved the original B/F2 answer as primary, and isolated the
+duplicate in `diagnostics/`; findings from the duplicate are excluded regardless
+of their content. An already-started C1/F2 child completed naturally and is
+retained from its explicit `turn.completed` event and valid complete answer.
+Its exit code was not captured and its time is reconstructed from raw-file
+timestamps. Both timestamp limitations remain in the receipts. This procedural
+deviation and extra cache exposure limit cost/order interpretation.
+
+The prompt hashes in the original manifest identify canonical LF text, not the
+CRLF-translated Windows stdin bytes. All processes used the same translation;
+universal-newline decoding of the retained input file verified exact canonical
+identity. No reviewer prompt was changed during recovery. Any future claim about
+wire-byte hashes must make this distinction. The extra paid duplicate counts
+against the global model-launch budget and is disclosed separately from the
+primary B/C reviewer ratio.
+
 Claude's first correctly resolved process returned an expired OAuth error, zero
 usage and zero CLI-estimated cost. It is recorded separately from the two aqua
 wrapper diagnostics. No automatic authentication refresh or alternate account

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "engagement": "issue138-review-quality-20261015",
+  "source_pr_head": "9805d5180768db0b95e048518aac98d72ad5ef6b",
+  "source_pr_base": "b2047fb19322aec7cacbcd3b974cd0e64b38e259",
+  "scope": ["docs/review-quality/", "docs/code-review-quality.md", "links in existing evaluation docs"],
+  "excluded": ["aqua.yaml pre-existing modification", "link-targets/agents/skills/.trash/", "Skill implementation", "checklist specification", "merge", "Issue close"],
+  "review_contract": {
+    "requested_user_review": "AUTO",
+    "effective_user_review": "NONE",
+    "user_review_reason": "No additional regular user review requested; external operations explicitly requested",
+    "requested_review_level": "ADVISOR",
+    "effective_review_level": "ADVISOR",
+    "source": "User section 8",
+    "spot_review": "SKIPPED; full bounded experiment/report review covers the unit",
+    "additional_design_correction_checkpoints": 2,
+    "final_adviser": "PENDING"
+  },
+  "design_advice": {
+    "independent_context": "design_adviser; fork_turns=none; unspecified model/effort inherited, effective metadata unavailable",
+    "initial_reference": "51897a3de2d150aeb1ca842b9ebba02ab0aff9ea",
+    "initial_findings": ["coverage/session admission checks", "unsupported Claude backend assumption", "Codex settings could change across rounds"],
+    "corrected_reference": "266a0966526d29cb48538d5d4aab1ea8a378bbbe",
+    "corrected_epoch": "d1dc4fc0dd1e8a0308f2fe6c9ca2084eeed6657ccdfe846fa683c48ad05cca20",
+    "corrected_verdict": "CLEAR for bounded pilot",
+    "wrapper_correction_reference": "2464f415a50e708289833bad8815e91e1cf9bfb3",
+    "wrapper_correction_epoch": "2a6f577c9c3336c81601a99fa51f64e4b805e64289958041ed7db284f1d05872",
+    "wrapper_correction_verdict": "CLEAR",
+    "materialization": "immutable Git references, identity verified by Adviser",
+    "later_runner_corrections": "Not covered by prior CLEAR; final independent Adviser must verify",
+    "advice_not_measurement": ["Requirements strongly cue defects and may cause ceiling", "C adds inference budget as well as separation", "Small synthetic sample cannot establish equivalence or population superiority"]
+  },
+  "authorization": {
+    "authorization_id": "user-issue138-quality-results",
+    "basis": "User explicitly requests repository evidence, commit/push and PR139 result comment; subsequent ok approves alternate independent CLI/native-agent route",
+    "actor": "the9ball",
+    "repository": "the9ball/.dotfiles",
+    "route": "git transport and official gh CLI; existing account only",
+    "operations": [
+      {"id": "push-evaluation", "operation": "normal push", "remote": "origin", "ref": "refs/heads/feat/issue-138-code-review", "maximum_successes": 1, "state": "AVAILABLE"},
+      {"id": "comment-results", "operation": "create top-level result comment", "target": "https://github.com/the9ball/.dotfiles/pull/139", "maximum_successes": 1, "state": "AVAILABLE"}
+    ],
+    "semantic_scope": "Measured quality and cost, limitations, sourced Adviser opinion, unresolved implications for Issue138, and minimal follow-up; no user policy/risk acceptance invented",
+    "retry_budget": "initial attempt plus one retry only after verified no effect",
+    "revalidation": "Check actor, remote/ref, PR identity/state, fixed reviewed commit range, evidence and unconsumed operation immediately before each external operation"
+  },
+  "measurement_limits": {
+    "maximum_model_backed_processes": 64,
+    "reviewer_api_equivalent_usd": 10,
+    "root_outer_chat_cost_usd": null,
+    "native_adviser_cost_usd": null,
+    "actual_billing_and_subscription_credits": null,
+    "extra_paid_duplicate_usd": 0.06834,
+    "duplicate_counts_against_global_launch_budget": true,
+    "claude_authentication": "PENDING user recovery; observed OAuth failure has zero usage and zero CLI-estimated cost"
+  },
+  "history_operations": "No amend, fixup, rebase, squash, force push, or existing-history rewrite"
+}
