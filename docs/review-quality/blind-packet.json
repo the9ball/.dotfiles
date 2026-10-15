@@ -194,6 +194,47 @@
   ],
   "observations": [
     {
+      "id": "Ofa5756737271",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:format_digest docstring",
+          "cause": "The docstring now describes a comma-separated export, but the implementation still produces tab-separated text.",
+          "impact": "The function's documentation contradicts its behavior and the required export format, misleading future maintenance.",
+          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
+          "evidence": "The candidate docstring says 'comma-separated'; both the header and row formatting use \\t. The requirements explicitly retain tab-separated exports.",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:build_digest",
+          "cause": "The descriptive local name totals was replaced with x.",
+          "impact": "The intermediate value's purpose becomes less clear during maintenance without changing behavior.",
+          "trigger": "A maintainer reads or modifies the grouping-to-rendering flow.",
+          "evidence": "The diff replaces totals = group_stock(records) and render_rows(totals) with x = group_stock(records) and render_rows(x). Restoring the descriptive name is an optional readability improvement.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:_legacy_header",
+          "cause": "An unused helper introduces a second header representation with different labels and delimiters.",
+          "impact": "It adds maintenance surface and ambiguity about which header defines the current export.",
+          "trigger": "A maintainer searches for export header definitions and encounters both representations.",
+          "evidence": "All consumers and implementation are included, and none calls _legacy_header. format_digest embeds warehouse\\tsku\\tquantity directly, while the new helper returns Warehouse,Item,On hand. Removing the unused helper is optional cleanup.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "Ocba9537bbd65",
+      "fixture_id": "F1",
+      "findings": []
+    },
+    {
       "id": "O27105890662b",
       "fixture_id": "F3",
       "findings": [
@@ -250,6 +291,341 @@
       ]
     },
     {
+      "id": "O3a17013902df",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": {
+            "file": "inventory.py",
+            "line": 45,
+            "symbol": "format_digest"
+          },
+          "cause": "The modified docstring describes comma-separated output, while the implementation and required contract use tabs.",
+          "impact": "The function documentation misstates the export format and can mislead future maintenance. Correcting the documentation is warranted; changing the delimiter would violate the requirements.",
+          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
+          "evidence": "The docstring says \"comma-separated\", but the header and row formatter both contain tab separators. The requirements explicitly retain tab-separated exports.",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": {
+            "file": "inventory.py",
+            "line": 39,
+            "symbol": "build_digest"
+          },
+          "cause": "The descriptive local name totals was replaced with x.",
+          "impact": "This reduces readability in a change intended to prepare the renderer for maintenance. Restoring the descriptive name is an optional improvement.",
+          "trigger": "A maintainer reads the intermediate grouping result in build_digest.",
+          "evidence": "The diff changes totals = group_stock(records) and render_rows(totals) to x = group_stock(records) and render_rows(x), without changing behavior.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": {
+            "file": "inventory.py",
+            "line": 67,
+            "symbol": "_legacy_header"
+          },
+          "cause": "An unused helper introduces an alternate export header without an included consumer.",
+          "impact": "It adds maintenance surface and a competing header representation without contributing to current behavior. Removing it is optional cleanup.",
+          "trigger": "The added helper remains unused by every implementation and consumer included in the frozen change.",
+          "evidence": "The complete candidate contains no reference to _legacy_header. format_digest constructs its own tab-separated header; the helper returns \"Warehouse,Item,On hand\".",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O455085a012b4",
+      "fixture_id": "F4",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "audit.py:19-20 (AuditReader.page docstring)",
+          "cause": "page に event_type 引数を追加したが、docstring は変更前の文言『Return events following a cursor and an optional next cursor.』のまま。新しい契約（任意の event_type で絞り込むこと、その絞り込みを page_size の適用前に行うこと、next_cursor が一致イベントの残存時のみ設定されること）が説明されていない。",
+          "impact": "リポジトリ方針で求められる関数 docstring 自体は存在するため、方針違反ではない。ただし、フィルタとページングの適用順序という非自明な契約が実装を読まないと分からない。呼び出し側や将来の変更者が、フィルタ後に page_size を適用する前提を見落とす可能性がある。",
+          "trigger": "保守者が docstring だけを根拠に page を利用・変更し、event_type 指定時の件数やカーソルの意味を誤解した場合。",
+          "evidence": "candidate 9e1885f4…: audit.py:19 にシグネチャ `page(self, tenant, after_id=None, page_size=25, event_type=None)`、audit.py:20 に未更新の docstring、audit.py:25-26 にフィルタ処理、audit.py:29-32 にスライスと next_cursor の算出がある。requirements: 『Repository policy requires function docstrings.』",
+          "id": "f001"
+        }
+      ]
+    },
+    {
+      "id": "O0c5a69a9a671",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:27 NoticeQueue.flush (while len(self.pending) >= self.batch_size)",
+          "cause": "ループ条件が「pending が batch_size 以上」に変更され、batch_size 未満の端数を送信する経路がなくなった。",
+          "impact": "明示的に flush しても、1 バッチ未満のキュー項目が配信されず pending に残り続ける。要件「Queue entries smaller than one batch must also be delivered when explicitly flushed」に違反する。",
+          "trigger": "batch_size=20(既定)で 1 件だけ enqueue して flush() を呼ぶと、transport.send は一度も呼ばれず [] が返る。25 件の場合も、末尾 5 件が未配信のまま残る。",
+          "evidence": "候補コード: `while len(self.pending) >= self.batch_size:` / `batch = list(self.pending)[: self.batch_size]`。ベースは `while self.pending:` で全件を送信していた。",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:30-33 NoticeQueue.flush (except Exception: break)",
+          "cause": "一時的な利用不可(ConnectionError)だけでなく、すべての Exception を捕捉して黙って break している。",
+          "impact": "不正ペイロードによる ValueError が呼び出し側に伝播しなくなり、要件「Invalid transport payloads must remain visible to the caller as ValueError」に違反する。さらに、不正な notice が pending の先頭に残るため、以後の flush は毎回同じバッチで失敗して break する。その結果、後続の正常な notice も永久に配信されず、エラーも観測できない。TypeError など想定外のプログラミングエラーも握りつぶされる。",
+          "trigger": "transport.send がバッチ内の不正ペイロードに対して ValueError を送出する。flush() は例外を出さずに [] を返し、その後の flush() も同様に何も配信しない。",
+          "evidence": "候補コード: `try: self.transport.send(batch) except Exception: break`。要件が保持対象とする失敗は ConnectionError のみで、ValueError は呼び出し側に見えなければならない。正しい形は `except ConnectionError: break`。",
+          "id": "f002"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:58 DeliveryService.dispatch / dispatch.py:61-64 command_response",
+          "cause": "dispatch の戻り値が ID のリストから `{\"delivered\": [...]}` という dict に変更されたが、command_response は従来どおりリストを前提にしている。",
+          "impact": "scheduler へのコマンド応答が壊れる。count は常に 1(dict のキー数)になり、ids は ID リストではなく dict になる。要件「Preserve the scheduler command interface」に違反する。",
+          "trigger": "任意の notices で command_response(service, notices) を呼ぶ。例えば 0 件配信でも {\"count\": 1, \"ids\": {\"delivered\": []}} が返る。",
+          "evidence": "候補コード: `return {\"delivered\": self.queue.flush()}` と、変更されていない `delivered = service.dispatch(notices); return {\"count\": len(delivered), \"ids\": delivered}`。ベースは `return self.queue.flush()`。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "dispatch.py:28 NoticeQueue.flush (list(self.pending)[: self.batch_size])",
+          "cause": "バッチを切り出すたびに deque 全体をリストへコピーしている。",
+          "impact": "pending が大きい場合、flush 全体の計算量が O(n²/batch_size) になり、無駄なコピーが発生する。動作は正しいため任意の改善。",
+          "trigger": "pending に大量の notice(例: 数万件)がある状態で flush する。",
+          "evidence": "`batch = list(self.pending)[: self.batch_size]`。`list(itertools.islice(self.pending, self.batch_size))` で十分。",
+          "id": "f004"
+        }
+      ]
+    },
+    {
+      "id": "Od97a0f71a577",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27, NoticeQueue.flush",
+          "cause": "The loop runs only while at least batch_size notices remain.",
+          "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver entries smaller than one batch.",
+          "trigger": "With batch_size=20, enqueue one notice and call flush(); alternatively, enqueue 21 notices and flush.",
+          "evidence": "The condition `while len(self.pending) >= self.batch_size` skips transport.send entirely for one notice and leaves the final notice pending after delivering the first 20 of 21.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31, NoticeQueue.flush",
+          "cause": "The handler catches every Exception rather than specifically ConnectionError.",
+          "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
+          "trigger": "A full batch reaches transport.send and the transport raises ValueError for an invalid payload.",
+          "evidence": "`except Exception: break` catches ValueError and returns the accumulated completed IDs normally. Neither DeliveryService.dispatch nor command_response can observe the required exception.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58, DeliveryService.dispatch",
+          "cause": "dispatch now wraps the delivered ID list in a dictionary, while command_response still treats its return value as the list.",
+          "impact": "Scheduler responses have an incorrect count and an incompatible ids value, violating the requirement to preserve the command interface.",
+          "trigger": "Call command_response with a service whose queue successfully delivers a batch of two notices using batch_size=2.",
+          "evidence": "dispatch returns `{\"delivered\": [1, 2]}`. The unchanged command_response consequently returns `{\"count\": 1, \"ids\": {\"delivered\": [1, 2]}}` instead of the previous `{\"count\": 2, \"ids\": [1, 2]}`. An empty delivery also produces count=1.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O7f33c6a7485d",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "O225d57daf01b",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:29-32",
+          "cause": "The metadata cache uses report_id alone as its key, although report IDs are shared across tenants.",
+          "impact": "A tenant can receive another tenant's export content and filename without the database adapter checking ownership.",
+          "trigger": "Tenant A downloads a report, then tenant B requests the same report ID through the same service instance.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 skips repository.lookup on cache hits. reports.py:47-53 reads and returns the cached export. The requirements explicitly allow tenant ID collisions and place ownership enforcement in database queries.",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:37",
+          "cause": "String prefix comparison does not establish that a resolved path is inside the storage directory.",
+          "impact": "Downloads can read files outside the only permitted storage root.",
+          "trigger": "With storage_root=/srv/exports, metadata containing ../exports-private/report.csv resolves to /srv/exports-private/report.csv and passes the prefix check.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:36-39 accepts sibling paths sharing the root's textual prefix; reports.py:48-49 reads the accepted file. The base used Path.is_relative_to.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "reports.py:41-43",
+          "cause": "Replacing the repository retains cached metadata from the previous repository, with no invalidation or refresh path.",
+          "impact": "Previously cached reports keep obsolete paths and filenames after connection rotation. Updated exports remain inaccessible, and downloads fail if the old export path is removed.",
+          "trigger": "Cache a report, rotate to a repository returning updated metadata for that report, then download it again.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 only queries on cache misses; reports.py:41-43 changes the repository alone; reports.py:64-66 is the complete rotation caller. This conflicts with the requirement that refreshed metadata remain available.",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:47-53",
+          "cause": "The descriptive local name metadata was replaced with zz.",
+          "impact": "Readers must inspect the assignment and dictionary accesses to understand the value's role, departing from surrounding domain vocabulary.",
+          "trigger": "Reading or modifying download's metadata and response construction.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:47-53 uses zz for report metadata. reports.py:27 and the base download implementation use metadata for this concept.",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71",
+          "cause": "The change adds an unused formatting helper for an explicitly retired response adapter.",
+          "impact": "It introduces obsolete code and an unsupported claim that the header has a consumer.",
+          "trigger": "Maintaining the report response path or attempting to identify where Content-Disposition is produced.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71 defines the private helper. Inspection of the complete supplied implementation and callers, reports.py:1-71, shows no reference to it or response adapter; download returns its response directly at lines 50-54. All implementation and callers are declared included.",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "O940d0cc7c062",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27, NoticeQueue.flush",
+          "cause": "The loop runs only while pending contains at least batch_size entries.",
+          "impact": "Explicit flushes leave partial batches undelivered indefinitely unless more notices arrive.",
+          "trigger": "Enqueue one notice with the default batch_size of 20 and call flush(), or flush 21 notices and leave the final notice queued.",
+          "evidence": "The condition `while len(self.pending) >= self.batch_size` excludes nonempty partial batches, contrary to the explicit-flush requirement.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31, NoticeQueue.flush",
+          "cause": "The exception handler catches Exception rather than ConnectionError.",
+          "impact": "Invalid transport payloads are silently retained instead of exposing ValueError to the caller.",
+          "trigger": "Queue at least one full batch whose payload causes transport.send(batch) to raise ValueError.",
+          "evidence": "ValueError is caught by `except Exception`, which breaks the loop and returns completed normally. The requirements explicitly require ValueError to remain visible.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58, DeliveryService.dispatch",
+          "cause": "dispatch now returns a dictionary, while command_response still expects a list of delivered identifiers.",
+          "impact": "Scheduler responses report count as 1 and return a dictionary in ids, breaking the existing command interface.",
+          "trigger": "Call command_response(service, []) on an empty queue: the result becomes {\"count\": 1, \"ids\": {\"delivered\": []}} instead of {\"count\": 0, \"ids\": []}.",
+          "evidence": "dispatch wraps flush() in `{\"delivered\": ...}`; command_response applies len() to that single-key dictionary and assigns the dictionary directly to ids.",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "dispatch.py:28, NoticeQueue.flush",
+          "cause": "Every batch converts the entire remaining deque to a list before slicing off batch_size entries.",
+          "impact": "Draining a large backlog incurs quadratic copying for a fixed batch size and allocates temporary lists proportional to the remaining backlog.",
+          "trigger": "Flush 100,000 notices with batch_size=1 and a transport that always succeeds: the loop copies approximately five billion notice references.",
+          "evidence": "`list(self.pending)[: self.batch_size]` traverses all remaining entries on each iteration. Taking only the next batch from the deque iterator would bound each extraction by the batch size.",
+          "id": "f004"
+        }
+      ]
+    },
+    {
+      "id": "Od0d2994d5115",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "O1fac7f366985",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:47-53",
+          "cause": "The descriptive local name metadata was replaced with zz.",
+          "impact": "Readers must inspect the assignment to understand the value's domain role, departing from the surrounding metadata vocabulary.",
+          "trigger": "Reading or modifying download's path and filename handling.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:27-32 and 45-53; the base download used metadata.",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:35-39",
+          "cause": "The documented storage-containment guarantee is contradicted by a string-prefix check that does not enforce path-component boundaries.",
+          "impact": "Downloads can read outside the permitted export root. This substantive safety defect must return to Phase 1 through the root.",
+          "trigger": "With storage_root=/srv/exports and relative_name=../exports-other/report.csv, the resolved target starts with /srv/exports and passes the check despite being outside that directory.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:35 promises rejection outside storage; lines 36-39 accept matching string prefixes; lines 48-49 read the accepted target.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71",
+          "cause": "A new private header formatter is added for an explicitly retired adapter, with no caller or retention purpose in the complete supplied implementation.",
+          "impact": "The change introduces obsolete code and misleading maintenance surface.",
+          "trigger": "The candidate includes the formatter although all supplied callers return the existing response dictionary without invoking it.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71; inspected the complete reports.py:1-71 and supplied requirements, which state all implementation and callers are included.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O0f457bdc1227",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "Oc24bdd6a3076",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40 (build_digest のローカル変数 x)",
+          "cause": "group_stock() の戻り値を保持するローカル変数が、意味を表す `totals` から無意味な `x` に改名された。",
+          "impact": "x が倉庫・SKU 別の数量集計 Counter であることを、group_stock の実装を読まないと判断できない。また、同じ概念を group_stock (inventory.py:17) と render_rows の引数 (inventory.py:24) では `totals` と呼んでおり、語彙が分裂する。保守準備という変更目的にも反する。",
+          "trigger": "保守担当者が build_digest を読み、render_rows(x) に何が渡されているかを把握しようとしたとき。",
+          "evidence": "candidate 9e820b67…: inventory.py:39 `x = group_stock(records)` と :40 `rows = render_rows(x)`。base df510e44… の同じ行は `totals = group_stock(records)` と `rows = render_rows(totals)`。周辺の慣例は inventory.py:17 `totals = Counter()` と :24 `def render_rows(totals):`。改名に挙動上の理由はない。",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "quality",
+          "location": "inventory.py:45 (format_digest の docstring)",
+          "cause": "docstring が \"tab-separated\" から \"comma-separated\" に書き換えられたが、実装はタブ区切りのまま変わっていない。",
+          "impact": "ドキュメントが実際の出力形式と、要件 (\"exports remain deterministic tab-separated text\") の両方と矛盾する。docstring を信じた利用者や保守者が、カンマ区切りを前提に誤った実装やパーサーを書くおそれがある。",
+          "trigger": "format_digest の契約を docstring から読み取り、出力をカンマで分割しようとしたとき。",
+          "evidence": "candidate 9e820b67…: inventory.py:45 `\"\"\"Produce a deterministic comma-separated export.\"\"\"`。一方、実装は inventory.py:46 `lines = [\"warehouse\\tsku\\tquantity\"]` と :49 の f-string で `\\t` 区切りを生成している。base の :45 は \"tab-separated\"。要件文は tab-separated の維持を明記している。",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69 (_legacy_header)",
+          "cause": "自身の docstring で「retired export renderer」用と説明されるヘルパーが新たに追加されたが、呼び出し元がない。",
+          "impact": "到達不能なコードと、現行のタブ区切りヘッダとは異なるカンマ区切りヘッダが追加され、どちらが正規の出力形式なのかという誤解を招く。QF-2 の誤った docstring と組み合わさると、その誤解が強まる。",
+          "trigger": "保守担当者が _legacy_header を現行の export 経路の一部と誤解して使用または維持しようとしたとき。",
+          "evidence": "candidate 9e820b67…: inventory.py:67 `def _legacy_header():`、:68 の docstring \"retired export renderer\"、:69 `return \"Warehouse,Item,On hand\"`。inventory.py 全体 (:1-69) に呼び出し元はない。要件は「All consumers and implementation are included in this changeset」と述べ、先頭の _ は非公開を示す。保持理由はコメントにもコミット件名にも示されていない。",
+          "id": "f003"
+        }
+      ]
+    },
+    {
       "id": "Odc7a48434a78",
       "fixture_id": "F2",
       "findings": [
@@ -286,37 +662,570 @@
       ]
     },
     {
-      "id": "O90b4d240c3a0",
-      "fixture_id": "F1",
+      "id": "O5f3c77dc8766",
+      "fixture_id": "F3",
       "findings": [
         {
-          "severity": "P2",
+          "severity": "P1",
           "category": "material",
-          "location": "dispatch.py:27",
-          "cause": "flush() processes only full batches.",
-          "impact": "Explicit flushes leave partial batches undelivered indefinitely unless additional notices arrive.",
-          "trigger": "Flush a nonempty queue containing fewer than batch_size notices, or flush a queue with a partial final batch.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size. With batch_size=20 and one pending notice, transport.send is never called. This contradicts the explicit partial-batch flush requirement.",
+          "location": "reports.py:ReportService.metadata(`key = report_id`)",
+          "cause": "キャッシュキーが report_id のみで tenant を含んでいない。2回目以降の呼び出しは repository.lookup を経由しないため、テナント所有権の確認が行われない。",
+          "impact": "テナント間で情報が漏洩する。別テナントのメタデータ（path、filename）が返り、download がそのテナントのエクスポート本体を読み出して返してしまう。要件にある「テナント間で report ID が重複しうる」「所有権は DB アダプタの問い合わせ時に強制される」が満たされない。",
+          "trigger": "テナント A が report_id=42 をダウンロードしてキャッシュに載った後、テナント B が download_response(service, {'tenant':'B'}, 42) を呼ぶ。B 側に 42 が存在しない場合も、別内容の 42 が存在する場合も、A の path と filename が使われ、A のファイル内容が B に返る。",
+          "evidence": "候補版では `key = report_id` で、`if key not in self.cache:` が成立するときだけ `self.repository.lookup(tenant, report_id)` を呼ぶ。ベース版は毎回 `self.repository.lookup(tenant, report_id)` を呼んでいた。",
           "id": "f001"
         },
         {
-          "severity": "P2",
+          "severity": "P1",
           "category": "material",
-          "location": "dispatch.py:31",
-          "cause": "The transport call catches Exception instead of limiting recovery to ConnectionError.",
-          "impact": "Invalid payloads silently remain queued, and callers lose the required ValueError signal.",
-          "trigger": "A full batch reaches transport.send and the transport raises ValueError.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: ValueError is caught by except Exception and execution returns completed. The requirement explicitly preserves ValueError visibility.",
+          "location": "reports.py:ReportService.resolve_export(`str(target).startswith(str(self.storage_root))`)",
+          "cause": "パス包含チェックが is_relative_to から文字列の前方一致に置き換えられた。そのため、storage_root と同じ接頭辞で始まる兄弟ディレクトリも許可される。",
+          "impact": "ストレージルートの外にあるファイルを読み出せてしまう。要件「export storage root is the only permitted download location」に違反し、ベース版にあった防御が退行している。",
+          "trigger": "storage_root が /srv/exports のとき、メタデータの path が '../exports_old/secret.csv' だと /srv/exports_old/secret.csv に解決される。この文字列は '/srv/exports' で始まるためチェックを通過し、read_bytes が実行される。",
+          "evidence": "差分で `if not target.is_relative_to(self.storage_root):` が `if not str(target).startswith(str(self.storage_root)):` に置き換えられている。",
           "id": "f002"
         },
         {
           "severity": "P2",
           "category": "material",
-          "location": "dispatch.py:58; command_response at lines 61-64",
-          "cause": "DeliveryService.dispatch() now returns a dictionary, while command_response() still consumes its result as a list of delivered identifiers.",
-          "impact": "The scheduler response has an incorrect count and a nested object in ids, breaking the existing command interface.",
-          "trigger": "Call command_response() with the supplied DeliveryService.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list as {\"delivered\": ...}; lines 63-64 calculate len() of that dictionary and expose it as ids. Even with no notices and an empty queue, the response becomes {\"count\": 1, \"ids\": {\"delivered\": []}} instead of {\"count\": 0, \"ids\": []}.",
+          "location": "reports.py:ReportService.replace_repository / ReportService.metadata / rotate_connection",
+          "cause": "キャッシュを無効化する手段がない。replace_repository は self.repository を差し替えるだけで self.cache を消去しない。",
+          "impact": "接続ローテーション後もローテーション前のメタデータが返り続けるため、更新されたメタデータ（新しい path や filename）が反映されない。要件「refreshed metadata must remain available」と「support replacing the repository when the database connection rotates」が満たされない。古い path が指すエクスポートが移動・削除されていれば、ダウンロードも失敗する。",
+          "trigger": "report_id=42 をキャッシュした後、DB 側で path を更新し、rotate_connection(service, new_db) を実行する。その後 download で 42 を取得すると、new_db を参照せず古い path を返す。プロセスが再起動するまで直らない。",
+          "evidence": "replace_repository の本体は `self.repository = repository` だけで、候補版のどこにも self.cache を削除・消去するコードがない。キャッシュヒット時は `return dict(self.cache[key])` で repository を参照しない。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:ReportService.download(`zz`)",
+          "cause": "意味のある変数名 `metadata` が、意味を持たない `zz` にリネームされている。",
+          "impact": "可読性が下がる。機能上の変化はなく、変更目的とも関係がない。",
+          "trigger": "download のコードを読むとき、zz の中身を推測する必要がある。",
+          "evidence": "差分で `metadata = self.metadata(...)` が `zz = self.metadata(...)` に、`metadata[\"path\"]` と `metadata[\"filename\"]` が `zz[...]` に置き換えられている。",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:_format_content_disposition",
+          "cause": "呼び出し元のない関数が追加されている。docstring には「retired HTTP response adapter」用と書かれており、変更目的（キャッシュとローテーション）とも関係がない。",
+          "impact": "デッドコードが増える。将来この関数が再利用されると、filename をエスケープせずにヘッダ値へ埋め込むため、引用符や改行を含むファイル名でヘッダが壊れたりインジェクションが起きたりする恐れがある。現時点では呼び出し元がないため、実害はない。",
+          "trigger": "候補版の全コード中に _format_content_disposition の呼び出しがない（要件では「All implementation and callers are included」とされている）。",
+          "evidence": "差分末尾で追加された `def _format_content_disposition(filename): return f'attachment; filename=\"{filename}\"'` を参照している箇所は、ファイル内のどこにもない。",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "Oea7957530fc6",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40",
+          "cause": "The descriptive local name totals was replaced with x for quantities grouped by warehouse and SKU.",
+          "impact": "Readers must inspect group_stock to understand the value, and the name departs from the surrounding totals vocabulary.",
+          "trigger": "Reading or maintaining build_digest's aggregation-to-rendering handoff.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40 uses x; group_stock at lines 17-21 and render_rows at lines 24-27 use totals for the same concept. The supplied diff establishes the replacement of totals.",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:45",
+          "cause": "The format_digest docstring now describes a comma-separated export while the implementation still emits tabs.",
+          "impact": "The documented output contract misleads maintainers and consumers about the delimiter.",
+          "trigger": "Using the format_digest documentation to interpret its output format.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 says comma-separated; lines 46-50 use tab delimiters. The supplied requirement explicitly preserves tab-separated exports.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69",
+          "cause": "The change adds an unused helper for a renderer explicitly described as retired, without a retention purpose.",
+          "impact": "The maintenance change introduces obsolete code and an additional export-header representation to maintain.",
+          "trigger": "Applying this changeset, which adds _legacy_header without any caller.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69 defines _legacy_header. Inspection of the complete supplied inventory.py:1-69 finds no references to it; the active header remains at line 46. The frozen requirements state that all consumers and implementation are included.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O7f6c7b645713",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:27-28 NoticeQueue.flush",
+          "cause": "ループ条件が `while len(self.pending) >= self.batch_size` に変更されました。このため、pending の件数が batch_size 未満になった時点でループを抜け、残りの notice は送信されません。",
+          "impact": "明示的に flush しても、1 バッチに満たないキューエントリは配信されず、pending に残り続けます。要件「Queue entries smaller than one batch must also be delivered when explicitly flushed」に違反しています。既定の batch_size=20 では、20 件未満の dispatch は何も配信されません。",
+          "trigger": "batch_size=20 の NoticeQueue に 1 件 enqueue して flush() を呼ぶと、transport.send は一度も呼ばれず、戻り値は [] になり、pending は 1 件のまま残ります。",
+          "evidence": "candidate dispatch.py:27 `while len(self.pending) >= self.batch_size:`。base dispatch.py:27 は `while self.pending:` で、全件を送信していました。requirements の該当文。",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:29-32 NoticeQueue.flush",
+          "cause": "`except Exception: break` が ConnectionError に限定されていません。そのため、ValueError を含むあらゆる transport 例外を握りつぶしています。",
+          "impact": "不正な payload による ValueError が呼び出し元に届きません。要件「Invalid transport payloads must remain visible to the caller as ValueError」に違反します。さらに、不正な notice がキュー先頭に残るため、以後の flush は同じバッチで毎回黙って失敗し、後続の正常な notice も永久に配信されません。TypeError などのプログラミングエラーも隠蔽されます。",
+          "trigger": "transport.send が ValueError を送出する payload を含むバッチで flush() を呼ぶと、例外は伝播せず [] が返ります。以降の flush も同じ先頭バッチで停止し続けます。",
+          "evidence": "candidate dispatch.py:31 `except Exception:`、dispatch.py:32 `break`。requirements は一時的な利用不可を ConnectionError と明示し、ValueError の可視性を要求しています。",
+          "id": "f002"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:58 DeliveryService.dispatch / dispatch.py:61-64 command_response",
+          "cause": "dispatch の戻り値が ID リストから `{\"delivered\": [...]}` という dict に変更されました。しかし、呼び出し側の command_response は従来どおりリストとして扱っています。",
+          "impact": "scheduler へのコマンド応答が壊れます。count は配信件数に関係なく常に 1（dict のキー数）になり、ids には ID リストではなく dict が入ります。要件「Preserve the scheduler command interface」に違反しています。",
+          "trigger": "command_response(service, notices) を呼ぶと、配信件数が 0 件でも 20 件でも `{\"count\": 1, \"ids\": {\"delivered\": [...]}}` が返ります。",
+          "evidence": "candidate dispatch.py:58 `return {\"delivered\": self.queue.flush()}`。dispatch.py:63-64 `delivered = service.dispatch(notices)` / `return {\"count\": len(delivered), \"ids\": delivered}`。base dispatch.py:55 は `return self.queue.flush()` でした。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "dispatch.py:28 NoticeQueue.flush",
+          "cause": "バッチごとに `list(self.pending)[: self.batch_size]` で deque 全体をコピーしてからスライスしています。",
+          "impact": "pending が大きい場合、反復ごとに全体コピーが発生し、O(n^2/batch_size) の不要なコストになります。正しさには影響しません。",
+          "trigger": "pending が大量（例: 数万件）のときに flush を呼ぶ場合。",
+          "evidence": "candidate dispatch.py:28。`itertools.islice(self.pending, self.batch_size)` などで回避できます（任意の改善です）。",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "commit \"Batch notice dispatch and retain temporarily unavailable deliveries\"（dispatch.py:58）",
+          "cause": "単一コミットの中に、バッチ化と再試行保持の変更に加えて、件名に現れない DeliveryService.dispatch の戻り値形状変更が混在しています。",
+          "impact": "インターフェース変更だけを独立してロールバックすることが難しく、コミット件名から変更範囲を把握できません。",
+          "trigger": "戻り値形状の変更だけを revert したい場合、バッチ化の変更も巻き戻すか、手作業で部分 revert する必要があります。",
+          "evidence": "commits[0] の subject と files=[dispatch.py]。diff の第 2 hunk（@@ -52,7 +55,7 @@）は件名の目的と無関係です。commit ID は証跡に含まれていません。",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "Oaf357adbc861",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:45 (format_digest)",
+          "cause": "The changed docstring describes a comma-separated export, while the implementation produces tab-separated text.",
+          "impact": "The function documentation misstates the required export contract and can mislead future maintenance.",
+          "trigger": "A maintainer consults format_digest's docstring to determine the delimiter.",
+          "evidence": "The header and row formatter still use \\t, and the requirements explicitly require tab-separated exports. Restore the accurate delimiter description.",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:39–40 (build_digest)",
+          "cause": "The descriptive local name totals is replaced with x without changing its role.",
+          "impact": "Readers must trace the assignment to understand that render_rows receives grouped stock totals, reducing readability for the stated maintenance objective.",
+          "trigger": "A maintainer reads or modifies build_digest.",
+          "evidence": "The complete diff changes totals = group_stock(records) and render_rows(totals) to the equivalent expressions using x. Retaining totals is an optional readability improvement.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:67 (_legacy_header)",
+          "cause": "An unused helper introduces a second, incompatible header representation.",
+          "impact": "It adds maintenance surface and an alternative header that has no demonstrated role in the export path.",
+          "trigger": "A maintainer searches for header definitions or considers reusing _legacy_header.",
+          "evidence": "All implementation and consumers are included; none reference _legacy_header. It returns Warehouse,Item,On hand, while format_digest directly constructs warehouse\\tsku\\tquantity. Removing the helper is optional cleanup.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O0f98ae0a2c23",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40",
+          "cause": "The warehouse/SKU quantity totals variable was renamed from totals to x.",
+          "impact": "Readers must inspect the producer to understand its domain role, and equivalent values now use inconsistent names.",
+          "trigger": "Reading or maintaining build_digest and its call to render_rows.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40 uses x; group_stock at lines 17-21 and render_rows at lines 24-27 use totals for the same concept. No reason for the departure is supplied.",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:45",
+          "cause": "The format_digest docstring now describes comma-separated output while the implementation still emits tabs.",
+          "impact": "The documented output contract misleads maintainers and consumers.",
+          "trigger": "Using the docstring to determine the export delimiter.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 says comma-separated; lines 46 and 49 emit tab separators. DigestCommand.run calls this implementation at line 64, and the supplied requirements require tab-separated exports.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69",
+          "cause": "The change adds an unused private helper for a retired renderer without a retention purpose.",
+          "impact": "Obsolete export code adds maintenance burden and suggests an unsupported alternate header.",
+          "trigger": "Maintaining the renderer with _legacy_header present despite having no consumer.",
+          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69 defines _legacy_header and explicitly describes its renderer as retired. Inspection of the complete supplied inventory.py:1-69 finds no reference to it; the active header is constructed directly at line 46. The supplied requirements state that all consumers and implementation are included.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "Od249287376e1",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:27 NoticeQueue.flush (while len(self.pending) >= self.batch_size)",
+          "cause": "ループ条件が「pending 件数が batch_size 以上」になっているため、batch_size 未満の端数は送信対象になりません。",
+          "impact": "明示的に flush しても、1 バッチに満たないキューエントリが配信されずに残り続けます。「1 バッチ未満のエントリも明示的な flush で配信する」という要件に違反しています。",
+          "trigger": "batch_size=20(既定値)のキューに 1 件 enqueue して flush() を呼ぶと、transport.send は一度も呼ばれず、戻り値は [] になります。45 件の場合も、末尾 5 件が常に pending に残ります。",
+          "evidence": "差分で `while self.pending:` が `while len(self.pending) >= self.batch_size:` に置き換えられています。ループ後に残余を送る処理はありません。",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:30-33 NoticeQueue.flush (except Exception: break)",
+          "cause": "ConnectionError だけでなく Exception 全体を捕捉し、黙って break しています。",
+          "impact": "不正ペイロードによる ValueError が呼び出し元に伝わらず、握り潰されます。「不正な transport ペイロードは ValueError として呼び出し元に見える状態を保つ」という要件に違反しています。さらに、不正なエントリが先頭に残るため、以後の flush でも同じ失敗が無言で繰り返され、後続の正常なエントリも永久に滞留します。TypeError などのプログラミングエラーも同様に隠蔽されます。",
+          "trigger": "transport.send がバッチに対して ValueError を送出した場合、flush() は例外を出さずに [] を返します。command_response も正常応答 {count, ids} の形で戻ります。",
+          "evidence": "候補コードは `try: self.transport.send(batch) except Exception: break` です。要件上、一時的な不可用として扱いキューに残すべき対象は ConnectionError のみです。",
+          "id": "f002"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "dispatch.py:58 DeliveryService.dispatch / dispatch.py:61-64 command_response",
+          "cause": "dispatch の戻り値が ID リストから {\"delivered\": [...]} という dict に変更されましたが、command_response は従来どおりリストを前提にしています。",
+          "impact": "スケジューラのコマンドインターフェースが壊れます。count は常に 1(dict のキー数)になり、ids には ID リストではなく dict が入ります。「スケジューラのコマンドインターフェースを維持する」という要件に違反しています。",
+          "trigger": "command_response(service, [{\"to\":\"a\",\"body\":\"x\"}]*20) を batch_size=20 で呼ぶと、{\"count\": 1, \"ids\": {\"delivered\": [1..20]}} が返ります。base では {\"count\": 20, \"ids\": [1..20]} でした。配信が 0 件の場合も count は 1 になります。",
+          "evidence": "差分で `return self.queue.flush()` が `return {\"delivered\": self.queue.flush()}` に変わっています。command_response は `len(delivered)` と `\"ids\": delivered` のままです。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "dispatch.py:28 NoticeQueue.flush (list(self.pending)[: self.batch_size])",
+          "cause": "バッチを取り出すたびに deque 全体をリストへコピーしてからスライスしています。",
+          "impact": "pending が大きい場合、flush 全体の計算量が O(n²/batch_size) になり、不要なメモリコピーも発生します。正しさには影響しません。",
+          "trigger": "pending が 100,000 件、batch_size=20 の状態で flush すると、毎回の反復で最大 100,000 要素のリストを生成します。",
+          "evidence": "`batch = list(self.pending)[: self.batch_size]` です。itertools.islice(self.pending, self.batch_size) を使えば必要な分だけ取得できます。",
+          "id": "f004"
+        }
+      ]
+    },
+    {
+      "id": "Oc68e36db7e2e",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27, NoticeQueue.flush",
+          "cause": "The loop only runs when at least batch_size notices remain.",
+          "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
+          "trigger": "Flush a nonempty queue smaller than batch_size, or flush a queue whose size is not a multiple of batch_size.",
+          "evidence": "With batch_size=20 and 21 pending notices, one batch is sent and the remaining notice stays queued. With one pending notice, send is never called.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31, NoticeQueue.flush",
+          "cause": "The exception handler catches every Exception instead of only ConnectionError.",
+          "impact": "Invalid payload ValueError exceptions are hidden from callers, violating the explicit error contract.",
+          "trigger": "Transport.send raises ValueError for a batch eligible for delivery.",
+          "evidence": "The except Exception branch breaks the loop and returns completed normally; ValueError inherits from Exception.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58, DeliveryService.dispatch",
+          "cause": "dispatch now returns a dictionary, while command_response still expects the delivered identifier list.",
+          "impact": "The scheduler response has an incorrect count and changes ids from a list to a nested dictionary, breaking the preserved command interface.",
+          "trigger": "Call command_response with a DeliveryService using the changed dispatch implementation.",
+          "evidence": "If flush returns [1, 2], the response becomes {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. Even an empty result produces count=1.",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "dispatch.py:28, NoticeQueue.flush",
+          "cause": "Each batch copies the entire remaining deque into a list before slicing out batch_size entries.",
+          "impact": "Successful dispatch performs quadratic queue-copying work for a fixed batch size and allocates temporary lists proportional to the remaining queue depth.",
+          "trigger": "Flush a large queue through a transport that successfully accepts successive batches.",
+          "evidence": "For N notices and batch size B, the conversions copy N, N-B, N-2B, and subsequent remaining entries, totaling O(N²/B) references. A bounded iteration such as itertools.islice would copy only the next batch.",
+          "id": "f004"
+        }
+      ]
+    },
+    {
+      "id": "O27dc77e475d7",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:29-32, ReportService.metadata",
+          "cause": "The cache key contains only report_id, omitting tenant.",
+          "impact": "A tenant can receive another tenant's report metadata and download its export. Cache hits bypass the database adapter's ownership enforcement.",
+          "trigger": "Tenant A downloads report ID X, then tenant B requests the same ID through the same service instance.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:29-32 caches by report_id; reports.py:47-53 reads the cached path and returns its content and filename. Requirements explicitly allow shared report IDs across tenants.",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:37, ReportService.resolve_export",
+          "cause": "String-prefix comparison replaces path-component containment.",
+          "impact": "Downloads can read files outside the permitted export storage root.",
+          "trigger": "With storage_root /srv/exports, metadata containing ../exports-private/report.csv resolves to /srv/exports-private/report.csv and passes the prefix check.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:36-39 accepts matching string prefixes; reports.py:48-49 reads the accepted file. Base e6312cd5473469e18e45b42ccb469a1a024becd83006e21f8d64f647c235a112 used is_relative_to. Requirements permit downloads only within the storage root.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "reports.py:41-43, ReportService.replace_repository",
+          "cause": "Repository replacement retains metadata cached from the previous repository, with no invalidation or refresh path.",
+          "impact": "Previously requested reports continue using stale paths and filenames after rotation; refreshed exports remain inaccessible and removed old paths can cause download failures.",
+          "trigger": "Cache a report, replace the repository with one returning updated metadata for that report, then download it again.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:30-32 queries only on cache misses; reports.py:41-43 changes only repository; reports.py:64-66 supplies the rotation caller. Requirements require refreshed metadata to remain available.",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:47-53, ReportService.download",
+          "cause": "The descriptive local name metadata is replaced with zz.",
+          "impact": "Readers must inspect the assignment to understand the value's domain role, and the name departs from surrounding metadata terminology.",
+          "trigger": "Reading or maintaining the download path and filename selection.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:47-53 uses zz; reports.py:13-15 and 27-32 use metadata terminology. The base download implementation named this value metadata.",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71, _format_content_disposition",
+          "cause": "A new unused helper is added for an explicitly retired HTTP response adapter.",
+          "impact": "The change introduces obsolete code and documentation suggesting a consumer that is absent from the supplied implementation.",
+          "trigger": "Maintaining the response-header integration or looking for the helper's consumer.",
+          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:69-71 defines the helper and describes the retired consumer. Inspection of the complete supplied reports.py:1-71 finds no caller or registration; requirements state all implementation and callers are included.",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "O52e099a40181",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "quality",
+          "location": "inventory.py:47 format_digest docstring",
+          "cause": "docstring が \"tab-separated\" から \"comma-separated\" に変更されたが、実装はヘッダー・各行ともに引き続き \\t で区切っている。",
+          "impact": "docstring が実際の出力形式と要件(決定的な tab-separated 出力)の両方に矛盾する。保守時にこの記述を信じた開発者が、区切り文字を誤って変更したり、誤った parser を書いたりするおそれがある。リポジトリ方針で docstring が必須とされているため、その内容が誤っていることは文書上の欠陥になる。",
+          "trigger": "保守者や利用者が format_digest の docstring を読み、出力を CSV として扱う場合。たとえば \"A\\tS1\\t5\" を comma で分割すると、1列の値として誤って解釈される。",
+          "evidence": "diff の -\"\"\"Produce a deterministic tab-separated export.\"\"\" / +\"\"\"Produce a deterministic comma-separated export.\"\"\"。同じ関数内に lines = [\"warehouse\\tsku\\tquantity\"] と f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}' が残っている。要件には \"exports remain deterministic tab-separated text\" とある。",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40 build_digest のローカル変数 x",
+          "cause": "意味のある変数名 totals が、情報を持たない x に変更された。",
+          "impact": "動作は変わらないが、group_stock が返す (warehouse, sku) 単位の集計値であることが変数名から読み取れなくなる。「保守に向けた準備」という変更の目的に反して可読性が下がる。",
+          "trigger": "build_digest を読む・修正する保守作業の際に、x の意味を確認するため group_stock まで追う必要が生じる。",
+          "evidence": "diff の -    totals = group_stock(records) / -    rows = render_rows(totals) / +    x = group_stock(records) / +    rows = render_rows(x)。",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69 _legacy_header",
+          "cause": "「retired export renderer」用とされる未使用の private 関数が新たに追加された。",
+          "impact": "変更セットにはすべての consumer が含まれているが、どこからも呼ばれていない dead code である。comma 区切りのヘッダー \"Warehouse,Item,On hand\" を返すため、F1 の誤った docstring と組み合わさると、出力形式が comma 区切りであるかのような誤解を強める。保守対象のコードも不要に増える。",
+          "trigger": "保守者が _legacy_header を現行の形式定義と誤認して再利用した場合。その時点で、ヘッダーが現行の \"warehouse\\tsku\\tquantity\" と食い違う。",
+          "evidence": "diff の +def _legacy_header(): ... return \"Warehouse,Item,On hand\"。candidate_files の inventory.py 内に _legacy_header の呼び出し箇所はない。requirements には \"All consumers and implementation are included in this changeset.\" とある。",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "Of10f59bff42f",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58-64, DeliveryService.dispatch and command_response",
+          "cause": "DeliveryService.dispatch now returns a dictionary, while command_response still treats its result as a list of delivered identifiers.",
+          "impact": "The documented scheduler response contract is no longer preserved: count measures dictionary keys and ids contains a dictionary.",
+          "trigger": "Any invocation of command_response; even zero delivered notices produces count=1 and ids={\"delivered\": []}.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 returns the wrapper; lines 62-64 document existing scheduler clients and construct the response using the former return contract. Base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 returned the identifier list directly. Discovered through CRQ-004's documentation/caller comparison; requires return to Phase 1 through the root.",
+          "id": "f001"
+        }
+      ]
+    },
+    {
+      "id": "Od25eaf3a9dd8",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "quality",
+          "location": "inventory.py:47 format_digest docstring",
+          "cause": "format_digest の docstring が「tab-separated」から「comma-separated」に書き換えられた。実装はヘッダ・各行とも引き続き '\\t' 区切りのままである。",
+          "impact": "docstring が実際の出力形式と要件（deterministic tab-separated text）の両方と矛盾する。保守者がこの記述を信じて区切り文字を変更したり、consumer 側を CSV として実装したりすると、出力が壊れるおそれがある。今回の変更は「保守のための準備」が目的なので、誤ったドキュメントの追加はその目的に反する。",
+          "trigger": "format_digest({\"rows\":[{\"warehouse\":\"W1\",\"sku\":\"A\",\"quantity\":3}]}) は 'warehouse\\tsku\\tquantity\\nW1\\tA\\t3\\n' を返す。docstring の「comma-separated」とは一致しない。",
+          "evidence": "diff: -\"\"\"Produce a deterministic tab-separated export.\"\"\" / +\"\"\"Produce a deterministic comma-separated export.\"\"\"。直後の lines = [\"warehouse\\tsku\\tquantity\"] と f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}' は変更されていない。",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40 build_digest",
+          "cause": "意味のある変数名 totals が、意味を持たない x にリネームされた。",
+          "impact": "group_stock の戻り値（(warehouse, sku) ごとの合計 Counter）であることが名前から読み取れなくなり、可読性が下がる。動作は変わらない。",
+          "trigger": "build_digest を読む保守者が、render_rows(x) に渡す値の意味を知るために group_stock の実装まで遡る必要がある。",
+          "evidence": "diff: -totals = group_stock(records) / -rows = render_rows(totals) / +x = group_stock(records) / +rows = render_rows(x)。render_rows の引数名は totals のままであり、命名が不整合になっている。",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69 _legacy_header",
+          "cause": "「retired export renderer」用のヘッダを返す未使用のプライベート関数 _legacy_header が追加された。",
+          "impact": "どこからも呼ばれないデッドコードである。返す値 'Warehouse,Item,On hand' はカンマ区切りで列名も異なり、現行のタブ区切りヘッダと矛盾する。F1 の誤った docstring と組み合わさると、出力形式についての誤解を助長する。",
+          "trigger": "changeset 内のどこからも _legacy_header が参照されない。要件上、すべての consumer はこの changeset に含まれているため、外部の利用者も存在しない。",
+          "evidence": "candidate の inventory.py で _legacy_header を参照する箇所は定義以外にない。要件には「All consumers and implementation are included in this changeset」とある。",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "Od63bdbebbb46",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "commit「Batch notice dispatch and retain temporarily unavailable deliveries」/ dispatch.py:58 (DeliveryService.dispatch)",
+          "cause": "単一コミットに、要件上の主目的であるバッチ送信とリトライ保持 (dispatch.py:27-32) と、`DeliveryService.dispatch` の戻り値形状変更 (`list` から `{\"delivered\": list}`) が同居している。後者は要件にもコミット件名にも記述されていない。",
+          "impact": "戻り値形状の変更だけを独立してロールバックできない。件名からはインターフェース変更の存在を読み取れず、障害時の切り戻し判断が難しくなる。",
+          "trigger": "scheduler クライアント側の不具合を受けて dispatch の戻り値変更のみを revert しようとすると、バッチ化とリトライ保持も同時に巻き戻すか、手作業で部分 revert するしかない。",
+          "evidence": "candidate_identity 885577a5…; commits[0].subject はバッチ化と保持のみを記述し、files は [dispatch.py]。diff hunk @@ -52,7 +55,7 @@ で `return self.queue.flush()` が `return {\"delivered\": self.queue.flush()}` に変わっている。requirements は「scheduler command interface の維持」を求めている。この変更自体の互換性欠陥は Phase 1 に差し戻し済みであり、本 finding はコミット構成の観点に限定する。",
+          "id": "f001"
+        }
+      ]
+    },
+    {
+      "id": "O6b7a7d4c284f",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py: ReportService.metadata",
+          "cause": "The cache key contains only report_id and omits tenant.",
+          "impact": "A tenant can receive another tenant's export and filename, bypassing the database adapter's ownership checks.",
+          "trigger": "Tenant A downloads report ID X, then tenant B requests the same ID through the same service instance.",
+          "evidence": "key = report_id shares the cached entry across tenants. On a cache hit, repository.lookup(tenant, report_id) is skipped, and download reads the cached export path.",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py: ReportService.resolve_export",
+          "cause": "String-prefix comparison replaces directory-aware containment checking.",
+          "impact": "Downloads can read files outside the permitted export storage root.",
+          "trigger": "With storage root /srv/exports, metadata supplies ../exports-private/secret.csv and that file exists.",
+          "evidence": "The resolved target /srv/exports-private/secret.csv starts with /srv/exports, so the new check accepts it. The original is_relative_to check rejects this sibling directory.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "reports.py: ReportService.metadata and ReportService.replace_repository",
+          "cause": "Cached metadata persists indefinitely when the repository is replaced.",
+          "impact": "Previously requested reports cannot obtain refreshed metadata from the replacement repository. Downloads retain old filenames or content and can fail if the old export path is removed.",
+          "trigger": "Cache a report, rotate to a database adapter returning an updated path or filename for that report, then download it again.",
+          "evidence": "replace_repository changes only self.repository. metadata queries that repository only for keys absent from self.cache; rotate_connection performs no cache invalidation.",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "reports.py: ReportService.download",
+          "cause": "The descriptive local variable metadata is renamed to zz.",
+          "impact": "The path and filename accesses become less readable without changing behavior.",
+          "trigger": "Maintaining or reviewing the download implementation.",
+          "evidence": "The diff replaces metadata with zz at all three uses. Restoring a descriptive name is an optional readability improvement.",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "reports.py: _format_content_disposition",
+          "cause": "An unused helper is added for a retired response adapter.",
+          "impact": "The change introduces maintenance surface that does not contribute to caching or repository replacement.",
+          "trigger": "Maintaining the newly added helper despite no active caller.",
+          "evidence": "All implementation and callers are included, and none references _format_content_disposition. Its docstring explicitly identifies the consumer as retired. Removing it is optional cleanup.",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "Of58d6f0e7a30",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "Ofb0cd237861f",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:45, format_digest",
+          "cause": "The docstring now describes comma-separated output, while the implementation still emits tabs.",
+          "impact": "The function documents the wrong export format and contradicts the explicit tab-separated requirement. Correcting the docstring is warranted; runtime output remains correct.",
+          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
+          "evidence": "The candidate docstring says \"comma-separated\", but both the header and data rows use \\t. The base docstring correctly said \"tab-separated\".",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:39-40, build_digest",
+          "cause": "The descriptive local name totals was replaced with x.",
+          "impact": "This reduces readability in a change intended to prepare the renderer for maintenance. Restoring a descriptive name is an optional improvement, not a behavioral requirement.",
+          "trigger": "A maintainer reads the intermediate aggregation passed to render_rows.",
+          "evidence": "The only change to build_digest renames totals to x without changing its value or use.",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "inventory.py:67-69, _legacy_header",
+          "cause": "An unused helper introduces a second header format without any consumer.",
+          "impact": "It adds maintenance surface and an alternative export representation with no demonstrated purpose. Removing it is optional cleanup.",
+          "trigger": "A maintainer encounters the helper while determining which header definitions are relevant to the renderer.",
+          "evidence": "All implementation and consumers are included. Nothing calls _legacy_header; format_digest constructs its own tab-separated header. The new helper returns \"Warehouse,Item,On hand\".",
           "id": "f003"
         }
       ]
@@ -378,388 +1287,45 @@
       ]
     },
     {
-      "id": "O0f457bdc1227",
-      "fixture_id": "F4",
-      "findings": []
-    },
-    {
-      "id": "Ofa5756737271",
-      "fixture_id": "F2",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:format_digest docstring",
-          "cause": "The docstring now describes a comma-separated export, but the implementation still produces tab-separated text.",
-          "impact": "The function's documentation contradicts its behavior and the required export format, misleading future maintenance.",
-          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
-          "evidence": "The candidate docstring says 'comma-separated'; both the header and row formatting use \\t. The requirements explicitly retain tab-separated exports.",
-          "id": "f001"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "inventory.py:build_digest",
-          "cause": "The descriptive local name totals was replaced with x.",
-          "impact": "The intermediate value's purpose becomes less clear during maintenance without changing behavior.",
-          "trigger": "A maintainer reads or modifies the grouping-to-rendering flow.",
-          "evidence": "The diff replaces totals = group_stock(records) and render_rows(totals) with x = group_stock(records) and render_rows(x). Restoring the descriptive name is an optional readability improvement.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "inventory.py:_legacy_header",
-          "cause": "An unused helper introduces a second header representation with different labels and delimiters.",
-          "impact": "It adds maintenance surface and ambiguity about which header defines the current export.",
-          "trigger": "A maintainer searches for export header definitions and encounters both representations.",
-          "evidence": "All consumers and implementation are included, and none calls _legacy_header. format_digest embeds warehouse\\tsku\\tquantity directly, while the new helper returns Warehouse,Item,On hand. Removing the unused helper is optional cleanup.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O940d0cc7c062",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:27, NoticeQueue.flush",
-          "cause": "The loop runs only while pending contains at least batch_size entries.",
-          "impact": "Explicit flushes leave partial batches undelivered indefinitely unless more notices arrive.",
-          "trigger": "Enqueue one notice with the default batch_size of 20 and call flush(), or flush 21 notices and leave the final notice queued.",
-          "evidence": "The condition `while len(self.pending) >= self.batch_size` excludes nonempty partial batches, contrary to the explicit-flush requirement.",
-          "id": "f001"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:31, NoticeQueue.flush",
-          "cause": "The exception handler catches Exception rather than ConnectionError.",
-          "impact": "Invalid transport payloads are silently retained instead of exposing ValueError to the caller.",
-          "trigger": "Queue at least one full batch whose payload causes transport.send(batch) to raise ValueError.",
-          "evidence": "ValueError is caught by `except Exception`, which breaks the loop and returns completed normally. The requirements explicitly require ValueError to remain visible.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58, DeliveryService.dispatch",
-          "cause": "dispatch now returns a dictionary, while command_response still expects a list of delivered identifiers.",
-          "impact": "Scheduler responses report count as 1 and return a dictionary in ids, breaking the existing command interface.",
-          "trigger": "Call command_response(service, []) on an empty queue: the result becomes {\"count\": 1, \"ids\": {\"delivered\": []}} instead of {\"count\": 0, \"ids\": []}.",
-          "evidence": "dispatch wraps flush() in `{\"delivered\": ...}`; command_response applies len() to that single-key dictionary and assigns the dictionary directly to ids.",
-          "id": "f003"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "dispatch.py:28, NoticeQueue.flush",
-          "cause": "Every batch converts the entire remaining deque to a list before slicing off batch_size entries.",
-          "impact": "Draining a large backlog incurs quadratic copying for a fixed batch size and allocates temporary lists proportional to the remaining backlog.",
-          "trigger": "Flush 100,000 notices with batch_size=1 and a transport that always succeeds: the loop copies approximately five billion notice references.",
-          "evidence": "`list(self.pending)[: self.batch_size]` traverses all remaining entries on each iteration. Taking only the next batch from the deque iterator would bound each extraction by the batch size.",
-          "id": "f004"
-        }
-      ]
-    },
-    {
-      "id": "Oc68e36db7e2e",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:27, NoticeQueue.flush",
-          "cause": "The loop only runs when at least batch_size notices remain.",
-          "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
-          "trigger": "Flush a nonempty queue smaller than batch_size, or flush a queue whose size is not a multiple of batch_size.",
-          "evidence": "With batch_size=20 and 21 pending notices, one batch is sent and the remaining notice stays queued. With one pending notice, send is never called.",
-          "id": "f001"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:31, NoticeQueue.flush",
-          "cause": "The exception handler catches every Exception instead of only ConnectionError.",
-          "impact": "Invalid payload ValueError exceptions are hidden from callers, violating the explicit error contract.",
-          "trigger": "Transport.send raises ValueError for a batch eligible for delivery.",
-          "evidence": "The except Exception branch breaks the loop and returns completed normally; ValueError inherits from Exception.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58, DeliveryService.dispatch",
-          "cause": "dispatch now returns a dictionary, while command_response still expects the delivered identifier list.",
-          "impact": "The scheduler response has an incorrect count and changes ids from a list to a nested dictionary, breaking the preserved command interface.",
-          "trigger": "Call command_response with a DeliveryService using the changed dispatch implementation.",
-          "evidence": "If flush returns [1, 2], the response becomes {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. Even an empty result produces count=1.",
-          "id": "f003"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "dispatch.py:28, NoticeQueue.flush",
-          "cause": "Each batch copies the entire remaining deque into a list before slicing out batch_size entries.",
-          "impact": "Successful dispatch performs quadratic queue-copying work for a fixed batch size and allocates temporary lists proportional to the remaining queue depth.",
-          "trigger": "Flush a large queue through a transport that successfully accepts successive batches.",
-          "evidence": "For N notices and batch size B, the conversions copy N, N-B, N-2B, and subsequent remaining entries, totaling O(N²/B) references. A bounded iteration such as itertools.islice would copy only the next batch.",
-          "id": "f004"
-        }
-      ]
-    },
-    {
-      "id": "Of10f59bff42f",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58-64, DeliveryService.dispatch and command_response",
-          "cause": "DeliveryService.dispatch now returns a dictionary, while command_response still treats its result as a list of delivered identifiers.",
-          "impact": "The documented scheduler response contract is no longer preserved: count measures dictionary keys and ids contains a dictionary.",
-          "trigger": "Any invocation of command_response; even zero delivered notices produces count=1 and ids={\"delivered\": []}.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 returns the wrapper; lines 62-64 document existing scheduler clients and construct the response using the former return contract. Base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 returned the identifier list directly. Discovered through CRQ-004's documentation/caller comparison; requires return to Phase 1 through the root.",
-          "id": "f001"
-        }
-      ]
-    },
-    {
-      "id": "Oec6555230e2d",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:27, NoticeQueue.flush",
-          "cause": "The loop runs only while at least batch_size notices remain.",
-          "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver queues smaller than one batch.",
-          "trigger": "With batch_size=20, enqueue one notice and call flush(); transport.send is never called. With 21 notices, the final notice remains queued.",
-          "evidence": "The condition `while len(self.pending) >= self.batch_size` excludes every nonempty partial batch. Continue while pending is nonempty and cap each batch at batch_size.",
-          "id": "f001"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:31, NoticeQueue.flush",
-          "cause": "The exception handler catches Exception instead of ConnectionError.",
-          "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
-          "trigger": "Queue at least one full batch and have transport.send raise ValueError for an invalid payload; flush returns normally.",
-          "evidence": "ValueError is caught by `except Exception`, whose body only breaks the loop. Catch ConnectionError specifically so ValueError propagates.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58, DeliveryService.dispatch",
-          "cause": "dispatch now returns a dictionary, but command_response still treats its result as a list of delivered identifiers.",
-          "impact": "The scheduler response has an incorrect count and a nested dictionary in ids, breaking the required existing command interface.",
-          "trigger": "With batch_size=2 and two successfully delivered notices, command_response returns {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. An empty dispatch also reports count=1.",
-          "evidence": "The changed return wraps flush() in `{\"delivered\": ...}`; unchanged command_response computes len(delivered) and assigns that dictionary directly to ids. Preserve dispatch's list return.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O225d57daf01b",
-      "fixture_id": "F3",
-      "findings": [
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py:29-32",
-          "cause": "The metadata cache uses report_id alone as its key, although report IDs are shared across tenants.",
-          "impact": "A tenant can receive another tenant's export content and filename without the database adapter checking ownership.",
-          "trigger": "Tenant A downloads a report, then tenant B requests the same report ID through the same service instance.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 skips repository.lookup on cache hits. reports.py:47-53 reads and returns the cached export. The requirements explicitly allow tenant ID collisions and place ownership enforcement in database queries.",
-          "id": "f001"
-        },
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py:37",
-          "cause": "String prefix comparison does not establish that a resolved path is inside the storage directory.",
-          "impact": "Downloads can read files outside the only permitted storage root.",
-          "trigger": "With storage_root=/srv/exports, metadata containing ../exports-private/report.csv resolves to /srv/exports-private/report.csv and passes the prefix check.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:36-39 accepts sibling paths sharing the root's textual prefix; reports.py:48-49 reads the accepted file. The base used Path.is_relative_to.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "reports.py:41-43",
-          "cause": "Replacing the repository retains cached metadata from the previous repository, with no invalidation or refresh path.",
-          "impact": "Previously cached reports keep obsolete paths and filenames after connection rotation. Updated exports remain inaccessible, and downloads fail if the old export path is removed.",
-          "trigger": "Cache a report, rotate to a repository returning updated metadata for that report, then download it again.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 only queries on cache misses; reports.py:41-43 changes the repository alone; reports.py:64-66 is the complete rotation caller. This conflicts with the requirement that refreshed metadata remain available.",
-          "id": "f003"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:47-53",
-          "cause": "The descriptive local name metadata was replaced with zz.",
-          "impact": "Readers must inspect the assignment and dictionary accesses to understand the value's role, departing from surrounding domain vocabulary.",
-          "trigger": "Reading or modifying download's metadata and response construction.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:47-53 uses zz for report metadata. reports.py:27 and the base download implementation use metadata for this concept.",
-          "id": "f004"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:69-71",
-          "cause": "The change adds an unused formatting helper for an explicitly retired response adapter.",
-          "impact": "It introduces obsolete code and an unsupported claim that the header has a consumer.",
-          "trigger": "Maintaining the report response path or attempting to identify where Content-Disposition is produced.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71 defines the private helper. Inspection of the complete supplied implementation and callers, reports.py:1-71, shows no reference to it or response adapter; download returns its response directly at lines 50-54. All implementation and callers are declared included.",
-          "id": "f005"
-        }
-      ]
-    },
-    {
-      "id": "O0c60cf22df89",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:27",
-          "cause": "The flush loop runs only while at least one full batch remains.",
-          "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
-          "trigger": "With batch_size=20, enqueue one notice and call flush(): no transport call occurs. Flushing 21 notices sends 20 and leaves one queued.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size.",
-          "id": "f001"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:31",
-          "cause": "The transport exception handler catches Exception instead of limiting recovery to ConnectionError.",
-          "impact": "Invalid payload ValueError exceptions are hidden from the caller, contrary to the explicit requirement.",
-          "trigger": "Queue a full batch whose transport.send call raises ValueError: flush() returns its accumulated results without propagating the error.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: every Exception from transport.send causes a silent loop exit.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58",
-          "cause": "DeliveryService.dispatch now returns a dictionary while command_response still expects a list of delivered identifiers.",
-          "impact": "The scheduler response changes shape and reports an incorrect delivery count.",
-          "trigger": "After successfully delivering 20 notices, command_response returns count=1 and ids={\"delivered\": [1, ..., 20]} instead of count=20 and a flat identifier list. With no deliveries, it still reports count=1.",
-          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list in a dictionary; dispatch.py:63-64 calculates len(delivered) and returns that dictionary as ids. The embedded base returns the list directly.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O6b7a7d4c284f",
-      "fixture_id": "F3",
-      "findings": [
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py: ReportService.metadata",
-          "cause": "The cache key contains only report_id and omits tenant.",
-          "impact": "A tenant can receive another tenant's export and filename, bypassing the database adapter's ownership checks.",
-          "trigger": "Tenant A downloads report ID X, then tenant B requests the same ID through the same service instance.",
-          "evidence": "key = report_id shares the cached entry across tenants. On a cache hit, repository.lookup(tenant, report_id) is skipped, and download reads the cached export path.",
-          "id": "f001"
-        },
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py: ReportService.resolve_export",
-          "cause": "String-prefix comparison replaces directory-aware containment checking.",
-          "impact": "Downloads can read files outside the permitted export storage root.",
-          "trigger": "With storage root /srv/exports, metadata supplies ../exports-private/secret.csv and that file exists.",
-          "evidence": "The resolved target /srv/exports-private/secret.csv starts with /srv/exports, so the new check accepts it. The original is_relative_to check rejects this sibling directory.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "reports.py: ReportService.metadata and ReportService.replace_repository",
-          "cause": "Cached metadata persists indefinitely when the repository is replaced.",
-          "impact": "Previously requested reports cannot obtain refreshed metadata from the replacement repository. Downloads retain old filenames or content and can fail if the old export path is removed.",
-          "trigger": "Cache a report, rotate to a database adapter returning an updated path or filename for that report, then download it again.",
-          "evidence": "replace_repository changes only self.repository. metadata queries that repository only for keys absent from self.cache; rotate_connection performs no cache invalidation.",
-          "id": "f003"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "reports.py: ReportService.download",
-          "cause": "The descriptive local variable metadata is renamed to zz.",
-          "impact": "The path and filename accesses become less readable without changing behavior.",
-          "trigger": "Maintaining or reviewing the download implementation.",
-          "evidence": "The diff replaces metadata with zz at all three uses. Restoring a descriptive name is an optional readability improvement.",
-          "id": "f004"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "reports.py: _format_content_disposition",
-          "cause": "An unused helper is added for a retired response adapter.",
-          "impact": "The change introduces maintenance surface that does not contribute to caching or repository replacement.",
-          "trigger": "Maintaining the newly added helper despite no active caller.",
-          "evidence": "All implementation and callers are included, and none references _format_content_disposition. Its docstring explicitly identifies the consumer as retired. Removing it is optional cleanup.",
-          "id": "f005"
-        }
-      ]
-    },
-    {
-      "id": "Ofb0cd237861f",
-      "fixture_id": "F2",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:45, format_digest",
-          "cause": "The docstring now describes comma-separated output, while the implementation still emits tabs.",
-          "impact": "The function documents the wrong export format and contradicts the explicit tab-separated requirement. Correcting the docstring is warranted; runtime output remains correct.",
-          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
-          "evidence": "The candidate docstring says \"comma-separated\", but both the header and data rows use \\t. The base docstring correctly said \"tab-separated\".",
-          "id": "f001"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "inventory.py:39-40, build_digest",
-          "cause": "The descriptive local name totals was replaced with x.",
-          "impact": "This reduces readability in a change intended to prepare the renderer for maintenance. Restoring a descriptive name is an optional improvement, not a behavioral requirement.",
-          "trigger": "A maintainer reads the intermediate aggregation passed to render_rows.",
-          "evidence": "The only change to build_digest renames totals to x without changing its value or use.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": "inventory.py:67-69, _legacy_header",
-          "cause": "An unused helper introduces a second header format without any consumer.",
-          "impact": "It adds maintenance surface and an alternative export representation with no demonstrated purpose. Removing it is optional cleanup.",
-          "trigger": "A maintainer encounters the helper while determining which header definitions are relevant to the renderer.",
-          "evidence": "All implementation and consumers are included. Nothing calls _legacy_header; format_digest constructs its own tab-separated header. The new helper returns \"Warehouse,Item,On hand\".",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O7f33c6a7485d",
-      "fixture_id": "F4",
-      "findings": []
-    },
-    {
       "id": "O9a970d554f07",
       "fixture_id": "F4",
       "findings": []
     },
     {
-      "id": "Ocba9537bbd65",
-      "fixture_id": "F1",
-      "findings": []
+      "id": "Od4c57aabb978",
+      "fixture_id": "F2",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "quality",
+          "location": "inventory.py:45 format_digest docstring",
+          "cause": "docstring が「comma-separated export」に変更されたが、実装は引き続きタブ区切りでヘッダーと行を出力している。",
+          "impact": "関数の出力契約が誤って記述されている。要件ではタブ区切りの維持が明示されており、この docstring を信じた保守者が実装を「修正」して export 形式を壊したり、利用者が誤った parser を書いたりする恐れがある。",
+          "trigger": "format_digest の docstring を根拠に出力形式を判断したり、docstring に合わせて実装を変更したりした場合。",
+          "evidence": "candidate inventory.py:45 \"Produce a deterministic comma-separated export.\" に対し、:46 lines = [\"warehouse\\tsku\\tquantity\"]、:49 f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}' はタブ区切り。base の同じ docstring は \"tab-separated\" だった。requirements: \"exports remain deterministic tab-separated text\"。candidate_identity 9e820b67…",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:39-40 build_digest local variable x",
+          "cause": "意図を表すローカル変数名 totals が、意味を持たない x に改名された。",
+          "impact": "group_stock が返す (warehouse, sku) 別の集計値という役割が、名前から読み取れなくなる。同じ値を group_stock(:17,:21) では totals、render_rows(:24) では引数 totals と呼んでおり、既存の語彙とも食い違う。機能への影響はない。",
+          "trigger": "build_digest を読む、または保守する時点で常に発生する。",
+          "evidence": "diff: -    totals = group_stock(records) / +    x = group_stock(records); -    rows = render_rows(totals) / +    rows = render_rows(x)。candidate inventory.py:17,21 totals、:24 def render_rows(totals)。",
+          "id": "f002"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "inventory.py:67-69 _legacy_header",
+          "cause": "自らの docstring で「retired export renderer」用と説明している private helper が新たに追加されたが、呼び出し元がない。",
+          "impact": "到達不能なコードが増える。さらにカンマ区切りの旧ヘッダー \"Warehouse,Item,On hand\" が現行の tab 形式ヘッダーと並んで存在するため、F1 の誤った docstring と組み合わさり、現行の export 形式について誤解を招く。保持する理由は示されていない。",
+          "trigger": "inventory.py を保守する時点で常に発生する。この helper はどこからも呼ばれない。",
+          "evidence": "candidate inventory.py:67-69。同ファイル内の呼び出し候補（build_digest :37-41、format_digest :44-51、DigestCommand.run :61-64）はいずれも _legacy_header を参照していない。requirements: \"All consumers and implementation are included in this changeset\"。名前が underscore で始まり module-private であるため、外部 API である根拠もない。",
+          "id": "f003"
+        }
+      ]
     },
     {
       "id": "O1481023073db",
@@ -793,100 +1359,6 @@
           "impact": "The change introduces an abandoned helper and a misleading suggestion of an active consumer, increasing maintenance ambiguity.",
           "trigger": "Maintaining or extending response-header formatting based on the newly added helper.",
           "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71 names the retired consumer. Inspection of the complete supplied reports.py:1-71 finds no caller, registration, or retention explanation; download and download_response at lines 46-63 do not invoke it. The supplied requirements state that all implementation and callers are included.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O1fac7f366985",
-      "fixture_id": "F3",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:47-53",
-          "cause": "The descriptive local name metadata was replaced with zz.",
-          "impact": "Readers must inspect the assignment to understand the value's domain role, departing from the surrounding metadata vocabulary.",
-          "trigger": "Reading or modifying download's path and filename handling.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:27-32 and 45-53; the base download used metadata.",
-          "id": "f001"
-        },
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py:35-39",
-          "cause": "The documented storage-containment guarantee is contradicted by a string-prefix check that does not enforce path-component boundaries.",
-          "impact": "Downloads can read outside the permitted export root. This substantive safety defect must return to Phase 1 through the root.",
-          "trigger": "With storage_root=/srv/exports and relative_name=../exports-other/report.csv, the resolved target starts with /srv/exports and passes the check despite being outside that directory.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:35 promises rejection outside storage; lines 36-39 accept matching string prefixes; lines 48-49 read the accepted target.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:69-71",
-          "cause": "A new private header formatter is added for an explicitly retired adapter, with no caller or retention purpose in the complete supplied implementation.",
-          "impact": "The change introduces obsolete code and misleading maintenance surface.",
-          "trigger": "The candidate includes the formatter although all supplied callers return the existing response dictionary without invoking it.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71; inspected the complete reports.py:1-71 and supplied requirements, which state all implementation and callers are included.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O3dc8aa7f5a4d",
-      "fixture_id": "F4",
-      "findings": []
-    },
-    {
-      "id": "O727c747c65a9",
-      "fixture_id": "F4",
-      "findings": []
-    },
-    {
-      "id": "O3a17013902df",
-      "fixture_id": "F2",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": {
-            "file": "inventory.py",
-            "line": 45,
-            "symbol": "format_digest"
-          },
-          "cause": "The modified docstring describes comma-separated output, while the implementation and required contract use tabs.",
-          "impact": "The function documentation misstates the export format and can mislead future maintenance. Correcting the documentation is warranted; changing the delimiter would violate the requirements.",
-          "trigger": "A maintainer consults the docstring to determine the export delimiter.",
-          "evidence": "The docstring says \"comma-separated\", but the header and row formatter both contain tab separators. The requirements explicitly retain tab-separated exports.",
-          "id": "f001"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": {
-            "file": "inventory.py",
-            "line": 39,
-            "symbol": "build_digest"
-          },
-          "cause": "The descriptive local name totals was replaced with x.",
-          "impact": "This reduces readability in a change intended to prepare the renderer for maintenance. Restoring the descriptive name is an optional improvement.",
-          "trigger": "A maintainer reads the intermediate grouping result in build_digest.",
-          "evidence": "The diff changes totals = group_stock(records) and render_rows(totals) to x = group_stock(records) and render_rows(x), without changing behavior.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "optional",
-          "location": {
-            "file": "inventory.py",
-            "line": 67,
-            "symbol": "_legacy_header"
-          },
-          "cause": "An unused helper introduces an alternate export header without an included consumer.",
-          "impact": "It adds maintenance surface and a competing header representation without contributing to current behavior. Removing it is optional cleanup.",
-          "trigger": "The added helper remains unused by every implementation and consumer included in the frozen change.",
-          "evidence": "The complete candidate contains no reference to _legacy_header. format_digest constructs its own tab-separated header; the helper returns \"Warehouse,Item,On hand\".",
           "id": "f003"
         }
       ]
@@ -928,40 +1400,357 @@
       ]
     },
     {
-      "id": "Oaf357adbc861",
-      "fixture_id": "F2",
+      "id": "Oc80dde506904",
+      "fixture_id": "F3",
       "findings": [
         {
           "severity": "P3",
           "category": "quality",
-          "location": "inventory.py:45 (format_digest)",
-          "cause": "The changed docstring describes a comma-separated export, while the implementation produces tab-separated text.",
-          "impact": "The function documentation misstates the required export contract and can mislead future maintenance.",
-          "trigger": "A maintainer consults format_digest's docstring to determine the delimiter.",
-          "evidence": "The header and row formatter still use \\t, and the requirements explicitly require tab-separated exports. Restore the accurate delimiter description.",
+          "location": "reports.py:47-53 ReportService.download（ローカル変数 zz）",
+          "cause": "download() 内のメタデータ辞書を保持するローカル変数が、base の `metadata` から意味を持たない `zz` に改名されている。",
+          "impact": "変数がレポートのメタデータ（path・filename を持つ辞書）であることを、実装を読まないと判別できない。また、同一クラスの `metadata()` メソッドや base で使われていた語彙からも外れている。",
+          "trigger": "reports.py:47 の `zz = self.metadata(tenant, report_id)` と、その参照箇所（:48 の `zz[\"path\"]`、:53 の `zz[\"filename\"]`）を読む場合。",
+          "evidence": "candidate 60e8356a… の reports.py:47,48,53 は `zz`。base e6312cd5… の reports.py:43,44,49 は `metadata`。diff 上、この改名に機能的な理由は示されていない。",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:34-39 ReportService.resolve_export",
+          "cause": "docstring は「storage 外のパスを拒否する」と約束している。しかし実装は `is_relative_to` から `str(target).startswith(str(self.storage_root))` の文字列前方一致に変わった。この判定では、storage_root と同じ接頭辞を持つ兄弟ディレクトリ（例: `/data/exports` に対する `/data/exports_other`）を拒否できない。",
+          "impact": "記載された契約（storage root が唯一の許可ダウンロード先）と実装が一致しない。根本原因は安全性欠陥であり、Phase 1 へ差し戻す必要がある。",
+          "trigger": "metadata[\"path\"] が `../<storage_root名>_suffix/file` のように解決後に storage_root の文字列接頭辞を共有する兄弟パスになる場合、PermissionError が送出されない。",
+          "evidence": "docstring は reports.py:35「Resolve an export location, rejecting paths outside storage.」、実装は reports.py:37 の `startswith`。base reports.py:32 は `target.is_relative_to(self.storage_root)` だった。",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "reports.py:41-43 ReportService.replace_repository / reports.py:27-32 ReportService.metadata",
+          "cause": "replace_repository の docstring は「接続ローテーション時にメタデータ取得元を切り替える」と述べている。しかし metadata() はキャッシュ済みエントリを無期限に返し、replace_repository は self.cache を無効化しない。そのためキャッシュ済みの report では取得元が切り替わらない。metadata() の docstring もキャッシュによる副作用（初回取得結果の保持）を記載していない。",
+          "impact": "ローテーション後も旧リポジトリ由来のメタデータが返り続け、docstring の記述と実際の挙動が乖離する。refreshed metadata を利用可能に保つという要件にも関わる正当性欠陥であり、Phase 1 へ差し戻す必要がある。",
+          "trigger": "report_id X を download した後に rotate_connection() を呼び、同じ X を再度 download した場合、新しい database adapter は参照されない。",
+          "evidence": "reports.py:42 の docstring「Switch the metadata source during connection rotation.」、reports.py:43 は self.repository の代入のみ。reports.py:30-32 は `if key not in self.cache` の場合だけ lookup する。reports.py:28 の docstring は base（:27）から変わっていない。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71 _format_content_disposition",
+          "cause": "呼び出し元のないプライベート関数が新規に追加されている。docstring 自体が、消費者は「retired HTTP response adapter」（廃止済み）だと述べている。",
+          "impact": "到達不能なコードと、廃止済みの挙動を説明するコメントが追加され、保守時に誤解を招く。保持する理由は示されていない。",
+          "trigger": "変更対象に含まれる全実装と全呼び出し元の中に、_format_content_disposition の参照が存在しない状態。",
+          "evidence": "要件に「All implementation and callers are included.」とある。candidate reports.py 全体（1-71行）で `_format_content_disposition` が現れるのは定義行 :69 のみ。先頭の underscore からプライベート関数であり、外部 API ではない。download() reports.py:50-54 も Content-Disposition を生成していない。",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "commit「Cache report metadata across downloads and support repository rotation」（reports.py）",
+          "cause": "単一コミットに、キャッシュ追加と、関連のない変更（resolve_export の境界判定変更、metadata→zz の改名、未使用ヘルパー追加）が混在している。件名にある repository rotation のサポートは base に既に存在し（base reports.py:37-39, 59-61）、本コミットで変更されていない。",
+          "impact": "キャッシュのみ、または境界判定変更のみを個別に revert できない。件名からもコミットの実内容を判断できない。",
+          "trigger": "resolve_export の回帰だけを切り戻したい場合でも、キャッシュ機能ごと revert する必要が生じる。",
+          "evidence": "commits 配列は1件のみ（files: reports.py）。diff のハンク @@ -19,18 +19,22 @@、@@ -40,13 +44,13 @@、@@ -60,3 +64,8 @@ に上記の変更が同居している。candidate identity は 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb。",
+          "id": "f005"
+        }
+      ]
+    },
+    {
+      "id": "O727c747c65a9",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "Of1b98290365d",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:29-32 ReportService.metadata(candidate 60e8356a)",
+          "cause": "キャッシュキーが `key = report_id` のみで tenant を含まない。最初に取得された tenant の結果が、同じ report_id を要求する他 tenant にも返される。",
+          "impact": "テナント間の情報漏洩。他 tenant の path/filename が返り、download() がその tenant のエクスポートを読み出して返す。DB adapter による tenant 所有権チェック(lookup)がキャッシュヒット時に完全にバイパスされる。",
+          "trigger": "tenant A が report_id=42 をダウンロードしてキャッシュされた後、同じプロセスで tenant B が report_id=42 を要求する(要件上 report ID は tenant 間で共有され得る)。B の lookup は呼ばれず、A のメタデータとファイル本体が B に返る。",
+          "evidence": "candidate reports.py:29 `key = report_id`、:30-31 で未登録時のみ `self.repository.lookup(tenant, report_id)` を実行、:32 でキャッシュ値を返却。base reports.py:28 は毎回 `self.repository.lookup(tenant, report_id)` を呼んでいた。要件: \"Multiple tenants can share report IDs; database adapters enforce tenant ownership when queried.\"",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:25, 30-32, 41-43 ReportService.cache / metadata / replace_repository",
+          "cause": "キャッシュに無効化・期限・上限が一切なく、replace_repository() も self.cache をクリアしない。",
+          "impact": "接続ローテーション後も旧 repository 由来のメタデータが返り続け、更新されたメタデータが反映されない。削除・移動されたエクスポートの古い path を参照し続ける。キャッシュはプロセス寿命の間、無制限に増加する。",
+          "trigger": "report_id=42 をキャッシュ後、DB 側でメタデータが更新される、または rotate_connection(service, new_db) が呼ばれる。以後の metadata() は新しい repository を参照せず、旧値を返す。",
+          "evidence": "candidate reports.py:25 `self.cache = {}` 以外にキャッシュを変更・削除する箇所はない(:31 の追加のみ)。:43 replace_repository は `self.repository = repository` のみ。rotate_connection(:64-66)は replace_repository を呼ぶだけ。要件: \"Existing exports and refreshed metadata must remain available\" および \"support replacing the repository when the database connection rotates\"。",
+          "id": "f002"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:37 ReportService.resolve_export",
+          "cause": "`Path.is_relative_to` による包含判定を、文字列の前方一致 `str(target).startswith(str(self.storage_root))` に置き換えた。パス区切りを考慮しないため、storage_root と同じ接頭辞を持つ兄弟ディレクトリを通過させる。",
+          "impact": "パストラバーサルの回帰。storage root 外のファイルがダウンロード対象になり得て、要件の \"The export storage root is the only permitted download location\" に違反する。",
+          "trigger": "storage_root=/srv/exports、メタデータ path が \"../exports-old/secret.csv\" の場合、resolve 後は /srv/exports-old/secret.csv となる。これは '/srv/exports' で始まるためチェックを通過し、read_bytes() が実行される。",
+          "evidence": "base reports.py:32 `if not target.is_relative_to(self.storage_root):`。candidate reports.py:37 `if not str(target).startswith(str(self.storage_root)):`。diff hunk @@ -19,18 +19,22 @@。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:47-53 ReportService.download",
+          "cause": "ローカル変数 `metadata` を意味のない `zz` に改名した。",
+          "impact": "変数がメタデータ辞書であることが名前から読み取れない。周辺で使われている `metadata` という語彙(メソッド名 metadata()、base の変数名)からも逸脱している。",
+          "trigger": "download() を読む・保守する際に、zz の内容を実装から逆算する必要がある。",
+          "evidence": "base reports.py:43-49 `metadata = self.metadata(...)`, `metadata[\"path\"]`, `metadata[\"filename\"]`。candidate reports.py:47,48,53 `zz = ...`, `zz[\"path\"]`, `zz[\"filename\"]`。改名の理由は diff 内に見当たらない。",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71 _format_content_disposition",
+          "cause": "呼び出し元のないプライベートヘルパーを新規追加した。その docstring 自体が「retired HTTP response adapter」用だと述べている。",
+          "impact": "到達不能なデッドコードが追加され、廃止済み機能への言及が残る。要件(キャッシュとローテーション)とも無関係で、保守対象を不要に増やす。",
+          "trigger": "変更後の reports.py 全体で、_format_content_disposition の参照は定義箇所のみ。",
+          "evidence": "candidate reports.py:69-71。reports.py 内で他に参照なし。download() :50-54 は Content-Disposition を生成しない。要件に \"All implementation and callers are included\" とあり、外部呼び出し元は存在しない。先頭の `_` によりモジュール外 API でもない。",
+          "id": "f005"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "commit \"Cache report metadata across downloads and support repository rotation\"(reports.py)",
+          "cause": "単一コミットに、キャッシュ追加、resolve_export の判定方式変更、変数改名、無関係なデッドヘルパー追加が混在している。件名の「support repository rotation」は base に既に存在する機能(replace_repository/rotate_connection)で、このコミットでは変更されていない。",
+          "impact": "F3 のパス判定回帰だけを、あるいはキャッシュ機能だけを独立してロールバックできない。件名からも変更内容を把握しにくい。",
+          "trigger": "F1/F2 のためにキャッシュだけを取り消そうとすると、同じコミットに含まれるパス判定変更・改名・ヘルパー追加も同時に巻き戻すか、手作業で分離する必要がある。",
+          "evidence": "commits[0] files=[reports.py]。diff の 4 hunk(@@ -19,18 +19,22 @@ キャッシュ+startswith、@@ -40,13 +44,13 @@ 改名、@@ -60,3 +64,8 @@ ヘルパー追加)。base reports.py:36-38, 57-59 にローテーション機能が既存。",
+          "id": "f006"
+        }
+      ]
+    },
+    {
+      "id": "Oea3e0e3c1072",
+      "fixture_id": "F3",
+      "findings": [
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:30-33 ReportService.metadata",
+          "cause": "キャッシュキーが report_id だけで、tenant を含んでいない。キャッシュがヒットすると repository.lookup(tenant, ...) が呼ばれず、DB アダプタ側のテナント所有権チェックも行われない。",
+          "impact": "同じ report_id を持つ別テナントのメタデータ（path と filename）が返される。その結果、他テナントのエクスポート本体がダウンロードされる。テナント間のデータ漏えいにあたる。",
+          "trigger": "テナント A が report_id=42 をダウンロードした後に、同じプロセスでテナント B が report_id=42 を要求する。B は A の path に対応するファイル内容と、A の filename を受け取る。B が 42 を所有していない場合も同じ結果になる。",
+          "evidence": "要件に \"Multiple tenants can share report IDs; database adapters enforce tenant ownership when queried\" とある。差分は `key = report_id` で、`if key not in self.cache:` の場合にしか lookup を呼ばない。",
+          "id": "f001"
+        },
+        {
+          "severity": "P1",
+          "category": "material",
+          "location": "reports.py:37 ReportService.resolve_export",
+          "cause": "is_relative_to が文字列の startswith による前方一致に置き換えられた。パス区切りの境界を確認していない。",
+          "impact": "ストレージルートと同じ接頭辞を持つ兄弟ディレクトリへのパスが許可され、許可領域の外のファイルが読み出される。base にあった正しいチェックが退行している。",
+          "trigger": "storage_root=/srv/exports のとき、メタデータの path が '../exports_old/secret.csv' だと resolve 後は /srv/exports_old/secret.csv になる。これは '/srv/exports' で始まるので PermissionError が送出されない。Windows ではさらに大文字小文字の差でも判定が変わる。",
+          "evidence": "base は `if not target.is_relative_to(self.storage_root):`、candidate は `if not str(target).startswith(str(self.storage_root)):`。要件には \"The export storage root is the only permitted download location\" とある。",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "reports.py:43-45 ReportService.replace_repository / reports.py:64-66 rotate_connection",
+          "cause": "リポジトリを差し替えるときにキャッシュを無効化していない。キャッシュには有効期限も無効化手段もない。",
+          "impact": "接続ローテーションで新しいリポジトリに切り替えた後も、古い接続から取得したメタデータが返され続ける。更新されたメタデータ（新しい path や filename）がプロセスの寿命の間は反映されない。",
+          "trigger": "report_id=42 をキャッシュした後で rotate_connection を呼ぶ。新しい DB では 42 の path が更新されているのに、download は古い path を読む。古いファイルが既に削除されていれば FileNotFoundError になる。",
+          "evidence": "replace_repository は `self.repository = repository` だけを実行し、self.cache には触れていない。要件には \"support replacing the repository when the database connection rotates\" と \"refreshed metadata must remain available\" とある。",
+          "id": "f003"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:47-54 ReportService.download",
+          "cause": "ローカル変数名が意味のある `metadata` から `zz` に変更された。",
+          "impact": "可読性が下がる。機能上の変更はない。",
+          "trigger": "コードを読む・保守するとき。",
+          "evidence": "差分で `-        metadata = self.metadata(...)` が `+        zz = self.metadata(...)` に置き換わり、続く参照も `zz[\"path\"]` と `zz[\"filename\"]` になっている。",
+          "id": "f004"
+        },
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "reports.py:69-71 _format_content_disposition",
+          "cause": "呼び出し元のない関数が追加されている。docstring には「retired HTTP response adapter」用とあり、引退済みのコンポーネント向けのデッドコードである。",
+          "impact": "不要なコードが増え、保守コストが上がる。将来この関数が使われた場合、filename をエスケープしていないので、引用符や改行を含むファイル名でヘッダ破損やヘッダインジェクションが起きうる。",
+          "trigger": "現時点では呼び出し元がない（要件では \"All implementation and callers are included\"）。将来 filename に '\"' や CRLF を含むメタデータで呼ばれた場合に問題になる。",
+          "evidence": "候補ファイル全体を見ても `_format_content_disposition` の参照はなく、`f'attachment; filename=\"{filename}\"'` は値をそのまま埋め込んでいる。",
+          "id": "f005"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "reports.py:25,30-33 ReportService.cache",
+          "cause": "キャッシュに上限、追い出し、TTL のいずれもない。",
+          "impact": "長く稼働するプロセスでは、参照されたレポート数に比例してメモリが増え続ける。",
+          "trigger": "多数の異なる report_id がダウンロードされる長時間稼働プロセス。",
+          "evidence": "`self.cache = {}` は無制限の dict で、削除するコードがない。",
+          "id": "f006"
+        }
+      ]
+    },
+    {
+      "id": "O0d54fcd5b1cb",
+      "fixture_id": "F4",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "quality",
+          "location": "audit.py: AuditReader.page のdocstring",
+          "cause": "新しく `event_type` 引数が追加されたが、docstringは「カーソル以降のイベントと任意の次カーソルを返す」のままで、種別フィルタについて触れていない。",
+          "impact": "docstringは存在するため、リポジトリのdocstring必須ポリシーには違反しない。ただし、フィルタがページング前に適用されることや、`next_cursor` が一致イベントの有無で決まることが関数の説明から読み取れない。",
+          "trigger": "`page(tenant, event_type=\"login\")` の挙動を、docstringだけを頼りに理解しようとした場合。",
+          "evidence": "差分で `page` のシグネチャに `event_type=None` が追加されたが、docstring行 `\"\"\"Return events following a cursor and an optional next cursor.\"\"\"` は変更されていない。",
           "id": "f001"
         },
         {
           "severity": "P3",
           "category": "optional",
-          "location": "inventory.py:39–40 (build_digest)",
-          "cause": "The descriptive local name totals is replaced with x without changing its role.",
-          "impact": "Readers must trace the assignment to understand that render_rows receives grouped stock totals, reducing readability for the stated maintenance objective.",
-          "trigger": "A maintainer reads or modifies build_digest.",
-          "evidence": "The complete diff changes totals = group_stock(records) and render_rows(totals) to the equivalent expressions using x. Retaining totals is an optional readability improvement.",
+          "location": "audit.py: AuditEndpoint.get の `query.get(\"event_type\")`",
+          "cause": "空文字列の `event_type` は `None` ではないため、フィルタ値として扱われる。",
+          "impact": "`event_type=` のようなクエリでは `type == \"\"` のイベントだけに絞り込まれ、通常は空ページが返る。要件は「省略時は既存挙動」とのみ定めており、空文字列の扱いは規定されていない。そのため欠陥ではなく、仕様を明確にするための任意の改善提案とする。",
+          "trigger": "クエリ `{\"event_type\": \"\"}` を指定して `AuditEndpoint.get` を呼び出した場合。",
+          "evidence": "`if event_type is not None and event[\"type\"] != event_type: continue` は、空文字列を有効なフィルタ値として扱う。",
+          "id": "f002"
+        }
+      ]
+    },
+    {
+      "id": "O0c60cf22df89",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27",
+          "cause": "The flush loop runs only while at least one full batch remains.",
+          "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
+          "trigger": "With batch_size=20, enqueue one notice and call flush(): no transport call occurs. Flushing 21 notices sends 20 and leaves one queued.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31",
+          "cause": "The transport exception handler catches Exception instead of limiting recovery to ConnectionError.",
+          "impact": "Invalid payload ValueError exceptions are hidden from the caller, contrary to the explicit requirement.",
+          "trigger": "Queue a full batch whose transport.send call raises ValueError: flush() returns its accumulated results without propagating the error.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: every Exception from transport.send causes a silent loop exit.",
           "id": "f002"
         },
         {
-          "severity": "P3",
-          "category": "optional",
-          "location": "inventory.py:67 (_legacy_header)",
-          "cause": "An unused helper introduces a second, incompatible header representation.",
-          "impact": "It adds maintenance surface and an alternative header that has no demonstrated role in the export path.",
-          "trigger": "A maintainer searches for header definitions or considers reusing _legacy_header.",
-          "evidence": "All implementation and consumers are included; none reference _legacy_header. It returns Warehouse,Item,On hand, while format_digest directly constructs warehouse\\tsku\\tquantity. Removing the helper is optional cleanup.",
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58",
+          "cause": "DeliveryService.dispatch now returns a dictionary while command_response still expects a list of delivered identifiers.",
+          "impact": "The scheduler response changes shape and reports an incorrect delivery count.",
+          "trigger": "After successfully delivering 20 notices, command_response returns count=1 and ids={\"delivered\": [1, ..., 20]} instead of count=20 and a flat identifier list. With no deliveries, it still reports count=1.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list in a dictionary; dispatch.py:63-64 calculates len(delivered) and returns that dictionary as ids. The embedded base returns the list directly.",
           "id": "f003"
         }
       ]
+    },
+    {
+      "id": "O90b4d240c3a0",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27",
+          "cause": "flush() processes only full batches.",
+          "impact": "Explicit flushes leave partial batches undelivered indefinitely unless additional notices arrive.",
+          "trigger": "Flush a nonempty queue containing fewer than batch_size notices, or flush a queue with a partial final batch.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size. With batch_size=20 and one pending notice, transport.send is never called. This contradicts the explicit partial-batch flush requirement.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31",
+          "cause": "The transport call catches Exception instead of limiting recovery to ConnectionError.",
+          "impact": "Invalid payloads silently remain queued, and callers lose the required ValueError signal.",
+          "trigger": "A full batch reaches transport.send and the transport raises ValueError.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: ValueError is caught by except Exception and execution returns completed. The requirement explicitly preserves ValueError visibility.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58; command_response at lines 61-64",
+          "cause": "DeliveryService.dispatch() now returns a dictionary, while command_response() still consumes its result as a list of delivered identifiers.",
+          "impact": "The scheduler response has an incorrect count and a nested object in ids, breaking the existing command interface.",
+          "trigger": "Call command_response() with the supplied DeliveryService.",
+          "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list as {\"delivered\": ...}; lines 63-64 calculate len() of that dictionary and expose it as ids. Even with no notices and an empty queue, the response becomes {\"count\": 1, \"ids\": {\"delivered\": []}} instead of {\"count\": 0, \"ids\": []}.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "Oa726b39740de",
+      "fixture_id": "F4",
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "audit.py:19-20 AuditReader.page docstring",
+          "cause": "`event_type` パラメータを追加しましたが、docstring は変更前の「Return events following a cursor and an optional next cursor.」のままです。省略可能な種別フィルタがあること、そのフィルタを page_size の適用前に行うことが記述されていません。",
+          "impact": "呼び出し側がフィルタの存在と、フィルタとページングの適用順序という契約を docstring から読み取れません。動作の正しさには影響しないため、修正は任意です。",
+          "trigger": "`event_type` を指定したときの `next_cursor` の意味を docstring だけで判断しようとした場合。",
+          "evidence": "candidate audit.py:19 で `event_type=None` を追加し、audit.py:25-26 でフィルタしています。audit.py:20 の docstring は base と同一です(diff の docstring 行に変更はありません)。",
+          "id": "f001"
+        }
+      ]
+    },
+    {
+      "id": "Oec6555230e2d",
+      "fixture_id": "F1",
+      "findings": [
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:27, NoticeQueue.flush",
+          "cause": "The loop runs only while at least batch_size notices remain.",
+          "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver queues smaller than one batch.",
+          "trigger": "With batch_size=20, enqueue one notice and call flush(); transport.send is never called. With 21 notices, the final notice remains queued.",
+          "evidence": "The condition `while len(self.pending) >= self.batch_size` excludes every nonempty partial batch. Continue while pending is nonempty and cap each batch at batch_size.",
+          "id": "f001"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:31, NoticeQueue.flush",
+          "cause": "The exception handler catches Exception instead of ConnectionError.",
+          "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
+          "trigger": "Queue at least one full batch and have transport.send raise ValueError for an invalid payload; flush returns normally.",
+          "evidence": "ValueError is caught by `except Exception`, whose body only breaks the loop. Catch ConnectionError specifically so ValueError propagates.",
+          "id": "f002"
+        },
+        {
+          "severity": "P2",
+          "category": "material",
+          "location": "dispatch.py:58, DeliveryService.dispatch",
+          "cause": "dispatch now returns a dictionary, but command_response still treats its result as a list of delivered identifiers.",
+          "impact": "The scheduler response has an incorrect count and a nested dictionary in ids, breaking the required existing command interface.",
+          "trigger": "With batch_size=2 and two successfully delivered notices, command_response returns {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. An empty dispatch also reports count=1.",
+          "evidence": "The changed return wraps flush() in `{\"delivered\": ...}`; unchanged command_response computes len(delivered) and assigns that dictionary directly to ids. Preserve dispatch's list return.",
+          "id": "f003"
+        }
+      ]
+    },
+    {
+      "id": "O3dc8aa7f5a4d",
+      "fixture_id": "F4",
+      "findings": []
+    },
+    {
+      "id": "O8295f9894de8",
+      "fixture_id": "F4",
+      "findings": []
     },
     {
       "id": "Oc2ebf29c409f",
@@ -1020,183 +1809,30 @@
       ]
     },
     {
-      "id": "Od97a0f71a577",
-      "fixture_id": "F1",
-      "findings": [
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:27, NoticeQueue.flush",
-          "cause": "The loop runs only while at least batch_size notices remain.",
-          "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver entries smaller than one batch.",
-          "trigger": "With batch_size=20, enqueue one notice and call flush(); alternatively, enqueue 21 notices and flush.",
-          "evidence": "The condition `while len(self.pending) >= self.batch_size` skips transport.send entirely for one notice and leaves the final notice pending after delivering the first 20 of 21.",
-          "id": "f001"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:31, NoticeQueue.flush",
-          "cause": "The handler catches every Exception rather than specifically ConnectionError.",
-          "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
-          "trigger": "A full batch reaches transport.send and the transport raises ValueError for an invalid payload.",
-          "evidence": "`except Exception: break` catches ValueError and returns the accumulated completed IDs normally. Neither DeliveryService.dispatch nor command_response can observe the required exception.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "dispatch.py:58, DeliveryService.dispatch",
-          "cause": "dispatch now wraps the delivered ID list in a dictionary, while command_response still treats its return value as the list.",
-          "impact": "Scheduler responses have an incorrect count and an incompatible ids value, violating the requirement to preserve the command interface.",
-          "trigger": "Call command_response with a service whose queue successfully delivers a batch of two notices using batch_size=2.",
-          "evidence": "dispatch returns `{\"delivered\": [1, 2]}`. The unchanged command_response consequently returns `{\"count\": 1, \"ids\": {\"delivered\": [1, 2]}}` instead of the previous `{\"count\": 2, \"ids\": [1, 2]}`. An empty delivery also produces count=1.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "Oea7957530fc6",
-      "fixture_id": "F2",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:39-40",
-          "cause": "The descriptive local name totals was replaced with x for quantities grouped by warehouse and SKU.",
-          "impact": "Readers must inspect group_stock to understand the value, and the name departs from the surrounding totals vocabulary.",
-          "trigger": "Reading or maintaining build_digest's aggregation-to-rendering handoff.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40 uses x; group_stock at lines 17-21 and render_rows at lines 24-27 use totals for the same concept. The supplied diff establishes the replacement of totals.",
-          "id": "f001"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:45",
-          "cause": "The format_digest docstring now describes a comma-separated export while the implementation still emits tabs.",
-          "impact": "The documented output contract misleads maintainers and consumers about the delimiter.",
-          "trigger": "Using the format_digest documentation to interpret its output format.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 says comma-separated; lines 46-50 use tab delimiters. The supplied requirement explicitly preserves tab-separated exports.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:67-69",
-          "cause": "The change adds an unused helper for a renderer explicitly described as retired, without a retention purpose.",
-          "impact": "The maintenance change introduces obsolete code and an additional export-header representation to maintain.",
-          "trigger": "Applying this changeset, which adds _legacy_header without any caller.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69 defines _legacy_header. Inspection of the complete supplied inventory.py:1-69 finds no references to it; the active header remains at line 46. The frozen requirements state that all consumers and implementation are included.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "O27dc77e475d7",
-      "fixture_id": "F3",
-      "findings": [
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py:29-32, ReportService.metadata",
-          "cause": "The cache key contains only report_id, omitting tenant.",
-          "impact": "A tenant can receive another tenant's report metadata and download its export. Cache hits bypass the database adapter's ownership enforcement.",
-          "trigger": "Tenant A downloads report ID X, then tenant B requests the same ID through the same service instance.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:29-32 caches by report_id; reports.py:47-53 reads the cached path and returns its content and filename. Requirements explicitly allow shared report IDs across tenants.",
-          "id": "f001"
-        },
-        {
-          "severity": "P1",
-          "category": "material",
-          "location": "reports.py:37, ReportService.resolve_export",
-          "cause": "String-prefix comparison replaces path-component containment.",
-          "impact": "Downloads can read files outside the permitted export storage root.",
-          "trigger": "With storage_root /srv/exports, metadata containing ../exports-private/report.csv resolves to /srv/exports-private/report.csv and passes the prefix check.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:36-39 accepts matching string prefixes; reports.py:48-49 reads the accepted file. Base e6312cd5473469e18e45b42ccb469a1a024becd83006e21f8d64f647c235a112 used is_relative_to. Requirements permit downloads only within the storage root.",
-          "id": "f002"
-        },
-        {
-          "severity": "P2",
-          "category": "material",
-          "location": "reports.py:41-43, ReportService.replace_repository",
-          "cause": "Repository replacement retains metadata cached from the previous repository, with no invalidation or refresh path.",
-          "impact": "Previously requested reports continue using stale paths and filenames after rotation; refreshed exports remain inaccessible and removed old paths can cause download failures.",
-          "trigger": "Cache a report, replace the repository with one returning updated metadata for that report, then download it again.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:30-32 queries only on cache misses; reports.py:41-43 changes only repository; reports.py:64-66 supplies the rotation caller. Requirements require refreshed metadata to remain available.",
-          "id": "f003"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:47-53, ReportService.download",
-          "cause": "The descriptive local name metadata is replaced with zz.",
-          "impact": "Readers must inspect the assignment to understand the value's domain role, and the name departs from surrounding metadata terminology.",
-          "trigger": "Reading or maintaining the download path and filename selection.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:47-53 uses zz; reports.py:13-15 and 27-32 use metadata terminology. The base download implementation named this value metadata.",
-          "id": "f004"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "reports.py:69-71, _format_content_disposition",
-          "cause": "A new unused helper is added for an explicitly retired HTTP response adapter.",
-          "impact": "The change introduces obsolete code and documentation suggesting a consumer that is absent from the supplied implementation.",
-          "trigger": "Maintaining the response-header integration or looking for the helper's consumer.",
-          "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb: reports.py:69-71 defines the helper and describes the retired consumer. Inspection of the complete supplied reports.py:1-71 finds no caller or registration; requirements state all implementation and callers are included.",
-          "id": "f005"
-        }
-      ]
-    },
-    {
-      "id": "O0f98ae0a2c23",
-      "fixture_id": "F2",
-      "findings": [
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:39-40",
-          "cause": "The warehouse/SKU quantity totals variable was renamed from totals to x.",
-          "impact": "Readers must inspect the producer to understand its domain role, and equivalent values now use inconsistent names.",
-          "trigger": "Reading or maintaining build_digest and its call to render_rows.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40 uses x; group_stock at lines 17-21 and render_rows at lines 24-27 use totals for the same concept. No reason for the departure is supplied.",
-          "id": "f001"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:45",
-          "cause": "The format_digest docstring now describes comma-separated output while the implementation still emits tabs.",
-          "impact": "The documented output contract misleads maintainers and consumers.",
-          "trigger": "Using the docstring to determine the export delimiter.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 says comma-separated; lines 46 and 49 emit tab separators. DigestCommand.run calls this implementation at line 64, and the supplied requirements require tab-separated exports.",
-          "id": "f002"
-        },
-        {
-          "severity": "P3",
-          "category": "quality",
-          "location": "inventory.py:67-69",
-          "cause": "The change adds an unused private helper for a retired renderer without a retention purpose.",
-          "impact": "Obsolete export code adds maintenance burden and suggests an unsupported alternate header.",
-          "trigger": "Maintaining the renderer with _legacy_header present despite having no consumer.",
-          "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69 defines _legacy_header and explicitly describes its renderer as retired. Inspection of the complete supplied inventory.py:1-69 finds no reference to it; the active header is constructed directly at line 46. The supplied requirements state that all consumers and implementation are included.",
-          "id": "f003"
-        }
-      ]
-    },
-    {
-      "id": "Of58d6f0e7a30",
+      "id": "O752bebdb545c",
       "fixture_id": "F4",
-      "findings": []
-    },
-    {
-      "id": "Od0d2994d5115",
-      "fixture_id": "F4",
-      "findings": []
-    },
-    {
-      "id": "O8295f9894de8",
-      "fixture_id": "F4",
-      "findings": []
+      "findings": [
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "audit.py:22 AuditReader.page docstring",
+          "cause": "新しい引数 event_type が追加されましたが、docstring は以前の「Return events following a cursor and an optional next cursor.」のままです。",
+          "impact": "docstring は存在するため、リポジトリポリシー（関数 docstring 必須）には違反していません。ただし、event_type によるフィルタがページサイズ適用前に行われることが docstring から読み取れず、呼び出し側が契約を誤解するおそれがあります。",
+          "trigger": "開発者が docstring だけを見て page(..., event_type=...) の挙動を判断した場合。",
+          "evidence": "diff ではシグネチャが `def page(self, tenant, after_id=None, page_size=25, event_type=None):` に変更されていますが、直後の docstring 行は変更されていません。",
+          "id": "f001"
+        },
+        {
+          "severity": "P3",
+          "category": "optional",
+          "location": "audit.py:52-54 AuditEndpoint.get",
+          "cause": "query.get(\"event_type\") の値をそのまま渡しています。空文字列も None ではないため、フィルタ条件として扱われます。",
+          "impact": "`event_type=`（値が空）のクエリでは type が \"\" のイベントだけに絞り込まれ、通常は空ページになります。要件は「省略時は既存挙動」とだけ定めており、空値の扱いは規定していません。そのため要件違反ではなく、仕様を明確化する余地がある点として挙げます。",
+          "trigger": "query = {\"event_type\": \"\"} でリクエストした場合。",
+          "evidence": "`if event_type is not None and event[\"type\"] != event_type: continue` は、event_type が \"\" のときに type が \"\" でない全イベントを除外します。",
+          "id": "f002"
+        }
+      ]
     }
   ]
 }

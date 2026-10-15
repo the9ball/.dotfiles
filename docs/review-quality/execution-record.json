@@ -84,7 +84,7 @@
     "actual_billing_and_subscription_credits": null,
     "extra_paid_duplicate_usd": 0.06834,
     "duplicate_counts_against_global_launch_budget": true,
-    "claude_authentication": "User selected reauthentication and continuation; status remained loggedIn=false and one same-route retry returned expired OAuth with zero usage/cost. Await explicit completion of user reauthentication before another retry.",
+    "claude_authentication": "Two expired OAuth attempts reported zero usage/cost. After explicit user retry, same-route status returned loggedIn=true with claude.ai; first successful reviewer receipt identifies claude-opus-5-5. No coordinator credential or persistent configuration change.",
     "launch_extension_authorization": "Explicit user reply: 65起動まで許可する; reviewer estimate cap remains10USD"
   },
   "history_operations": "No amend, fixup, rebase, squash, force push, or existing-history rewrite"

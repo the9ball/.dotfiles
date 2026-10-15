@@ -77,3 +77,9 @@ model-backed trial. The coordinator should have stopped after the negative
 login check instead of invoking the runner. No further authentication retry is
 made until the user reports completed reauthentication; no credentials are
 changed by the coordinator.
+
+After the user's explicit `retry`, the same CLI's status returned logged-in
+Claude OAuth and the original runner produced a successful first observation.
+The result identifies `claude-opus-5-5`; effective effort remains unavailable.
+The original fixed inputs, arm order, CLI flags and model-default policy were
+retained. No authentication or persistent setting was changed by the coordinator.

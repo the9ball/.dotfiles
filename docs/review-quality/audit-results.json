@@ -1,13 +1,14 @@
 {
   "frozen_fixture_and_prompt_identities_preserved": true,
-  "observations": 32,
-  "unique_sessions": 32,
+  "observations": 48,
+  "unique_sessions": 48,
   "observations_by_host": {
+    "claude": 16,
     "codex": 32
   },
   "no_reviewer_tool_calls": true,
   "complete_declared_coverage": true,
-  "independent_C_order_checks": 8,
+  "independent_C_order_checks": 12,
   "codex_cost_arithmetic_checks": 32,
   "reviewer_envelopes": [
     {

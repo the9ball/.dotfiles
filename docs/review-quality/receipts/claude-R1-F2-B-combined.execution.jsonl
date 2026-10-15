@@ -1,0 +1,9 @@
+{
+  "label": "claude-R1-F2-B-combined",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038245.8988254,
+  "elapsed_seconds": 44.64738845825195,
+  "input_sha256": "e25dee3b3bedeed2598238a13ef30662064f55ede6048c10385bca3a1d8a9dd2",
+  "raw_output_sha256": "25f6604a36bd7a269158a7a9537c09b5e286d510906b7105c3f67c486f5b3903"
+}
