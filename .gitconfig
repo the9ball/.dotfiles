@@ -45,12 +45,6 @@
 [fetch]
 	prune = true
 	showForcedUpdates = true
-[credential "https://github.com"]
-	helper =
-	helper = !gh auth git-credential
-[credential "https://gist.github.com"]
-	helper =
-	helper = !gh auth git-credential
 [log]
 	date = iso-local
 [advice]
@@ -194,8 +188,17 @@
 # push時のpush先を変更する設定
 # [url "git@github.com:"]
 #	pushInsteadOf = git://github.com/
+######################################################################################
 
 # Machine-local overrides. Keep credentials and host-specific paths there.
 [include]
 	path = ~/.gitconfig.local
-######################################################################################
+
+# ~/.gitconfig.local の汎用 credential.helper（空値でのリセットを含む）より後に読み、
+# GitHub だけはどのマシンでも gh を使う。
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
