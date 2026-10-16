@@ -1,0 +1,18 @@
+{
+  "id": "EXTRA-F1-batching-work",
+  "classification": "valid unseeded performance regression",
+  "frozen_ground_truth_unchanged": true,
+  "observations": [
+    {
+      "queued_notices": 100,
+      "baseline_references_copied": 100,
+      "candidate_references_copied": 5050
+    },
+    {
+      "queued_notices": 200,
+      "baseline_references_copied": 200,
+      "candidate_references_copied": 20100
+    }
+  ],
+  "measurement": "Deterministic reference-traversal counts, not elapsed-time benchmark"
+}

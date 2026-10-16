@@ -1,0 +1,32 @@
+{
+  "verdict": "CLEAR for descriptive publication",
+  "blocking_findings": [],
+  "advice_not_measurement_or_adoption_decision": true,
+  "independent_context": "final_quality_adviser; fork_turns=none; model/effort inherited, effective metadata unavailable",
+  "source_revision": "e6cec938772cd77bef6ef3426db4dfaac0976a62",
+  "scope_reference": "fa648174b9b40f0f3e6796f33261c8d63425bdf2:docs/review-quality/final-review-scope.json",
+  "scope_blob": "83efdc36887fdc1e421d9409949c4fc67842ec35",
+  "epoch": "83efdc36887fdc1e421d9409949c4fc67842ec35+1ecd36bfbc3f733b5671bf3b6bf20c1ffe5ae3dc+9b02ae6cd7ec5b8020dfe0c348552116e1df65cf/historical-preservation/native-Adviser/read-only/reference",
+  "historical_scope_supplement": [
+    {"path": "docs/review-quality/manifest.json", "revision": "2464f415a50e708289833bad8815e91e1cf9bfb3", "target_identity": "1ecd36bfbc3f733b5671bf3b6bf20c1ffe5ae3dc", "mode": "構造指定", "primary_scope": "entire structured value", "surrounding_context": "current declared manifest, runner, fixtures and receipts", "excluded_scope": "all unlisted product evidence", "dependency_closure": "original166 declarations plus historical runner", "materialization": "reference", "retrieval": "immutable git show revision:path; independently verify OID"},
+    {"path": "docs/review-quality/run.py", "revision": "2464f415a50e708289833bad8815e91e1cf9bfb3", "target_identity": "9b02ae6cd7ec5b8020dfe0c348552116e1df65cf", "mode": "全文", "primary_scope": "entire file", "surrounding_context": "current runner and historical manifest", "excluded_scope": "all unlisted product evidence", "dependency_closure": "original166 declarations plus historical manifest", "materialization": "reference", "retrieval": "immutable git show revision:path; independently verify OID"}
+  ],
+  "identity_verification": "All166 declared OIDs independently verified against source tree; Git blob hashes recomputed. Historical manifest/runner OIDs verified. Fixture OID a95267719396ad32d64c7d7b14d47e59ab43e9d3 identical at51897a3,2464f41 and source revision.",
+  "actual_read_scope": "All four fixture sources/truth, complete report/comment/protocol/history, runner/analysis/audit/reproduction sources, all193 finding causes/impacts/triggers, scoring annotations, limitations, audit assessments and contested rows. All153 structured artifacts parsed. Repeated equivalent content checked structurally rather than repeatedly rendered. Historical source supplement read completely; governing instructions separately.",
+  "independently_reconciled": [
+    "64 observations;193 finding entries =157 matches +32 extras +4 duplicates",
+    "Complete normalized receipts, anonymous packet/mapping, four source grade arrays, merged grades, checklist inventories/links and summary",
+    "Current evidence/prompt identities and all12 historical/current stage-prompt equalities; historical/current manifest differs only in runner hash",
+    "64 distinct admitted sessions;zero tools;complete declared coverage;16 sequential C ordering checks",
+    "32 Codex cost calculations and all six host/arm cost, token and time aggregates",
+    "In-memory recomputation of complete summary gives identical semantic values",
+    "Primary reviewer estimate4.9622918 USD;duplicate0.068340 USD;total5.0306318 USD;C/B ratios/increments agree",
+    "No matching host-specific user paths or common credential-token patterns in declared artifacts"
+  ],
+  "attributable_assessment": "Report correctly distinguishes saturated recall from equivalence; H1/H2/H3 remain Indeterminate. It discloses cued requirements, synthetic history, answer-table flaws, extra inference budget, scoring corrections, recovery deviations and unavailable Root/billing counters. Single Codex exploratory recovery is balanced by other-trial miss. Deferring general adoption is justified.",
+  "nonblocking_advice": [{"path": "docs/review-quality/analyze.py", "scope": "checklist_audit disagreement lists", "finding": "Set iteration can reorder applicability/result disagreement IDs between Python processes. Counts and membership are unchanged; regenerated JSON is semantically reproducible rather than guaranteed byte-identical.", "optional_remedy": "Sort those lists in a separately validated source change", "effect_on_measured_conclusions": "none", "disposition": "Disclosed; no extra source change required for publication"}],
+  "unconfirmed": ["Private raw CLI streams and actual wire bytes", "Backend effort/settings beyond emitted metadata", "Internal reviewer cognition", "Actual synthetic Git ancestry", "Billing/credits and unavailable outer-process counters", "Dynamic reproductions and formatting assessed from retained results/source, not rerun by this Adviser"],
+  "excluded_evidence_read": false,
+  "writes_children_reviewer_reruns_external_operations": false,
+  "recording_note": "Root records source-bound Adviser advice after review; pending fields in reviewed source were pre-attestation state. Advice does not transfer measured truth or approve a production adoption decision."
+}

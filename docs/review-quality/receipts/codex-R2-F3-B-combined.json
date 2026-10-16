@@ -1,0 +1,155 @@
+{
+  "session_id": "01a13d9a-52f1-7bf3-a80d-561b33d89836",
+  "usage": {
+    "input_tokens": 23479,
+    "cached_input_tokens": 7296,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2683,
+    "reasoning_output_tokens": 432
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.059925599999999996,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py:29-32",
+        "cause": "The metadata cache uses report_id alone as its key, although report IDs are shared across tenants.",
+        "impact": "A tenant can receive another tenant's export content and filename without the database adapter checking ownership.",
+        "trigger": "Tenant A downloads a report, then tenant B requests the same report ID through the same service instance.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 skips repository.lookup on cache hits. reports.py:47-53 reads and returns the cached export. The requirements explicitly allow tenant ID collisions and place ownership enforcement in database queries."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py:37",
+        "cause": "String prefix comparison does not establish that a resolved path is inside the storage directory.",
+        "impact": "Downloads can read files outside the only permitted storage root.",
+        "trigger": "With storage_root=/srv/exports, metadata containing ../exports-private/report.csv resolves to /srv/exports-private/report.csv and passes the prefix check.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:36-39 accepts sibling paths sharing the root's textual prefix; reports.py:48-49 reads the accepted file. The base used Path.is_relative_to."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "reports.py:41-43",
+        "cause": "Replacing the repository retains cached metadata from the previous repository, with no invalidation or refresh path.",
+        "impact": "Previously cached reports keep obsolete paths and filenames after connection rotation. Updated exports remain inaccessible, and downloads fail if the old export path is removed.",
+        "trigger": "Cache a report, rotate to a repository returning updated metadata for that report, then download it again.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:29-32 only queries on cache misses; reports.py:41-43 changes the repository alone; reports.py:64-66 is the complete rotation caller. This conflicts with the requirement that refreshed metadata remain available."
+      }
+    ],
+    "checklist_findings": [
+      {
+        "id": "Q1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "reports.py:47-53",
+        "cause": "The descriptive local name metadata was replaced with zz.",
+        "impact": "Readers must inspect the assignment and dictionary accesses to understand the value's role, departing from surrounding domain vocabulary.",
+        "trigger": "Reading or modifying download's metadata and response construction.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:47-53 uses zz for report metadata. reports.py:27 and the base download implementation use metadata for this concept."
+      },
+      {
+        "id": "Q2",
+        "severity": "P3",
+        "category": "quality",
+        "location": "reports.py:69-71",
+        "cause": "The change adds an unused formatting helper for an explicitly retired response adapter.",
+        "impact": "It introduces obsolete code and an unsupported claim that the header has a consumer.",
+        "trigger": "Maintaining the report response path or attempting to identify where Content-Disposition is produced.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71 defines the private helper. Inspection of the complete supplied implementation and callers, reports.py:1-71, shows no reference to it or response adapter; download returns its response directly at lines 50-54. All implementation and callers are declared included."
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The changed local identifier zz does not communicate its report-metadata role.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:47-53; inspected the assignment and both dictionary accesses.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The renamed local abandons the established metadata vocabulary without a demonstrated distinction.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:27-32 and 47-53; base e6312cd5473469e18e45b42ccb469a1a024becd83006e21f8d64f647c235a112, reports.py:43-50 uses metadata in the same download role.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The supplied repository policy requires function docstrings. Every function has one, including the added helper; the changed functions describe their roles. Accuracy problems are recorded separately.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:9-71; inspected every function declaration and its docstring against the embedded policy.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The export resolver promises rejection of paths outside storage, but its implementation accepts some sibling paths. The new helper's claimed consumer is absent from the complete implementation.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:35 describes containment while lines 36-39 implement textual prefix matching. Line 70 claims a consumer; the complete reports.py:1-71 contains none.",
+        "finding_ids": [
+          "F2",
+          "Q2"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The added private helper serves a retired adapter and has no caller or documented retention reason in the complete supplied implementation.",
+        "evidence": "Candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, reports.py:69-71; bounded reference inspection covered reports.py:1-71, declared to include all implementation and callers.",
+        "finding_ids": [
+          "Q2"
+        ]
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "No library, service, or internal-module dependency was added or newly used. The cache uses built-in dictionaries and existing repository calls.",
+        "evidence": "Compared the complete reports.py base e6312cd5473469e18e45b42ccb469a1a024becd83006e21f8d64f647c235a112 with candidate 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb. The sole import remains pathlib.Path at line 3; changed operations are at lines 25-37 and 47-71.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied sequence lists one commit subject and file, but provides no commit ID or explicit mapping of the endpoint identities to commits. The cache change also includes a containment regression, an unrelated rename, and an obsolete helper; exact commit-level rollback structure cannot be verified.",
+        "evidence": "The supplied commit entry is 'Cache report metadata across downloads and support repository rotation', affecting reports.py. The complete comparison spans base identity e6312cd5473469e18e45b42ccb469a1a024becd83006e21f8d64f647c235a112 to candidate identity 60e8356addc469f092ed74afb575a0ed49fbaecbbe18b8d3366ceb159c15a5fb, including reports.py:25-37, 47-53, and 69-71. Relevant commit IDs were not supplied.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "reports.py: complete supplied base, candidate, diff, declarations, and callers inspected."
+    ],
+    "limitations": [
+      "Static inspection of embedded frozen evidence only; no tools were used and no tests were executed.",
+      "The unrestricted review identified substantive defects before checklist assessment. The checklist records quality observations at the same frozen candidate; it does not establish Phase 1 completion or authorize workflow advancement. F1-F3 require resolution through Phase 1.",
+      "Exact reviewed commit IDs and endpoint-to-commit mapping are unavailable, limiting commit-structure verification."
+    ]
+  },
+  "label": "codex-R2-F3-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034885.921505,
+  "elapsed_seconds": 63.69793224334717,
+  "input_sha256": "392289f79d31e1aedba16b9c4e20a4bb3e0979752d650fcce9fcb0e827edf64f",
+  "raw_output_sha256": "12b3dfcf8b610eaab62f70a463cb2895d1f093f71cb26b201c98eb46e65ae6bd",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}
