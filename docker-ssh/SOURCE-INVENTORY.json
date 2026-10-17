@@ -1,0 +1,103 @@
+{
+  "Version": "0.4.0",
+  "Origin": "DesktopCommanderContainer/docker-ssh verified implementation",
+  "Comparison": "SHA-256 of UTF-8 text with CRLF normalized to LF",
+  "Files": [
+    {
+      "Path": "global.json",
+      "SHA256": "20C93CA7812D0A9825EEF71217156F95AB2F4FE5AADFEB22EBC1C24B630018D3"
+    },
+    {
+      "Path": "poc-tpm-v2/Policy.cs",
+      "SHA256": "223300236F6D89F11B21001F257E90E95B0330CD9B95D63AA03417853608E92A"
+    },
+    {
+      "Path": "scripts/Build-TpmDockerPackage.ps1",
+      "SHA256": "5D4B9A3DBF2500316F071CACCD26E2BD56E6E0B738FF0C97D9BF93DCA62AD648"
+    },
+    {
+      "Path": "scripts/Initialize-DockerSshTpm.ps1",
+      "SHA256": "D3935043FA4CA3C58A09C28A2FA982166E54BF090B2C45FC77482DC610E32982"
+    },
+    {
+      "Path": "scripts/Remove-DockerSshTpm.ps1",
+      "SHA256": "9AFAA6169772113CE9134BD4346C0B24FA8AC61BB7DEC1F13183ECA7B85E28DF"
+    },
+    {
+      "Path": "scripts/TpmSetupRuntime.ps1",
+      "SHA256": "19B292166405F27936BC00BE5ECBCC7CB83D8AD98CDD27E8767971D897148EDD"
+    },
+    {
+      "Path": "scripts/Install-DockerSshTpmLab.ps1",
+      "SHA256": "CAA96CAB28F19B536C77F23DEBA752BBA08ED1E48FA9D37CD8723CA20F5E39F8"
+    },
+    {
+      "Path": "scripts/Remove-DockerSshTpmLab.ps1",
+      "SHA256": "4007C308488C4725D7E3C804B6A9D1DCB6DD7EA002BC57B9C7D59C975D598230"
+    },
+    {
+      "Path": "scripts/Test-Prerequisites.ps1",
+      "SHA256": "0F06604CA463E4816FCFD04DFF710BEA5C6F7A947862EDB66BA687E2169C10C7"
+    },
+    {
+      "Path": "tests/ColdBootEnvironment.ps1",
+      "SHA256": "F103F78A17E73A08E753FD5F2D75ABC0A24A183EF272832DD0ADFD42F719D7C4"
+    },
+    {
+      "Path": "tests/TpmSessionEvidence.ps1",
+      "SHA256": "EEC513D6DA51FC3D2BBD1A29212FEC0B2851E91752357837BCFA03C0676FF551"
+    },
+    {
+      "Path": "tests/Verify-TpmSetup.mjs",
+      "SHA256": "A5D573941B37CA420F64F97E77D1CEDA08B78C369FE8092BAFD2D3B9C6ADCBE1"
+    },
+    {
+      "Path": "tests/Verify-TpmStaging.mjs",
+      "SHA256": "6D7CCF5F0A611887D7F1C93DCD2058A00C0581B970CC24EE10406E80D1F43487"
+    },
+    {
+      "Path": "chezmoi/.chezmoiignore",
+      "SHA256": "330893A0EEA946AD8ACCA5C23D9D63F18B1A45725DD9A116A4DB4929BA5020A4"
+    },
+    {
+      "Path": "src/DockerCredentialTpm/AclChecks.cs",
+      "SHA256": "5AF8D3FC308046466541D823F71ABAB2CD10E3F262144F1995678BB9C6E883C9"
+    },
+    {
+      "Path": "src/DockerCredentialTpm/DockerCredentialTpm.csproj",
+      "SHA256": "7A452523340AD040FBEA4D59811018C288D0B20ED2E3F5C637330F0DC11B3853"
+    },
+    {
+      "Path": "src/DockerCredentialTpm/Program.cs",
+      "SHA256": "CE43C83171B683EDC7F8C76FDBC1091ECC9A64DE5D62138118C350A5B81394BC"
+    },
+    {
+      "Path": "src/DockerCredentialTpm/TpmCipher.cs",
+      "SHA256": "E12189960FE96B98FF9BE9EB22AC700C91515AFCCEF3351636C9D26B3EAA28E8"
+    },
+    {
+      "Path": "src/TpmKeySetup/Program.cs",
+      "SHA256": "7D54F9DE97D361306449901D639682C2E267054E4DEDD091C172B3FEC871A3D0"
+    },
+    {
+      "Path": "src/TpmKeySetup/TpmKeySetup.csproj",
+      "SHA256": "6CBC1A1D3FF4FD7648DEE076068EF324C6398F2B8B90840A7C81CE99903099BF"
+    },
+    {
+      "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/docker-ssh.bash",
+      "SHA256": "DD3642B74FB0E4CFE8FF69E8653CB757797E7C8AFF45A1C40852C3AB969DF2B0"
+    },
+    {
+      "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1",
+      "SHA256": "143E3B51D56BE2A0F38177500CCFF08D7AE1BAB49351D54E3465B1FA849F3EC2"
+    },
+    {
+      "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Invoke-DockerSshTpm.ps1",
+      "SHA256": "625D1823665300F7909B8049509811841DC07B6DC6E62881E47E1F7EB0AA7263"
+    },
+    {
+      "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Manage-TpmCredential.ps1",
+      "SHA256": "DF043A22F58B21CC2CE7F7FA8CAC9276FA2DB90091485939CB8623FF3A64539D"
+    }
+  ]
+}

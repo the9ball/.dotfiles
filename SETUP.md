@@ -142,3 +142,7 @@ WSL固有の`AGENTS.md`を置き、Windows側の設定、ログ、セッショ�
 
 Agent Skillsの導入手順は、[`README.manual.md`](README.manual.md)の「Agent Skillsの導入」を参照してください。
 Datadog MCPの設定手順は、同じ文書の「Datadog MCPの設定」を参照してください。
+
+## Windows SSH 専用 Docker 認証（任意）
+
+TPM を使う独立した認証環境の導入は [docker-ssh/INSTALL.md](docker-ssh/INSTALL.md) を参照してください。通常の chezmoi 適用は公開ランチャーだけを配置し、鍵作成・資格情報登録・Docker 設定変更は行いません。
