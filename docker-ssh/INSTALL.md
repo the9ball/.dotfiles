@@ -84,7 +84,7 @@ PCP RSA2048、非export、generic復号/PCP暗号化用途、対象SIDだけのD
 別IDでの再実行は別鍵作成であり、更新ではない。
 
 PowerShellのInvoke-DockerSshTpm.ps1とManage-TpmCredential.ps1も同じ共通配置検査を通す。DISABLEDは通常のDocker実行・資格情報操作すべてで拒否し、撤去スクリプトだけがAllowDisabledで検査できる。
-Git BashへのメタデータはBOMなしUTF-8・LFで出力する。Bashで解決したconfigの実在とWindows側の正規パス一致・ACL・Helper hash・credsStoreを実行前に再検査し、不一致時はDockerを起動しない。
+Git Bashへのメタデータはコンソールのコードページを変更せず、BOMなしUTF-8・LFのバイト列で出力する。Bashで解決したconfigの実在とWindows側の正規パス一致・ACL・Helper hash・credsStoreを実行前に再検査し、不一致時はDockerを起動しない。
 
 ## 登録・更新・削除と再接続
 

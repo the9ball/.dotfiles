@@ -58,9 +58,11 @@ try {
     $fields = @($configuration.DockerExecutable, $binary, $dockerConfigDirectory, (Join-Path $root 'store'), $configuration.EngineEndpoint)
     if (@($fields | Where-Object { -not $_ -or $_ -match '[\r\n]' }).Count) { throw 'Invalid metadata field.' }
     if (-not $NoOutput) {
-        # Metadata crosses a native pipe into Git Bash; do not inherit an OEM console code page.
-        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-        [Console]::Write(($fields -join "`n"))
+        # Write UTF-8 bytes without changing a console code page shared with the parent shell.
+        $metadataBytes = [Text.UTF8Encoding]::new($false).GetBytes(($fields -join "`n"))
+        $metadataStream = [Console]::OpenStandardOutput()
+        $metadataStream.Write($metadataBytes, 0, $metadataBytes.Length)
+        $metadataStream.Flush()
     }
 } catch {
     [Console]::Error.WriteLine('TPM Docker deployment validation failed; no shell state changed.')

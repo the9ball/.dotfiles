@@ -95,7 +95,7 @@
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1",
-      "SHA256": "917ADE2C11AB9F66AC52D94166CE8AF33A431DED09125EA95596CD267A9956BD",
+      "SHA256": "C3E007D51CAFB7167E2FF45C0C66C11D832D90811C23C69B26119BF75A584F5C",
       "OriginalSHA256": "143E3B51D56BE2A0F38177500CCFF08D7AE1BAB49351D54E3465B1FA849F3EC2",
       "Adaptation": "PR #143 Opus review corrections; original imported hash retained"
     },

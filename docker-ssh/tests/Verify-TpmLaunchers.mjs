@@ -100,9 +100,9 @@ return 0;
     fs.writeFileSync(configPath, '{"credsStore":"ssh-tpm"}');
     const reader = path.join(shell, 'Get-TpmDockerEnvironment.ps1');
     const metadata = run('pwsh.exe', ['-NoProfile', '-CommandWithArgs',
-        '[Console]::OutputEncoding=[Text.Encoding]::GetEncoding(932); & $args[0] -DeploymentRoot $args[1]', reader, deployment]);
+        '$originalEncoding=[Console]::OutputEncoding;try{[Console]::OutputEncoding=[Text.Encoding]::GetEncoding(932); & $args[0] -DeploymentRoot $args[1];if([Console]::OutputEncoding.CodePage -ne 932){exit 9}}finally{[Console]::OutputEncoding=$originalEncoding}', reader, deployment]);
     const fields = metadata.stdout.split('\n');
-    check('unicode-metadata-explicit-utf8-after-cp932', metadata.status === 0 && fields.length === 5 && fields[0] === settings.DockerExecutable && fields[2] === path.dirname(configPath) && !metadata.stdout.includes('\ufffd') && !metadata.stdout.includes('\r'));
+    check('unicode-metadata-utf8-preserves-cp932', metadata.status === 0 && fields.length === 5 && fields[0] === settings.DockerExecutable && fields[2] === path.dirname(configPath) && !metadata.stdout.includes('\ufffd') && !metadata.stdout.includes('\r'));
     check('unicode-git-bash-login-mock', bashLaunch().status === 0);
     const call = JSON.parse(fs.readFileSync(marker, 'utf8').trim().split('\n').at(-1));
     check('unicode-config-and-env-match', call.Arguments.includes('--config=' + path.dirname(configPath).replaceAll('\\', '/')) && call.Config === path.dirname(configPath).replaceAll('\\', '/'));
@@ -152,7 +152,7 @@ Set-Acl -LiteralPath $Path -AclObject $acl
             '-InstallationId', invalidId, '-Mode', 'permanent', '-EngineEndpoint', 'npipe:////./pipe/mockDockerOnly', '-Execute', '-AcknowledgePermanent']);
         const remove = powershell(path.join(moduleRoot, 'scripts/Remove-DockerSshTpm.ps1'), ['-DestinationRoot', invalidDestination, '-InstallationId', invalidId, '-Mode', 'permanent', '-Execute']);
         check('invalid-id-' + results.length + '/init-and-remove-rejected-before-placement', init.status !== 0 && remove.status !== 0 && !fs.existsSync(invalidDestination));
-        if (invalidId === 'A'.repeat(32)) check('uppercase-id-explicit-case-sensitive-rejection', init.stderr.includes('32 lowercase hexadecimal') && remove.stderr.includes('32 lowercase hexadecimal'));
+        if (invalidId === 'A'.repeat(32) || invalidId.endsWith('\n')) check('strict-id-guard-not-later-path-rejection-' + results.length, init.stderr.includes('32 lowercase hexadecimal') && remove.stderr.includes('32 lowercase hexadecimal'));
     }
     const legacy = run(bash, ['--noprofile', '--norc', '-c', `id=$(pwsh.exe -NoProfile -Command '[Guid]::NewGuid().ToString("N")'); printf 'Length=%s;CR=' "\${#id}"; [[ "$id" == *$'\\r'* ]] && printf YES || printf NO`]);
     check('legacy-guid-command-measured', legacy.status === 0 && /^Length=\d+;CR=(YES|NO)$/.test(legacy.stdout));
