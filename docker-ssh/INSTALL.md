@@ -55,7 +55,8 @@ endpoint='npipe:////./pipe/dockerDesktopLinuxEngine'
 MSYS2_ARG_CONV_EXCL='npipe:' pwsh.exe -NoProfile -File docker-ssh/scripts/Initialize-DockerSshTpm.ps1 -PackageRoot "$(cygpath -m "$package")" -DestinationRoot "$(cygpath -m "$deployment")" -InstallationId "$id" -Mode permanent -EngineEndpoint "$endpoint" -CheckOnly
 `````
 
-CheckOnlyは配置先、鍵、資格情報を作成しない。不完全な既存配置・異なるhash・ID不一致・reparseや不適切ACLは停止する。
+CheckOnlyは配置先、鍵、資格情報を作成しない。既存配置ではREADY状態・選択したsettingsの識別情報と配布10ファイルのhash/ACLを照合し、検出した差異で停止する。
+ただし既存READY配置のvault、store/settings、config、binding、installed-manifestや未知ファイル全件の完全性検査ではない。これらが欠落・変更していてもCheckOnlyが成功する場合がある。
 既存Desktop configやcontext、Credential Managerをコピー・変更しない。
 
 ## 端末ごとの明示初期化
@@ -72,7 +73,9 @@ docker info --format '{{.OSType}}'
 鍵名は新しい端末のGUIDから作る `docker-ssh-tpm-<id>`。ユーザー名・SID・既存ホストの鍵IDを移植しない。
 PCP RSA2048、非export、generic復号/PCP暗号化用途、対象SIDだけのDACL。SYSTEMへの明示grantはしない。
 既存鍵の採用・上書き・自動修復はしない。用途/ACL/export/UI/公開識別情報が不一致なら暗号処理へ進めない。
-同じ完全配置への同一package再実行は照合だけを行う。別IDでの再実行は別鍵作成であり、更新ではない。
+既存READY配置への同一package再実行は上記の限定照合だけで、Executeでは追加の鍵inspectを行う。既存の鍵や暗号文を再作成・上書きしない。
+これだけでstoreの復号・整合性や未知ファイル不在を確認したとは扱わない。通常利用前のGet-TpmDockerEnvironmentはconfig/Helper manifest等を追加検査し、暗号文の検証は実際のHelper操作が行う。結果不明なら使用せず保持して調査する。
+別IDでの再実行は別鍵作成であり、更新ではない。
 
 ## 登録・更新・削除と再接続
 
@@ -110,9 +113,22 @@ Engineが停止していれば、既存コンテナが再開する影響を確�
 
 ## 更新とロールバック
 
-同版の再適用は完全一致だけを許可。既存暗号文・鍵・settingsを上書きするin-place更新や自動migrationは行わない。
+同版の再適用は前述の限定された識別情報・配布物の一致だけを照合する。store全体の完全性を保証しない。既存暗号文・鍵・settingsを上書きするin-place更新や自動migrationは行わない。
 更新版は別のpackageと別のInstallationIdでダミー検証し、明示承認した新トークンを登録してactivate先を切り替える。
-旧配置は保持し、必要なら旧shellスクリプトをsourceし旧deploymentへactivateし直す。
+選択先の切替前にdeactivateが成功したことを確認する。別deploymentがactiveのままのactivateは拒否される。切替・復旧の各段階が失敗したら停止する。
+旧配置を保持し、以下のold_deploymentには切替前の既存配置を記録する。新しい配置の検証と登録が完了するまでは切り替えない。
+
+`````bash
+old_deployment=$DOCKER_SSH_DEPLOYMENT
+docker-ssh-deactivate &&
+  source "$deployment/shell/docker-ssh.bash" &&
+  docker-ssh-activate "$deployment"
+
+# 旧配置へ戻す必要があり、その状態を確認できた場合だけ実行する
+docker-ssh-deactivate &&
+  source "$old_deployment/shell/docker-ssh.bash" &&
+  docker-ssh-activate "$old_deployment"
+`````
 実トークンを無断コピーせず、旧鍵・旧ストアが使える間だけロールバックできる。実際の異版移行・復旧は別途実機検証する。
 一つのinstallationのbinやmanifestだけを取り替えると照合不一致で停止する。
 

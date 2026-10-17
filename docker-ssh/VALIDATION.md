@@ -46,7 +46,9 @@ node tests/Verify-TpmSetup.mjs 'ABSOLUTE_PATH_TO_REVIEWED_AUTHORIZATION.json'
 
 恒久配置は [INSTALL.md](INSTALL.md) のCheckOnly後、別承認した新しいInstallationIdで初期化する。
 初期化完了後に同じ入力で再実行し、同じ鍵・receipt・storeを保持して照合のみで成功することを確認する。
-異版package、部分状態、知らないファイルは拒否することが期待結果。現行の既存storeを壊して試験しない。
+異なる配布物hashや識別情報、初期化未完了の空ディレクトリは拒否することが期待結果。
+既存READY配置への再実行は配布10ファイルと選択settingsの限定照合であり、vault/config/binding等や未知ファイルの全件検査ではない。CheckOnly成功だけで完全性を判定しない。
+未知ファイルは完全撤去時のallowlist検査では拒否する。現行の既存storeを壊して試験しない。
 
 ## 新規SSHと再起動比較
 
