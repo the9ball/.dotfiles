@@ -1,6 +1,8 @@
-# 別Windows 11での受け入れ試験
+# 別Windows 11で必要時に行う検証
 
-別Windows実機ではまだ実行していない。以下は再現用手順であり成功の報告ではない。
+**別Windows実機：未実施・必要時に検証。** 今回のIssue #142の必須完了条件には含めない。以下は将来の再現用手順であり成功の報告ではない。
+将来の担当モデルは、本書、[INSTALL.md](INSTALL.md)、実装、その時点の最新公式仕様を参照して、対象端末に必要な試験を選ぶ。
+今回の判定は [ACCEPTANCE.md](ACCEPTANCE.md)、方針変更の履歴は [VALIDATION.history.md](VALIDATION.history.md) を参照する。
 このホストの恒久鍵やstoreをコピーせず、対象端末で新しい鍵とダミー/端末用tokenを初期化する。
 
 ## 変更なしの検証

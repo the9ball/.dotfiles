@@ -3,6 +3,12 @@
 対象はWindows 11 x64、Docker DesktopのLinux Engine、Windows OpenSSH server、Git for Windows Bash、TPM 2.0 / Microsoft Platform Crypto Provider。
 Docker DesktopとOpenSSHの初期導入・SSH公開鍵登録は端末管理者が公式手順に従って行う。このモジュールはサービスやWindows認証設定を変更しない。
 
+## 検証状態と将来の導入
+
+別Windows実機は未実施・必要時に検証。今回のIssue完了に先立つ必須試験ではない。
+将来の担当モデルは、本書、[VALIDATION.md](VALIDATION.md)、実装と導入時点の最新公式仕様を確認し、端末に合わせて必要な検証と承認を判断する。
+現行マシンの成功を別マシンへ一般化しない。現在の完了判定と未実施の更新/復旧範囲は [ACCEPTANCE.md](ACCEPTANCE.md) を参照する。
+
 ## 前提検査とビルド
 
 PowerShell 7.4以上、.NET 10 SDK/runtime、Git for Windows、Docker CLIが必要。
