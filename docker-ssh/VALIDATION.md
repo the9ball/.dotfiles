@@ -19,11 +19,13 @@ pwsh.exe -NoProfile -File scripts/Test-TpmPrerequisites.ps1 -Purpose Test
 node tests/Verify-TpmSetup.mjs --authorization-self-test
 node tests/Verify-TpmSetup.mjs
 node tests/Verify-TpmStaging.mjs
+node tests/Verify-TpmLaunchers.mjs
 `````
 
-最後の2コマンドはpackageビルドと専用一時HOME/配置にだけ書き込む。
+末尾の3コマンドはpackage/無害なprobeのビルドと専用一時HOME/配置にだけ書き込む。
 authorization引数なしのVerify-TpmSetupはCheckOnlyとprovider到達前の拒否経路だけで、鍵作成0回。
 Verify-TpmStagingは不存在の公開bindingを使い、配置/再適用/無効な撤去ID拒否/専用試験配置の撤去を行う。
+Verify-TpmLaunchersは非ASCIIパス、UTF-8のpipe、誤configパス、routing/hash/ACL/状態不一致と厳密なID検査を試験する。Docker/Helperの代わりにTPM機能を持たないprobeを使い、実Dockerや鍵には触れない。
 いずれも結果不明/timeoutなら停止し、残存する自分の試験物を確認してから次へ進む。
 モック・一時HOME成功を別マシンのTPM利用成功とはしない。
 

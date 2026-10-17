@@ -3,6 +3,7 @@
 param([Parameter(Mandatory)][string] $DestinationRoot,[Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{32}$')][string] $InstallationId,
     [Parameter(Mandatory)][ValidateSet('poc','permanent')][string] $Mode,[switch] $Execute,[switch] $DeleteKey,[switch] $ConfirmIrreversibleKeyDeletion)
 $ErrorActionPreference='Stop'
+if ($InstallationId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'InstallationId must be exactly 32 lowercase hexadecimal characters.' }
 . (Join-Path $PSScriptRoot 'TpmSetupRuntime.ps1')
 $Mode=$Mode.ToLowerInvariant()
 if (-not [IO.Path]::IsPathFullyQualified($DestinationRoot)) { throw 'Absolute destination required.' }

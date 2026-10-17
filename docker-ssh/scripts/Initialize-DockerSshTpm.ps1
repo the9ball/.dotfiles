@@ -11,6 +11,7 @@ param(
     [switch] $AcknowledgePermanent
 )
 $ErrorActionPreference = 'Stop'
+if ($InstallationId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'InstallationId must be exactly 32 lowercase hexadecimal characters.' }
 . (Join-Path $PSScriptRoot 'TpmSetupRuntime.ps1')
 $Mode = $Mode.ToLowerInvariant()
 if (-not $IsWindows -or $PSVersionTable.PSVersion -lt [version]'7.4') { throw 'Windows and PowerShell 7.4+ required.' }

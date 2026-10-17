@@ -11,12 +11,9 @@ try {
     }
     if (-not [IO.Path]::IsPathFullyQualified($DeploymentRoot)) { throw 'Absolute deployment required.' }
     $deployment = [IO.Path]::GetFullPath($DeploymentRoot)
-    $settings = Get-Content -LiteralPath (Join-Path $deployment 'settings.json') -Raw | ConvertFrom-Json
-    if ($settings.State -notin @('READY','STAGED')) { throw 'Deployment disabled or incomplete.' }
-    if ($settings.HelperKind -ne 'tpm' -or $settings.Version -ne 1 -or $settings.HelperVersion -notmatch '^\d+\.\d+\.\d+$' -or $settings.EngineEndpoint -notmatch '^npipe:/{4}\./pipe/[A-Za-z0-9_.-]+$') { throw 'Invalid settings.' }
-    if (-not [IO.Path]::IsPathFullyQualified($settings.DockerExecutable) -or -not (Test-Path -LiteralPath $settings.DockerExecutable -PathType Leaf)) { throw 'Docker executable missing.' }
+    . (Join-Path $PSScriptRoot 'Get-TpmDockerEnvironment.ps1') -DeploymentRoot $deployment -NoOutput
+    $settings = $configuration
     $binaryDirectory = Join-Path $deployment ('bin/' + $settings.HelperVersion)
-    if (-not (Test-Path -LiteralPath (Join-Path $binaryDirectory 'docker-credential-ssh-tpm.exe') -PathType Leaf)) { throw 'Helper missing.' }
     $start = [Diagnostics.ProcessStartInfo]::new($settings.DockerExecutable)
     $start.UseShellExecute = $false
     $start.Environment.Remove('DOCKER_CONTEXT') | Out-Null

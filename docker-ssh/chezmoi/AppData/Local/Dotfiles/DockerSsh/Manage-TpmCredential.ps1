@@ -10,8 +10,8 @@ $secureSecret = $null
 try {
     if (-not [IO.Path]::IsPathFullyQualified($DeploymentRoot)) { throw 'Absolute deployment required.' }
     $deployment = [IO.Path]::GetFullPath($DeploymentRoot)
-    $settings = Get-Content -LiteralPath (Join-Path $deployment 'settings.json') -Raw | ConvertFrom-Json
-    if ($settings.HelperKind -ne 'tpm' -or $settings.Version -ne 1 -or $settings.HelperVersion -notmatch '^\d+\.\d+\.\d+$') { throw 'Invalid settings.' }
+    . (Join-Path $PSScriptRoot 'Get-TpmDockerEnvironment.ps1') -DeploymentRoot $deployment -NoOutput
+    $settings = $configuration
     if ($Operation -ne 'list' -and -not $Registry) { throw 'Registry required.' }
     if ($Operation -eq 'store' -and -not $Username) { throw 'Username required.' }
     $helper = Join-Path $deployment ('bin/' + $settings.HelperVersion + '/docker-credential-ssh-tpm.exe')

@@ -40,7 +40,7 @@ chezmoi verify --exclude=scripts "$HOME/AppData/Local/Dotfiles/DockerSsh"
 通常chezmoiファイルと、以下の独立したInstallationディレクトリを分離する。
 
 `````bash
-id=$(pwsh.exe -NoProfile -Command '[Guid]::NewGuid().ToString("N")')
+id=$(pwsh.exe -NoProfile -Command '[Console]::Write([Guid]::NewGuid().ToString("N"))')
 local_app=$(cygpath -u "$LOCALAPPDATA")
 package="$local_app/docker-ssh-issue142-lab-package-$id"
 deployment="$local_app/Dotfiles/DockerSsh/Installations/$id"
@@ -82,6 +82,9 @@ PCP RSA2048、非export、generic復号/PCP暗号化用途、対象SIDだけのD
 既存READY配置への同一package再実行は上記の限定照合だけで、Executeでは追加の鍵inspectを行う。既存の鍵や暗号文を再作成・上書きしない。
 これだけでstoreの復号・整合性や未知ファイル不在を確認したとは扱わない。通常利用前のGet-TpmDockerEnvironmentはconfig/Helper manifest等を追加検査し、暗号文の検証は実際のHelper操作が行う。結果不明なら使用せず保持して調査する。
 別IDでの再実行は別鍵作成であり、更新ではない。
+
+PowerShellのInvoke-DockerSshTpm.ps1とManage-TpmCredential.ps1も同じ共通配置検査を通す。DISABLEDは通常のDocker実行・資格情報操作すべてで拒否し、撤去スクリプトだけがAllowDisabledで検査できる。
+Git BashへのメタデータはBOMなしUTF-8・LFで出力する。Bashで解決したconfigの実在とWindows側の正規パス一致・ACL・Helper hash・credsStoreを実行前に再検査し、不一致時はDockerを起動しない。
 
 ## 登録・更新・削除と再接続
 
@@ -163,6 +166,19 @@ ID・receipt・公開鍵hash・所有者・ACL・配布hash・allowlistを照合
 
 部分intent、stop marker、未知ファイル、破損storeを空store扱いにせず保持する。再初期化で隠さない。
 UI/timeout時は子の終了と状態を確認するまで次の作成や削除へ進まない。providerの処理を確実に強制中断できる保証はない。
+
+### CLI欠落・部分初期化で撤去が停止した場合
+
+現行Remove-DockerSshTpmは共通配置検査を使うため、保存したDockerExecutableが移動・削除されている場合や、settings/configが欠けている部分配置では、無効化・削除の前に停止する。
+この停止は鍵が削除されたことを意味しない。初期化で鍵作成後にHelper init等が失敗すると、恒久鍵は残り得る。stop-request.jsonやsetup-state.jsonは消さず、同じIDへの再初期化や新鍵作成で置き換えない。
+
+1. Docker/Helper/鍵ツールを再実行せず、対象のInstallationId、setup-state、create-intent、created-public、receipt、binding、stop markerの存在・公開hashと所有者/ACLだけを読み取り記録する。秘密鍵やvaultの平文を表示しない。
+2. 実行中の子プロセスがないことと、元のDocker CLIの所在・バージョンを確認する。CLI欠落時は設定のパスを手で書き換えず、元の正当なCLIを元の位置へ復元できるかを別途判断・承認する。復元後も通常の検査がすべて通る場合に限り、承認済み撤去手順へ戻る。
+3. settings/config欠落、停止marker、鍵の公開同一性や所有者/ACLを確認できない場合は現行の自動撤去の対象外。残存鍵と配置を保全して手動調査を依頼する。receipt等で作成由来を固定した専用の復旧・削除手順を新たにレビュー・承認するまでは削除しない。
+4. 検査迂回、stop markerの除去、ACL緩和、別APIによる強制削除、TPMクリアは行わない。未完了配置を無条件に再生成する復旧手順や、恒久鍵の自動cleanupは提供しない。
+
+DISABLEDの通常利用拒否を解除するためにStateを書き換えない。削除専用のAllowDisabledは認証・Docker起動の迂回には使わない。
+
 同一端末向けのprivateな暗号文・receiptバックアップは可能だが、自動backup/restoreは未実装。
 暗号文だけを別TPMへコピーしても復旧できない。TPM交換/OS再インストール/鍵喪失では新しい端末別鍵と新tokenで初期化する。
 秘密や暗号化ストアをGitへ加えない。管理者/SYSTEM・同一SIDの任意コード・侵害OSに対する保護は保証しない。

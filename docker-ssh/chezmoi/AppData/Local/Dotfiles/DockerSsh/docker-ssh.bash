@@ -21,15 +21,22 @@ docker-ssh() (
             printf '%s\n' 'Clustered or joined short options are not accepted; separate each option and value.' >&2; return 1
         fi
     done
-    local executable binary
+    local executable binary config_directory config_windows
     executable=$(cygpath -u -- "${fields[0]}") || return
     binary=$(cygpath -u -- "${fields[1]}") || return
+    config_directory=$(cygpath -u -- "${fields[2]}") || return
+    [[ -d $config_directory && ! -L $config_directory && -f $config_directory/config.json && ! -L $config_directory/config.json ]] || {
+        printf '%s\n' 'Dedicated Docker configuration is missing or redirected.' >&2; return 1
+    }
+    config_windows=$(cygpath -am -- "$config_directory") || return
+    # Revalidate the path actually resolved by Bash before Docker can create or use a different config.
+    pwsh.exe -NoProfile -File "$reader" -DeploymentRoot "$deployment" -ExpectedDockerConfig "$config_windows" -NoOutput || return
     unset DOCKER_HOST DOCKER_CONTEXT DOCKER_AUTH_CONFIG
-    export DOCKER_CONFIG="${fields[2]}" DOCKER_SSH_HELPER_ROOT="${fields[3]}"
+    export DOCKER_CONFIG="$config_windows" DOCKER_SSH_HELPER_ROOT="${fields[3]}"
     export PATH="$binary:$PATH"
     export MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}DOCKER_CONFIG;DOCKER_SSH_HELPER_ROOT"
-    export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}--host="
-    "$executable" "--host=${fields[4]}" --config "${fields[2]}" "$@"
+    export MSYS2_ARG_CONV_EXCL="${MSYS2_ARG_CONV_EXCL:+$MSYS2_ARG_CONV_EXCL;}--host=;--config="
+    "$executable" "--host=${fields[4]}" "--config=$config_windows" "$@"
 )
 
 # Validate first, then opt this shell into ordinary docker syntax without replacing an existing alias or function.

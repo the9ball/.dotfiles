@@ -50,8 +50,12 @@ try {
     for (const entry of inventory.Files) {
         assert.equal(path.posix.normalize(entry.Path), entry.Path);
         assert.equal(entry.Path.startsWith('../') || path.isAbsolute(entry.Path), false);
+        if (entry.OriginalSHA256) {
+            assert.match(entry.OriginalSHA256, /^[A-F0-9]{64}$/);
+            assert.equal(typeof entry.Adaptation, 'string');
+        }
         const normalized = fs.readFileSync(path.join(moduleRoot, entry.Path), 'utf8').replaceAll('\r\n', '\n');
-        check('preserved-source/' + entry.Path, digest(Buffer.from(normalized)) === entry.SHA256);
+        check('verified-current-source/' + entry.Path, digest(Buffer.from(normalized)) === entry.SHA256);
     }
     for (const absolute of sourceFiles(moduleRoot)) {
         const relative = path.relative(moduleRoot, absolute).replaceAll('\\', '/');

@@ -1,5 +1,5 @@
 <# .SYNOPSIS Validates a dedicated TPM deployment and emits exactly five nonsecret LF-delimited fields, never shell code. #>
-param([Parameter(Mandatory)][string] $DeploymentRoot, [switch] $AllowDisabled, [switch] $NoOutput)
+param([Parameter(Mandatory)][string] $DeploymentRoot, [switch] $AllowDisabled, [switch] $NoOutput, [string] $ExpectedDockerConfig)
 $ErrorActionPreference = 'Stop'
 
 function Assert-TpmDeploymentPath {
@@ -51,10 +51,20 @@ try {
     foreach ($entry in $dockerConfig.auths.PSObject.Properties) {
         if ($entry.Value.auth -or $entry.Value.identitytoken -or $entry.Value.password) { throw 'Inline credentials rejected.' }
     }
-    $fields = @($configuration.DockerExecutable, $binary, (Join-Path $root 'docker-config'), (Join-Path $root 'store'), $configuration.EngineEndpoint)
+    $dockerConfigDirectory = Join-Path $root 'docker-config'
+    if ($PSBoundParameters.ContainsKey('ExpectedDockerConfig') -and
+        (-not [IO.Path]::IsPathFullyQualified($ExpectedDockerConfig) -or
+        [IO.Path]::GetFullPath($ExpectedDockerConfig) -cne [IO.Path]::GetFullPath($dockerConfigDirectory))) { throw 'Resolved Docker configuration path mismatch.' }
+    $fields = @($configuration.DockerExecutable, $binary, $dockerConfigDirectory, (Join-Path $root 'store'), $configuration.EngineEndpoint)
     if (@($fields | Where-Object { -not $_ -or $_ -match '[\r\n]' }).Count) { throw 'Invalid metadata field.' }
-    if (-not $NoOutput) { [Console]::Write(($fields -join "`n")) }
+    if (-not $NoOutput) {
+        # Metadata crosses a native pipe into Git Bash; do not inherit an OEM console code page.
+        [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+        [Console]::Write(($fields -join "`n"))
+    }
 } catch {
     [Console]::Error.WriteLine('TPM Docker deployment validation failed; no shell state changed.')
+    # A dot-sourced validation must terminate its caller's operation rather than merely set LASTEXITCODE.
+    if ($NoOutput) { throw 'TPM Docker deployment validation failed.' }
     exit 1
 }
