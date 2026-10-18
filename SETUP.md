@@ -84,6 +84,13 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 ## Windows
 
+### OpenSSH Serverの更新管理
+
+Windows標準OpenSSHの維持を現在の推奨方針とします。
+PQC対応版の検証と例外採用の条件は、[Windows OpenSSHの検証と更新管理](docs/windows-openssh.md)を参照してください。
+`chezmoi apply`にSSHサーバーの導入、更新、サービス変更を追加しません。
+同文書のP1〜P4は未実施の手順案であり、VMや実機での操作には別途承認が必要です。
+
 ### Git Bash で SSH 接続時に psmux へ復帰する
 
 Git Bash を Windows OpenSSH の既定シェルにした環境では、対話型の SSH 接続から `psmux -L dotfiles-ssh new-session -A -s ssh` を実行します。

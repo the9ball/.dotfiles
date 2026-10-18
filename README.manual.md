@@ -465,6 +465,10 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 
 ### Windows SSH の既定シェルと psmux
 
+Windows標準OpenSSHの維持を現在の推奨方針とします。
+サーバーのPQC検証、更新保守、復旧の条件は、[Windows OpenSSHの検証と更新管理](docs/windows-openssh.md)を参照してください。
+同文書のP1〜P4は未実施の手順案で、以下の既定シェル設定とは別の承認対象です。
+
 Git Bash を既定シェルにする場合の任意設定です。
 PowerShell のプロファイルは追加せず、既存の Bash 起動ファイルを使います。
 設定後の SSH リモートコマンドは Bash の構文で解釈されるため、PowerShell/cmd 構文に依存するクライアント設定も確認してください。

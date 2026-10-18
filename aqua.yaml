@@ -7,6 +7,8 @@
 # Exception: Windows OpenSSH Server is managed as an OS optional feature
 # because its installation and lifecycle are integrated with Windows services
 # and security updates. Do not add sshd to aqua.
+# Keep the Windows-provided server as the default; external PQC builds require
+# separate validation and approval. See docs/windows-openssh.md.
 #
 # バージョンは自動更新されない。このリポジトリでRenovateなどのbotは動いておらず、
 # GitHub上のリモートも受け皿にすぎないため、折を見て手動で更新する。
