@@ -13,8 +13,7 @@
 # openai/codexもAquaで管理する。更新時は`aqua update codex`で宣言を更新し、
 # 差分を確認してコミットした後に`aqua install`を実行する。
 # Aqua管理のcodexには`codex update`を使用しない。
-# `aqua update` は更新が有効なパッケージを最新へ上げてしまうので、kubectl(クラスタとの
-# バージョンスキュー)とpinact(メジャー跨ぎ)は個別に判断すること。
+# kubectl は接続先クラスタのバージョンに合わせてプロダクト側で管理し、ここでは導入しない。
 # checksum:
 #   enabled: true
 #   require_checksum: true
@@ -40,9 +39,6 @@ packages:
 - name: ahmetb/kubectx@v0.11.0
 # kubensも同様に、chezmoi/.chezmoiexternal.tomlの補完スクリプトのタグとsha256を揃える。
 - name: ahmetb/kubectx/kubens@v0.11.0
-- name: kubernetes/kubectl@v1.36.2
-  update:
-    enabled: false
 - name: aws/aws-cli@2.37.0
 - name: 99designs/aws-vault@v7.2.0
 - name: cli/cli@v2.102.0
