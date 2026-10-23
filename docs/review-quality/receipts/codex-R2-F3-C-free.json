@@ -1,0 +1,89 @@
+{
+  "session_id": "01a13d98-bd80-7750-80d9-9408df2e0521",
+  "usage": {
+    "input_tokens": 22424,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 933,
+    "reasoning_output_tokens": 119
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.054178,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.metadata",
+        "cause": "The cache key includes report_id but omits tenant.",
+        "impact": "A tenant can receive another tenant's export content and filename, bypassing database ownership enforcement.",
+        "trigger": "Tenant A downloads report ID 7, populating the cache; tenant B then requests report ID 7 through the same service.",
+        "evidence": "key = report_id shares the cached metadata across tenants. Cache hits skip repository.lookup(tenant, report_id), and download reads the cached export path."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.resolve_export",
+        "cause": "String prefix matching replaces path-component containment checking.",
+        "impact": "Downloads can read files outside the permitted export storage root.",
+        "trigger": "With storage_root /srv/exports, metadata contains ../exports-private/secret.csv and that file exists.",
+        "evidence": "The resolved target /srv/exports-private/secret.csv starts with /srv/exports, so the new check accepts it. The base is_relative_to check rejects this sibling directory."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "reports.py: ReportService.replace_repository and ReportService.metadata",
+        "cause": "Replacing the repository leaves metadata cached from the previous repository indefinitely.",
+        "impact": "Refreshed metadata remains unavailable for cached reports; downloads can return outdated exports or fail if an outdated path no longer exists.",
+        "trigger": "A report is cached, rotate_connection installs a repository returning an updated path or filename for that report, and the report is downloaded again.",
+        "evidence": "replace_repository only assigns self.repository. metadata queries the repository only when the key is absent, and no cache invalidation or refresh mechanism is included."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: ReportService.download",
+        "cause": "The descriptive local name metadata is replaced with zz.",
+        "impact": "The export path and filename accesses become harder to understand during maintenance.",
+        "trigger": "A maintainer reads or modifies download's metadata handling.",
+        "evidence": "The diff renames metadata to zz without changing its role. Restoring a descriptive name is an optional readability improvement."
+      },
+      {
+        "id": "F5",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: _format_content_disposition",
+        "cause": "A helper for a retired adapter is added without any caller.",
+        "impact": "Unused code increases maintenance surface without supporting the requested cache or repository rotation behavior.",
+        "trigger": "The supplied implementation and callers are used as provided; no execution path calls this helper.",
+        "evidence": "All implementation and callers are included, and _format_content_disposition appears only in its definition. Its docstring identifies the consumer as retired. Removing it is optional cleanup."
+      }
+    ],
+    "coverage": [
+      "reports.py"
+    ],
+    "limitations": [
+      "Review used only the embedded frozen base, candidate, requirements, and diff; no tools or external sources were used.",
+      "No tests were executed. Failing conditions were established by static inspection.",
+      "No cache expiration interval, capacity limit, or concurrency contract was specified, so none was inferred.",
+      "Every function in the candidate has a docstring, satisfying the stated repository policy."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F3-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034782.1685228,
+  "elapsed_seconds": 22.060447216033936,
+  "input_sha256": "29ac401547caf6f5a35caa419717ce3fec7540f8dd9aaa10c188ecec8292968a",
+  "raw_output_sha256": "c412c74da4d7f1279e548f23568305506a91c74aa55ef044f0339734d9aaea26",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

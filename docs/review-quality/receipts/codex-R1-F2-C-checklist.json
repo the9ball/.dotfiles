@@ -1,0 +1,133 @@
+{
+  "session_id": "01a13d90-58e7-7aa3-af51-5c4556e6a985",
+  "usage": {
+    "input_tokens": 23116,
+    "cached_input_tokens": 7296,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2028,
+    "reasoning_output_tokens": 224
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.0526496,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "Q1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:39-40",
+        "cause": "The descriptive local name totals was replaced with x for quantities grouped by warehouse and SKU.",
+        "impact": "Readers must inspect group_stock to understand the value, and the name departs from the surrounding totals vocabulary.",
+        "trigger": "Reading or maintaining build_digest's aggregation-to-rendering handoff.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40 uses x; group_stock at lines 17-21 and render_rows at lines 24-27 use totals for the same concept. The supplied diff establishes the replacement of totals."
+      },
+      {
+        "id": "Q2",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:45",
+        "cause": "The format_digest docstring now describes a comma-separated export while the implementation still emits tabs.",
+        "impact": "The documented output contract misleads maintainers and consumers about the delimiter.",
+        "trigger": "Using the format_digest documentation to interpret its output format.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 says comma-separated; lines 46-50 use tab delimiters. The supplied requirement explicitly preserves tab-separated exports."
+      },
+      {
+        "id": "Q3",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:67-69",
+        "cause": "The change adds an unused helper for a renderer explicitly described as retired, without a retention purpose.",
+        "impact": "The maintenance change introduces obsolete code and an additional export-header representation to maintain.",
+        "trigger": "Applying this changeset, which adds _legacy_header without any caller.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69 defines _legacy_header. Inspection of the complete supplied inventory.py:1-69 finds no references to it; the active header remains at line 46. The frozen requirements state that all consumers and implementation are included."
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The changed aggregation variable no longer communicates its domain role.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40; its producer at lines 15-21 establishes that the value contains grouped stock totals.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The new name x departs from the established totals vocabulary for the same value, with no distinguishing meaning or stated reason.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:17-27 uses totals in the producer and renderer; lines 39-40 introduce x between them.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The supplied repository policy requires function docstrings. Every function and method has one, including the added helper, and the affected docstrings describe roles or outputs. Accuracy is assessed separately.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:1-69 inspected in full; affected declarations have docstrings at lines 38, 45, and 68. No additional comment requirement is supplied.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The edited delimiter description contradicts both the implementation and the preserved export requirement.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 describes commas, while lines 46-50 emit tabs; DigestCommand.run consumes this formatter at lines 61-64.",
+        "finding_ids": [
+          "Q2"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The added retired-renderer helper has no caller or evidenced retention purpose within the supplied complete implementation and consumer scope.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, complete inventory.py:1-69 inspected; _legacy_header appears only at its declaration, lines 67-69, and the active formatter constructs its header at line 46.",
+        "finding_ids": [
+          "Q3"
+        ]
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "The complete change adds no dependency or newly used library, service, or internal module.",
+        "evidence": "Complete supplied inventory.py:1-69 and base-to-candidate diff inspected, from df510e44193cd2a25d4101c34b2d9729c1f9f8e85d1d5cdaa33b4f10de69837d to 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a. The Counter import at line 3 and existing function dependencies remain unchanged.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied sequence lists one maintenance commit affecting inventory.py, but supplies no commit ID or explicit mapping of that commit to the frozen identities. Actual commit boundaries and rollback structure cannot be verified.",
+        "evidence": "The commits entry supplies only the subject Prepare inventory digest renderer for maintenance and file inventory.py. The complete diff identifies base df510e44193cd2a25d4101c34b2d9729c1f9f8e85d1d5cdaa33b4f10de69837d and candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, without identifying them as commits or providing per-commit changes.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "inventory.py"
+    ],
+    "limitations": [
+      "Phase 1 completion under the current review contract is not included in the frozen evidence; this checklist inspection cannot certify that prerequisite.",
+      "Commit IDs and per-commit boundaries are unavailable, leaving CRQ-007 unverified.",
+      "Inspection used only the embedded frozen evidence. No tools were used and no tests were executed."
+    ]
+  },
+  "label": "codex-R1-F2-C-checklist",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034232.1218705,
+  "elapsed_seconds": 36.03248453140259,
+  "input_sha256": "2b43321f3ae1baafc74d2682973f43bbb296c19fcdf195442c26cefadf576719",
+  "raw_output_sha256": "b585518f2a233b03592162b58ab1089be92b1a80972e46f7aaf599c73058e7ee",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

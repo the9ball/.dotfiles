@@ -1,0 +1,10 @@
+{
+  "label": "claude-R1-F1-B-combined",
+  "host": "claude",
+  "cli_exit": 1,
+  "elapsed_seconds": 2.0807883739471436,
+  "input_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
+  "raw_output_sha256": "b6559490c391f3e3627d9049c6b3cb37c846c7a3c747fdbbf1d3883d03b1bac8",
+  "status": "failed_not_admitted",
+  "retained_private_receipt": true
+}
