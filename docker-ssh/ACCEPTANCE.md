@@ -43,7 +43,7 @@ DesktopCommanderContainerのbuild・認証volumeを保持した差し替え・Ch
 
 - 別Windowsの事前実機試験：未実施・必要時に検証。
 - EngineのWindows起動時自動起動。現行手順はSSHからの公式CLI明示起動。
-- CurrentUser DPAPI障害自体の修復。調査記録は保全、根本原因未解決。
+- CurrentUser DPAPI障害自体の修復。調査記録は保全、根本原因未解決。2026-10-23にパスワードでのGUIサインインで復旧した手順は[SETUP.md](../SETUP.md#再起動後にアプリの再認証が毎回求められる場合)に記載。
 - 非rootコンテナへの移行、すべてのexport形式や全ユーザー境界/全障害条件の検証。
 - 既存恒久鍵の破壊、TPMクリア、現サービスの追加停止・実ロールバックによる試験。
 

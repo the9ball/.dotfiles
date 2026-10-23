@@ -128,6 +128,29 @@ chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$H
 OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があるため、この設定を非対話 SSH まで検証済みとは扱いません。
 PTY 付きのリモートコマンドには引用符の制約もあるため、[実機確認した回避方法](README.manual.md#pty-付きリモートコマンドの引用符)を参照してください。
 
+### 再起動後にアプリの再認証が毎回求められる場合
+
+Microsoft アカウントに Windows Hello（PIN・顔）だけでサインインしている端末で、再起動後に CurrentUser DPAPI のマスターキーを取得できなくなった事例があります。
+Claude Desktop などの保存済みログインを復号できず、再ログインしても保存できないため、アプリを起動するたびに再認証になります。
+SSH ログオンだけでなく GUI ログオンでも発生し、[Issue #142](https://github.com/the9ball/.dotfiles/issues/142) の検証中に見つかりました。
+dotfiles や SSH の設定変更が原因とは確認されていません。
+
+次のコマンドが `0x80070005` などで失敗し、イベントログ `Microsoft-Windows-Crypto-DPAPI/Operational` にイベント 3（Master key access failed）と 8198 が並んでいれば該当します。
+
+```powershell
+Add-Type -AssemblyName System.Security
+[Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes('probe'), $null, 'CurrentUser').Length
+```
+
+本人が次の手順で復旧します。スクリプトや chezmoi では自動化しません。
+
+1. 設定 → アカウント → サインイン オプションで「Microsoft アカウント用に Windows Hello サインインのみを許可する」をオフにします。
+2. 再起動するか Ctrl+Alt+Del からサインアウトします。画面ロックからの復帰では新しいログオンにならず、復旧しません。
+3. サインイン オプションで鍵アイコンを選び、Microsoft アカウントのパスワードでサインインします。
+
+この手順で既存のマスターキーも復号できるようになり、保存済みのログインは失われませんでした。
+根本原因は未確定のため、Hello だけのサインインに戻す場合は、再起動して PIN でサインインした後も上記コマンドが成功することを確認してください。
+
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
