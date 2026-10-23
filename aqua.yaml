@@ -66,3 +66,6 @@ packages:
 - name: helm/helm@v4.3.1
 - name: PowerShell/PowerShell@v7.6.8
 - name: ip7z/7zip@26.05
+- name: koalaman/shellcheck@v0.11.0
+- name: mikefarah/yq@v4.54.1
+- name: terraform-linters/tflint@v0.65.0

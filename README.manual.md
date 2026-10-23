@@ -411,7 +411,7 @@ chezmoi verify --exclude=scripts
 
 - `aqua.yaml`に定義されたCLIのインストール
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
-- Windowsでは`winget.json`に定義されたAWS CLIとaws-vaultのインストール
+- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
 - Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）

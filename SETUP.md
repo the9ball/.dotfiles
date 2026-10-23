@@ -41,7 +41,7 @@ chezmoi verify --exclude=scripts
 - 設定ファイルの変更前に`aqua-policy.yaml`のSHA-256を検証し、固定した確認済みの値と一致する場合だけ`aqua policy allow`を実行する。
 - `aqua install`：`aqua.yaml`に定義されたCLIを導入する。
 - `uv python install`と`uv pip install`：Python 3.13とPyYAML 6.0.3を導入する。
-- Windows：`winget import`で`winget.json`に定義されたAWS CLIとaws-vaultを導入する。
+- Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
@@ -152,6 +152,7 @@ Add-Type -AssemblyName System.Security
 根本原因は未確定のため、Hello だけのサインインに戻す場合は、再起動して PIN でサインインした後も上記コマンドが成功することを確認してください。
 
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
+AquaにないGUIアプリのWinMergeとCPU-Zも、Windowsではwingetで導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
 WSL版Codex Remote Controlを使う場合は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。

@@ -8,6 +8,12 @@
         },
         {
           "PackageIdentifier": "99designs.aws-vault"
+        },
+        {
+          "PackageIdentifier": "WinMerge.WinMerge"
+        },
+        {
+          "PackageIdentifier": "CPUID.CPU-Z"
         }
       ],
       "SourceDetails": {
