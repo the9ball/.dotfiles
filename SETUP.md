@@ -123,13 +123,14 @@ chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$H
 必要な作業は `main` に残して保存・終了を個別に判断してください。
 
 Windows OpenSSH Serverはaqua管理外です。新規端末ではWindows標準のオプション機能を基本の選択肢とします。
-[Windows OpenSSHの運用記録](docs/windows-openssh.md)に、標準版と端末限定のZIP版運用の分岐、検証範囲、復旧参照をまとめています。
+[Windows OpenSSHの運用記録](docs/windows-openssh.md)に、標準版と、明示的に承認した端末限定のZIP版運用の分岐、検証範囲、復旧参照をまとめています。
 ZIP版10.0.0.0p2-Previewの結果は検証した端末・経路に限定し、別端末への展開や任意のSSH機能の保証には使いません。
 
 既定シェルの変更は管理者による手動設定です。
 `chezmoi apply` は SSHサーバーの導入・更新・サービス操作や、OpenSSH のレジストリ、`sshd_config`、鍵、認証方式の変更を行いません。
 [README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。
-OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があるため、この9.5系の組み合わせで、コマンドなしの非PTY接続まで検証済みとは扱いません。
+OpenSSH 9.5 系には Git Bash と PTY なしの `ssh -T host` の組み合わせに[既知の報告](https://github.com/PowerShell/Win32-OpenSSH/issues/2354)があります。
+この手順だけで、コマンドなしの非PTY接続や任意のリモートコマンドまで検証済みとは扱いません。Issue #144のZIP版で確認した非PTYコマンドは`true`の終了0です。
 PTY 付きのリモートコマンドには引用符の制約もあるため、[実機確認した回避方法](README.manual.md#pty-付きリモートコマンドの引用符)を参照してください。
 
 ### 再起動後にアプリの再認証が毎回求められる場合

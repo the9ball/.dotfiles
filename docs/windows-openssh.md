@@ -14,26 +14,27 @@
 | リモート開発 | 非PTYの`true`終了0、PTY・対話Git Bash、psmuxのdetachとSSH再接続、CODEX_HOME／GH_CONFIG_DIRの保持を確認 |
 | 復旧・自動起動 | 標準版への切り戻しと再認証、ZIP版への再切替、OS再起動後の自動起動と新規psmux再接続を確認 |
 | ログ | INFO／AUTHで既存Windowsイベントログへ出力。`-E`は除去し、更新停止・未使用を確認した旧service.log一件を削除。バックアップ・診断は保持 |
-| 未検証 | SFTP/SCPは採用判断の必須条件外。任意のPTY付きコマンド、一般ユーザー・別端末への展開、MSI導入の合格には拡張しない |
+| 未検証 | SFTP/SCPは採用判断の必須条件外。任意のリモートコマンド（PTY有無とも）、一般ユーザー・別端末への展開、MSI導入の合格には拡張しない |
 
 - [Issue #144の受け入れ条件と最終結果](https://github.com/the9ball/.dotfiles/issues/144#issuecomment-6386605977)
 - [再起動後の自動起動・PTY・psmuxと保全比較（C2）](https://github.com/the9ball/.dotfiles/issues/144#issuecomment-6386312929)
 - [INFO／ETW移行と旧ログ削除の完了（#149 A1・A2）](https://github.com/the9ball/.dotfiles/issues/149#issuecomment-6387645847)
 
-新規psmuxセッションのSSH切断後の保持と再接続を確認したもので、OS再起動前のpsmuxセッションの復元を保証しません。
-既知の9.5系の制約や任意コマンドの引用符の問題は、[Git Bashとpsmuxの手順](../README.manual.md#windows-ssh-の既定シェルと-psmux)と区別して扱います。
+C2はOS再起動後に作成した新規psmuxセッションのSSH切断後の保持と再接続を確認したもので、再起動前のセッションの復元を保証しません。
+既知の9.5系の制約や任意コマンドの引用符の問題は、[Git Bashとpsmuxの手順](../README.manual.md#windows-ssh-の既定シェルと-psmux)を参照し、今回の検証結果とは区別します。
 
 ## 復旧と保守の参照
 
 サーバー復旧の正本は、対象ホストの保護された作業領域に保存した`RECOVERY.txt`です。
 RDPはWindows未ログイン状態から接続可能であることを確認済みで、直接操作とともに非SSHの復旧経路として使います。
 [標準版への切り戻し実績](https://github.com/the9ball/.dotfiles/issues/144#issuecomment-6250762039)と、[起動方式を含む復旧手順の更新](https://github.com/the9ball/.dotfiles/issues/144#issuecomment-6251322933)を参照してください。
-既存SSH接続やpsmuxを一括終了せず、候補サービスの停止と待受消失を確認してから標準版を起動する順序です。
+既存SSH接続やpsmuxを一括終了せず、候補サービスの停止と待受消失を確認し、候補を手動開始・遅延無効、標準版を通常の自動開始に戻してから標準版を起動し、新規接続で確認する順序です。
 起動設定まで戻すC1後の復旧手順全体は未実行であり、B1の切り戻し実績と区別します。
 READMEのシェル設定二値のRestoreや、旧DEBUG3／`-E`へ戻すA1のログ復旧は、サーバー全体の復旧とは別です。
 
 将来の版更新、別端末への展開、保全比較の残課題は[Issue #149](https://github.com/the9ball/.dotfiles/issues/149)で追跡します。
-PATH差分の全書換主体・時刻は未確定で、旧ETW baselineには展開済みのExpandStringしかなく、元の未展開文字列の一致は遡って証明できません。
+PATH差分のうち、書き換えた主体・時刻を確定できていない項目があります。
+旧ETW baselineにはExpandString（REG_EXPAND_SZ）の展開済み値しかなく、元の未展開文字列の一致は遡って証明できません。
 A1・A2のログ整理は完了していますが、Issue #149全体の完了を意味しません。
 今回の文書反映のために追加検証、サービス再起動、ログ容量監視は行いません。
 

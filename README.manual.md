@@ -631,7 +631,7 @@ SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカ�
 `sshd_config` は chezmoi で管理せず、自動編集や sshd の再起動もしません。
 
 以下のSystem32版実体、標準設定パス、`Restart-Service sshd`を使う例は、Windows標準の`sshd`サービス専用です。
-ZIP版を使う端末では、対象サービスの`Win32_Service.PathName`から実体、`-f`の専用設定、起動引数を確認してください。
+ZIP版を使う端末では、対象サービスの`Win32_Service.PathName`から実体と起動引数を確認し、`-f`指定の有無も含めて実際に使う設定ファイルを特定してください。
 構文確認はその実体と設定の組み合わせで行い、再起動は非SSHの復旧経路と実行承認を確保してから対象サービスだけに限定します。
 標準版のコマンドをZIP版へ無条件に流用しません。
 
