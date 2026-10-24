@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "run_id": "run-high-critical-findings-baseline",
+  "side": "baseline",
+  "case_id": "high-critical-findings",
+  "fixture_manifest_sha256": "9dfff6226aa01fe81371e8a5d53b99a8ed95f4a67571ae47dcd435c3dec7a4dd",
+  "target_manifest_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "role_context": {
+    "reviewer_context_id": "ctx-high-critical-baseline-reviewer",
+    "respondent_context_id": "ctx-high-critical-baseline-respondent",
+    "contexts_distinct": true,
+    "joint_record_version": "joint-high-critical-v1",
+    "reviewer_approved": true,
+    "respondent_approved": true
+  },
+  "model_identity": { "reviewer": "legacy-reviewer-fixture", "respondent": "legacy-respondent-fixture" },
+  "routing_status": "DECLARED_ONLY",
+  "deterministic_checks": "PASS",
+  "evidence_status": "SUFFICIENT",
+  "coverage_status": "RELIABLE",
+  "gate_status": "PASS",
+  "proceed_status": "NOT_AUTHORIZED",
+  "escalation_step": "none",
+  "escalation_trace": ["none"],
+  "finding_count": 2,
+  "propositions": [
+    { "proposition_id": "critical-001", "severity": "critical", "discovery": "FOUND", "rejection": "NOT_APPLICABLE" },
+    { "proposition_id": "high-001", "severity": "high", "discovery": "FOUND", "rejection": "NOT_APPLICABLE" }
+  ],
+  "packet_sha256": "db6536b02498e4a61474bff140e5984ad3f74634ea6e16ba09368302a03209e2",
+  "dispatch_receipt_sha256": "acb1afacdd9904bd4324bf3dc308a234caf83d6a4a85b71315537e524e095c56",
+  "input_tokens": 240,
+  "output_tokens": 96,
+  "dispatch_count": 0,
+  "runtime_dispatch_attempted": false,
+  "runtime_dispatch_enforcement_claimed": false
+}

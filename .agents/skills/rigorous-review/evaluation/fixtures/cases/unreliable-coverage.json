@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "case_id": "unreliable-coverage",
+  "scenario": "unreliable_coverage_blocks_gate",
+  "expected": {
+    "baseline": { "gate_status": "BLOCKED", "evidence_status": "SUFFICIENT", "coverage_status": "UNRELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "BLOCKED", "evidence_status": "SUFFICIENT", "coverage_status": "UNRELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [
+    { "proposition_id": "high-coverage-001", "severity": "high", "metrics": ["discovery", "gate", "coverage"] }
+  ],
+  "packet_path": "../packets/unreliable-coverage.json",
+  "runs": {
+    "baseline": { "result_path": "../results/unreliable-coverage.baseline.json", "receipt_path": "../receipts/unreliable-coverage.baseline.json" },
+    "candidate": { "result_path": "../results/unreliable-coverage.candidate.json", "receipt_path": "../receipts/unreliable-coverage.candidate.json" }
+  }
+}
