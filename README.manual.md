@@ -465,6 +465,8 @@ Python 3.13とPyYAML 6.0.3は、`run_onchange_after_tools`スクリプトの初�
 
 ### Windows SSH の既定シェルと psmux
 
+サーバーの選択、端末限定のZIP版検証結果、ログと復旧の参照は[Windows OpenSSHの運用記録](docs/windows-openssh.md)を確認してください。
+
 Git Bash を既定シェルにする場合の任意設定です。
 PowerShell のプロファイルは追加せず、既存の Bash 起動ファイルを使います。
 設定後の SSH リモートコマンドは Bash の構文で解釈されるため、PowerShell/cmd 構文に依存するクライアント設定も確認してください。
@@ -628,7 +630,13 @@ SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカ�
 削除するとクライアントから `CODEX_HOME` を選択する用途は使えなくなりますが、この方式の公開鍵認証・SSH 接続・SFTP には必要ありません。
 `sshd_config` は chezmoi で管理せず、自動編集や sshd の再起動もしません。
 
-手動追加した設定を削除する場合は、復旧用のローカル操作または RDP と現在の SSH 接続を確保し、管理者として `C:\ProgramData\ssh\sshd_config` を別ファイルへバックアップしてから編集します。
+以下のSystem32版実体、標準設定パス、`Restart-Service sshd`を使う例は、Windows標準の`sshd`サービス専用です。
+ZIP版を使う端末では、対象サービスの`Win32_Service.PathName`から実体と起動引数を確認し、`-f`指定の有無も含めて実際に使う設定ファイルを特定してください。
+構文確認はその実体と設定の組み合わせで行い、再起動は非SSHの復旧経路と実行承認を確保してから対象サービスだけに限定します。
+標準版のコマンドをZIP版へ無条件に流用しません。
+
+手動追加した設定を削除する場合は、復旧用のローカル操作またはRDPと現在のSSH接続を確保し、実際の対象設定を別ファイルへバックアップしてから編集します。
+標準版の設定は`C:\ProgramData\ssh\sshd_config`です。
 この設定専用の二つのコメントと `AcceptEnv CODEX_HOME` だけを削除し、他の環境変数も指定した行なら `CODEX_HOME` だけを取り除いてください。
 `Match` ブロックの所属や他の認証・接続設定は変更しません。
 
@@ -637,7 +645,9 @@ SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカ�
 ```
 
 構文確認が成功し、ほかに `CODEX_HOME` をクライアントから指定する用途がないことを確認してから、管理者が手動で `Restart-Service sshd` を実行します。
-別接続で公開鍵認証・SSH 用の `CODEX_HOME`・非対話コマンド・SFTP/SCP を確認し、失敗した場合はバックアップを復元します。
+別接続で公開鍵認証・SSH 用の `CODEX_HOME`・非対話コマンドを確認し、SFTP/SCPを使う場合は個別に試験します。
+Issue #144ではSFTP/SCPは未検証・採用判断の必須条件外です。SSH接続の成功からファイル転送の成功を推定しません。
+失敗した場合はバックアップを復元します。
 
 シェルの互換性問題や SSH 起動失敗があれば、ローカルの管理者 PowerShell でバックアップを復元します。
 値が元から未設定だった場合は、新しく追加した値を削除します。
@@ -646,6 +656,8 @@ SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカ�
 powershell.exe -NoProfile -File "$HOME\.dotfiles\scripts\windows-ssh-shell.ps1" -Action Restore
 ```
 
+この`-Action Restore`は既定シェルの`DefaultShell`と`DefaultShellCommandOption`の二値を戻す処理です。
+サービス定義・開始方式・sshd_config・サーバー全体は復旧しません。サーバーの切り戻しは[運用記録の復旧参照](docs/windows-openssh.md#復旧と保守の参照)を使います。
 別の SSH 接続で復旧を確認してから、元の接続を閉じてください。
 `ForceCommand` やパスワード認証の変更で回避しません。
 
