@@ -16,9 +16,10 @@ printf '#!/bin/sh\nexit 0\n' > "$test_directory/competitor/curl"
 chmod +x "$test_directory/aqua root/bin/curl" "$test_directory/competitor/curl"
 test_aqua_bin_directory="$test_directory/aqua root/bin"
 
-# Assert two strings match without interpreting PATH entries as patterns.
+# Assert literal equality and preserve failures across command-substitution subshells.
 assert_equal() {
 	if [[ $1 != "$2" ]]; then
+		printf '%s\n' "$case_name" >> "$test_directory/assertion-failures"
 		printf 'FAIL %s\nexpected: <%s>\nactual:   <%s>\n' "$case_name" "$2" "$1" >&2
 		exit 1
 	fi
@@ -37,6 +38,7 @@ cygpath() {
 	assert_equal "$1" -u
 	assert_equal "$2" "$expected_native_root"
 	case "$case_name" in
+		mock-assertion) assert_equal "$1" -unexpected ;;
 		conversion-failure) return 1 ;;
 		empty-converted-root) printf '\n' ;;
 		relative-root) printf 'relative/root\n' ;;
@@ -66,6 +68,7 @@ run_case() (
 	OSTYPE=msys
 	unset AQUA_ROOT_DIR XDG_DATA_HOME SSH_CONNECTION TMUX PSMUX_SESSION
 	: > "$test_directory/lookup"
+	: > "$test_directory/assertion-failures"
 	case "$case_name" in
 		explicit-root)
 			AQUA_ROOT_DIR='D:\custom root'
@@ -78,6 +81,7 @@ run_case() (
 			;;
 	esac
 	. "$repository_directory/.bashrc"
+	assert_equal "$(< "$test_directory/assertion-failures")" ''
 	assert_equal "$PATH" "$expected_path"
 	case "$case_name" in
 		explicit-root|missing-aqua|missing-cygpath|linux|macos)
@@ -90,6 +94,7 @@ run_case() (
 	fi
 	if [[ $case_name == repeated ]]; then
 		. "$repository_directory/.bashrc"
+		assert_equal "$(< "$test_directory/assertion-failures")" ''
 		assert_equal "$PATH" "$expected_path"
 	fi
 	if [[ $case_name == linux || $case_name == macos ]]; then
@@ -122,3 +127,10 @@ set +e
 for failure_case in missing-aqua missing-cygpath root-failure conversion-failure empty-converted-root relative-root unc-root colon-root; do
 	run_case "$failure_case" /unchanged/path /unchanged/path || exit 1
 done
+
+# A bad mock invocation must fail even when the expected PATH is unchanged.
+if run_case mock-assertion /unchanged/path /unchanged/path > "$test_directory/mock-assertion.log" 2>&1; then
+	printf 'FAIL mock assertion escaped the parent test\n' >&2
+	exit 1
+fi
+printf 'PASS mock-assertion-detected\n'
