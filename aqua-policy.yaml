@@ -1,5 +1,5 @@
 ---
-# Allow the standard registry and only psmux from this repository's local registry.
+# Allow the standard registry and the listed packages from the local registry.
 registries:
 - type: standard
 - type: local
@@ -7,5 +7,7 @@ registries:
   path: aqua-registry.yaml
 packages:
 - registry: standard
+- name: curl/curl-for-win
+  registry: local
 - name: psmux/psmux
   registry: local

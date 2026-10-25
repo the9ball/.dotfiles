@@ -26,6 +26,8 @@ registries:
 - type: standard
   ref: v4.576.0
 packages:
+- name: curl/curl-for-win@8.23.0_5
+  registry: local
 - name: cloudflare/cloudflared@2026.10.3
 # Native tmux builds for Linux and macOS (not available on Windows).
 - name: tmux/tmux-builds@v3.7c

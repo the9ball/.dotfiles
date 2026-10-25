@@ -1,4 +1,26 @@
 packages:
+- type: http
+  name: curl/curl-for-win
+  link: https://curl.se/windows/
+  description: Official curl builds for Windows
+  url: https://curl.se/windows/dl-{{.Version}}/curl-{{.Version}}-{{.Arch}}-mingw.zip
+  format: zip
+  files:
+  - name: curl
+    src: curl-{{.Version}}-{{.Arch}}-mingw/bin/curl.exe
+  supported_envs:
+  - windows/amd64
+  - windows/arm64
+  replacements:
+    amd64: win64
+    arm64: win64a
+  checksum:
+    type: http
+    url: https://curl.se/windows/dl-{{.Version}}/curl-{{.Version}}-{{.Arch}}-mingw.zip.txt
+    algorithm: sha256
+    file_format: regexp
+    pattern:
+      checksum: '^SHA256 .* = ([a-fA-F0-9]{64})$'
 - type: github_release
   repo_owner: psmux
   repo_name: psmux

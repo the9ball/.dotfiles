@@ -13,7 +13,7 @@ import unittest
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 SCRIPT_DIRECTORY = REPOSITORY / "chezmoi" / ".chezmoiscripts"
-REVIEWED_SHA256 = "c778ce202758b7a5f9c5942140f685ddc814dfa946af35aa0886ec459513e72f"
+REVIEWED_SHA256 = "8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7"
 
 
 class AquaPolicyTests(unittest.TestCase):
