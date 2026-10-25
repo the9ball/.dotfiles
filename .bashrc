@@ -17,15 +17,24 @@
 case "${OSTYPE-}" in
 	msys*|cygwin*)
 		if command -v aqua >/dev/null 2>&1 && command -v cygpath >/dev/null 2>&1; then
-			if aqua_root_directory=$(aqua root-dir 2>/dev/null) &&
+			if aqua_root_directory=${AQUA_ROOT_DIR:-$(aqua root-dir 2>/dev/null)} &&
 				aqua_root_directory=$(cygpath -u "$aqua_root_directory"); then
 				case "$aqua_root_directory" in
 					//*|*:*) ;;
 					/*)
-						case "$PATH" in
-							"$aqua_root_directory/bin"|"$aqua_root_directory/bin":*) ;;
-							*) export PATH="$aqua_root_directory/bin:$PATH" ;;
-						esac
+						aqua_bin_directory="${aqua_root_directory%/}/bin"
+						aqua_remaining_path="${PATH}:"
+						aqua_path_suffix=
+						# Remove exact aqua entries while preserving every other entry, including empty ones.
+						while [ -n "$aqua_remaining_path" ]; do
+							aqua_path_entry=${aqua_remaining_path%%:*}
+							aqua_remaining_path=${aqua_remaining_path#*:}
+							if [ "$aqua_path_entry" != "$aqua_bin_directory" ]; then
+								aqua_path_suffix="$aqua_path_suffix:$aqua_path_entry"
+							fi
+						done
+						export PATH="$aqua_bin_directory$aqua_path_suffix"
+						unset aqua_bin_directory aqua_remaining_path aqua_path_suffix aqua_path_entry
 						;;
 				esac
 			fi
