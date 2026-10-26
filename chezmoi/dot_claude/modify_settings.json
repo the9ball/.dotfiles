@@ -67,6 +67,40 @@ README.manual.md for the restore procedure.
 {{- $_ = set $settings "promptSuggestionEnabled" false -}}
 
 {{- /*
+  Use auto mode as the default permission mode. Only defaultMode is managed;
+  allow, ask, and other keys that Claude Code writes into permissions are
+  written back unchanged. If auto mode is unavailable at startup, Claude Code
+  falls back to the default mode with a notice.
+*/ -}}
+{{- $permissions := dict -}}
+{{- if hasKey $settings "permissions" -}}
+{{-   $permissions = index $settings "permissions" -}}
+{{- end -}}
+{{- $_ = set $permissions "defaultMode" "auto" -}}
+{{- $_ = set $settings "permissions" $permissions -}}
+
+{{- /*
+  Hide shared Skills from the Claude Code skill listing. The Skills stay
+  published at ~/.claude/skills and remain available to Codex.
+  - Codex-only: their workflows target Codex threads, Codex Desktop, or the
+    Windows Codex app.
+  - Explicit-invocation Skills with no recorded use in Claude Code.
+  Remove an entry here to show that Skill again; other skillOverrides entries
+  are written back unchanged.
+*/ -}}
+{{- $skillOverrides := dict -}}
+{{- if hasKey $settings "skillOverrides" -}}
+{{-   $skillOverrides = index $settings "skillOverrides" -}}
+{{- end -}}
+{{- range list "delegate-readonly-investigation" "wsl-codex-exec" "task-complete-notify" -}}
+{{-   $_ = set $skillOverrides . "off" -}}
+{{- end -}}
+{{- range list "openpoi" "unity-editor-build-log" "pink-elephant-guard" "rigorous-review" "task-continuity-cleanup" "cognitive-rhythm-writing" "japanese-tech-writing" "codex-rate-limits" "codex-project-roots" -}}
+{{-   $_ = set $skillOverrides . "off" -}}
+{{- end -}}
+{{- $_ = set $settings "skillOverrides" $skillOverrides -}}
+
+{{- /*
   Load the mods published at ~/.claude/mods (a link to link-targets/claude/mods)
   from disk. Claude Code reads CLAUDE_CODE_PLUGIN_DIRS from this env block, as
   absolute paths joined by the platform's path-list separator. The value is
