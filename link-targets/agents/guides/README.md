@@ -17,6 +17,8 @@ Issue #75 owns retirement of all twelve shims, including both migration waves. R
 - `*.design.md` is not a copy or change history of the corresponding normative/runtime contract, but a non-normative design companion that includes future options, reconsideration materials/conditions, responsibility boundaries, etc. Normally, it is not loaded at runtime and is referenced only when changing, redesigning, or reviewing the contract of a skill that has companions.
 - Do not write content that contradicts AGENTS.md. In case of conflict, AGENTS.md takes precedence.
 - On the AGENTS.md side, leave a core that can at least function without reading the files in this directory. Do not create a configuration where the effect is zero if no reading is performed.
+- Admit to always-loaded instructions (`AGENTS.md`, its local overlay, and host routers) only constraints, verification requirements, and critical paths that must hold without further reading; place domain-specific rules and procedures in the owning Skill. Splitting text into files that the host imports or discovers automatically, such as Claude `@path` imports or instruction files on Codex's discovery path, does not reduce the loaded input.
+- When maintaining the instruction set or after the supported models change, audit always-loaded text for rules that compensated for older model weaknesses, duplicated routes, and stale content. Evaluate each removal or relocation on representative tasks under the same acceptance conditions, one change at a time, counting failed attempts, retries, and delegated work. This is a maintenance rule, not a per-task step.
 
 ## Reference path
 
