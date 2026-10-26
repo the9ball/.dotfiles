@@ -41,6 +41,16 @@ evidence whenever the two conflict.
 | --- | --- | --- |
 | {{ITEM}} | pending | {{VALIDATION}} |
 
+### Exact details to preserve
+
+Keep exact error text, failing tests or commands, and unfinished edits whose
+paraphrase would lose meaning. Prefer a short excerpt with a reference to the
+original log or file; do not copy secrets or whole logs.
+
+| Item | Exact excerpt or reference | Source | Captured at |
+| --- | --- | --- | --- |
+| {{EXACT_ITEM}} | {{EXACT_EXCERPT_OR_REFERENCE}} | {{EXACT_SOURCE}} | {{CAPTURED_AT}} |
+
 ### Completed work
 
 - {{COMPLETED_WORK}}

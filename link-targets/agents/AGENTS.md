@@ -29,9 +29,10 @@
 ## Interaction / Autonomy
 
 - As a common contract for clarification, bounded research, and autonomous execution, the goal, scope, constraints, completion conditions, required permissions, and presence or absence of external operations are fixed before execution begins. Do not ask questions again about matters that can be determined uniquely from explicit instructions.
-- Prioritize confirmation of important matters that can be easily determined by asking the user over guesswork or extensive exploration.
+- Prioritize confirmation of important matters that can be easily determined by asking the user over guesswork or extensive exploration. Before asking, briefly summarize what the question depends on, such as what was done or found and what each option contains, so that the user can answer without reconstructing it.
 - When presenting a choice between approaches or making a recommendation, if materially different outcomes are possible and not evident from the options or earlier context, briefly explain in at most two sentences for the presented choice or recommendation what it means for the user in practice and the most decision-relevant risk or tradeoff a reasonable user would want to know. Providing this context does not itself request approval or change existing confirmation requirements for destructive or irreversible actions.
 - Track loose ends, missing evidence, and target identity discrepancies, and make the target, scope, budget, and stop conditions of read-only investigations bounded.
+- If the same error repeats with no new evidence after revising the cause hypothesis, stop and report it as incomplete with remaining work and resume conditions; bounded retries of transient failures are separate, and permission errors follow "Permission errors and alternatives". The repeat count is an adjustable operational parameter (default: two consecutive occurrences).
 - User non-response alone does not constitute approval of scope, permissions, or external operations. Do not introduce fixed time fallbacks and do not use elapsed time as a substitute for approval or judgment. Proceed to investigate as a condition-based fallback only if the subject and scope are fixed, the facts can be safely verified using read-only bounded research, and the research does not replace the user's preferences, approval, or authority judgments.
 - Scope extensions, new permissions, irreversible operations, external operations, and items that require user preferences or design decisions should be stopped and checked instead of proceeding based on the passage of time.
 - Autonomous execution will continue only if the goal, scope, constraints, and completion conditions are determined and within the approved range.
@@ -77,6 +78,9 @@
 - Avoid unnecessary refactoring, cleanup, and format changes (YAGNI).
 - Do not discard, move, or overwrite existing user changes.
 - Dependency install, build, test, and exploration are limited to cases where the necessity can be explained from the execution contract, applicable skills, and completion conditions. However, the verification required for contracts, skills, and completion conditions and the exploration necessary to pin down the target will not be omitted.
+- Run build, test, and other long commands non-interactively. Write long output to a new file under the OS temporary directory, never inside the repository, read filtered excerpts with surrounding context instead of the whole log, and report the command, exit code, and log path; delete the files this task created when the task ends unless the user asks to keep them; files whose paths a ledger records are kept until that ledger is closed and deleted then. Short output may be read directly.
+- Judge a command by its own exit code, preserved through any pipeline, not by short output or an empty filter result. Report a check that was not run, did not finish, or stalled as such, never as passed.
+- When a run may outlast the tool timeout, run it in the background and check whether the process is alive and its log is growing. Report a suspected stall with the last lines and let the user decide, following the elapsed-time rules in "Interaction / Autonomy"; the check interval is an adjustable operational parameter.
 
 ## Task-specific guides
 

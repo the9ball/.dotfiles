@@ -75,6 +75,9 @@ Use the following structure, omitting only sections that are genuinely irrelevan
 ## Friction, dead ends, and discoveries
 - <Obstacle or failed approach, whether it is resolved, and what should not be repeated.>
 
+## Exact details to preserve
+- <Exact error text, failing test or command, or unfinished edit whose paraphrase would lose meaning, with its source path or command.>
+
 ## User constraints and preferences
 - <Only constraints or preferences established by the conversation. Mark inferences as inferences.>
 
@@ -116,6 +119,7 @@ For the trajectory:
 - Retain completed work only to explain what the user asked and how the agent responded.
 - Record failed approaches when omitting them could cause the destination to repeat the same mistake.
 - Omit greetings, acknowledgements, raw logs, repetitive tool output, and generic repository explanations.
+- Instead of raw logs, keep short verbatim excerpts in "Exact details to preserve" when the destination needs the exact wording to continue. Never copy secrets.
 
 ### 5. Use transient staging safely
 
