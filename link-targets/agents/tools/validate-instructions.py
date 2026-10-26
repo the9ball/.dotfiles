@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 AGENTS = "link-targets/agents"
 GUIDES = f"{AGENTS}/guides"
 SKILLS = f"{AGENTS}/skills"
+TERMINAL_REFERENCE_DIRECTORIES = ("docs",)
 ROUTER = "chezmoi/dot_claude/CLAUDE.md"
 HOST_LOCAL = f"{AGENTS}/AGENTS.local.md"
 LOGICAL_REFERENCE = re.compile(
@@ -401,6 +402,12 @@ def validate(root: Path) -> tuple[dict[str, str], dict[str, set[str]]]:
         if source in texts:
             continue
         text = active_policy if source == f"{GUIDES}/README.md" else read_source(root, source)
+        # Operational docs are navigational leaves, not instruction loaders.
+        if PurePosixPath(source).parts[0] in TERMINAL_REFERENCE_DIRECTORIES:
+            texts[source] = text
+            edges[source] = set()
+            graph[source] = set()
+            continue
         targets = references(root, source, text)
         exclusions = non_dependencies(root, source, text, targets)
         texts[source] = text

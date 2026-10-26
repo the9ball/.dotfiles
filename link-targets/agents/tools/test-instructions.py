@@ -230,6 +230,22 @@ class InstructionTests(unittest.TestCase):
         write(self.root, "link-targets/agents/guides/two.md", "[one](one.md)\n")
         self.rejects("dependency cycle")
 
+    def test_docs_backlink_is_terminal(self) -> None:
+        """Allow operational docs to link back without forming read cycles."""
+        source = "README.manual.md"
+        document = "docs/operations.md"
+        write(self.root, source, "[operations](docs/operations.md)\n")
+        write(self.root, document, "[manual](../README.manual.md)\n")
+        texts, edges = VALIDATOR.validate(self.root)
+        self.assertIn(document, edges[source])
+        self.assertEqual(edges[document], set())
+        self.assertIn(document, texts)
+
+    def test_missing_docs_target_is_rejected(self) -> None:
+        """Keep existence checks for references into terminal documentation."""
+        write(self.root, "README.manual.md", "[missing](docs/missing.md)\n")
+        self.rejects("invalid Markdown target")
+
     def test_annotation_cannot_manufacture_edge(self) -> None:
         """Reject an exemption with no independent source reference."""
         with (self.root / "link-targets/agents/guides/README.md").open("a", encoding="utf-8") as stream:
