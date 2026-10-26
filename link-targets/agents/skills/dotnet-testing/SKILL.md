@@ -22,8 +22,8 @@ Only when this Skill is discovered, the Guide section below will be applied as a
 
 Read before running build/test of `.NET`.
 
-- Since `dotnet test` tends to time out during the build, in principle, after implementation, execute it in two stages: `dotnet build` and `dotnet test --no-build`.
-- Match the configurations of build and test, and specify the same configuration such as `-c Debug` for both as necessary.
-- In principle, the tool-side timeout for build and test is set to `300000ms` (5 minutes) as an adjustable initial value that takes into account temporary delays due to I/O. This is not a replacement for fixed thresholds or approvals.
-- Report the passed/failed/skipped counts from the `dotnet test` summary together with the general command report.
+- Because `dotnet test` tends to time out during the build, in principle, after implementation, run it in two stages: `dotnet build` and `dotnet test --no-build`.
+- Match the configurations of build and test; as necessary, specify the same configuration, such as `-c Debug`, for both.
+- In principle, set the tool-side timeout for build and test to `300000ms` (5 minutes), an adjustable initial value that takes into account temporary delays due to I/O. It does not replace fixed thresholds or approvals.
 - When a VSTest run is suspected of hanging, `dotnet test --blame-hang-timeout <duration>` makes the runner collect a dump, report the hanging test, and terminate the test host and its child processes when the duration elapses. Because it stops the run, use it only in a diagnostic run whose stop condition the user has agreed to, choose the duration below the tool-side timeout as an adjustable value, and record it with the result. Microsoft.Testing.Platform projects do not accept this option; use that platform's own hang diagnostics instead.
+- Report the passed/failed/skipped counts from the `dotnet test` summary together with the general command report.
