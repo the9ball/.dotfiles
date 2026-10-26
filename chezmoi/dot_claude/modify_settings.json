@@ -67,6 +67,52 @@ README.manual.md for the restore procedure.
 {{- $_ = set $settings "promptSuggestionEnabled" false -}}
 
 {{- /*
+  Use auto mode as the default permission mode in every project. Auto mode lets
+  a safety classifier approve routine actions instead of prompting for each
+  one, so more actions run without a prompt. It does not replace the approval
+  rules in the shared AGENTS.md (external operations, UI automation, and so on),
+  which still apply. Terminal sessions honor a project or local setting that
+  pins another mode. The VS Code extension does not read project settings for
+  its starting mode and checks claudeCode.initialPermissionMode and the mode
+  last picked in its mode indicator before this value. Only defaultMode is
+  managed; allow, ask, and other keys that Claude Code writes into permissions
+  are written back unchanged. If auto mode is unavailable at startup, Claude
+  Code falls back to the default mode with a notice.
+*/ -}}
+{{- $permissions := dict -}}
+{{- if hasKey $settings "permissions" -}}
+{{-   $permissions = index $settings "permissions" -}}
+{{- end -}}
+{{- $_ = set $permissions "defaultMode" "auto" -}}
+{{- $_ = set $settings "permissions" $permissions -}}
+
+{{- /*
+  Per-Skill overrides for shared Skills in Claude Code. The Skills stay
+  published at ~/.claude/skills and remain available to Codex.
+  - "off" disables the Skill in Claude Code: the model does not see it and
+    /name is refused. Used for Codex-only Skills, whose workflows target Codex
+    threads, Codex Desktop, or the Windows Codex app.
+  - "user-invocable-only" hides the Skill from the model's listing but keeps
+    /name. Used for explicit-invocation Skills with no recorded use in Claude
+    Code.
+  Other skillOverrides entries are written back unchanged. Removing a name
+  from these lists stops managing it but keeps the value already saved in
+  settings.json; to restore a Skill, also delete its key there or set it to
+  "on".
+*/ -}}
+{{- $skillOverrides := dict -}}
+{{- if hasKey $settings "skillOverrides" -}}
+{{-   $skillOverrides = index $settings "skillOverrides" -}}
+{{- end -}}
+{{- range list "delegate-readonly-investigation" "wsl-codex-exec" "task-complete-notify" -}}
+{{-   $_ = set $skillOverrides . "off" -}}
+{{- end -}}
+{{- range list "openpoi" "unity-editor-build-log" "pink-elephant-guard" "rigorous-review" "task-continuity-cleanup" "cognitive-rhythm-writing" "japanese-tech-writing" "codex-rate-limits" "codex-project-roots" -}}
+{{-   $_ = set $skillOverrides . "user-invocable-only" -}}
+{{- end -}}
+{{- $_ = set $settings "skillOverrides" $skillOverrides -}}
+
+{{- /*
   Load the mods published at ~/.claude/mods (a link to link-targets/claude/mods)
   from disk. Claude Code reads CLAUDE_CODE_PLUGIN_DIRS from this env block, as
   absolute paths joined by the platform's path-list separator. The value is
