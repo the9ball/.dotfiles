@@ -36,6 +36,7 @@ Supplements `link-targets/agents/AGENTS.md`'s common contract and owns delegatio
 ### Handoff and permissions
 
 - The handoff should include the purpose, target, exclusion, constraints, completion conditions, verification method, and conditions for stopping and confirming when the estimate is exceeded, so that the handoff can be performed without implicit assumptions of conversation.
+- Prefer a fresh context with a self-contained handoff. Inherit the conversation only when the rediscovery it avoids outweighs copying the context into the child, and never where the role requires independence.
 - Do not extend the authority, scope of approval, or external operation authority passed to the delegatee. Only read-only work is allowed before edit gate approval.
 - Do not run work specified as "one by one" or "in order" in parallel. In the shared work tree, only one person is responsible for editing each file, and root will not edit the same range until the person in charge is completed.
 - Do not create, select, move, or delete a worktree at the discretion of the delegate. If a separate working directory is required, check user approval and repository-specific operations first.
