@@ -25,6 +25,7 @@ Changes from upstream:
 - Added a Claude Code adapter with a manual fallback when no user-visible session creation capability exists.
 - Changed the temporary Markdown backup into transient staging that is deleted after both success and failure.
 - Updated the Codex UI metadata for the renamed skill.
+- Added an "Exact details to preserve" handoff section for short verbatim excerpts of errors, failing tests or commands, and unfinished edits.
 
 ## Update policy
 
