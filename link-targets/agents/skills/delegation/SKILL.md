@@ -70,6 +70,7 @@ For a listed GPT-6 model, the caller reads both the family and variant reference
 
 - Instead of treating the child's report as evidence of fact, root checks the actual differences, target files, logs, and verification results.
 - Even if a child makes a change, the root verifies that the change does not exceed the approved target, operation, or scope. External operations, disclosure, and permission changes are not performed solely on the child's judgment.
+- A child that stopped on a turn, call, or budget cap, context exhaustion, or a usage or rate limit has not completed. Record it as incomplete with the results obtained so far, the remaining work, and the resume conditions, and do not treat its partial report as a completed result.
 
 ### Session identity and reuse
 
