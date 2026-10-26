@@ -77,6 +77,9 @@
 - Avoid unnecessary refactoring, cleanup, and format changes (YAGNI).
 - Do not discard, move, or overwrite existing user changes.
 - Dependency install, build, test, and exploration are limited to cases where the necessity can be explained from the execution contract, applicable skills, and completion conditions. However, the verification required for contracts, skills, and completion conditions and the exploration necessary to pin down the target will not be omitted.
+- Run build, test, and other long commands non-interactively. Write long output to a new file under the OS temporary directory, never inside the repository, read filtered excerpts with surrounding context instead of the whole log, and report the command, exit code, and log path; delete the files this task created when the task ends unless the user asks to keep them. Short output may be read directly.
+- Judge a command by its own exit code, preserved through any pipeline, not by short output or an empty filter result. Report a check that was not run, did not finish, or stalled as such, never as passed.
+- When a run may outlast the tool timeout, run it in the background and check whether the process is alive and its log is growing. Report a suspected stall with the last lines and let the user decide, following the elapsed-time rules in "Interaction / Autonomy"; the check interval is an adjustable operational parameter.
 
 ## Task-specific guides
 
