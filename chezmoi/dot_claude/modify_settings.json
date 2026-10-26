@@ -74,10 +74,10 @@ README.manual.md for the restore procedure.
   which still apply. Terminal sessions honor a project or local setting that
   pins another mode. The VS Code extension does not read project settings for
   its starting mode and checks claudeCode.initialPermissionMode and the mode
-  last picked in its mode indicator before this value. Only defaultMode is managed; allow, ask, and other
-  keys that Claude Code writes into permissions are written back unchanged. If
-  auto mode is unavailable at startup, Claude Code falls back to the default
-  mode with a notice.
+  last picked in its mode indicator before this value. Only defaultMode is
+  managed; allow, ask, and other keys that Claude Code writes into permissions
+  are written back unchanged. If auto mode is unavailable at startup, Claude
+  Code falls back to the default mode with a notice.
 */ -}}
 {{- $permissions := dict -}}
 {{- if hasKey $settings "permissions" -}}
