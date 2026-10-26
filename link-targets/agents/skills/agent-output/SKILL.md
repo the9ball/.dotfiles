@@ -21,18 +21,18 @@ Only when this Skill is discovered, the Guide section below will be applied as a
 ## Guide
 
 Read this Guide before outputting copyable code or text relayed to other agents in chat.
-Apart from `link-targets/agents/AGENTS.md`'s external posting/delegation approval, only the format of the chat body is determined.
+Apart from external posting/delegation approval under `link-targets/agents/AGENTS.md`, this Guide determines only the format of the chat body.
 
 ### Copyable code
 
-- The code block that users copy and use uses five consecutive U+0060 (backticks) both at the beginning and end.
-- Check the start and end numbers, language specification, and nesting support before sending.
+- A code block that users copy and use starts and ends with five consecutive U+0060 (backticks).
+- Before sending, check the opening and closing counts, the language specification, and nesting support.
 
 ### Body to be passed to other agents
 
-- For relay texts such as request texts, investigation instructions, and review viewpoints, put the entire text inside a single five-backtick fence tagged `markdown`.
-- Do not separate the outer blocks by heading/section. Use 3 backticks for code blocks in the body of the text.
-- Place only the main text to be delivered in the outer block, and write any introductions, supplements, judgments, and notes outside.
-- The body text should be in a format that can be used by other agents without depending on the specific name of the destination.
+- Put the entire relay text, such as request texts, investigation instructions, and review viewpoints, inside a single five-backtick fence tagged `markdown`. Do not split the outer block by heading or section.
+- Use 3 backticks for code blocks inside the body.
+- Place only the main text to be delivered in the outer block; write any introductions, supplements, judgments, and notes outside it.
+- The body text should be in a format that other agents can use without depending on the specific name of the destination.
 
 <!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->
