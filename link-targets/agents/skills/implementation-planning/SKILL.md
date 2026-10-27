@@ -24,10 +24,7 @@ The ability to execute the plan, approval status, external operations, and accep
 
 ## Guide
 
-Applies to creating, updating, and reviewing implementation plans and runbooks.
-
-Details of implementation-scale estimation and of runbook/plan history management.
-Read before creating, updating, or reviewing an implementation plan or runbook.
+Applies to creating, updating, and reviewing implementation plans and runbooks; read it before creating, updating, or reviewing an implementation plan or runbook. It includes the details of implementation-scale estimation and of runbook/plan history management.
 
 ### The boundary between planning review and post-implementation review
 
@@ -85,7 +82,7 @@ For each candidate, write at least **target/operation/cause**. Conditional candi
 3. Show countermeasures. In case (c), explicitly check whether the element is really within the scope of the request.
 4. Get approval before proceeding.
 
-The reason why the lower limit of the absolute value (+30 lines) is included in the threshold is because if you stop frequently at small steps, there will be a lot of rework and the entire rule will be ignored.
+The lower limit of the absolute value (+30 lines) is included in the threshold because if you stop frequently at small steps, there will be a lot of rework and the entire rule will be ignored.
 
 ### When implementation is below the estimate
 
@@ -125,9 +122,9 @@ The meaning of line counts differs by orders of magnitude across layers. Do not 
 - The body of the document describes the currently valid procedures and the current assumptions and decisions necessary for their implementation and judgment. The main body is treated as the source of the current content, and the history file is treated as supplementary material.
 - Do not create a history file just because it is the first creation or because of minor changes.
 - Create `<stem>.history.md` in the same directory as the main body only when the reason becomes worth referencing independently in the future, such as substantial withdrawal or conversion of procedures/policies, handover with decision history, audit/incident tracking, repeated review of the same decision, etc.
-- The history records the date of the decision or change, a summary of the change, the reasons for it, and, if applicable, the alternatives and impacts considered. Do not copy the text of the main text, and do not record corrections only to the expression. There is no need to go back and restore minor changes made before the creation of the history file.
-- If the main body is under git management, the commit SHA of the repository HEAD at the time of modification can be added as an optional item. To be able to match history and code state in chronological order.
-- Create a relative link from the main body only if the history file exists. Do not create empty history files or links to non-existent history.
 - If you are unsure whether the change is minor or meets the conditions for creating a history, do not create a history, but create one when a substantial opportunity arises.
+- The history records the date of the decision or change, a summary of the change, the reasons for it, and, if applicable, the alternatives and impacts considered. Do not copy the text of the main text, and do not record corrections only to the expression. There is no need to go back and restore minor changes made before the creation of the history file.
+- If the main body is under git management, the commit SHA of the repository HEAD at the time of modification can be added as an optional item, so that history and code state can be matched in chronological order.
+- Create a relative link from the main body only if the history file exists. Do not create empty history files or links to non-existent history.
 - Deleting and organizing existing entries is done only when there is an explicit instruction from the user. Leave entries that explain current behavior and future investigations, and leave them if you are unsure. Deleting history is irreversible, so don't go for it.
 - Even when cleaning, do not remove entries silently. Leave a one-line marker at the beginning of the history file saying “Organize entries before YYYY-MM-DD on YYYY-MM-DD (reason: ...)” so the interruption in the history can be identified later. Do not create silent gaps.

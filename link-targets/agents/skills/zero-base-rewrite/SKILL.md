@@ -23,7 +23,7 @@ Signals include paths under `decisions/`, `adr/`, or `history/`, filenames such 
 
 ## Fresh reconstruction context
 
-The root fixes the intended reader, purpose, output format, scope, approval state, and permitted reconstruction inputs before dispatch. When conversation context materially affects reconstruction, run the reconstruction in a verified fresh child context, regardless of document length. A short conversation-dependent source still needs isolation. Conversation-independent rewrites may run in the root when delegation would add no meaningful isolation benefit.
+The root fixes the intended reader, purpose, output format, scope, approval state, and permitted reconstruction inputs before dispatch. When conversation context materially affects reconstruction, run the reconstruction in a verified fresh child context, regardless of document length; a short conversation-dependent source still needs isolation. Conversation-independent rewrites may run in the root when delegation would add no meaningful isolation benefit.
 
 Fresh means the child has no unrelated root conversation, prior-task history, or previous drafts' editing history outside the permitted inputs. Use a non-inheriting creation mode such as `fork_turns="none"` when supported. Verify the runtime's documented context behavior and whether the selected session already holds other task history; the creation option alone is not a freshness guarantee. Record the context mode, session identity, permitted inputs, and verification basis in the ledger. If fresh context is unavailable or its isolation cannot be verified, report the limitation and stop reconstruction for narrowly scoped user confirmation. Do not silently substitute root execution or an inherited child. A target-specific explicit user override follows the existing instruction-precedence contract and does not waive preservation, comparison, approval, or permission boundaries.
 
@@ -41,7 +41,9 @@ Give the child a self-contained handoff containing the fixed requirements, exact
 
 Before changing a file, choose a collision-safe working directory and record three separate paths: an immutable source snapshot, a rewritten output, and a comparison ledger. Use a dedicated repository working directory such as `.zero-base-rewrite/<run-id>/`, or a temporary directory when the source is outside a repository. Do not place either output where an unrelated commit could pick it up without the user knowing.
 
-Do not skip or discard the snapshot because the source or backup is covered by `.gitignore`, untracked, or outside the next commit. Git status is a cleanup concern, not a preservation condition. Keep the snapshot and ledger through comparison and acceptance; do not silently delete them. Never overwrite the source file. If the input exists only in the conversation, retain its exact text as the comparison source and do not invent a filesystem path.
+Never overwrite the source file. If the input exists only in the conversation, retain its exact text as the comparison source and do not invent a filesystem path.
+
+Do not skip or discard the snapshot because the source or backup is covered by `.gitignore`, untracked, or outside the next commit. Git status is a cleanup concern, not a preservation condition. Keep the snapshot and ledger through comparison and acceptance; do not silently delete them.
 
 ## Workflow
 

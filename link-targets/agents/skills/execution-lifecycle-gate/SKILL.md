@@ -51,7 +51,7 @@ Quality gates run automatically from an approved implementation plan or confirme
 
 ### Determining whether Advisor is necessary
 
-- The necessity of Advisor is determined by first determining whether `REQUIRED`, `NOT_REQUIRED`, or `UNRESOLVED` is necessary, independent of the execution result. The coordinator records the true/false/unknown status of each trigger, the applicable plan clause, path, difference range, judgment reason, evidence, and judgment entity in the ledger.
+- The necessity of Advisor is first determined as one of `REQUIRED`, `NOT_REQUIRED`, or `UNRESOLVED`, independent of the execution result. The coordinator records the true/false/unknown status of each trigger, the applicable plan clause, path, difference range, judgment reason, evidence, and judgment entity in the ledger.
 - If any of the following applies, it shall be `REQUIRED`.
   1. Add or change security, privacy, authentication/authorization, cryptography, secrets, payment, authority, or trust boundaries.
   2. Change data loss/irreversible operations, destructive migrations, persistent data integrity, or rollback capabilities.
@@ -61,7 +61,7 @@ Quality gates run automatically from an approved implementation plan or confirme
   6. Change control rules such as `AGENTS.md`, `SKILL.md`, agent definition, authority/sandbox/routing/tool/plugin settings, and affect activation, approval, write/external transmission, destructive operations, delegation/model/tool selection, target identity/evidence, role independence, suspension, `USER_AUTHORIZED`, or `PASS`.
   7. There are significant deviations from the approved plan or execution contract that require a risk acceptance decision, multiple significant potential causes remain, or evidence-based fixes to the same problem fail twice.
 - A change to `AGENTS.md` or `SKILL.md` alone does not make Advisor review `REQUIRED`. For typos, formatting, link corrections, or paraphrasing that does not change meaning, the initial Advisor requirement may be set to `NOT_REQUIRED` only if the basis for normative equivalence can be recorded. This does not extend the `REVIEW_PRESERVING` allowlist for inheriting existing evidence into a successor revision; that follows the rules in `Revision and review-preserving classification`.
-- The necessity determination is determined in the following order: `REQUIRED` if any trigger is true, `UNRESOLVED` if there is no true and even one unknown, and `NOT_REQUIRED` if all are false. If true and unknown are mixed, `REQUIRED` takes precedence.
+- The necessity is determined in the following order: `REQUIRED` if any trigger is true, `UNRESOLVED` if there is no true and even one unknown, and `NOT_REQUIRED` if all are false. If true and unknown are mixed, `REQUIRED` takes precedence.
 - In the case of `UNRESOLVED`, run the Advisor or report the stop/confirmation to the user, record additional evidence in the ledger, and redo the three-value judgment. Advisor's answer `CLEAR` does not automatically change the necessity to `NOT_REQUIRED`, and stops if unknown remains. `UNRESOLVED` must not be recorded as `NOT_REQUIRED` without verification.
 
 ### When to run Advisor and add checkpoints
@@ -128,7 +128,7 @@ If the target cannot be separated from existing dirty changes, the manifest has 
 
 ## Review status
 
-When Advisor is executed, it returns one of the following: Do not confuse it with the necessity determination before execution `REQUIRED`, `NOT_REQUIRED`, `UNRESOLVED`.
+When Advisor is executed, it returns one of the following. Do not confuse it with the necessity determination before execution `REQUIRED`, `NOT_REQUIRED`, `UNRESOLVED`.
 
 - `CLEAR`: Issues requiring judgment have been resolved, and there is no advice to block the gate.
 - `REQUIRES_USER_DECISION`: Users must decide on planning, scope, and risk acceptance.
@@ -139,19 +139,12 @@ When Advisor is executed, it returns one of the following: Do not confuse it wit
 Record the findings, evidence status, review gate, and permission to proceed with implementation separately. The definitions used in the implementation gate are as follows.
 
 - `finding_outcome`: Either `指摘成立` or `指摘撤回` for each Advisor finding. Issues for which the Advisor requires user judgment are recorded as `REQUIRES_USER_DECISION`, and cases where evidence or target identity cannot be established are recorded as `BLOCKED` on a separate axis.
-- `evidence_status`: `SUFFICIENT` or `NEEDS_EVIDENCE`. The latter is an incomplete state caused by missing information, missing target identity, or non-reproducibility; normally `review_gate=BLOCKED`.
-  Record the necessary evidence, confirmation method, scope of permission, and termination conditions, and do not consider it as a retraction or approval of the points raised.
-- `review_gate`: One of `PASS`, `PASS_WITH_USER_AUTHORIZATION`, or `BLOCKED`.
-  Use plain `PASS` only when there is no unresolved `NEEDS_EVIDENCE`, no gate-blocking finding, and no lack of independence, and the normal completion conditions are met.
-  If work proceeds with `NEEDS_EVIDENCE` left unresolved and only within scoped permission, use `PASS_WITH_USER_AUTHORIZATION` and do not convert it to plain `PASS`. Use `BLOCKED` if requirements, target identity, or authorization are insufficient.
-- `USER_AUTHORIZED`: Explicit user permission recording that does not override finding status or evidence sufficiency.
-  It includes the finding ID, target/epoch and manifest, authorizer, date and time, source, scope of operation and exclusions, accepted impact,
-  remaining confirmations, and deadline or reverification conditions.
-- `proceed_status`: `STOPPED` or `AUTHORIZED_TO_PROCEED`.
-  Set the latter only if a valid `USER_AUTHORIZED` is bound to the same target/epoch and operation scope.
+- `evidence_status`: `SUFFICIENT` or `NEEDS_EVIDENCE`. The latter is an incomplete state caused by missing information, missing target identity, or non-reproducibility; normally `review_gate=BLOCKED`. Record the necessary evidence, confirmation method, scope of permission, and termination conditions, and do not consider it as a retraction or approval of the points raised.
+- `review_gate`: One of `PASS`, `PASS_WITH_USER_AUTHORIZATION`, or `BLOCKED`. Use plain `PASS` only when there is no unresolved `NEEDS_EVIDENCE`, no gate-blocking finding, and no lack of independence, and the normal completion conditions are met. If work proceeds with `NEEDS_EVIDENCE` left unresolved and only within scoped permission, use `PASS_WITH_USER_AUTHORIZATION` and do not convert it to plain `PASS`. Use `BLOCKED` if requirements, target identity, or authorization are insufficient.
+- `USER_AUTHORIZED`: Explicit user permission recording that does not override finding status or evidence sufficiency. It includes the finding ID, target/epoch and manifest, authorizer, date and time, source, scope of operation and exclusions, accepted impact, remaining confirmations, and deadline or reverification conditions.
+- `proceed_status`: `STOPPED` or `AUTHORIZED_TO_PROCEED`. Set the latter only if a valid `USER_AUTHORIZED` is bound to the same target/epoch and operation scope.
 
 `ACCEPTED_RISK` is a note of acceptance, not a permit to proceed. References to the old `WAIVED` may be retained, but new records must use it only to mean that specific evidence or checks were waived; the finding must not be treated as cleared.
-
 
 ## Execution order
 
@@ -184,7 +177,6 @@ Immediately after fixing the candidate target, confirm `effective_review_level` 
 ### 6. Final Advisor judgment
 
 When `effective_review_level` is `ADVISOR`, conduct the regular review first if `effective_user_review=REQUIRED`; if it is `NONE`, omit the regular review. Reverify the epoch identity just before dispatching the Advisor, then provide the fixed plan and target. If there is a required trigger, treat it as `REQUIRED`, and stop if it is `REQUIRES_USER_DECISION` or `BLOCKED`. If the Advisor cannot run for `UNRESOLVED`, stop and report to the user. If `effective_review_level` does not include Advisor, check that all triggers are false with evidence and record Advisor as `SKIPPED`. Do not substitute the results of additional Advisor checkpoints or approval from a regular user review for the final Advisor result.
-
 
 ### 7. Correction of indications
 
