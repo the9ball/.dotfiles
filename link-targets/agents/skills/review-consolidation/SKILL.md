@@ -84,7 +84,7 @@ Both Japanese headings are required, and if there is no applicable item, write `
 - Cleanup within Skill is limited to Hide of top-level comments treated as reviews.
 - Only original comments that have meaningful information stored in body / REVIEW-SUMMARY and are no longer worth displaying are candidates for Hide. Even if undefined matters are included, it is sufficient if the state is preserved.
 - Recapture each Hide candidate immediately before execution and confirm that there has been no meaningful change in the text, updated state, or minimized state since the snapshot. If there is a change or it cannot be obtained, do not hide the candidate, and do not continue cleanup based on a stale judgment.
-- If the establishment of REVIEW-SUMMARY and the body update required this time cannot be read back, the process does not proceed to the subsequent Hide. This is a cleanup precondition specific to review-consolidation and is not a redefinition of common authorization/retry.
+- If it is not possible to read-back the establishment of REVIEW-SUMMARY and the body update required this time, it will not proceed to the subsequent Hide. This is a cleanup precondition specific to review-consolidation and is not a redefinition of common authorization/retry.
 - Hide reason/category is not fixed. Valid REVIEW-SUMMARY is excluded from Hide, and only invalid Summary is an exception candidate for the history preservation condition in "Checkpoint and history recovery".
 
 #### Ordering and failure
