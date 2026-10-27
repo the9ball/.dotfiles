@@ -165,7 +165,7 @@ Four files are kept in `$HOME/.claude/.redmine-watch/`. All are machine-specific
 | File | Role | If deleted |
 |---|---|---|
 | `watched-issues.tsv` | The watch list itself | The memory of tickets you were assigned to in the past is lost |
-| `status-reference.json` | Cache of the status list | Monitoring stops until the next successful retrieval. A save failure issues one warning line and monitoring continues |
+| `status-reference.json` | Cache of the status list | If retrieval fails while no usable cache is available, monitoring stops until the next successful retrieval. A save failure issues one warning line and monitoring continues |
 | `self-user-id` | Your user ID | While it cannot be restored (for example when zero tickets are assigned to you), your own changes may also be notified |
 | `owner-token` | Ownership of the running process | All processes retire |
 
