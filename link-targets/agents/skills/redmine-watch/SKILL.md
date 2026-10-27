@@ -45,10 +45,11 @@ One poll does four things.
 4. **Difference**: If there are changes made by **someone other than you** after the last journal you saw, notify with one line per ticket,
    and fix that ticket's state immediately afterward.
 
+The six statuses that count as finished in this Redmine are
+**`保留` (Pending), `却下` (Rejected), `本番適用済み` (Applied to production), `組込み済み/完了` (Integrated/Completed), `リリースなし` (No release), and `終了` (Closed)**.
 For an existing ticket that has entered a finished status, if there are un-notified journals from others, the change is notified once and then
 the ticket is dropped from the watch list. A ticket already finished at the moment it is newly added (`lastJournalId=-1`)
-is dropped without notification, because it cannot be told whether it is existing or new. The six statuses that count as finished in this Redmine are
-**`保留` (Pending), `却下` (Rejected), `本番適用済み` (Applied to production), `組込み済み/完了` (Integrated/Completed), `リリースなし` (No release), and `終了` (Closed)**.
+is dropped without notification, because it cannot be told whether it is existing or new.
 The transition to `本番適用済み` or `組込み済み/完了` is itself notified once, but a send-back (差し戻し) comment
 after it has left monitoring cannot be picked up. To keep following it, change the status back in Redmine.
 
@@ -93,7 +94,7 @@ When relaying it, repeat the ticket URL as a `[#number — subject](URL)` Markdo
 The rendering of the notification body itself is out of your control, so provide a clickable form in your own response.
 Do not put it in a code block, because it would not become a link.
 
-The messages written to standard output are as follows. Each one line is one notification. Save failures and startup failures
+The messages written to standard output are as follows. Each line is one notification. Save failures and startup failures
 terminate the process to protect the state. Cache-save failures and first-discovery failures keep monitoring running.
 The message strings are Japanese literals output by the script; they are kept as is, and the English after each is only a gloss.
 
@@ -113,10 +114,10 @@ The message strings are Japanese literals output by the script; they are kept as
 - `Redmine監視の起動に失敗: 所有トークンを書き込めない (<path>)` — Stops with exit code 1.
 - `Redmine監視を停止: 監視リストの状態を保存できない` — Stops with exit code 1 because the state cannot be fixed.
 
+Even if the subject, the changer's name, or a status name contains line breaks or tabs, the finished notification string is normalized to one line.
 A notification carries only enough to detect a send-back (差し戻し), and attribute changes are not resolved down to names
 (status is the one exception, and shows the names before and after, such as `新規→割振済` (New → Allocated)).
 When you want to know what a `担当者変更` (assignee change) or `優先度変更` (priority change) actually was, fetch the details after the notification.
-Even if the subject, the changer's name, or a status name contains line breaks or tabs, the finished notification string is normalized to one line.
 
 ```powershell
 redmine issues show <number> --include journals --json
