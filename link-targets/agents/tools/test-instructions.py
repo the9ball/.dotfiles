@@ -68,7 +68,7 @@ GUIDE_RUNTIME_RULES = {
 EXTERNAL_OPERATION_RULES = {
     "external-operation-authorization": (
         "`INDETERMINATE` never permits execution.",
-        "new approval cannot substitute for that evidence.",
+        "Obtain all required physical evidence for identity, selector membership, remaining quantities, boundary validity, and execution outcomes; neither existing nor new approval can substitute for that evidence.",
         "before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`.",
         "If any required evidence remains unavailable, keep execution stopped.",
         "| New approval obtained but target identity, selector membership or counts remain unconfirmed | `INDETERMINATE` | Stop; approval does not replace missing operational evidence |",
@@ -76,10 +76,14 @@ EXTERNAL_OPERATION_RULES = {
         "Pause until new approval and also obtain evidence of unconfirmed items",
         "If it cannot be confirmed by read-back that it has not been applied, stop even if authorization remains.",
         "The approval request workflow does not supply or replace those execution guarantees.",
-        'When authoring or maintaining the instruction layout, apply the mandatory authoring rule in "Maintenance (nonruntime)" below.',
+        'When authoring or maintaining this authorization instruction layout, apply the mandatory rule in "Instruction-layout authoring rule" below.',
+        "Stop until both boundary revalidation yields `WITHIN_BOUNDARY` and the required new review or verification is complete",
+        "existing or new authorization, review evidence, or unrelated evidence cannot replace the required validity or identity evidence",
+        "Do not change targets, services, accounts, credentials, permissions, remotes, refs, public scope, or routes due to retry.",
+        "403, 404, authentication change, scope addition, and switching to another CLI/API are not included in automatic retry.",
     ),
     "external-posting": (
-        "If an existing explicit instruction already covers that inclusion and destination, do not request the same confirmation again.",
+        "If an existing explicit instruction already covers that inclusion, destination, and disclosure scope, do not request the same confirmation again.",
         "Merely providing local information does not instruct the agent to publish it.",
         "This editorial discretion does not enlarge the authorized target, operation, content, or disclosure scope.",
         "the user has supplied the information, and an explicit user instruction authorizes publishing that information to the identified destination and disclosure scope.",
@@ -88,9 +92,10 @@ EXTERNAL_OPERATION_RULES = {
     ),
     "github": (
         "An unexpected sandbox failure is not covered by the automatic diagnostic retry below:",
-        "before any further attempt, satisfy the host's permission rules",
+        'obtain the user confirmation required by the common policy kernel\'s "Permission errors and alternatives" rule before any further read-only attempt, in addition to satisfying host execution permissions.',
+        "Technical auto-approval does not replace that user confirmation.",
         "It does not authorize retrying a write, even when a write reports an access error.",
-        "Write retransmission, ambiguous outcome, read-back, and consumption follow `link-targets/agents/skills/external-operation-authorization/SKILL.md`.",
+        "For every write failure, including a sandbox failure, authorization, retransmission, ambiguous outcome, read-back, and consumption follow `link-targets/agents/skills/external-operation-authorization/SKILL.md`.",
     ),
     "approval-request-workflow": (
         "When the user explicitly rejects a presented approval item, do not additionally display a withdrawal for that rejection.",
@@ -848,9 +853,14 @@ class InstructionTests(unittest.TestCase):
                 self.assertIn(" ".join(rule.split()), normalized_guide, path)
         authorization = texts[f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"]
         self.assertNotIn("Place only the minimum authorization boundaries", guide_section(authorization))
-        self.assertIn("## Maintenance (nonruntime)", authorization)
-        self.assertIn("Place only the minimum authorization boundaries", authorization)
-        self.assertIn("This is a mandatory authoring rule when maintaining the instruction layout", authorization)
+        authoring_heading = "## Instruction-layout authoring rule\n"
+        self.assertIn(authoring_heading, authorization)
+        authoring_section = re.split(r"^## ", authorization.split(authoring_heading, 1)[1], maxsplit=1, flags=re.MULTILINE)[0]
+        self.assertIn("Place only the minimum authorization boundaries", authoring_section)
+        self.assertIn("This is a mandatory authoring rule when maintaining the instruction layout", authoring_section)
+        discovery = authorization.split("## Discovery contract", 1)[1].split("## Runtime contract", 1)[0]
+        self.assertIn("or author or maintain the placement of these authorization rules in the instruction layout.", discovery)
+        self.assertIn("no authoring or maintenance of this authorization instruction layout.", discovery)
 
     def test_external_operation_runtime_contract(self) -> None:
         """Check source-contract safeguards without claiming to execute an authorization engine."""
@@ -874,14 +884,47 @@ class InstructionTests(unittest.TestCase):
                     with self.subTest(owner=name, rule=rule, placement=placement), self.assertRaises(AssertionError):
                         self.assert_external_operation_rules(changed)
 
-    def test_external_operation_authoring_rule_is_not_an_operation_step(self) -> None:
-        """Reject placing the authoring obligation in the ordinary-operation runtime section."""
+    def test_external_operation_authoring_rule_requires_its_authoring_section(self) -> None:
+        """Reject relocating the authoring obligation into runtime metadata or design rationale."""
         root = VALIDATOR.instruction_root(SCRIPT)
         texts, _ = VALIDATOR.validate(root)
         path = f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"
         rule = "Place only the minimum authorization boundaries necessary at all times in AGENTS.md."
+        for heading in ("Guide", "Discovery contract", "Runtime contract", "Design"):
+            changed = dict(texts)
+            changed[path] = changed[path].replace(rule, "", 1)
+            if heading == "Design":
+                changed[path] += "\n\n## Design\n\n" + rule + "\n"
+            else:
+                changed[path] = changed[path].replace(f"## {heading}\n", f"## {heading}\n\n{rule}\n", 1)
+            with self.subTest(heading=heading), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
+
+    def test_external_operation_authoring_route_is_discoverable(self) -> None:
+        """Reject deleting the local authoring trigger or reinstating its contradictory exclusion."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"
+        mutations = (
+            ("; or author or maintain the placement of these authorization rules in the instruction layout.", "."),
+            ("no authoring or maintenance of this authorization instruction layout.", "only local work/verification is performed."),
+        )
+        for before, after in mutations:
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
+
+    def test_external_posting_requires_both_provision_and_publication_permission(self) -> None:
+        """Reject weakening the two independent prerequisites to an either-or condition."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-posting/SKILL.md"
         changed = dict(texts)
-        changed[path] = changed[path].replace(rule, "", 1).replace("## Guide\n", "## Guide\n\n" + rule + "\n", 1)
+        before = "the user has supplied the information, and an explicit user instruction"
+        self.assertIn(before, changed[path])
+        changed[path] = changed[path].replace(before, "the user has supplied the information, or an explicit user instruction", 1)
         with self.assertRaises(AssertionError):
             self.assert_external_operation_rules(changed)
 

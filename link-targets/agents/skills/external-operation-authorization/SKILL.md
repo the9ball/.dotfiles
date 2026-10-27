@@ -9,8 +9,8 @@ description: Handles semantic authorization boundaries for operations with exter
 
 - Host fallback: required
 
-- Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.
-- Negative trigger: There is no operation with external effects, only local work/verification is performed.
+- Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.; or author or maintain the placement of these authorization rules in the instruction layout.
+- Negative trigger: Only unrelated local work/verification is performed, with no external operation and no authoring or maintenance of this authorization instruction layout.
 - Conditional dependency: The GitHub service, approval discovery, external posting, and review evidence Skills are each applied only when their own responsibilities arise, and the authorization boundary is not defined redundantly.
 - Failure mode: If the target/operation/approval/boundary or execution result cannot be confirmed, stop in fail-safe mode and do not perform any external operations.
 
@@ -73,7 +73,7 @@ Use the following three values.
 | `OUTSIDE_BOUNDARY` | One or more of the confirmed items is out of scope | New approval required |
 | `INDETERMINATE` | Unable to confirm required items or determine whether they are within range | Stop; resolve the missing evidence or unclear authorization scope, then revalidate all required items |
 
-`INDETERMINATE` never permits execution. Distinguish missing operational evidence from uncertainty about what the user authorized. Obtain missing evidence of target identity, selector membership and counts, boundary validity, or execution outcome; new approval cannot substitute for that evidence. If the user's intended semantic scope is unclear, request a new explicit boundary for the concrete proposed operation. New approval resolves only that authorization uncertainty: before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`. If any required evidence remains unavailable, keep execution stopped.
+`INDETERMINATE` never permits execution. Distinguish missing operational evidence from uncertainty about what the user authorized. Obtain all required physical evidence for identity, selector membership, remaining quantities, boundary validity, and execution outcomes; neither existing nor new approval can substitute for that evidence. If the user's intended semantic scope is unclear, request a new explicit boundary for the concrete proposed operation. New approval resolves only that authorization uncertainty: before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`. If any required evidence remains unavailable, keep execution stopped.
 
 If the expansion result of selector exceeds the upper limit of the target set, set it as `OUTSIDE_BOUNDARY`, and if the expansion cannot be completed or the number of targets cannot be confirmed, set it as `INDETERMINATE`.
 
@@ -127,8 +127,8 @@ Authorization boundaries and review evidence tied to targets or epochs are treat
 | `OUTSIDE_BOUNDARY` | Unchanged | New approval required |
 | `OUTSIDE_BOUNDARY` | Changed | New approval and new review or verification required |
 | `INDETERMINATE` | Unchanged | Stop; resolve missing evidence or unclear authorization scope as above. If confirmed `OUTSIDE_BOUNDARY`, obtain new approval; execute only after revalidation yields `WITHIN_BOUNDARY` |
-| `INDETERMINATE` | Changed | Stop; resolve the boundary judgment as above and complete the required new review or verification independently |
-| Unable to confirm validity or identity | Any | Stop execution as `INDETERMINATE`; new approval or review evidence cannot replace the missing validity or identity evidence |
+| `INDETERMINATE` | Changed | Stop until both boundary revalidation yields `WITHIN_BOUNDARY` and the required new review or verification is complete |
+| Unable to confirm validity or identity | Any | Stop execution as `INDETERMINATE`; existing or new authorization, review evidence, or unrelated evidence cannot replace the required validity or identity evidence |
 
 Do not map boundary to `USER_AUTHORIZED`, `PASS_WITH_USER_AUTHORIZATION`, target/epoch evidence. Execution lifecycle fail-closed identities, review contracts, ledgers, and regular review requirements are maintained as separate contracts.
 
@@ -157,7 +157,7 @@ After the operation, record the operation ID, target, specific operation, extern
 
 ### Application order
 
-When authoring or maintaining the instruction layout, apply the mandatory authoring rule in "Maintenance (nonruntime)" below. It is not a precondition or step for ordinary external operations.
+When authoring or maintaining this authorization instruction layout, apply the mandatory rule in "Instruction-layout authoring rule" below. It is not a precondition or step for ordinary external operations.
 
 GitHub, issue management, external posting, and execution lifecycle guides apply this contract to logical operations.
 
@@ -165,6 +165,6 @@ Identification of approval requests, bulk acquisition, pending state, and coordi
 
 The validity, consumption, retry, and post-execution recording of that boundary remain the responsibility of this guide. The approval request workflow does not supply or replace those execution guarantees.
 
-## Maintenance (nonruntime)
+## Instruction-layout authoring rule
 
 Place only the minimum authorization boundaries necessary at all times in AGENTS.md. This is a mandatory authoring rule when maintaining the instruction layout, not an additional external-operation runtime step. The Guide above retains the runtime ownership and application rules.

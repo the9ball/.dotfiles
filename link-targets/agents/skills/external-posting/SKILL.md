@@ -34,7 +34,7 @@ Unless explicitly instructed by the user, do not include information specific to
 
 If necessary, replace such information with an expression that is meaningful to the recipient, such as a relative path from the repository root.
 
-If it is necessary to include information specific to the local environment to understand, reproduce, or resolve the issue, obtain the user's explicit instruction authorizing that information's inclusion before posting. An affirmative answer to a request identifying the information and its posting destination can supply that instruction. If an existing explicit instruction already covers that inclusion and destination, do not request the same confirmation again. Merely providing local information does not instruct the agent to publish it.
+If it is necessary to include information specific to the local environment to understand, reproduce, or resolve the issue, obtain the user's explicit instruction authorizing that information's inclusion before posting. An affirmative answer to a request identifying the information, its posting destination, and disclosure scope can supply that instruction. If an existing explicit instruction already covers that inclusion, destination, and disclosure scope, do not request the same confirmation again. Merely providing local information does not instruct the agent to publish it.
 
 ### Content to create as a user
 
