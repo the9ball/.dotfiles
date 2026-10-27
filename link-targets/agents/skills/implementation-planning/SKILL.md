@@ -18,11 +18,13 @@ description: Use when creating, updating, and reviewing implementation plans or 
 
 Only when this skill is discovered, the self-contained guide below will be applied as a normative contract. This skill is the normative owner of the plan/runbook and does not load the old guide path.
 
+## Guide
+
 Strictly resolve the loaded Skill entrypoint through every symlink/junction to its existing final file; enumerate its real ancestors whose last two components are `link-targets/agents` and which contain both `AGENTS.md` and `guides/README.md`; require exactly one candidate, with the entrypoint and both sentinels still contained after real-path resolution, and use that candidate's grandparent as the instruction root. Stop on a missing, broken, escaping, malformed, or ambiguous location; never substitute CWD, the work root, `.git`, home defaults, or a machine-specific absolute path. Resolve requested logical paths against this fixed root and verify existence and real-path containment before reading. Fix the work root and Git target from the request and current Git state, independently of the instruction root.
 
 The ability to execute the plan, approval status, external operations, and acceptance/rejection are left to each existing execution/authorization gate. This Skill does not replace them.
 
-## Guide
+Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or applicable contract cannot be determined.
 
 Applies to creating, updating, and reviewing implementation plans and runbooks; read it before creating, updating, or reviewing an implementation plan or runbook. It includes the details of implementation-scale estimation and of runbook/plan history management.
 

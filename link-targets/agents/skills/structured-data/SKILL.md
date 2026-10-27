@@ -26,3 +26,4 @@ Read before inspecting or extracting values in a JSON file.
 - Tool choice: in an environment where PowerShell can be used, give priority to `ConvertFrom-Json`; on Unix systems where `jq` can be used, use `jq`. If you can use both, choose the one that suits your environment.
 - As a general rule, do not use grep, ripgrep, or Select-String to extract JSON values; searching across key names and structures can cause missing items or false hits.
 - Use text search only when the purpose is clear, such as viewing the entire file as text or narrowing down the input for a structuring tool.
+- If the structured parser cannot interpret the data, stop and report instead of falling back to text guessing.

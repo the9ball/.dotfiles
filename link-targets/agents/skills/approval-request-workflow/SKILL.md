@@ -18,9 +18,9 @@ description: Used to discover and hand off explicit permission or judgment neede
 
 Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-Apply the common contract for execution authorization, `link-targets/agents/skills/external-operation-authorization/SKILL.md`, only when an authorization obligation occurs. When reconsidering runtime workflow design decisions, refer to the non-runtime Design section of this skill.
-
 ## Guide
+
+Apply the common contract for execution authorization, `link-targets/agents/skills/external-operation-authorization/SKILL.md`, only when an authorization obligation occurs. When reconsidering runtime workflow design decisions, refer to the non-runtime Design section of this skill. If this or another required dependency contract cannot be resolved, do not rely on guesswork; stop in a fail-safe manner and report.
 
 A portable runtime contract that discovers and aggregates the approval requests required before execution, interprets the responses, and hands them off to execution.
 This workflow does not create new approval requirements, nor does it redefine the establishment, validity, permission boundary, consumption, retry, read-back, review evidence, or execution lifecycle of existing approvals.
