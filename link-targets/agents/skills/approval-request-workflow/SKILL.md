@@ -18,7 +18,7 @@ description: Used to discover and hand off explicit permission or judgment neede
 
 Only when this Skill is discovered, the Guide section below will be applied as a normative contract. Load conditional dependencies only when necessary. If a dependency cannot be resolved, do not guess or silently omit it; stop the work fail-safe.
 
-The common contract for execution authorization applies link-targets/agents/skills/external-operation-authorization/SKILL.md only when the obligation occurs. When reconsidering runtime workflow design decisions, refer to the non-runtime Design section of this skill.
+Apply the common contract for execution authorization, `link-targets/agents/skills/external-operation-authorization/SKILL.md`, only when an authorization obligation occurs. When reconsidering runtime workflow design decisions, refer to the non-runtime Design section of this skill.
 
 ## Guide
 
@@ -47,7 +47,7 @@ If the identification itself requires user judgment or other approval, present t
 Do not combine multiple approval items into a single approval boundary. Each item can remain independent and be presented together in a single collection.
 Each item is briefly indicated so that the target, range, and operation can be determined. Supplement information only if conditions, reasons, irreversibility, scope of disclosure, authority, important data, etc. are important to the decision.
 
-A runtime item derived from an approval candidate such as a plan indicates its provenance: the candidate's existing identifier if it has one; otherwise its existing label or other referenceable expression; if none is clear, a general display such as `（計画上の承認候補）` (“planned approval candidate”). Multi-parent mapping is not required even if the item is derived from multiple candidates.
+A runtime item derived from an approval candidate, such as one in a plan, indicates its provenance: the candidate's existing identifier if it has one; otherwise its existing label or other referenceable expression; if none is clear, a general display such as `（計画上の承認候補）` (“planned approval candidate”). Multi-parent mapping is not required even if the item is derived from multiple candidates.
 
 ### Collection and ID
 
