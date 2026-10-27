@@ -46,7 +46,7 @@ Confirm both the individual's history and the history of the entire repository u
 1. First, check the most recent 20 items.
 2. If a consistent format is not clear, expand the scope of checks to a maximum of 50 items.
 3. If there are fewer than 20 items, check the range that can be retrieved.
-4. If the format is mixed, there is little history, or it is difficult to judge, proceed to the next step as "no clear convention".
+4. If the format is mixed, there is little history, or it is difficult to judge, proceed to the next item in the Application order as "no clear convention".
 
 ### Default format
 
