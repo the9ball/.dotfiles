@@ -22,7 +22,8 @@ no continuity context or runtime I/O, including automatic binding or recovery.
 
 ## Required events
 
-Subject to the explicit activation prerequisite, install the currently supported equivalents of:
+Subject to the explicit activation prerequisite, install the currently
+supported equivalents of:
 
 - `UserPromptSubmit`
 - `PreCompact`
@@ -54,8 +55,8 @@ Maintain a session registry outside the repository that binds:
   deduplication)
 - Installation ownership marker
 
-Do not add a task-lifecycle status to new entries. Existing `active`, `closed`,
-unknown, or absent status fields are legacy metadata and must be ignored.
+The storage format and location are environment-specific. Do not put registry
+state in the shared skill directory or source repository.
 
 Every new binding must record `approval_scope` as exactly `standing-marker` or
 `task-scoped`, alongside a nonempty approval timestamp and exact ownership
@@ -63,6 +64,9 @@ marker. A standing binding also records `approved_directory`, which must equal
 the bound memo's immediate parent and be revalidated against its marker. A
 task-scoped binding omits `approved_directory` and records the explicit
 user-approved exact path.
+
+Do not add a task-lifecycle status to new entries. Existing `active`, `closed`,
+unknown, or absent status fields are legacy metadata and must be ignored.
 
 Read legacy records only in these complete historical forms:
 
@@ -82,9 +86,6 @@ For both legacy forms, ignore any old status value, including `active`,
 timestamp or ownership identity, an unknown legacy writer, or a mixture of
 standing and task-scoped fields is ambiguous and fails closed. Never infer
 task-scoped approval solely from the absence of a standing marker.
-
-The storage format and location are environment-specific. Do not put registry
-state in the shared skill directory or source repository.
 
 Create a session-to-memo binding only after the user approves the memo path,
 continuous maintenance, registry entry, and compact append behavior, or when a
@@ -166,12 +167,12 @@ environment unless a host adapter separately documents such an interface.
 
 Before binding for an explicitly activated task, context must ask the model
 to evaluate continuity risk within that invocation's scope. It must not ask
-the model to invoke the skill automatically. Without standing
-approval, it must state that no file may be written before task-scoped
-approval. With standing approval, it must state the exact permitted
-directory and that another confirmation is unnecessary for covered runtime
-writes. After binding, omit the standing-approval field; the bound path and
-validated approval evidence are sufficient.
+the model to invoke the skill automatically. Without standing approval, it
+must state that no file may be written before task-scoped approval. With
+standing approval, it must state the exact permitted directory and that
+another confirmation is unnecessary for covered runtime writes. After
+binding, omit the standing-approval field; the bound path and validated
+approval evidence are sufficient.
 
 After binding, context must instruct the model to read and continuously
 maintain the bound memo, revalidate it against primary evidence, and update it
@@ -375,8 +376,9 @@ fork/resume/recovery boundary, add model-visible context that requires:
 5. Appending reconciliation results for unresolved emergency records.
 6. Resuming continuous maintenance.
 
-After explicit activation, when no binding exists, provide continuity-risk context and the bind interface
-as applicable. Do not inherit a parent session's binding into an unbound fork.
+After explicit activation, when no binding exists, provide continuity-risk
+context and the bind interface as applicable. Do not inherit a parent
+session's binding into an unbound fork.
 
 ## Installation ownership
 
@@ -452,7 +454,6 @@ load the result, report the test as fixture-only.
   If task or target-epoch identity cannot be established, provide recovery
   context and perform no write. A valid default memo may be auto-bound only
   under Automatic default-path binding. Ignore lifecycle status fields.
-
 - Registry corruption: perform no hook write and report.
 - Memo append failure: leave primary work untouched and report.
 - Unsupported host feature: degrade explicitly; do not fabricate support.
