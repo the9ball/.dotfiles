@@ -23,12 +23,13 @@ invocation from these conditions or automatically enable it after a failure.
 Once explicitly invoked, continuous maintenance and recovery of that same
 verified task do not require another invocation on every turn. Revalidate the
 invocation's task scope at recovery boundaries; a different task needs its own
-explicit invocation. Activation is separate from write approval, binding, and
-legacy lifecycle metadata. A binding alone does not prove activation.
+explicit invocation.
 
-Hooks may act only when the host can independently establish this explicit
-activation for the current task. Otherwise keep them unregistered or inert
-and use the manual workflow after an explicit invocation.
+Activation is separate from write approval, binding, and legacy lifecycle
+metadata. A binding alone does not prove activation. Hooks may act only when
+the host can independently establish this explicit activation for the current
+task. Otherwise keep them unregistered or inert and use the manual workflow
+after an explicit invocation.
 
 ## Evaluate continuity risk after invocation
 
@@ -288,11 +289,12 @@ by itself prove the current task meaning or target epoch. If the hook cannot
 establish that identity, it must not recreate the memo or append a compact
 record. It must provide recovery context for the model to validate identity
 from the current conversation and primary evidence. `PreCompact` and
-`PostCompact` skip appending until recovery is complete. One host/session
-lineage has one bound memo path. If a different path is requested, preserve the
-existing binding, fail closed for the conflicting path, and provide recovery
-context. This contract defines no binding-removal or path-replacement
-operation. Never move or repoint the binding.
+`PostCompact` skip appending until recovery is complete.
+
+One host/session lineage has one bound memo path. If a different path is
+requested, preserve the existing binding, fail closed for the conflicting path,
+and provide recovery context. This contract defines no binding-removal or
+path-replacement operation. Never move or repoint the binding.
 
 When hook context reports a bound memo after `PostCompact`,
 `SessionStart(compact)`, fork, resume, or another recovery boundary:
