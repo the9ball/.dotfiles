@@ -20,13 +20,11 @@ Only when this Skill is discovered, the Guide section below will be applied as a
 
 ## Guide
 
-Guidelines for posting text where other users can see it, such as issues, pull requests, and review comments. Read before creating or submitting your post.
+Guidelines for posting text where other users can see it, such as issues, pull requests, and review comments. Read them before creating or submitting a post.
 
 ### Handling of local environment information
 
-In text posted where other users can see, do not include information specific to the local environment unless explicitly instructed by the user.
-
-Targets include:
+Unless explicitly instructed by the user, do not include information specific to the local environment in text posted where other users can see it. Targets include:
 
 - Absolute path of local file or directory
 - Local repository location
@@ -34,18 +32,18 @@ Targets include:
 - Agent execution environment-specific paths such as sandbox and workspace
 - Local environment-dependent information that is not necessary to understand the posted content
 
-If necessary, replace it with an expression that is meaningful to the recipient, such as a relative path from the repository root.
+If necessary, replace such information with an expression that is meaningful to the recipient, such as a relative path from the repository root.
 
-If we determine that it is necessary to include information specific to the local environment in order to understand, reproduce, or resolve the issue, we will check with the user before posting.
+If it is determined that it is necessary to include information specific to the local environment to understand, reproduce, or resolve the issue, check with the user before posting.
 
 ### Content to create as a user
 
-The materialization of external postings is done within the authorization boundary of `link-targets/agents/skills/external-operation-authorization/SKILL.md`.
+External postings are materialized within the authorization boundary of `link-targets/agents/skills/external-operation-authorization/SKILL.md`.
 
-Confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments can be determined within a semantic range.
+The following can be determined within a semantic range: confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments.
 
-Promises, deadlines, support responsibilities, risk acceptance, legal/compliance/financial/security policies, external evaluations, recommendations, criticism, project policies, priorities, and termination decisions need to be confirmed when newly created from the user's perspective.
+The following need to be confirmed when newly created from the user's perspective: promises, deadlines, support responsibilities, risk acceptance, legal/compliance/financial/security policies, external evaluations, recommendations, criticism, project policies, priorities, and termination decisions.
 
-Do not add unpublished information, personal experiences, intentions, feelings, or unverified facts to your posts unless the user indicates so.
+Do not add unpublished information, personal experiences, intentions, feelings, or unverified facts to a post unless the user indicates so.
 
 In review findings, do not let the source of a judgment be confused with the user's own expression of intent.
