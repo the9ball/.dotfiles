@@ -46,6 +46,7 @@ Negative forms such as “no text,” “no person,” and “no watermark” do
 
 Judgments are made by section/description, not by the entire document.
 This is because a section for recording the process and a section for external explanations may coexist in one document.
+Even within the same document, sections of external explanations that do not fall under the non-applicability exceptions are inspected as usual.
 
 It should not be used in the following descriptions.
 
@@ -54,10 +55,8 @@ It should not be used in the following descriptions.
 - In a reply to review feedback, when the reason for not adopting the suggestion is itself the content of the reply.
 - Comparison of plans A and B, audit records, cause analysis
 - Necessary displays related to laws, contracts, safety, medical care, and accessibility, currently valid restrictions and warranty scope,
-  Compatibility, migration instructions, and security information. Below, these are collectively referred to as **required information**.
+  compatibility, migration instructions, and security information. Below, these are collectively referred to as **required information**.
 - Non-use appeal explicitly requested by the user (must include "decaffeinated", etc.)
-
-Even within the same document, sections of external explanations that do not fall under the non-applicability exceptions are inspected as usual.
 
 When there are conflicting decisions, prioritize from top to bottom.
 
@@ -86,16 +85,6 @@ that claim is not supported.
 
 **If it fails, delete it or ask the user. Do not try to save it by adding context.**
 
-### Stage 2: Self-sufficiency determination
-
-For claims that pass the first stage, determine the following:
-
-> **Using only the finished text and the materials the reader can consult, can a reader who did not see the original conversation
-> understand the premise, basis, and conclusion?**
-
-**In case of failure, supplement by using only confirmed current information.**
-Do not supplement with information derived from past conversations that have been rejected or corrected.
-
 ### Verification destination
 
 The targets of the first stage are divided according to the type of claim.
@@ -112,6 +101,16 @@ Only the most recent explicit instructions that can be directly verified are all
 | Deleted (existed → disappeared) | `remove unused retry wrapper` | Leave. Supported by differences |
 | Not added (suggested only in conversation and rejected) | "The retry mechanism was judged to be unnecessary, so I decided not to add it" | Do not include it; the only basis is the past conversation in which it was rejected |
 | Currently valid design constraints | "Do not silently suppress concurrent execution; leave its handling to the caller" | Include only if supported by specifications, tickets, code descriptions, or the latest explicit user-confirmed state |
+
+### Stage 2: Self-sufficiency determination
+
+For claims that pass the first stage, determine the following:
+
+> **Using only the finished text and the materials the reader can consult, can a reader who did not see the original conversation
+> understand the premise, basis, and conclusion?**
+
+**In case of failure, supplement by using only confirmed current information.**
+Do not supplement with information derived from past conversations that have been rejected or corrected.
 
 ## Procedure
 
