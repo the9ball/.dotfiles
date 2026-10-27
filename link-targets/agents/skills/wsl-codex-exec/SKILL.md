@@ -7,9 +7,9 @@ description: >
 
 # One-time execution of WSL side Codex
 
-This skill is used to pass a single request from the Windows version of Codex to the regular Codex CLI on the WSL side.
-It will only be triggered if the user specifies `$wsl-codex-exec` or explicitly asks to run Codex on the WSL side, for example, `WSL側のCodexで実行して`.
-This skill will not be implicitly activated from normal requests, verification, reviews, or script execution.
+This skill passes a single request from the Windows version of Codex to the regular Codex CLI on the WSL side.
+It is triggered only if the user specifies `$wsl-codex-exec` or explicitly asks to run Codex on the WSL side, for example, `WSL側のCodexで実行して`.
+It is not implicitly activated from normal requests, verification, reviews, or script execution.
 
 ## Target
 
@@ -31,7 +31,7 @@ The following documents are authoritative for the WSL regular CLI, the dedicated
 - repository-root relative `codex-wsl/SETUP.md`
 - repository-root relative `codex-wsl/CODEX_HOME.md`
 
-This Skill wrapper does not parse Markdown at runtime, but instead validates and uses the values defined in these documents.
+The Skill wrapper does not parse Markdown at runtime; it validates and uses the values defined in these documents.
 When changing `CODEX_HOME`, the Aqua deployment, the repository location, or the target distribution, update the wrapper and the prerequisite documents at the same time.
 
 ## Fixed execution environment
@@ -46,7 +46,7 @@ A wrapper within WSL sets the following values:
 
 Do not pass the Windows-side `HOME`, `CODEX_HOME`, or authentication files as arguments.
 Specify the WSL distribution `Ubuntu-20.04` explicitly, to match the current setup.
-If the name does not exist, please stop without automatically selecting another distribution.
+If the name does not exist, stop without automatically selecting another distribution.
 
 ## Execution steps
 
@@ -60,7 +60,7 @@ $fixedBashCommand = 'exec "$HOME/.dotfiles/link-targets/agents/skills/wsl-codex-
 
 3. The request body is passed from standard input, and `-` is used to specify the prompt for `codex exec`.
    Pass only user-specified options as separate arguments to `[codex-exec-options]`.
-   We do not write the `exec` subcommand itself here because the wrapper adds `codex exec`.
+   The `exec` subcommand itself is not written here, because the wrapper adds `codex exec`.
 
 example:
 
@@ -79,5 +79,5 @@ Arguments are always treated as `"$@"` on the Bash side. Do not use `$*`, `eval`
 - The wrapper does not install, log in, create directories, or background.
 - Do not automatically add privilege relaxation options such as `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, `--approve-for-me`.
 - Returns the Codex standard output/standard error and exit code without processing. Does not automatically re-execute the same request when it fails.
-- Do not save credentials, tokens, or the contents of `CODEX_HOME` in the repository.
 - WSL startup, Codex CLI execution, and exit code confirmation are treated as a single synchronous process, and no processes are left behind.
+- Do not save credentials, tokens, or the contents of `CODEX_HOME` in the repository.
