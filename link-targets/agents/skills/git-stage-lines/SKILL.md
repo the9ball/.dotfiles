@@ -13,7 +13,8 @@ patch, then applies it only to the index.
 1. Inspect `git status --short`, `git diff -- <path>`, and
    `git diff --cached -- <path>`.
 2. For change numbers, run `--list -- <path>`, retain the fingerprint printed
-   to stderr, and pass it with `--fingerprint`.
+   to stderr, and pass it with `--fingerprint`. `--changes` requires the exact
+   fingerprint from the preceding `--list`.
 3. Run `--dry-run` before applying when the list shows an unexpected deletion
    count, a replacement hunk, or another non-obvious selection.
 4. Apply the selection, then verify `git diff --cached -- <path>` and the
@@ -30,13 +31,12 @@ Use the `--changes` example for deletion-only hunks; it is their only selection 
 
 ## Rules
 
+- Preserve existing staged changes and never rewrite the working tree.
 - Put the path after `--`; do not pass an ambiguous request or infer nearby changes.
-- `--changes` requires the exact fingerprint from the preceding `--list`.
-- Normalize overlapping or adjacent line ranges by merging them; do not add lines outside their union.
 - Select complete text hunks only. `L` uses new-side lines and `D` uses old-side
   lines; deletion hunks require `--changes`. Replacement hunks show both sides,
   for example `L20/D20-80 (+1/-61)`, and are staged as one unit.
-- Preserve existing staged changes and never rewrite the working tree.
+- Normalize overlapping or adjacent line ranges by merging them; do not add lines outside their union.
 - Reject unsupported renames, copies, binary files, symlinks, submodules,
   mode-only changes, conflicts, malformed hunks, and failed verification.
 - Exit codes: `0` success, `1` internal error, `2` fix the request, `3` unsupported target/runtime, `4` safety check failure or changed state, `5` Git failure.

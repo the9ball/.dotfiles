@@ -13,7 +13,7 @@ description: >
 `git rebase -i` is prohibited by the harness rules (it is a command that opens an interactive editor).
 **Do not use the workaround of mechanically rewriting the todo through `GIT_SEQUENCE_EDITOR` / `sequence.editor`**
 (it goes against the intent of the rule, and a mistake in rewriting the todo silently destroys history).
-Instead, use suitable non-interactive commands or history replay with cherry-pick.
+Use suitable non-interactive commands or history replay with cherry-pick instead.
 
 ## Overview of the procedure
 
@@ -31,12 +31,12 @@ git log --oneline --no-decorate <base>..HEAD
 ```
 
 - Do not start rewriting history unless the working tree is clean. Ask the user to commit or stash.
-- Always record the output of `git rev-parse HEAD` (the SHA of the original tip). It is referred to as `<orig>` from here on.
+- Always record the output of `git rev-parse HEAD` (the SHA of the original tip); it is referred to as `<orig>` below.
   Do not rely on the reflog alone (recovery is troublesome if it is lost during the procedure).
-- `<base>` is the starting point of the rewrite. If you do not know it, suggest candidates using `git merge-base HEAD origin/main` or similar and
-  ask the user. Do not guess.
+- `<base>` is the starting point of the rewrite. If you do not know it, do not guess: suggest candidates using
+  `git merge-base HEAD origin/main` or similar and ask the user.
 - Check whether the original branch has been pushed (`git rev-parse --abbrev-ref '@{upstream}'`).
-  If it has already been pushed, tell the user first that the later reflection will involve a force push.
+  If it has, tell the user first that the later reflection will involve a force push.
 
 ## 1. Choice of means
 
@@ -64,8 +64,8 @@ git cherry-pick <sha-b> <sha-c>
 
 - **Use `-c` instead of `-C`.** `-C` forcibly recreates a branch of the same name, so the previous attempt
   would silently disappear. If the branch already exists and an error occurs, check its contents and ask the user how to handle it.
-- The two-step approach of "`switch -C` then `reset --hard <base>`" is unnecessary. The single command
-  `switch -c <temp branch name> <base>` is enough. What is created here is a new branch with a name different from the original branch, so the original branch ref does not move
+- The single command `switch -c <temp branch name> <base>` is enough; the two-step approach of "`switch -C` then `reset --hard <base>`" is unnecessary.
+  It creates a new branch with a name different from the original branch, so the original branch ref does not move
   and the original tip (`<orig>`) is not lost.
 
 Type per operation:
@@ -75,7 +75,7 @@ Type per operation:
 - **squash**: Stack the range to be combined in the index with `git cherry-pick -n <sha>...`, and finally run `git commit -m "..."`.
 - **Message change**: `git cherry-pick <sha>` followed by `git commit --amend -m "..."`.
   `-e` / `--edit` opens the editor, so do not use it.
-- **Content correction**: Edit the file immediately after cherry-picking the target, `git add` + `git commit --amend --no-edit`.
+- **Content correction**: Edit the file immediately after cherry-picking the target, then `git add` + `git commit --amend --no-edit`.
 - **Split**: Apply the commit without committing using `git cherry-pick -n <sha>`, unstage with `git reset HEAD`, then
   repeat `git add` + `git commit` for each chunk you need.
 
@@ -88,14 +88,14 @@ git add <resolved file>
 git -c core.editor=true cherry-pick --continue
 ```
 
-- `cherry-pick --continue` does not open an editor unless the original cherry-pick was started with `-e` / `--edit` (confirmed with Git 2.55; it does not hang even with `core.editor=vim`). The `git -c core.editor=true` prefix above is insurance in case `-e` was attached accidentally. This editor override is different from mechanically rewriting the todo; it is harmless, so keep it, and it exists only to prevent a hang.
+- `cherry-pick --continue` does not open an editor unless the original cherry-pick was started with `-e` / `--edit` (confirmed with Git 2.55; it does not hang even with `core.editor=vim`). The `git -c core.editor=true` prefix above is insurance in case `-e` was attached accidentally and exists only to prevent a hang. This editor override is different from mechanically rewriting the todo; it is harmless, so keep it.
+- **Do not use `git cherry-pick --skip` on your own judgment.** It discards the whole commit, so
+  always confirm with the user unless it is an intended drop.
+- Do not try to resolve a conflict when you cannot tell how to resolve it. Report it to the user and ask for instructions;
+  `git cherry-pick --abort` returns the temporary branch to its previous state (the original branch is untouched).
 - If `git config --get rerere.enabled` is `true`, a recorded conflict resolution is applied automatically
   when the same conflict is met again. If a replay is likely, enabling it in advance makes rework easier
   (ask the user before changing global settings).
-- **Do not use `git cherry-pick --skip` on your own judgment.** This operation discards the whole commit, so
-  always confirm with the user unless it is an intended drop.
-- Do not try to resolve a conflict when you cannot tell how to resolve it. `git cherry-pick --abort` returns the temporary branch to its previous
-  state (the original branch is untouched), so report the conflict to the user and ask for instructions.
 - You can check the remaining picks at `.git/sequencer/todo`.
 
 ## 3. Verification (required)
@@ -112,7 +112,7 @@ git diff <orig> HEAD   # the output should be empty
 
 If it is not empty, either a cherry-pick was missed or a conflict was resolved wrongly. Identify the cause and redo the work instead of moving on to the reflection.
 
-It will not be empty if it includes an intended drop or content change, so confirm that the output consists **only** of the intended changes.
+If the rewrite includes an intended drop or content change, the output will not be empty; confirm that it consists **only** of the intended changes.
 
 ### 3-2. Review by commit
 
@@ -120,11 +120,11 @@ It will not be empty if it includes an intended drop or content change, so confi
 git range-diff <base>..<orig> <base>..HEAD
 ```
 
-Check the commit correspondence with the symbols `=` (unchanged) / `!` (changed) / `<` `>` (present on one side only). What to look for is
-whether commits that were supposed to be dropped have disappeared, whether unintended message changes have crept in, and whether a split
+Check the commit correspondence with the symbols `=` (unchanged) / `!` (changed) / `<` `>` (present on one side only): whether
+commits that were supposed to be dropped have disappeared, whether unintended message changes have crept in, and whether a split
 has the intended granularity.
 
-- **It is not abnormal in itself for `range-diff` to show differences in commit contents.** Reordering commits that touch the same area changes individual patches even when the final trees match exactly. Do not use the presence or absence of differences as a pass/fail judgment; see 3-1 for the actual pass/fail criteria.
+- **It is not abnormal in itself for `range-diff` to show differences in commit contents.** Reordering commits that touch the same area changes individual patches even when the final trees match exactly. Do not use the presence or absence of differences as a pass/fail judgment; the actual pass/fail criteria are in 3-1.
 
 Report the verification results to the user together with the lists of commits before and after the rewrite.
 
@@ -137,13 +137,12 @@ git branch -f <original branch> HEAD
 git switch <original branch>
 ```
 
+Push only when the user explicitly instructs it; do not push merely because verification passed.
 For pushed branches, always use `--force-with-lease` for push. Do not use plain `--force`.
 
 ```bash
 git push --force-with-lease origin <original branch>
 ```
-
-Push only when the user explicitly instructs it. Do not push merely because verification passed.
 
 ## 5. Clean up
 
