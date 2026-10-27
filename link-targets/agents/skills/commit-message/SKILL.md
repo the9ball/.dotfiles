@@ -48,6 +48,8 @@ Confirm both the individual's history and the history of the entire repository u
 3. If there are fewer than 20 items, check the range that can be retrieved.
 4. If the format is mixed, there is little history, or it is difficult to judge, proceed to the next item in the Application order as "no clear convention".
 
+This fallback applies to history that was retrieved and checked, including history that is empty, short, mixed, or inconclusive. If an existing convention source or the history that the Application order requires cannot be read or retrieved (for example, a Git command fails for a reason other than the repository having no commits, or access is denied), do not assume the defaults; check and stop.
+
 ### Default format
 
 ```text

@@ -46,6 +46,34 @@ ROUTER_PREAMBLE = (
     "`link-targets/agents/` from a logical path to reach it under `~/.agents`.\n"
 )
 RESOLVER_NAMES = ("advisor-review", "delegation", "git-operations", "implementation-planning", "review-consolidation")
+# Runtime rules that once lived only in Discovery or Runtime contract text (Issue #158); the Guide must carry them.
+GUIDE_RUNTIME_RULES = {
+    "structured-data": ("If the structured parser cannot interpret the data, stop and report instead of falling back to text guessing.",),
+    "dotnet-testing": ("If the build/test configuration or execution conditions cannot be determined, do not force execution; stop and report.",),
+    "implementation-planning": (
+        "The ability to execute the plan, approval status, external operations, and acceptance/rejection are left to each existing execution/authorization gate.",
+        "Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or applicable contract cannot be determined.",
+    ),
+    "approval-request-workflow": (
+        "Apply the common contract for execution authorization, `link-targets/agents/skills/external-operation-authorization/SKILL.md`, only when an authorization obligation occurs.",
+        "If this or another required dependency contract cannot be resolved, do not rely on guesswork; stop in a fail-safe manner and report.",
+    ),
+    "commit-message": (
+        "This fallback applies to history that was retrieved and checked, including history that is empty, short, mixed, or inconclusive.",
+        "If an existing convention source or the history that the Application order requires cannot be read or retrieved",
+        "do not assume the defaults; check and stop.",
+    ),
+    "advisor-review": ("Advisor output is treated as attributable advice, not as a ruling or implementation approval.",),
+}
+
+
+def guide_section(text: str) -> str:
+    """Return the normative Guide section, ending at the next level-two heading."""
+    match = re.search(r"^## Guide[ \t]*$", text, re.MULTILINE)
+    if match is None:
+        return ""
+    following = re.search(r"^## ", text[match.end():], re.MULTILINE)
+    return text[match.end():] if following is None else text[match.end():match.end() + following.start()]
 
 
 def write(root: Path, path: str, text: str) -> Path:
@@ -727,10 +755,44 @@ class InstructionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def assert_resolver_procedures(self, texts: dict[str, str]) -> None:
-        """Require the full strict-root procedure in every self-contained resolver."""
+        """Require the full strict-root procedure inside the normative Guide of every self-contained resolver."""
         for name in RESOLVER_NAMES:
             path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
-            self.assertIn(ROOT_PROCEDURE, " ".join(texts[path].split()), path)
+            self.assertIn(ROOT_PROCEDURE, " ".join(guide_section(texts[path]).split()), path)
+
+    def test_resolver_procedure_detects_relocation_outside_guide(self) -> None:
+        """Reject an intact procedure that only sits outside the normative Guide section."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        for name in RESOLVER_NAMES:
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            guide = guide_section(texts[path])
+            normalized_guide = " ".join(guide.split())
+            self.assertIn(ROOT_PROCEDURE, normalized_guide)
+            # Rebuild the Guide without the procedure and keep the procedure verbatim before the heading.
+            procedure_start = normalized_guide.index(ROOT_PROCEDURE)
+            remaining_guide = normalized_guide[:procedure_start] + normalized_guide[procedure_start + len(ROOT_PROCEDURE):]
+            prefix = texts[path][:texts[path].index(guide)]
+            placements = {
+                "before Guide": prefix.replace("## Guide", ROOT_PROCEDURE + "\n\n## Guide", 1) + remaining_guide + "\n",
+                "after Guide": prefix + remaining_guide + "\n\n## Other\n\n" + ROOT_PROCEDURE + "\n",
+            }
+            for placement, relocated in placements.items():
+                changed = dict(texts)
+                changed[path] = relocated
+                with self.subTest(owner=name, placement=placement), self.assertRaises(AssertionError):
+                    self.assert_resolver_procedures(changed)
+
+    def test_guide_carries_relocated_runtime_rules(self) -> None:
+        """Keep runtime rules from Issue #158 inside the normative Guide section."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        for name, rules in GUIDE_RUNTIME_RULES.items():
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            normalized_guide = " ".join(guide_section(texts[path]).split())
+            for rule in rules:
+                with self.subTest(owner=name, rule=rule[:40]):
+                    self.assertIn(" ".join(rule.split()), normalized_guide)
 
     def test_resolver_procedure_detects_containment_clause_removal(self) -> None:
         """Reject losing containment even when all old keyword checks still pass."""
