@@ -81,6 +81,11 @@ EXTERNAL_OPERATION_RULES = {
         "existing or new authorization, review evidence, or unrelated evidence cannot replace the required validity or identity evidence",
         "Do not change targets, services, accounts, credentials, permissions, remotes, refs, public scope, or routes due to retry.",
         "403, 404, authentication change, scope addition, and switching to another CLI/API are not included in automatic retry.",
+        "Immediately before each publication attempt, verify with current physical evidence that the actual destination and the audience able to access the content remain within the approved destination and disclosure scope.",
+        "Prior approval and user-provided content do not replace this verification.",
+        "If any confirmed destination or audience is broader than authorized, stop as `OUTSIDE_BOUNDARY`; otherwise, if either cannot be confirmed, stop as `INDETERMINATE`. Do not publish in either state.",
+        "| User-provided content and publication approval exist, but current destination or audience access cannot be verified | `INDETERMINATE` | Do not publish; obtain current physical evidence before revalidation |",
+        "| Current destination or audience access is confirmed broader than the approved disclosure scope | `OUTSIDE_BOUNDARY` | Do not publish; resolve the authorization boundary and revalidate current evidence |",
     ),
     "external-posting": (
         "If an existing explicit instruction already covers that inclusion, destination, and disclosure scope, do not request the same confirmation again.",
@@ -89,6 +94,17 @@ EXTERNAL_OPERATION_RULES = {
         "the user has supplied the information, and an explicit user instruction authorizes publishing that information to the identified destination and disclosure scope.",
         "Supplying the information alone is not publication authorization; publication authorization alone does not supply the information.",
         "Publication authorization does not establish factual accuracy.",
+        "For every external publication, the content must be user-provided information and an explicit user instruction must authorize the publication content, destination, and disclosure scope.",
+        "If user-provided provenance is absent or uncertain, do not publish. All editorial discretion below is subject to these prerequisites.",
+        "User-provided information includes information supplied directly by the user and the contents of materials the user explicitly designates as sources.",
+        "Faithful extraction or summarization of those contents retains that provenance; distinguish it from hypotheses or conclusions independently inferred by the agent.",
+        "Such independently inferred, unverified hypotheses or conclusions are not user-provided information unless the user explicitly adopts them.",
+        "Preserve their source, attribution as agent inference, and uncertainty even after adoption.",
+        "Adoption does not itself authorize publication or establish factual accuracy.",
+        "Designating a material does not authorize publishing all its contents.",
+        "Neither material designation nor publication permission overrides third-party confidentiality, applicable authority limits, or other independent restrictions.",
+        "If user-provided status, adoption, permitted content, destination, disclosure scope, or compliance with applicable restrictions is indeterminate, do not publish; request the clarification needed to resolve that uncertainty.",
+        'These content prerequisites do not replace the authorization contract\'s "Verification just before execution"',
     ),
     "github": (
         "An unexpected sandbox failure is not covered by the automatic diagnostic retry below:",
@@ -927,6 +943,26 @@ class InstructionTests(unittest.TestCase):
         changed[path] = changed[path].replace(before, "the user has supplied the information, or an explicit user instruction", 1)
         with self.assertRaises(AssertionError):
             self.assert_external_operation_rules(changed)
+
+    def test_external_publication_rejects_inferred_provenance_or_stale_audience_checks(self) -> None:
+        """Reject treating independent inference as user supply or approval as current audience evidence."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        mutations = (
+            ("external-posting", "For every external publication, the content must be user-provided information", "For sensitive external publication, the content must be user-provided information"),
+            ("external-posting", "are not user-provided information unless the user explicitly adopts them", "are user-provided information"),
+            ("external-posting", "Adoption does not itself authorize publication or establish factual accuracy.", "Adoption authorizes publication."),
+            ("external-posting", "Designating a material does not authorize publishing all its contents.", "Designating a material authorizes publishing its contents."),
+            ("external-operation-authorization", "Prior approval and user-provided content do not replace this verification.", "Prior approval replaces this verification."),
+            ("external-operation-authorization", "otherwise, if either cannot be confirmed, stop as `INDETERMINATE`", "otherwise, if either cannot be confirmed, publish under the existing approval"),
+        )
+        for owner, before, after in mutations:
+            path = f"{VALIDATOR.SKILLS}/{owner}/SKILL.md"
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(owner=owner, before=before), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
 
     def test_repository_dependency_and_model_composition(self) -> None:
         """Preserve actual ownership, conditional closure and model combinations."""

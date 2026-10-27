@@ -65,6 +65,8 @@ Even if the specific values differ from those at the time of approval, the metho
 - Items to be compared for semantic inclusion are purpose, permitted operation, semantic content, and transmission body.
 - The items to compare the remaining number are the upper limit of the target set, the number of targets actually expanded, the number of successful applications, and the retry budget.
 
+Immediately before each publication attempt, verify with current physical evidence that the actual destination and the audience able to access the content remain within the approved destination and disclosure scope. Prior approval and user-provided content do not replace this verification. If any confirmed destination or audience is broader than authorized, stop as `OUTSIDE_BOUNDARY`; otherwise, if either cannot be confirmed, stop as `INDETERMINATE`. Do not publish in either state.
+
 Use the following three values.
 
 | Judgment | Condition | Execution |
@@ -107,6 +109,8 @@ Do not change targets, services, accounts, credentials, permissions, remotes, re
 | The number of targets expanded into selector exceeds the target set limit | `OUTSIDE_BOUNDARY` | Stop until new approval |
 | Unable to confirm completion of selector expansion or number of targets | `INDETERMINATE` | Stop until evidence is obtained and do not run based on guess |
 | New approval obtained but target identity, selector membership or counts remain unconfirmed | `INDETERMINATE` | Stop; approval does not replace missing operational evidence |
+| User-provided content and publication approval exist, but current destination or audience access cannot be verified | `INDETERMINATE` | Do not publish; obtain current physical evidence before revalidation |
+| Current destination or audience access is confirmed broader than the approved disclosure scope | `OUTSIDE_BOUNDARY` | Do not publish; resolve the authorization boundary and revalidate current evidence |
 | A semantically similar target that is outside the enumeration set, or whose identity cannot be confirmed | `OUTSIDE_BOUNDARY` or `INDETERMINATE` | Do not use similarity as a basis for permission, and stop it as out of scope or unconfirmable |
 | Both known out-of-bounds and unconfirmed items | `OUTSIDE_BOUNDARY` (supersedes `INDETERMINATE`) | Pause until new approval and also obtain evidence of unconfirmed items |
 | Retry budget remains for the same operation after confirming that there is no external effect | One automatic retry of the same operation from `FAILED_NO_EFFECT` | Consumes only when retry is successful, no additional automatic retry |
