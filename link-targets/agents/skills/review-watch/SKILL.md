@@ -42,7 +42,7 @@ any gap in the difference-detection logic makes the notification repeat every mi
 What the script does:
 It polls `gh search prs --review-requested=@me --state=open` every 60 seconds
 and writes only the difference from `$HOME/.claude/.review-watch/seen-pull-requests.tsv` to standard output.
-What this command returns is a snapshot of "the PRs currently awaiting review", not a sequence of events,
+This command returns a snapshot of "the PRs currently awaiting review", not a sequence of events,
 so without taking the difference the same PR would be notified every time.
 A PR that disappears from the search results because a review was submitted is dropped from the state file once it has been absent twice in a row
 (hysteresis to avoid double notifications caused by a delay in updating the search index).
