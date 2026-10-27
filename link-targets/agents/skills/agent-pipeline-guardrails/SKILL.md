@@ -54,7 +54,7 @@ file would require a runbook first even for a one-line change, which is highly i
    effects such as regenerating generated files or changing a schema are involved. Once the plan is complete, the user again decides
    who implements it: the orchestrator itself, an Implementer, or Codex at the user's direction.
 
-- **If in doubt, lean toward Architect first** (the same as Guardrail 3). However, if the user has clearly said "it is minor, so just do it directly",
+- **If in doubt, lean toward Architect first**. However, if the user has clearly said "it is minor, so just do it directly",
   respect that decision.
 - The Implementer has its own start conditions (`implementer.md`, "Contract requirements for direct task mode"). If the task is later found
   not to meet them, the Implementer will not start and will recommend routing it through the Architect. After receiving that report, restart with the Architect.
