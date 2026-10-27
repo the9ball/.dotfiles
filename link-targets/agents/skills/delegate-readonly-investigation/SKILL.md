@@ -14,13 +14,11 @@ Resolve model and reasoning effort independently from applicable external select
 ## Guardrails
 
 - Create a user-visible task only when the user explicitly authorizes it in the current request or through durable instructions such as `AGENTS.md`.
-- Delegate only bounded read-only search, documentation checks, codebase exploration, and evidence gathering.
-- Keep small, clear work in the primary task when delegation overhead exceeds the work.
+- Delegate only bounded read-only search, documentation checks, codebase exploration, and evidence gathering. Keep small, clear work in the primary task when delegation overhead exceeds the work.
 - Do not delegate file edits, external writes, destructive actions, approvals, purchases, or material scope expansion.
 - Instruct the worker task not to create subagents or additional tasks and not to modify files or external state.
-- Use the same saved local checkout as the primary task. Never create, select, move, or remove a worktree from this skill.
+- Use the same saved local checkout as the primary task. Never create, select, move, or remove a worktree from this skill. Leave any worktree decision to the user and the primary task. If they select another checkout, use that existing selection without changing it.
 - Run sequentially: while the worker task is active, make the primary task wait and do not perform separate work against the shared checkout.
-- Leave any worktree decision to the user and the primary task. If they select another checkout, use that existing selection without changing it.
 - Keep integration, evidence verification, decisions, and the final response in the primary task.
 - Do not claim that a particular model or effort ran unless task activity or tool output identifies the effective settings; a requested setting alone does not prove execution.
 
@@ -36,9 +34,7 @@ Treat these fields as the delegated workstream identity:
 
 Reuse the same worker task when those fields remain materially the same. Continue it for follow-up research, corrections, clarification, stronger evidence, and validation of the same conclusion. Apply any applicable explicit model or effort selection on continuation, and leave unspecified fields unchanged.
 
-Create a new worker task when any identity field changes materially, prior assumptions become obsolete, or stale context is visibly impairing quality or efficiency. Do not split solely because work enters a new phase. Prefer a concise handoff of confirmed facts and open questions over copying the full transcript.
-
-Use observed degradation rather than turn count alone. Examples include repeatedly relying on superseded assumptions, confusing distinct artifacts, or requiring the core constraints to be restated.
+Create a new worker task when any identity field changes materially, prior assumptions become obsolete, or stale context is visibly impairing quality or efficiency. Use observed degradation rather than turn count alone. Examples include repeatedly relying on superseded assumptions, confusing distinct artifacts, or requiring the core constraints to be restated. Do not split solely because work enters a new phase. Prefer a concise handoff of confirmed facts and open questions over copying the full transcript.
 
 ## Find an Existing Delegated Task
 
