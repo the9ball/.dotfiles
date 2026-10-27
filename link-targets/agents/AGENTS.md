@@ -37,6 +37,9 @@
 - Scope extensions, new permissions, irreversible operations, external operations, and items that require user preferences or design decisions should be stopped and checked instead of proceeding based on the passage of time.
 - Autonomous execution will continue only if the goal, scope, constraints, and completion conditions are determined and within the approved range.
 - In the future, if an auxiliary fixed time value (e.g. 5 minutes) is introduced, it should be treated as an adjustable operational parameter rather than a well-founded fixed threshold, and the reason for its introduction, safety conditions, and termination conditions should be clearly stated. However, the current contract does not have a fixed time fallback.
+- A common contract establishes the premises for clarification, bounded research, and autonomy. `execution-lifecycle-gate`'s execution contract, target identity, epoch, approval, review, commit, fixup, amend, autosquash, and external operation gate will be maintained within the scope of the same skill.
+- Model-specific guides address only model-specific trends and supplements and do not redefine the same clarification rules as the common contract. It should not be used to override the requirements of system, user, role-specific contract, or skill.
+- The common contract must not override Advisor research budgets, bounded research, `NEEDS_EVIDENCE`, or contracts in which the parent agent retains final judgment.
 
 ### UI and browser automation
 
@@ -49,10 +52,6 @@
 - If the authorization channel or runtime returns expired, do not interpret it as authorization. This policy does not specify a numerical timeout, and a delayed response after the deadline will not revive the original request. Submit a new approval request to proceed.
 - While waiting for UI approval and after it expires, bounded, read-only, direct HTTP/API/CLI investigations limited to the same purpose and scope can continue only as necessary to achieve the purpose. If the fallback materially changes the authentication principal, privileges, data scope, visibility, or external effects, disclose and obtain separate approvals. Fallbacks with additional privileges or external effects do not start based on the passage of time.
 - Without a reasonable fallback, you can stop only the parts that depend on the UI and continue other approved work. By selecting timeout or fallback, pending UI requests will expire, and responses received later will only be treated as approvals for new requests.
-
-- A common contract establishes the premises for clarification, bounded research, and autonomy. `execution-lifecycle-gate`'s execution contract, target identity, epoch, approval, review, commit, fixup, amend, autosquash, and external operation gate will be maintained within the scope of the same skill.
-- Model-specific guides address only model-specific trends and supplements and do not redefine the same clarification rules as the common contract. It should not be used to override the requirements of system, user, role-specific contract, or skill.
-- The common contract must not override Advisor research budgets, bounded research, `NEEDS_EVIDENCE`, or contracts in which the parent agent retains final judgment.
 
 ## Delegation to subagents
 
@@ -94,9 +93,9 @@
 
 ## Scope confirmation before file changes
 
-- The basic principle is that “edits may be made without prior approval if only the changes made by the Codex can be safely undone and restored without loss of the state before the start of the session.”
-- Files tracked by Git in the project (the directory Codex is working with) may be edited without the user's prior approval, as long as you can ensure that there are no uncommitted differences from before this session.
-- New files created by Codex within the current session may be edited without prior user approval.
+- The basic principle is that “edits may be made without prior approval if only the changes made by the agent can be safely undone and restored without loss of the state before the start of the session.”
+- Files tracked by Git in the project (the directory the agent is working with) may be edited without the user's prior approval, as long as you can ensure that there are no uncommitted differences from before this session.
+- New files created by the agent within the current session may be edited without prior user approval.
 - Get user approval before editing if any of the following apply:
   - Files outside the project.
   - Files that are not tracked by Git that exist before the session starts.
