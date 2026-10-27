@@ -34,16 +34,18 @@ Unless explicitly instructed by the user, do not include information specific to
 
 If necessary, replace such information with an expression that is meaningful to the recipient, such as a relative path from the repository root.
 
-If it is determined that it is necessary to include information specific to the local environment to understand, reproduce, or resolve the issue, check with the user before posting.
+If it is necessary to include information specific to the local environment to understand, reproduce, or resolve the issue, obtain the user's explicit instruction authorizing that information's inclusion before posting. An affirmative answer to a request identifying the information and its posting destination can supply that instruction. If an existing explicit instruction already covers that inclusion and destination, do not request the same confirmation again. Merely providing local information does not instruct the agent to publish it.
 
 ### Content to create as a user
 
 External postings are materialized within the authorization boundary of `link-targets/agents/skills/external-operation-authorization/SKILL.md`.
 
-The following can be determined within a semantic range: confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments.
+The following can be materialized within the established authorization boundary: confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments. This editorial discretion does not enlarge the authorized target, operation, content, or disclosure scope.
 
-The following need to be confirmed when newly created from the user's perspective: promises, deadlines, support responsibilities, risk acceptance, legal/compliance/financial/security policies, external evaluations, recommendations, criticism, project policies, priorities, and termination decisions.
+For promises, deadlines, support responsibilities, risk acceptance, legal/compliance/financial/security policies, external evaluations, recommendations, criticism, project policies, priorities, and termination decisions attributed to the user, apply the substantive-addition and confirmation rules in the authorization contract's "Discretion of express delegation" section. New wording for a faithful summary is not itself a new user commitment or judgment.
 
-Do not add unpublished information, personal experiences, intentions, feelings, or unverified facts to a post unless the user indicates so.
+Include unpublished information, personal experiences, intentions, feelings, or unverified facts only when both conditions hold: the user has supplied the information, and an explicit user instruction authorizes publishing that information to the identified destination and disclosure scope. Supplying the information alone is not publication authorization; publication authorization alone does not supply the information. Do not assume a general instruction to post covers personal or unpublished information merely present in the conversation. An existing explicit instruction covering the information and its publication satisfies the confirmation requirement without a second request.
+
+Publication authorization does not establish factual accuracy. Verify claims as required, preserve their source and uncertainty, and do not present unverified information as confirmed fact.
 
 In review findings, do not let the source of a judgment be confused with the user's own expression of intent.

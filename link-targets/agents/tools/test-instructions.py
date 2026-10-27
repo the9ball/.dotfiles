@@ -65,6 +65,38 @@ GUIDE_RUNTIME_RULES = {
     ),
     "advisor-review": ("Advisor output is treated as attributable advice, not as a ruling or implementation approval.",),
 }
+EXTERNAL_OPERATION_RULES = {
+    "external-operation-authorization": (
+        "`INDETERMINATE` never permits execution.",
+        "new approval cannot substitute for that evidence.",
+        "before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`.",
+        "If any required evidence remains unavailable, keep execution stopped.",
+        "| New approval obtained but target identity, selector membership or counts remain unconfirmed | `INDETERMINATE` | Stop; approval does not replace missing operational evidence |",
+        "If there are both known out-of-range items and unconfirmed items, set it to `OUTSIDE_BOUNDARY`",
+        "Pause until new approval and also obtain evidence of unconfirmed items",
+        "If it cannot be confirmed by read-back that it has not been applied, stop even if authorization remains.",
+        "The approval request workflow does not supply or replace those execution guarantees.",
+        'When authoring or maintaining the instruction layout, apply the mandatory authoring rule in "Maintenance (nonruntime)" below.',
+    ),
+    "external-posting": (
+        "If an existing explicit instruction already covers that inclusion and destination, do not request the same confirmation again.",
+        "Merely providing local information does not instruct the agent to publish it.",
+        "This editorial discretion does not enlarge the authorized target, operation, content, or disclosure scope.",
+        "the user has supplied the information, and an explicit user instruction authorizes publishing that information to the identified destination and disclosure scope.",
+        "Supplying the information alone is not publication authorization; publication authorization alone does not supply the information.",
+        "Publication authorization does not establish factual accuracy.",
+    ),
+    "github": (
+        "An unexpected sandbox failure is not covered by the automatic diagnostic retry below:",
+        "before any further attempt, satisfy the host's permission rules",
+        "It does not authorize retrying a write, even when a write reports an access error.",
+        "Write retransmission, ambiguous outcome, read-back, and consumption follow `link-targets/agents/skills/external-operation-authorization/SKILL.md`.",
+    ),
+    "approval-request-workflow": (
+        "When the user explicitly rejects a presented approval item, do not additionally display a withdrawal for that rejection.",
+        "This exception concerns the user's answer, not an agent's refusal to perform an operation.",
+    ),
+}
 
 
 def guide_section(text: str) -> str:
@@ -806,6 +838,52 @@ class InstructionTests(unittest.TestCase):
             changed[path] = changed[path].replace(clause, "", 1)
             with self.subTest(owner=name), self.assertRaises(AssertionError):
                 self.assert_resolver_procedures(changed)
+
+    def assert_external_operation_rules(self, texts: dict[str, str]) -> None:
+        """Require the safety clauses and ownership boundaries in the runtime Guide text."""
+        for name, rules in EXTERNAL_OPERATION_RULES.items():
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            normalized_guide = " ".join(guide_section(texts[path]).split())
+            for rule in rules:
+                self.assertIn(" ".join(rule.split()), normalized_guide, path)
+        authorization = texts[f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"]
+        self.assertNotIn("Place only the minimum authorization boundaries", guide_section(authorization))
+        self.assertIn("## Maintenance (nonruntime)", authorization)
+        self.assertIn("Place only the minimum authorization boundaries", authorization)
+        self.assertIn("This is a mandatory authoring rule when maintaining the instruction layout", authorization)
+
+    def test_external_operation_runtime_contract(self) -> None:
+        """Check source-contract safeguards without claiming to execute an authorization engine."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        self.assert_external_operation_rules(texts)
+
+    def test_external_operation_rules_reject_missing_or_nonruntime_safeguards(self) -> None:
+        """Reject deletion or nonruntime relocation of each required execution safeguard."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        for name, rules in EXTERNAL_OPERATION_RULES.items():
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            for rule in rules:
+                for placement in ("removed", "nonruntime"):
+                    changed = dict(texts)
+                    self.assertIn(rule, changed[path])
+                    changed[path] = changed[path].replace(rule, "", 1)
+                    if placement == "nonruntime":
+                        changed[path] += "\n\n## Test nonruntime placement\n\n" + rule + "\n"
+                    with self.subTest(owner=name, rule=rule, placement=placement), self.assertRaises(AssertionError):
+                        self.assert_external_operation_rules(changed)
+
+    def test_external_operation_authoring_rule_is_not_an_operation_step(self) -> None:
+        """Reject placing the authoring obligation in the ordinary-operation runtime section."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"
+        rule = "Place only the minimum authorization boundaries necessary at all times in AGENTS.md."
+        changed = dict(texts)
+        changed[path] = changed[path].replace(rule, "", 1).replace("## Guide\n", "## Guide\n\n" + rule + "\n", 1)
+        with self.assertRaises(AssertionError):
+            self.assert_external_operation_rules(changed)
 
     def test_repository_dependency_and_model_composition(self) -> None:
         """Preserve actual ownership, conditional closure and model combinations."""
