@@ -22,46 +22,46 @@ The common policy kernel that is always applied is `link-targets/agents/AGENTS.m
 
 ## Guide
 
-Applies when reading/writing issues, pull requests, reviews, comments, labels, releases, repository metadata, etc. on GitHub service/API.
-This guide is not an explanation of GitHub operations in general, but is a normative contract that maintains only matters specific to GitHub service that cannot be judged based on the common terms and general GitHub knowledge alone. General authorization, approval request, external posting, write lifecycle, and retry should be delegated to a common contract that has its own responsibilities, and should not be added here redundantly.
+Applies when reading or writing issues, pull requests, reviews, comments, labels, releases, repository metadata, etc. on the GitHub service/API.
+This guide is not an explanation of GitHub operations in general. It is a normative contract that keeps only GitHub service-specific matters that cannot be judged from the common terms and general GitHub knowledge alone. General authorization, approval request, external posting, write lifecycle, and retry should be delegated to a common contract that has its own responsibilities, and should not be added here redundantly.
 When changing or redesigning this contract itself, refer to the non-runtime Design section below only when necessary.
 
 ### Scope
 
-- The target is read/write on an external service/API called GitHub.
-- Git repository / Git transport is not covered even if remote is GitHub. In addition to `git clone/fetch/pull/push`, operations such as `gh repo clone` and `gh pr checkout` whose main purpose is Git transport/local checkout are also classified based on the meaning of the operation rather than the command name.
-- The standard route for GitHub service/API operations is the official `gh` / `gh api` regardless of the execution environment. Do not switch to Connector, MCP, app integration, browser, direct HTTP, another CLI, or another account as a fallback or alternative route for this contract, even if host provides another route.
-- A host-specific integration workflow is treated as a separate workflow only if it is explicitly adopted. This rule does not mean that each product does not have that capability.
-- This guide is a behavioral contract and does not define technical enforcement such as permissions, hooks, managed settings, etc. on the host side.
+- The target is read/write on GitHub as an external service/API.
+- Git repository / Git transport is not covered, even if the remote is GitHub. In addition to `git clone/fetch/pull/push`, operations whose main purpose is Git transport/local checkout, such as `gh repo clone` and `gh pr checkout`, are also classified by the meaning of the operation rather than the command name.
+- The standard route for GitHub service/API operations is the official `gh` / `gh api`, regardless of the execution environment. Even if the host provides another route, do not switch to Connector, MCP, app integration, browser, direct HTTP, another CLI, or another account as a fallback or alternative route for this contract.
+- A host-specific integration workflow is treated as a separate workflow only if it is explicitly adopted. This rule does not mean that each product lacks that capability.
+- This guide is a behavioral contract; it does not define host-side technical enforcement such as permissions, hooks, or managed settings.
 
 ### Diagnosing access failure
 
-- For `gh` / `gh api`, which requires network access to GitHub, if the host uses a network-restricted sandbox, it will not retry after failing within that sandbox, and will use the official execution path of the host with network access allowed from the beginning. Codex uses `require_escalated`. This is different from user privilege escalation by Linux's `sudo`, etc., and does not uniformly escalate up to `gh` operations that do not require network.
-- Do not conclude that a single `gh` access/auth/connectivity failure or normal display is a permanent credential failure. If you suspect authentication failure, execute `gh auth status -h github.com --json hosts` and check `state` / `error` in JSON instead of exit status alone. If there are multiple accounts on the same host, only the `active: true` entry (or the account selected by `--active`) is subject to diagnosis, and the status of inactive accounts is not mixed in the credential validity judgment.
-- Credential failure is classified only when `error` clearly indicates that the token / credential itself is invalid / revoked / expired, etc. Execution environment constraints such as unknown errors, DNS / network / TLS / rate limit / GitHub API failure, unreachable, `socket: operation not permitted`, etc. are not assumed to be credential failures.
+- If the host uses a network-restricted sandbox, `gh` / `gh api`, which requires network access to GitHub, is not retried after failing within that sandbox; the host's official execution path with network access allowed is used from the beginning. Codex uses `require_escalated`. This is different from user privilege escalation by Linux's `sudo`, etc., and does not uniformly escalate up to `gh` operations that do not require network.
+- Do not conclude that a single `gh` access/auth/connectivity failure or normal display is a permanent credential failure. If you suspect authentication failure, execute `gh auth status -h github.com --json hosts` and check `state` / `error` in the JSON instead of the exit status alone. If the same host has multiple accounts, only the `active: true` entry (or the account selected by `--active`) is subject to diagnosis, and the status of inactive accounts is not mixed into the credential validity judgment.
+- A failure is classified as a credential failure only when `error` clearly indicates that the token / credential itself is invalid / revoked / expired, etc. Execution environment constraints such as unknown errors, DNS / network / TLS / rate limit / GitHub API failure, unreachable, `socket: operation not permitted`, etc. are not assumed to be credential failures.
 - Do not execute `gh auth refresh` / `gh auth login` etc. as recovery unless credential failure can be confirmed.
-- GitHub access failures with no external effects that occur outside of the network-restricted sandbox will be retried once via the same standard route to ensure effective availability. If retry also fails, stop without falling back to another route.
-- This retry is a read-only diagnostic and does not specify write retransmission, ambiguous outcome, read-back, or retry lifecycle. They are the responsibility of a common contract.
+- A GitHub access failure with no external effects that occurs outside the network-restricted sandbox is retried once via the same standard route to ensure effective availability. If the retry also fails, stop without falling back to another route.
+- This retry is a read-only diagnostic and does not specify write retransmission, ambiguous outcome, read-back, or the retry lifecycle; those are the responsibility of a common contract.
 
 ### Body text transport
 
-- Free-form text such as issue/pull request text, comments, review text, release notes, etc. to be passed to `gh` will be treated as inert data. The command strings in the main text are not execution instructions; backtick, `$()`, `$VAR`, etc. are also strings in the main text.
-- Do not expand arbitrary Markdown body text directly into shell command text. Use a documented file input such as `--body-file <path>` (or `--body-file -`) for each subcommand; for `gh api`, serialize the entire request into a file and pass it as `--input <path>`. Do not directly enter arbitrary body text in command-line arguments such as `--body <text>` or `-F body=...`, or construct a shell command from it. Do not rely on shell quoting as your only safeguard for the body.
-- When creating a body file from a shell heredoc, quote the delimiter like `<<'BODY'` to disable parameter expansion and command substitution, and make sure the same line as the delimiter does not appear in the body. Do not use an unquoted heredoc for arbitrary body text.
-- After sending or updating the body, read back the saved field with the corresponding `gh` view command or `gh api` and match it against the original UTF-8 body, including line breaks. Don't use the successful exit code alone as evidence of text preservation.
+- Free-form text passed to `gh`, such as issue/pull request text, comments, review text, and release notes, is treated as inert data. Command strings in the body are not execution instructions; backticks, `$()`, `$VAR`, etc. are also just strings in the body.
+- Do not expand arbitrary Markdown body text directly into shell command text. For each subcommand, use a documented file input such as `--body-file <path>` (or `--body-file -`); for `gh api`, serialize the entire request into a file and pass it as `--input <path>`. Do not put arbitrary body text directly into command-line arguments such as `--body <text>` or `-F body=...`, or construct a shell command from it. Do not rely on shell quoting as your only safeguard for the body.
+- When creating a body file from a shell heredoc, quote the delimiter like `<<'BODY'` to disable parameter expansion and command substitution, and make sure no line identical to the delimiter appears in the body. Do not use an unquoted heredoc for arbitrary body text.
+- After sending or updating the body, read back the saved field with the corresponding `gh` view command or `gh api` and match it against the original UTF-8 body, including line breaks. Don't use a successful exit code alone as evidence that the text was preserved.
 
 ### Resource identity
 
 - Do not treat identifiers that lack a repository, such as issue/pull request numbers, as a complete resource identity.
-- If the repository, resource type, or target cannot be uniquely determined by the number alone, it will not be supplemented by guessing.
-- Review comments and review threads are treated as separate resources. Hide of comment and Resolve of thread are not treated as mutually alternative operations.
-- Before attempting to Hide a review comment or Resolve a review thread, ensure that the subject ID, current state, and body can be read-back via the standard route you choose. If read-back capability is unavailable or unverifiable, stop as `NEEDS_EVIDENCE` and do not attempt the operation.
+- If the repository, resource type, or target cannot be uniquely determined from the number alone, it is not filled in by guessing.
+- Review comments and review threads are treated as separate resources. Hiding a comment and resolving a thread are not treated as alternatives to each other.
+- Before attempting to Hide a review comment or Resolve a review thread, ensure that the subject ID, current state, and body can be read back via the standard route you choose. If read-back capability is unavailable or unverifiable, stop as `NEEDS_EVIDENCE` and do not attempt the operation.
 
 ### Pull Request template
 
-- When creating a pull request, respect GitHub's PR template provided by the repository.
-- If you cannot reliably identify a suitable template from multiple template candidates, do not choose one by guessing.
-- If you can identify the template, create the main text while retaining its structure and check items.
+- When creating a pull request, respect the GitHub PR template provided by the repository.
+- If you cannot reliably identify a suitable template among multiple candidates, do not choose one by guessing.
+- If you can identify the template, write the body while retaining its structure and check items.
 
 ### Maintenance rule
 

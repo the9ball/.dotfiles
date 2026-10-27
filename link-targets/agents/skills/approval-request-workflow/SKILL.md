@@ -22,15 +22,15 @@ The common contract for execution authorization applies link-targets/agents/skil
 
 ## Guide
 
-A portable runtime contract that discovers and aggregates the approval requests required before execution, interprets the responses, and handoffs them to execution.
+A portable runtime contract that discovers and aggregates the approval requests required before execution, interprets the responses, and hands them off to execution.
 This workflow does not create new approval requirements, nor does it redefine the establishment, validity, permission boundary, consumption, retry, read-back, review evidence, or execution lifecycle of existing approvals.
 
 ### Basic principles
 
-- Approval items should only be those that require explicit permission/judgment before the current execution can proceed autonomously due to applicable higher-level rules, guides, skills, user instructions, etc. This workflow itself does not convert process step, automatic review, checkpoint, and build/test into approval items.
-- Collection, ID, lineage, and semantic identity on workflow are for display and tracking purposes, and do not represent approval status, importance, execution order, execution authority, permission boundary, or validity.
-- If the existing applicable approval/delegation meets the requirements, it will not be re-requested. Establishment, validity, consumption, etc. are determined by the existing rules that own them.
-- “Autonomous execution interval” is a convenient name for an execution range that can continue without obtaining new approval; it has no independent state, ID, table, or mathematical maximum. Unless there is a reasonable reason to stop, do not subdivide it unnecessarily.
+- Approval items should only be those that, under applicable higher-level rules, guides, skills, user instructions, etc., require explicit permission/judgment before the current execution can proceed autonomously. This workflow itself does not convert process steps, automatic reviews, checkpoints, or build/test into approval items.
+- Collections, IDs, lineage, and semantic identity on the workflow are for display and tracking purposes; they do not represent approval status, importance, execution order, execution authority, permission boundary, or validity.
+- If an existing applicable approval/delegation meets the requirements, it is not re-requested. Establishment, validity, consumption, etc. are determined by the existing rules that own them.
+- "Autonomous execution interval" is a convenient name for an execution range that can continue without obtaining new approval; it has no independent state, ID, table, or mathematical maximum. Unless there is a reasonable reason to stop, do not subdivide it unnecessarily.
 
 ### 1. Discover approvals needed for the next autonomous execution interval
 
@@ -47,41 +47,42 @@ If the identification itself requires user judgment or other approval, present t
 Do not combine multiple approval items into a single approval boundary. Each item can remain independent and be presented together in a single collection.
 Each item is briefly indicated so that the target, range, and operation can be determined. Supplement information only if conditions, reasons, irreversibility, scope of disclosure, authority, important data, etc. are important to the decision.
 
-A runtime item derived from an approval candidate such as a plan indicates provenance. If the candidate has an existing identifier, use it; if not, use its existing label or other referenceable expression. If none is clear, use a general display such as `（計画上の承認候補）` (“planned approval candidate”). Multi-parent mapping is not required even if it is derived from multiple candidates.
+A runtime item derived from an approval candidate such as a plan indicates its provenance: the candidate's existing identifier if it has one; otherwise its existing label or other referenceable expression; if none is clear, a general display such as `（計画上の承認候補）` (“planned approval candidate”). Multi-parent mapping is not required even if the item is derived from multiple candidates.
 
 ### Collection and ID
 
-- Each collection has a display prefix and advances as `A..Z, AA, AB...`.
+- Each collection has a display prefix, which advances as `A..Z, AA, AB...`.
 - Do not reuse closed prefixes within the same work unit. A new work unit may start at `A`.
-- When presenting the runtime item ID to the user for the first time, it is automatically assigned to the display order as `A1`, `A2`, ....
-- An ID once presented will not be renumbered/reused. Allow missing numbers.
-- Items added later to the same collection use the next unused number, and do not change the existing ID depending on the display position.
-- Does not require persistent state stores for prefixes and IDs.
+- When runtime item IDs are presented to the user for the first time, they are automatically assigned in display order as `A1`, `A2`, ....
+- An ID once presented is not renumbered/reused. Allow missing numbers.
+- Items added later to the same collection use the next unused number; do not change existing IDs depending on display position.
+- Persistent state stores for prefixes and IDs are not required.
 
 ### 3. Interpret answers and reconsider if necessary
 
 Specify `回答対象` each time the approval workflow is presented. If there is no target, set it to `回答対象: なし`.
 
 - A normal unqualified affirmation (e.g. `OK`, `進めて` ("proceed")) is treated as affirmation of the entire `回答対象` specified at that time. Give priority to any user-specified limitations or exclusions.
-- For a normal negation, if `回答対象` contains one item, treat it as rejection of that item. If it contains multiple items, ask which one rather than guessing.
+- For a normal negation, if `回答対象` contains one item, treat it as rejection of that item; if it contains multiple items, ask which one rather than guessing.
 - In a partial response, do not presume that omitted items are approved or rejected. Previously presented items that have not changed may be listed again under `回答対象` by ID alone.
-- If it is unclear which presentation content the answer is aimed at, it will not be applied automatically.
+- If it is unclear which presentation content the answer is aimed at, it is not applied automatically.
 
 If rejection prevents entry into the next autonomous execution interval, do not execute the rejected path; reconsider the alternative. If the alternative needs a new approval before handoff, add it to the same collection. If no alternative can replace it, stop because work cannot proceed. After reconsideration, do not request again any other approvals that remain independently applicable.
-### Update/representation/new/withdrawal
 
-- **Update**: When updating the presented content of the same unfinished, unapproved logical operation, you may keep the same ID. Mark the next presentation as `更新: A2` (“Update: A2”) once and show the full current approval content. The agent determines whether an update applies.
-- **Re-presentation**: If the same rejected, unfinished logical operation is considered again, issue a new ID and identify its direct parent once, for example `B1（A3の再提示）` (“B1 (re-presentation of A3)”). If the content is also updated, the display may show both the update and re-presentation. Ancestry history is not required.
-- **New**: Merging/splitting, another operation after a completed/consumed operation, an operation that is needed again after being withdrawn, and an operation that cannot be reasonably determined to be the same unfinished logical operation are considered new items. Don't guess unknown lineages.
+### Update / re-presentation / new / withdrawal
+
+- **Update**: When updating the presented content of the same unfinished, unapproved logical operation, you may keep the same ID. Mark the next presentation once as `更新: A2` (“Update: A2”) and show the full current approval content. The agent determines whether an update applies.
+- **Re-presentation**: If the same rejected, unfinished logical operation is considered again, issue a new ID and identify its direct parent once, for example `B1（A3の再提示）` (“B1 (re-presentation of A3)”). If the content is also updated, the display may show both the update and the re-presentation. Ancestry history is not required.
+- **New**: Merging/splitting, another operation after a completed/consumed operation, an operation that is needed again after being withdrawn, and an operation that cannot reasonably be determined to be the same unfinished logical operation are new items. Don't guess unknown lineages.
 - **Withdrawal**: If a presented item is no longer needed for a reason other than explicit rejection, show `撤回: A2` (“Withdrawal: A2”) once. Do not show a withdrawal again when refusing. Do not reinstate a withdrawn ID; create a new item if a similar operation is needed later. Even a withdrawal-only notice must specify `回答対象: なし`.
 
-Continuing, updating, or re-presenting the ID does not mean the validity of the existing approval at runtime.
+Continuing, updating, or re-presenting an ID does not mean the existing approval is valid at runtime.
 
 ### 4. required approvals gate and handoff
 
-Handoff to execution after confirming that the approvals needed to start the next autonomous execution interval have been met under the applicable rules and any necessary re-evaluation is complete.
+Hand off to execution after confirming that the approvals needed to start the next autonomous execution interval have been met under the applicable rules and that any necessary re-evaluation is complete.
 
-Collection is closed at this handoff, not when all answers are obtained. If a new approval item is found before handoff, add it to the same collection. If a new approval need is found after handoff, a new collection is started instead of reopening the closed collection.
+The collection is closed at this handoff, not when all answers are obtained. If a new approval item is found before handoff, add it to the same collection. If a new approval need is found after handoff, a new collection is started instead of reopening the closed collection.
 
 ### If new approval is required during an autonomous execution interval
 
@@ -89,12 +90,13 @@ If a new approval is required to complete the current autonomous execution inter
 
 Approval candidates discovered naturally while reaching a stopping point may be used, but do not delay execution just to increase their number. Even if an approval needed only for a future interval is discovered early, do not interrupt the current interval; rediscover it at a later boundary. No dedicated persistence store is provided.
 
-There is no special rule that allows replay-safe work to occur in the next interval in advance because of idle time waiting for approval, and whether or not parallel execution is generally possible is left to the existing rules.
+There is no special rule that allows replay-safe work in the next interval to be done in advance because of idle time while waiting for approval; whether parallel execution is generally possible is left to the existing rules.
+
 ### Reconstruction
 
 Compact or the passage of time alone does not constitute reconstruction. Reconstruction is used when the continuity of the execution state cannot be guaranteed and the current state needs to be reconstructed from memo/context, etc.
 
-Do not restore the old collection. Instead, rediscover the necessary approval items from the current remaining work and use a new collection / the next prefix. If it is the same work unit, do not return it to `A`.
+Do not restore the old collection. Instead, rediscover the necessary approval items from the current remaining work and use a new collection / the next prefix. If it is the same work unit, do not return to `A`.
 
 Reconstruction does not invalidate the existing approval itself. If the existing judgment is still applicable, no duplicate requests will be made.
 
