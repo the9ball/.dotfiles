@@ -23,7 +23,7 @@ In ChatGPT, use Desktop Commander for direct HTTP/API access required by this sk
 
 # Web Access Fallback
 
-When built-in web tools cannot access a webpage, try `curl` via Desktop Commander before concluding that it is inaccessible.
+When built-in web tools cannot access a webpage, try `curl` via Desktop Commander before concluding that it is inaccessible. Use GET and include appropriate browser User-Agent and Accept-Language headers in the initial request to reduce unnecessary retries.
 
 Save responses under a temporary directory created with `mktemp -d` to allow inspection and retries across tool calls. Remove temporary files when they are no longer needed.
 
