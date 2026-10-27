@@ -862,6 +862,8 @@ class InstructionTests(unittest.TestCase):
 
     def assert_external_operation_rules(self, texts: dict[str, str]) -> None:
         """Require the safety clauses and ownership boundaries in the runtime Guide text."""
+        kernel = texts[f"{VALIDATOR.AGENTS}/AGENTS.md"]
+        self.assertIn("For those external-operation responsibilities, apply the skill only when an external operation occurs; stop if the applicable contract cannot be resolved.", kernel)
         for name, rules in EXTERNAL_OPERATION_RULES.items():
             path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
             normalized_guide = " ".join(guide_section(texts[path]).split())
@@ -931,6 +933,18 @@ class InstructionTests(unittest.TestCase):
             changed[path] = changed[path].replace(before, after, 1)
             with self.subTest(before=before), self.assertRaises(AssertionError):
                 self.assert_external_operation_rules(changed)
+
+    def test_external_operation_kernel_does_not_cancel_local_authoring(self) -> None:
+        """Reject an unqualified kernel exclusion that would defeat the local authoring trigger."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.AGENTS}/AGENTS.md"
+        changed = dict(texts)
+        before = "For those external-operation responsibilities, apply the skill only when an external operation occurs"
+        self.assertIn(before, changed[path])
+        changed[path] = changed[path].replace(before, "Apply the skill only when an external operation occurs", 1)
+        with self.assertRaises(AssertionError):
+            self.assert_external_operation_rules(changed)
 
     def test_external_posting_requires_both_provision_and_publication_permission(self) -> None:
         """Reject weakening the two independent prerequisites to an either-or condition."""
