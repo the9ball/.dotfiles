@@ -39,13 +39,15 @@ Keep the assessment provisional: Issue #145 owns formal selection, and #146 / #1
 Record a separate assessment for each candidate. Require all five conditions together:
 
 1. **Authorized read:** evidence that the candidate actually read the authorized file content; a launch, CLI help, or promise to read does not establish success.
-2. **Technical effect limits:** evidence that filesystem writes and external side effects are technically prevented within the authorized boundary. Assess filesystem, shell, network, MCP, API, and hooks separately.
+2. **Technical effect limits:** evidence that the investigation is technically prevented from modifying files, including files inside the checkout, or changing external state. Limit reads to authorized targets. Assess filesystem, shell, network, MCP, API, and hooks separately.
 3. **No further delegation:** technical prevention of extra agents, tasks, and subprocess-based delegation, including a general shell launching another CLI.
 4. **Independent execution and collection:** evidence of an independent child execution and an attributable result channel that the primary task can recover and verify.
 5. **Continuity and settings:** evidence that the required continuation is supported and that requested model / effort correspond to effective settings under the common selection rules.
 
 Prompt prohibitions, an inherited writable sandbox, or `--sandbox read-only` alone do not prove these conditions. Do not infer missing controls from a route's name or a successful exit.
 Bind evidence to the backend, runtime and version, same checkout and target revision, effective authority, verification method, and any unproven parts. Past success in another environment is not current eligibility evidence.
+Existing actual-read evidence from an authorized execution may qualify only after revalidating the same backend, runtime, version, checkout, target revision, and effective authority. Obtaining missing eligibility evidence requires an independently approved bounded evidence-gathering experiment; the production investigation must not gather that evidence. Any mismatch or unknown keeps the investigation stopped.
+Assess backend/provider/session transport separately from investigation-tool or shell network, MCP, and API effects. Required provider transport does not grant investigation tools external-effect authority or weaken any technical gate.
 Resolve explicit model and effort selections independently before dispatch. If either selection is unsupported, stop and report it; do not substitute settings or silently drop a specified field.
 For unspecified fields, retain the creation inheritance / runtime-default and continuation-preservation rules above. Record requested and effective values separately; a worker's self-report is not effective-setting proof.
 Do not grant permissions, weaken a sandbox, bypass approvals, ignore rules, or use `--ignore-user-config` to remove safety configuration in order to make a candidate qualify.
@@ -55,6 +57,7 @@ If eligibility evidence is missing, keep the investigation stopped. Any separate
 
 These steps apply only after authorization and all five eligibility conditions are verified; they do not enable a candidate merely because its command or tool exists.
 Use the same saved checkout and sequential primary-task waiting rules in Guardrails. Preserve the workstream identity and self-contained request requirements below for every backend.
+If continuation requirements change or a later follow-up needs unsupported continuation, stop and reassess. A new execution is not a resume; a new workstream needs authorization and all five eligibility conditions before launch, and must not become an automatic failed-route retry.
 
 ### Native subagent candidate
 
@@ -78,7 +81,7 @@ Use the same saved checkout and sequential primary-task waiting rules in Guardra
 - Distinguish complete evidence, policy refusal, execution failure, interruption, partial output, and an unknown outcome. Exit 0 or `turn.completed` alone does not establish evidence acquisition.
 - Report the selected backend, verification basis, effective permissions, collection method, requested / effective settings, and all unproven parts. Do not invent a final result from partial events or missing output.
 - When identity, result status, or effects are ambiguous, stop and preserve the uncertainty; do not launch another backend or automatically retransmit the operation.
-- Do not call Issue #182 complete until at least one eligible fallback has actually completed an independent investigation and verifiable result collection. Contract changes and static tests alone leave that acceptance condition pending.
+- Contract changes and static tests alone do not establish fallback eligibility or successful evidence acquisition. Confirm actual independent execution and verifiable result collection without treating static validation as a runtime safety guarantee.
 
 ## Decide Whether to Reuse
 

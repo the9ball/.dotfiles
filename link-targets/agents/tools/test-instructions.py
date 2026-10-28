@@ -1005,7 +1005,7 @@ class InstructionTests(unittest.TestCase):
             ),
             "Verify Fallback Eligibility": (
                 "Require all five conditions together:", "actually read the authorized file content",
-                "filesystem writes and external side effects are technically prevented",
+                "the investigation is technically prevented from modifying files, including files inside the checkout, or changing external state",
                 "Assess filesystem, shell, network, MCP, API, and hooks separately.",
                 "technical prevention of extra agents, tasks, and subprocess-based delegation",
                 "including a general shell launching another CLI",
@@ -1013,6 +1013,11 @@ class InstructionTests(unittest.TestCase):
                 "required continuation is supported", "requested model / effort correspond to effective settings",
                 "`--sandbox read-only` alone do not prove these conditions",
                 "same checkout and target revision, effective authority, verification method",
+                "Obtaining missing eligibility evidence requires an independently approved bounded evidence-gathering experiment",
+                "only after revalidating the same backend, runtime, version, checkout, target revision, and effective authority",
+                "the production investigation must not gather that evidence.",
+                "Assess backend/provider/session transport separately from investigation-tool or shell network, MCP, and API effects.",
+                "Required provider transport does not grant investigation tools external-effect authority or weaken any technical gate.",
                 "If either selection is unsupported, stop and report it",
                 "a worker's self-report is not effective-setting proof",
                 "use `--ignore-user-config` to remove safety configuration",
@@ -1027,13 +1032,28 @@ class InstructionTests(unittest.TestCase):
                 "Resume only the exact recorded session ID; never use `--last`.",
                 "Revalidate the session, backend, checkout, target revision, authority, settings",
                 "A changed target or epoch invalidates automatic reuse.",
+                "If continuation requirements change or a later follow-up needs unsupported continuation, stop and reassess.",
+                "A new execution is not a resume; a new workstream needs authorization and all five eligibility conditions before launch",
                 "Exit 0 or `turn.completed` alone does not establish evidence acquisition.",
                 "do not launch another backend or automatically retransmit the operation",
-                "Contract changes and static tests alone leave that acceptance condition pending.",
+                "Contract changes and static tests alone do not establish fallback eligibility or successful evidence acquisition.",
             ),
             "Guardrails": (
                 "same saved local checkout", "make the primary task wait",
                 "not to create subagents or additional tasks", "Never create, select, move, or remove a worktree",
+            ),
+            "Find an Existing Delegated Task": (
+                "This section and the following task creation / continuation sections apply to the existing user-visible task backend, not to fallback handle discovery.",
+                "verify its initial delegation marker", "`threadId` and `hostId`",
+            ),
+            "Create the Worker Task": (
+                "List available projects", "project's saved local environment", "`clientThreadId`",
+                "Retain the ready task's `threadId` and `hostId`",
+                "Pass applicable explicit model and reasoning effort selections through `model` and `thinking`",
+            ),
+            "Continue and Collect Results": (
+                "Pass applicable explicit model/effort selections through `model` and `thinking`",
+                "Read its final result and inspect the cited evidence",
             ),
             "Handle Failure": (
                 "Do not silently substitute another model, reasoning effort, backend, or primary-task execution.",
@@ -1068,11 +1088,13 @@ class InstructionTests(unittest.TestCase):
         path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
         clauses = (
             "actually read the authorized file content",
-            "filesystem writes and external side effects are technically prevented",
+            "the investigation is technically prevented from modifying files, including files inside the checkout, or changing external state",
             "Assess filesystem, shell, network, MCP, API, and hooks separately.",
             "technical prevention of extra agents, tasks, and subprocess-based delegation",
             "independent child execution and an attributable result channel",
             "required continuation is supported", "requested model / effort correspond to effective settings",
+            "the production investigation must not gather that evidence.",
+            "Required provider transport does not grant investigation tools external-effect authority or weaken any technical gate.",
         )
         for clause in clauses:
             for placement in ("deleted", "nonruntime"):
@@ -1089,6 +1111,8 @@ class InstructionTests(unittest.TestCase):
         path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
         mutations = (
             ("Require all five conditions together:", "Require any one condition:"),
+            ("the investigation is technically prevented from modifying files, including files inside the checkout, or changing external state",
+             "the investigation may modify files inside the authorized checkout"),
             ("An unknown condition fails eligibility; do not select an unverified candidate.", "Unknown conditions pass eligibility."),
             ("Do not retry a policy-denied operation through another backend.", "Retry denials through another backend."),
             ("Do not automatically perform the investigation in the primary task.", "Automatically investigate in the primary task."),
@@ -1105,12 +1129,24 @@ class InstructionTests(unittest.TestCase):
     def test_readonly_fallback_preserves_visible_task_lifecycle(self) -> None:
         """Keep the working visible-task procedure and exact identity / inheritance handling."""
         texts = self.readonly_fallback_sources()
+        self.assert_readonly_fallback_contract(texts)
         text = texts[f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"]
-        for clause in ("List available projects", "project's saved local environment", "`clientThreadId`",
-                       "Retain the ready task's `threadId` and `hostId`", "verify its initial delegation marker",
+        self.assertIn("At continuation, leave unspecified fields unchanged.", text)
+
+    def test_readonly_fallback_rejects_relocated_visible_lifecycle(self) -> None:
+        """Reject visible-task lifecycle or backend scope text moved outside its owning section."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        for clause in ("verify its initial delegation marker", "List available projects",
+                       "Retain the ready task's `threadId` and `hostId`",
                        "Pass applicable explicit model/effort selections through `model` and `thinking`",
-                       "At continuation, leave unspecified fields unchanged."):
-            self.assertIn(clause, text)
+                       "This section and the following task creation / continuation sections apply to the existing user-visible task backend, not to fallback handle discovery."):
+            changed = dict(texts)
+            self.assertEqual(changed[path].count(clause), 1, clause)
+            changed[path] = changed[path].replace(clause, "", 1)
+            changed[path] += "\n## Nonruntime test rationale\n" + clause + "\n"
+            with self.subTest(clause=clause), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
 
     def test_readonly_fallback_rejects_resume_and_model_shortcuts(self) -> None:
         """Reject a guessed session, lost persistence, changed epoch, or silently substituted settings."""
@@ -1119,6 +1155,8 @@ class InstructionTests(unittest.TestCase):
         for clause in ("Resume only the exact recorded session ID; never use `--last`.",
                        "An ephemeral invocation cannot satisfy required resume.",
                        "A changed target or epoch invalidates automatic reuse.",
+                       "If continuation requirements change or a later follow-up needs unsupported continuation, stop and reassess.",
+                       "A new execution is not a resume; a new workstream needs authorization and all five eligibility conditions before launch",
                        "If either selection is unsupported, stop and report it",
                        "a worker's self-report is not effective-setting proof"):
             changed = dict(texts)
@@ -1132,9 +1170,10 @@ class InstructionTests(unittest.TestCase):
         texts = self.readonly_fallback_sources()
         path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
         for clause in ("Exit 0 or `turn.completed` alone does not establish evidence acquisition.",
-                       "Contract changes and static tests alone leave that acceptance condition pending.",
+                       "Contract changes and static tests alone do not establish fallback eligibility or successful evidence acquisition.",
                        "Static contract tests do not certify technical read-only enforcement."):
             changed = dict(texts)
+            self.assertIn(clause, changed[path])
             changed[path] = changed[path].replace(clause, "", 1)
             with self.subTest(clause=clause), self.assertRaises(AssertionError):
                 self.assert_readonly_fallback_contract(changed)
