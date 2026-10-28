@@ -20,3 +20,11 @@ Skill discovery does not authorize GitHub writes. Follow the applicable authoriz
 
 When the user asks to find facilities or points of interest in Japan, retrieve "link-targets/agents/skills/openpoi/SKILL.md" from the "the9ball/.dotfiles" GitHub repository and follow its instructions.
 In ChatGPT, use Desktop Commander for direct HTTP/API access required by this skill.
+
+# Web Access Fallback
+
+When built-in web tools cannot access a webpage, try `curl` via Desktop Commander before concluding that it is inaccessible. Use GET and include appropriate browser User-Agent and Accept-Language headers in the initial request to reduce unnecessary retries.
+
+Save responses under a temporary directory created with `mktemp -d` to allow inspection and retries across tool calls. Remove temporary files when they are no longer needed.
+
+Verify that the requested content was retrieved, not merely that the HTTP request succeeded. Respect authentication requirements, access restrictions, and rate limits.
