@@ -1,11 +1,11 @@
 ---
 name: delegate-readonly-investigation
-description: "[For Codex app only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations in reusable, user-visible worker tasks using externally selected model and effort settings. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier delegated investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
+description: "[For Codex app or CLI only. Not for use by Claude Code or other agents] Coordinate bounded read-only investigations through reusable user-visible tasks or safety-verified conditional fallback candidates using externally selected model and effort settings. Use when delegation protects the primary context, enables useful parallel research, or continues an earlier delegated investigation through follow-up questions or corrections. Do not use for write work or small tasks whose delegation overhead exceeds the work."
 ---
 
 # Delegate Read-only Investigation
 
-> Codex app only. Never use this skill from Claude Code or another agent product. If the Codex task creation, listing, messaging, reading, or waiting capabilities are unavailable, report the limitation and stop. Do not substitute a different model or execution route silently.
+> Codex app or CLI only. Never use this skill from Claude Code or another agent product. Preserve the existing user-visible task route when its required capabilities are available. Only verified capability absence permits evaluating the conditional candidates below; it does not establish candidate eligibility. Do not substitute a different model or execution route silently.
 
 Coordinate an investigation from the primary Codex task. Keep the delegated task read-only, preserve its context across follow-ups, and return evidence to the primary task for verification and final judgment.
 
@@ -13,7 +13,7 @@ Resolve model and reasoning effort independently from applicable external select
 
 ## Guardrails
 
-- Create a user-visible task only when the user explicitly authorizes it in the current request or through durable instructions such as `AGENTS.md`.
+- Use a delegation route only when the user explicitly authorizes it in the current request or through durable instructions such as `AGENTS.md`. Candidate eligibility does not replace authorization.
 - Delegate only bounded read-only search, documentation checks, codebase exploration, and evidence gathering. Keep small, clear work in the primary task when delegation overhead exceeds the work.
 - Do not delegate file edits, external writes, destructive actions, approvals, purchases, or material scope expansion.
 - Instruct the worker task not to create subagents or additional tasks and not to modify files or external state.
@@ -21,6 +21,64 @@ Resolve model and reasoning effort independently from applicable external select
 - Run sequentially: while the worker task is active, make the primary task wait and do not perform separate work against the shared checkout.
 - Keep integration, evidence verification, decisions, and the final response in the primary task.
 - Do not claim that a particular model or effort ran unless task activity or tool output identifies the effective settings; a requested setting alone does not prove execution.
+
+## Select the Delegation Route
+
+1. Inspect the capabilities exposed by the current runtime. If task creation, listing, messaging, reading, and waiting are available, preserve the existing task procedure below.
+2. Only verified absence of a required task capability opens candidate evaluation. A policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.
+3. Provisionally evaluate a native subagent (`spawn_subagent` or the runtime's equivalent), then `codex exec`. This is a candidate evaluation order, not an unconditional launch order or formal backend adoption.
+4. Before selecting or launching a fallback investigation, require current evidence for all five conditions in the next section. An unknown condition fails eligibility; do not select an unverified candidate.
+5. If no candidate qualifies, report each limitation and missing evidence, and stop. Do not automatically perform the investigation in the primary task.
+
+Do not retry a policy-denied operation through another backend. A failed or ambiguous task attempt goes to Handle Failure, not to another route.
+This Skill does not authorize backend experiments, expanded permissions, or bypassing policy denials. Separate approval for a concrete bounded experiment is required when existing evidence is insufficient.
+Keep the assessment provisional: Issue #145 owns formal selection, and #146 / #147 retain their unproven effective-safety findings. Static contract tests do not certify technical read-only enforcement.
+
+## Verify Fallback Eligibility
+
+Record a separate assessment for each candidate. Require all five conditions together:
+
+1. **Authorized read:** evidence that the candidate actually read the authorized file content; a launch, CLI help, or promise to read does not establish success.
+2. **Technical effect limits:** evidence that filesystem writes and external side effects are technically prevented within the authorized boundary. Assess filesystem, shell, network, MCP, API, and hooks separately.
+3. **No further delegation:** technical prevention of extra agents, tasks, and subprocess-based delegation, including a general shell launching another CLI.
+4. **Independent execution and collection:** evidence of an independent child execution and an attributable result channel that the primary task can recover and verify.
+5. **Continuity and settings:** evidence that the required continuation is supported and that requested model / effort correspond to effective settings under the common selection rules.
+
+Prompt prohibitions, an inherited writable sandbox, or `--sandbox read-only` alone do not prove these conditions. Do not infer missing controls from a route's name or a successful exit.
+Bind evidence to the backend, runtime and version, same checkout and target revision, effective authority, verification method, and any unproven parts. Past success in another environment is not current eligibility evidence.
+Resolve explicit model and effort selections independently before dispatch. If either selection is unsupported, stop and report it; do not substitute settings or silently drop a specified field.
+For unspecified fields, retain the creation inheritance / runtime-default and continuation-preservation rules above. Record requested and effective values separately; a worker's self-report is not effective-setting proof.
+Do not grant permissions, weaken a sandbox, bypass approvals, ignore rules, or use `--ignore-user-config` to remove safety configuration in order to make a candidate qualify.
+If eligibility evidence is missing, keep the investigation stopped. Any separately approved evidence-gathering experiment remains an experiment, not an eligible investigation or formal safety guarantee.
+
+## Start and Recover a Verified Fallback
+
+These steps apply only after authorization and all five eligibility conditions are verified; they do not enable a candidate merely because its command or tool exists.
+Use the same saved checkout and sequential primary-task waiting rules in Guardrails. Preserve the workstream identity and self-contained request requirements below for every backend.
+
+### Native subagent candidate
+
+- Verify the runtime's actual child tool, sandbox, and authority controls. Parent inheritance does not establish a narrower child boundary; prompt-only edit / delegation bans are insufficient.
+- Create the child using applicable explicit model / effort fields and supported inheritance for unspecified fields. Retain the returned child handle, backend, parent / engagement identity, target revision, and effective boundary evidence.
+- Send continuation requests only to that exact verified handle, use its supported wait / result facilities, and collect attributable evidence. A title or an unrelated child is not an identity match.
+- If child-specific technical controls, required continuation, or effective settings cannot be verified, do not select or launch this investigation candidate.
+
+### Non-interactive CLI candidate
+
+- Check the installed CLI's supported non-interactive, structured-output, and explicit-session continuation interface without treating help output as safety proof. Do not prescribe unverified flags or invent a command that broadens authority.
+- Fix the invocation, working directory, approved read targets, effective tool / sandbox / external-effect controls, and bounded output location before launch. Do not implicitly use a wrapper, another environment, account, or credentials.
+- Start an eligible independent execution with structured events and separate process exit status. Retain the actual session ID, invocation identity, backend version, requested / effective settings evidence, and result references.
+- If continuation is required, verify persistence and resume support before selection. An ephemeral invocation cannot satisfy required resume.
+- Resume only the exact recorded session ID; never use `--last`. Revalidate the session, backend, checkout, target revision, authority, settings, and governing assumptions before continuing.
+- A changed target or epoch invalidates automatic reuse. Stop and reassess rather than resuming against a different checkout or carrying old eligibility evidence into a changed environment.
+
+### Collect and classify
+
+- Wait for the selected execution; do not investigate in parallel against the shared checkout. Collect the requested evidence and independently inspect cited sources in the primary task.
+- Distinguish complete evidence, policy refusal, execution failure, interruption, partial output, and an unknown outcome. Exit 0 or `turn.completed` alone does not establish evidence acquisition.
+- Report the selected backend, verification basis, effective permissions, collection method, requested / effective settings, and all unproven parts. Do not invent a final result from partial events or missing output.
+- When identity, result status, or effects are ambiguous, stop and preserve the uncertainty; do not launch another backend or automatically retransmit the operation.
+- Do not call Issue #182 complete until at least one eligible fallback has actually completed an independent investigation and verifiable result collection. Contract changes and static tests alone leave that acceptance condition pending.
 
 ## Decide Whether to Reuse
 
@@ -37,6 +95,8 @@ Reuse the same worker task when those fields remain materially the same. Continu
 Create a new worker task when any identity field changes materially, prior assumptions become obsolete, or stale context is visibly impairing quality or efficiency. Use observed degradation rather than turn count alone. Examples include repeatedly relying on superseded assumptions, confusing distinct artifacts, or requiring the core constraints to be restated. Do not split solely because work enters a new phase. Prefer a concise handoff of confirmed facts and open questions over copying the full transcript.
 
 ## Find an Existing Delegated Task
+
+This section and the following task creation / continuation sections apply to the existing user-visible task backend, not to fallback handle discovery.
 
 1. Prefer a previously retained `threadId` and `hostId` from the current primary task.
 2. If those identifiers are unavailable, list recent tasks and examine candidates with the title prefix `Subagent: [調査]`; after verifying those candidates, also inspect the legacy title prefixes `Subagent: [Sol調査]`, `Subagent: [Luna調査]`, and `[Luna調査]` when no verified reusable candidate remains among the new-prefix candidates.
@@ -77,4 +137,4 @@ Keep an active delegated task unarchived while meaningful follow-up is likely. A
 
 ## Handle Failure
 
-If worker task creation or continuation fails, report the exact error and the affected step. Do not silently substitute another model, reasoning effort, a subagent, or local execution. Offer the smallest viable next action to the user.
+If any selected backend fails during creation or continuation, report the exact error and affected step, acquired evidence, missing evidence, and uncertain effects. Do not silently substitute another model, reasoning effort, backend, or primary-task execution. Only verified capability absence before an attempt opens the candidate assessment above; failure does not. Offer the smallest viable next check within existing authority, or request the missing bounded approval.

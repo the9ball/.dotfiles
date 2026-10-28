@@ -978,6 +978,181 @@ class InstructionTests(unittest.TestCase):
             with self.subTest(owner=owner, before=before), self.assertRaises(AssertionError):
                 self.assert_external_operation_rules(changed)
 
+    def readonly_fallback_sources(self) -> dict[str, str]:
+        """Load canonical Skill sources and the two tracked host routes outside the validator graph."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        for profile in ("dot_codex", "dot_codex-personal"):
+            route_path = f"chezmoi/{profile}/create_AGENTS.md"
+            texts[route_path] = (root / route_path).read_text(encoding="utf-8")
+        return texts
+
+    def assert_readonly_fallback_contract(self, texts: dict[str, str]) -> None:
+        """Require source safeguards in their owning standard-Skill sections, not a runtime simulator."""
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        text = texts[path]
+        required = {
+            "Select the Delegation Route": (
+                "preserve the existing task procedure below",
+                "Only verified absence of a required task capability opens candidate evaluation.",
+                "A policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.",
+                "then `codex exec`", "not an unconditional launch order or formal backend adoption",
+                "An unknown condition fails eligibility; do not select an unverified candidate.",
+                "Do not automatically perform the investigation in the primary task.",
+                "Do not retry a policy-denied operation through another backend.",
+                "does not authorize backend experiments, expanded permissions, or bypassing policy denials",
+                "Static contract tests do not certify technical read-only enforcement.",
+            ),
+            "Verify Fallback Eligibility": (
+                "Require all five conditions together:", "actually read the authorized file content",
+                "filesystem writes and external side effects are technically prevented",
+                "Assess filesystem, shell, network, MCP, API, and hooks separately.",
+                "technical prevention of extra agents, tasks, and subprocess-based delegation",
+                "including a general shell launching another CLI",
+                "independent child execution and an attributable result channel",
+                "required continuation is supported", "requested model / effort correspond to effective settings",
+                "`--sandbox read-only` alone do not prove these conditions",
+                "same checkout and target revision, effective authority, verification method",
+                "If either selection is unsupported, stop and report it",
+                "a worker's self-report is not effective-setting proof",
+                "use `--ignore-user-config` to remove safety configuration",
+                "Any separately approved evidence-gathering experiment remains an experiment",
+            ),
+            "Start and Recover a Verified Fallback": (
+                "only after authorization and all five eligibility conditions are verified",
+                "Parent inheritance does not establish a narrower child boundary",
+                "do not select or launch this investigation candidate",
+                "Do not implicitly use a wrapper, another environment, account, or credentials.",
+                "An ephemeral invocation cannot satisfy required resume.",
+                "Resume only the exact recorded session ID; never use `--last`.",
+                "Revalidate the session, backend, checkout, target revision, authority, settings",
+                "A changed target or epoch invalidates automatic reuse.",
+                "Exit 0 or `turn.completed` alone does not establish evidence acquisition.",
+                "do not launch another backend or automatically retransmit the operation",
+                "Contract changes and static tests alone leave that acceptance condition pending.",
+            ),
+            "Guardrails": (
+                "same saved local checkout", "make the primary task wait",
+                "not to create subagents or additional tasks", "Never create, select, move, or remove a worktree",
+            ),
+            "Handle Failure": (
+                "Do not silently substitute another model, reasoning effort, backend, or primary-task execution.",
+                "Only verified capability absence before an attempt opens the candidate assessment above; failure does not.",
+            ),
+        }
+        for heading, clauses in required.items():
+            marker = f"## {heading}\n"
+            self.assertEqual(text.count(marker), 1, heading)
+            section = re.split(r"^## ", text.split(marker, 1)[1], maxsplit=1, flags=re.MULTILINE)[0]
+            for clause in clauses:
+                self.assertIn(clause, section, (heading, clause))
+        routes = []
+        for profile in ("dot_codex", "dot_codex-personal"):
+            route_text = texts[f"chezmoi/{profile}/create_AGENTS.md"]
+            route = [line for line in route_text.splitlines() if "use `$delegate-readonly-investigation`" in line]
+            self.assertEqual(len(route), 1, profile)
+            for clause in ("Codex app or CLI", "only safety-verified conditional fallback candidates",
+                           "does not authorize backend experiments, expanded permissions, or bypassing policy denials"):
+                self.assertIn(clause, route[0], profile)
+            routes.append(route[0])
+        self.assertEqual(routes[0], routes[1])
+
+    def test_readonly_fallback_source_contract(self) -> None:
+        """Check conditional route, five safety gates, recovery, and upper host routing together."""
+        texts = self.readonly_fallback_sources()
+        self.assert_readonly_fallback_contract(texts)
+
+    def test_readonly_fallback_rejects_deleted_or_relocated_conditions(self) -> None:
+        """Reject removing each safety gate or moving it outside its owning section."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        clauses = (
+            "actually read the authorized file content",
+            "filesystem writes and external side effects are technically prevented",
+            "Assess filesystem, shell, network, MCP, API, and hooks separately.",
+            "technical prevention of extra agents, tasks, and subprocess-based delegation",
+            "independent child execution and an attributable result channel",
+            "required continuation is supported", "requested model / effort correspond to effective settings",
+        )
+        for clause in clauses:
+            for placement in ("deleted", "nonruntime"):
+                changed = dict(texts)
+                changed[path] = changed[path].replace(clause, "", 1)
+                if placement == "nonruntime":
+                    changed[path] += "\n## Nonruntime test rationale\n" + clause + "\n"
+                with self.subTest(clause=clause, placement=placement), self.assertRaises(AssertionError):
+                    self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_fallback_rejects_permission_and_evidence_shortcuts(self) -> None:
+        """Detect unknown-as-pass, denial retry, prompt-only RO, and primary-task substitution."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        mutations = (
+            ("Require all five conditions together:", "Require any one condition:"),
+            ("An unknown condition fails eligibility; do not select an unverified candidate.", "Unknown conditions pass eligibility."),
+            ("Do not retry a policy-denied operation through another backend.", "Retry denials through another backend."),
+            ("Do not automatically perform the investigation in the primary task.", "Automatically investigate in the primary task."),
+            ("`--sandbox read-only` alone do not prove these conditions", "`--sandbox read-only` prove these conditions"),
+            ("Parent inheritance does not establish a narrower child boundary", "Prompt bans establish a narrower child boundary"),
+        )
+        for before, after in mutations:
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_fallback_preserves_visible_task_lifecycle(self) -> None:
+        """Keep the working visible-task procedure and exact identity / inheritance handling."""
+        texts = self.readonly_fallback_sources()
+        text = texts[f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"]
+        for clause in ("List available projects", "project's saved local environment", "`clientThreadId`",
+                       "Retain the ready task's `threadId` and `hostId`", "verify its initial delegation marker",
+                       "Pass applicable explicit model/effort selections through `model` and `thinking`",
+                       "At continuation, leave unspecified fields unchanged."):
+            self.assertIn(clause, text)
+
+    def test_readonly_fallback_rejects_resume_and_model_shortcuts(self) -> None:
+        """Reject a guessed session, lost persistence, changed epoch, or silently substituted settings."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        for clause in ("Resume only the exact recorded session ID; never use `--last`.",
+                       "An ephemeral invocation cannot satisfy required resume.",
+                       "A changed target or epoch invalidates automatic reuse.",
+                       "If either selection is unsupported, stop and report it",
+                       "a worker's self-report is not effective-setting proof"):
+            changed = dict(texts)
+            self.assertIn(clause, changed[path])
+            changed[path] = changed[path].replace(clause, "", 1)
+            with self.subTest(clause=clause), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_fallback_rejects_exit_status_as_evidence(self) -> None:
+        """Keep completion events, partial output, and technical certification separate from success."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        for clause in ("Exit 0 or `turn.completed` alone does not establish evidence acquisition.",
+                       "Contract changes and static tests alone leave that acceptance condition pending.",
+                       "Static contract tests do not certify technical read-only enforcement."):
+            changed = dict(texts)
+            changed[path] = changed[path].replace(clause, "", 1)
+            with self.subTest(clause=clause), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_fallback_host_routes_reject_app_only_or_unguarded_scope(self) -> None:
+        """Detect drift in either upper route without imposing changes on unrelated host settings."""
+        texts = self.readonly_fallback_sources()
+        for profile in ("dot_codex", "dot_codex-personal"):
+            path = f"chezmoi/{profile}/create_AGENTS.md"
+            for before, after in (("Codex app or CLI", "Codex app only"),
+                                  ("only safety-verified conditional fallback candidates", "all fallback candidates"),
+                                  ("does not authorize backend experiments", "authorizes backend experiments")):
+                changed = dict(texts)
+                self.assertIn(before, changed[path])
+                changed[path] = changed[path].replace(before, after, 1)
+                with self.subTest(profile=profile, before=before), self.assertRaises(AssertionError):
+                    self.assert_readonly_fallback_contract(changed)
+
     def test_repository_dependency_and_model_composition(self) -> None:
         """Preserve actual ownership, conditional closure and model combinations."""
         root = VALIDATOR.instruction_root(SCRIPT)
