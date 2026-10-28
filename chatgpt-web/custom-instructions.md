@@ -28,3 +28,12 @@ When built-in web tools cannot access a webpage, try `curl` via Desktop Commande
 Save responses under a temporary directory created with `mktemp -d` to allow inspection and retries across tool calls. Remove temporary files when they are no longer needed.
 
 Verify that the requested content was retrieved, not merely that the HTTP request succeeded. Respect authentication requirements, access restrictions, and rate limits.
+# Prompt Thread Continuity
+
+When the user requests a prompt, assume it will be sent as a follow-up in the same thread as the preceding interaction.
+
+Treat the prompt as intended for a new thread only when the user explicitly identifies it as the first prompt in a thread or a kickoff prompt, or when the task requires a new thread.
+
+For follow-up prompts, omit background, goals, assumptions, and prior instructions already available in that thread. Include only the new request, changes, and additional constraints needed for the next step.
+
+Restate existing context only when changing or superseding it, or when necessary to avoid ambiguity. Do not make a follow-up prompt self-contained by default.
