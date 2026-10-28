@@ -25,29 +25,30 @@ Resolve model and reasoning effort independently from applicable external select
 ## Select the Investigation Mode
 
 - After approved deployment of this Skill and its effective host route, `normal` is the default for already authorized investigation delegation; do not request fresh approval for each unchanged authorized investigation.
+- Normal fallback requires either current explicit user authorization for normal delegation or an actual effective durable route explicitly authorizing normal investigation delegation. A legacy route allowing only safety-verified conditional fallback candidates authorizes strict-eligible fallback only; normal preflight is not its safety proof. Skill presence, edits or host templates alone do not establish deployment authorization.
 - A plain read-only investigation means behavioral read-only and uses `normal`. Native children may inherit the parent's effective permissions, including `workspace-write`; capability is not authorization to use it.
 - Select `strict_technical_ro` when the user, an upper contract, or a concrete risk makes technical non-modification or isolation a requirement. If the required guarantee is ambiguous, clarify it without weakening it to normal.
 - Strict requirements apply to every route, including user-visible tasks, native children, and exec. Never downgrade strict to normal because evidence or a backend is unavailable; a new approval is not technical proof.
 - In normal, bans on edits, external writes, settings / authentication / privilege changes, and further delegation are instructions, not technical guarantees. Disclose inherited permissions and residual effects once at dispatch; do not repeat unchanged warnings on follow-ups.
 - Normal does not guarantee technical RO: mistakes, prompt injection, startup effects, and ordinary backend logs / session persistence can remain possible. Do not convert a normal success or a read-only name into strict eligibility evidence.
-- Record mode and required guarantees in the request and workstream identity. A later explicit normal choice requires a newly assessed scope and authorization, not an automatic retry or reuse of a strict handle.
+- Record mode and required guarantees in the request and workstream identity. Only the user may later explicitly choose normal, subject to higher contracts that still require strict; the primary task must not relax its own stopped strict determination. That choice requires a newly assessed scope and authorization, not an automatic retry or reuse of a strict handle.
 
 ## Verify Normal Eligibility
 
 Normal preflight checks purpose, scope / authorization, prohibitions, completion conditions, and the current backend / access prospect; it does not require the strict five conditions.
 
 1. Confirm existing authorization, the same saved checkout, a callable backend and recoverable result channel, and a reasonable prospect of access to the authorized sources.
-2. Identify inherited / applicable permissions and unused capabilities without adding privileges, changing credentials or accounts, or weakening configuration. An unknown exec authority difference blocks that candidate, not an otherwise usable native child.
+2. Identify inherited / applicable permissions and unused capabilities without adding privileges, changing credentials or accounts, or weakening configuration. Unknown or broader-than-parent effective exec authority blocks only that exec candidate, not an otherwise usable native child.
 3. Resolve explicit model / effort selections and required continuation support under the shared rules. Unknown effective settings alone do not block normal dispatch unless the request itself requires proof of them; record unknowns and do not claim a model ran.
-4. Stop for concrete unacceptable confidentiality or startup effects: unauthorized secrets or uncertain target scope, known unapproved settings / external writes, or an indeterminate necessary startup-effect boundary. Stop when new authority, connections or authentication changes are required, or policy denies execution.
+4. Stop for concrete unacceptable confidentiality or startup effects: unauthorized secrets or uncertain target scope, known unapproved settings / credential / external writes, or indeterminate necessary startup effects beyond the accepted ordinary backend logs / session persistence residuals. Do not turn those accepted residuals alone into a technical-proof requirement. Stop when new authority, connections or authentication changes are required, or policy denies execution.
 
 Do not require prior actual-read success, a safety probe / fixture, technical write or delegation prevention, hiding every tool, or a parent-prepared all-material packet for normal dispatch. Mere presence of write tools or MCP does not reclassify or block all normal investigations.
 Confirm actual reads and evidence quality from the child's results and the parent's source verification after collection; this is result validation, not a syscall audit or proof of technical RO.
 
 ## Select the Delegation Route
 
-1. Inspect the capabilities exposed by the current runtime. If task creation, listing, messaging, reading, and waiting are available, preserve the existing task procedure below.
-2. For normal, if the currently exposed API does not establish a usable task route, consider currently known native capabilities without proving global capability absence or exhaustive catalog discovery. Report only that this execution's dedicated route is unconfirmed, not that the product lacks it. For strict fallback, only verified absence of a required task capability opens candidate evaluation. A policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.
+1. Inspect the capabilities exposed by the current runtime. If task creation, listing, messaging, reading, and waiting are available, preserve the existing task procedure below, subject to the selected mode's eligibility in step 4.
+2. For normal, if the currently exposed API does not establish a usable task route, consider currently known native capabilities without proving global capability absence or exhaustive catalog discovery. Report only that this execution's dedicated route is unconfirmed, not that the product lacks it. For strict fallback, only verified absence of a required task capability opens candidate evaluation. For either mode, a policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.
 3. Provisionally evaluate a native subagent (`spawn_subagent` or the runtime's equivalent), then `codex exec`. This is an initial candidate selection, not an unconditional launch order or formal backend adoption.
 4. Apply Verify Normal Eligibility for normal; require all five conditions in Verify Strict Eligibility for strict before any route launches. An unknown strict condition fails eligibility; do not select an unverified strict candidate.
 5. If no candidate qualifies, report each limitation and missing evidence, and stop. Do not automatically perform the investigation in the primary task.
@@ -92,6 +93,7 @@ If continuation requirements change or a later follow-up needs unsupported conti
 
 - Check the installed CLI's supported non-interactive, structured-output, and explicit-session continuation interface without treating help output as safety proof. Do not prescribe unverified flags or invent a command that broadens authority.
 - Fix the invocation, working directory, authorized investigation roots, applicable authority and mode-specific controls, and bounded output location before launch. Do not implicitly use a wrapper, another environment, account, or credentials. A separate process does not imply the parent's permissions or settings.
+- For normal exec, unknown or broader-than-parent effective authority blocks this candidate; do not select an already broader environment or change permissions / configuration to qualify it. This exec limitation does not block an otherwise usable native child.
 - Start an eligible independent execution with structured events and separate process exit status. Retain the actual session ID, invocation identity, backend version, requested / effective settings evidence, and result references.
 - If continuation is required, verify persistence and resume support before selection. An ephemeral invocation cannot satisfy required resume.
 - Resume only the exact recorded session ID; never use `--last`. Revalidate the session, backend, checkout, target revision, authority, settings, mode, and governing assumptions before continuing.
@@ -118,6 +120,7 @@ Treat these fields as the delegated workstream identity:
 
 Reuse the same worker task when those fields remain materially the same. Continue it for follow-up research, corrections, clarification, stronger evidence, and validation of the same conclusion. Apply any applicable explicit model or effort selection on continuation, and leave unspecified fields unchanged.
 Mode changes invalidate automatic reuse; reassess authorization and the new mode's conditions without carrying over unproven strict eligibility.
+Missing mode or required-guarantee records, including legacy tasks, also prevent automatic reuse. Reassess mode, guarantees and authorization without defaulting the unknown task to normal or strict.
 
 Create a new worker task when any identity field changes materially, prior assumptions become obsolete, or stale context is visibly impairing quality or efficiency. Use observed degradation rather than turn count alone. Examples include repeatedly relying on superseded assumptions, confusing distinct artifacts, or requiring the core constraints to be restated. Do not split solely because work enters a new phase. Prefer a concise handoff of confirmed facts and open questions over copying the full transcript.
 
@@ -143,7 +146,7 @@ For every backend, make the initial prompt self-contained with four required par
 1. Purpose: objective, relevant context, mode and required guarantees; include marker `Delegated role: read-only investigator` and applicable model / effort selections with their sources.
 2. Scope / authorization: repository, approved roots, in-scope and out-of-scope artifacts, known entrypoints or Issue references. The parent need not determine every source or command in advance.
 3. Prohibitions: no edits, external writes, settings / authentication / privilege changes, further delegation or authority expansion. Stop and report if more scope or authority is needed; leave approvals to the user.
-4. Completion: acceptance criteria, exact validation and expected return distinguishing verified facts, inference and unknowns, with source locations, necessary command results, missing evidence and escalation conditions.
+4. Completion: acceptance criteria, exact validation, budget / stop conditions and expected return distinguishing verified facts, inference and unknowns, with source locations, necessary command results, missing evidence and escalation conditions.
 
 The child independently searches, reads and gathers evidence within the authorized scope. Do not require the parent to collect all source material or feed every answer source through stdin in normal; separate review-packet contracts retain their own requirements.
 

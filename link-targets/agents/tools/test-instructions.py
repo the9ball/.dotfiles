@@ -994,6 +994,9 @@ class InstructionTests(unittest.TestCase):
         required = {
             "Select the Investigation Mode": (
                 "After approved deployment of this Skill and its effective host route, `normal` is the default",
+                "Normal fallback requires either current explicit user authorization for normal delegation or an actual effective durable route explicitly authorizing normal investigation delegation.",
+                "A legacy route allowing only safety-verified conditional fallback candidates authorizes strict-eligible fallback only; normal preflight is not its safety proof.",
+                "Skill presence, edits or host templates alone do not establish deployment authorization.",
                 "A plain read-only investigation means behavioral read-only and uses `normal`.",
                 "including `workspace-write`; capability is not authorization to use it",
                 "Select `strict_technical_ro` when the user, an upper contract, or a concrete risk",
@@ -1003,27 +1006,32 @@ class InstructionTests(unittest.TestCase):
                 "bans on edits, external writes, settings / authentication / privilege changes, and further delegation are instructions, not technical guarantees",
                 "Normal does not guarantee technical RO", "Do not convert a normal success or a read-only name into strict eligibility evidence.",
                 "not an automatic retry or reuse of a strict handle",
+                "Only the user may later explicitly choose normal, subject to higher contracts that still require strict",
+                "the primary task must not relax its own stopped strict determination",
             ),
             "Verify Normal Eligibility": (
                 "it does not require the strict five conditions",
                 "purpose, scope / authorization, prohibitions, completion conditions",
                 "current backend / access prospect", "a callable backend and recoverable result channel",
                 "a reasonable prospect of access to the authorized sources",
-                "An unknown exec authority difference blocks that candidate, not an otherwise usable native child.",
+                "Unknown or broader-than-parent effective exec authority blocks only that exec candidate, not an otherwise usable native child.",
                 "Unknown effective settings alone do not block normal dispatch unless the request itself requires proof of them",
                 "Stop for concrete unacceptable confidentiality or startup effects",
-                "unauthorized secrets or uncertain target scope", "indeterminate necessary startup-effect boundary",
+                "unauthorized secrets or uncertain target scope", "known unapproved settings / credential / external writes",
+                "indeterminate necessary startup effects beyond the accepted ordinary backend logs / session persistence residuals",
+                "Do not turn those accepted residuals alone into a technical-proof requirement.",
                 "Do not require prior actual-read success, a safety probe / fixture, technical write or delegation prevention, hiding every tool, or a parent-prepared all-material packet for normal dispatch.",
                 "Mere presence of write tools or MCP does not reclassify or block all normal investigations.",
                 "Confirm actual reads and evidence quality from the child's results and the parent's source verification after collection",
             ),
             "Select the Delegation Route": (
                 "preserve the existing task procedure below",
+                "subject to the selected mode's eligibility in step 4",
                 "For normal, if the currently exposed API does not establish a usable task route",
                 "without proving global capability absence or exhaustive catalog discovery",
                 "not that the product lacks it",
                 "For strict fallback, only verified absence of a required task capability opens candidate evaluation.",
-                "A policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.",
+                "For either mode, a policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.",
                 "then `codex exec`", "initial candidate selection, not an unconditional launch order or formal backend adoption",
                 "Apply Verify Normal Eligibility for normal; require all five conditions in Verify Strict Eligibility for strict before any route launches.",
                 "An unknown strict condition fails eligibility; do not select an unverified strict candidate.",
@@ -1060,6 +1068,8 @@ class InstructionTests(unittest.TestCase):
                 "Parent inheritance does not establish a narrower child boundary",
                 "do not select or launch this investigation candidate",
                 "Do not implicitly use a wrapper, another environment, account, or credentials.",
+                "For normal exec, unknown or broader-than-parent effective authority blocks this candidate",
+                "do not select an already broader environment or change permissions / configuration to qualify it",
                 "An ephemeral invocation cannot satisfy required resume.",
                 "Resume only the exact recorded session ID; never use `--last`.",
                 "Revalidate the session, backend, checkout, target revision, authority, settings",
@@ -1082,13 +1092,15 @@ class InstructionTests(unittest.TestCase):
                 "List available projects", "project's saved local environment", "`clientThreadId`",
                 "Retain the ready task's `threadId` and `hostId`",
                 "Pass applicable explicit model and reasoning effort selections through `model` and `thinking`",
-                "four required parts", "Purpose:", "Scope / authorization:", "Prohibitions:", "Completion:",
+                "four required parts", "Purpose:", "Scope / authorization:", "Prohibitions:", "Completion:", "budget / stop conditions",
                 "The child independently searches, reads and gathers evidence within the authorized scope.",
                 "Do not require the parent to collect all source material or feed every answer source through stdin in normal",
             ),
             "Decide Whether to Reuse": (
                 "mode and required guarantees;", "Mode changes invalidate automatic reuse",
                 "without carrying over unproven strict eligibility",
+                "Missing mode or required-guarantee records, including legacy tasks, also prevent automatic reuse.",
+                "without defaulting the unknown task to normal or strict",
             ),
             "Continue and Collect Results": (
                 "Pass applicable explicit model/effort selections through `model` and `thinking`",
@@ -1107,11 +1119,16 @@ class InstructionTests(unittest.TestCase):
             section = re.split(r"^## ", text.split(marker, 1)[1], maxsplit=1, flags=re.MULTILINE)[0]
             for clause in clauses:
                 self.assertIn(clause, section, (heading, clause))
+        normal_section = text.split("## Verify Normal Eligibility\n", 1)[1].split("\n## ", 1)[0]
+        for strict_requirement in ("Require all five conditions together:", "actually read the authorized file content",
+                                   "technically prevented", "Also require actual-read evidence."):
+            self.assertNotIn(strict_requirement, normal_section)
         routes = []
         for profile in ("dot_codex", "dot_codex-personal"):
             route_text = texts[f"chezmoi/{profile}/create_AGENTS.md"]
             route = [line for line in route_text.splitlines() if "use `$delegate-readonly-investigation`" in line]
             self.assertEqual(len(route), 1, profile)
+            self.assertNotIn("only safety-verified", route[0], profile)
             for clause in ("Codex app or CLI", "authorizes normal investigation delegation within existing authorization and inherited permissions",
                            "including the Skill's conditional fallback routes", "strict technical RO requests require its verified strict conditions and must never downgrade to normal",
                            "does not authorize file edits, external writes, backend experiments, expanded permissions, or bypassing policy denials"):
@@ -1154,7 +1171,7 @@ class InstructionTests(unittest.TestCase):
              "Presence of MCP blocks normal investigations."),
             ("without proving global capability absence or exhaustive catalog discovery",
              "only after proving global capability absence"),
-            ("An unknown exec authority difference blocks that candidate, not an otherwise usable native child.",
+            ("Unknown or broader-than-parent effective exec authority blocks only that exec candidate, not an otherwise usable native child.",
              "An unknown exec authority difference blocks every candidate."),
         )
         for before, after in mutations:
@@ -1180,6 +1197,10 @@ class InstructionTests(unittest.TestCase):
             "Stop for concrete unacceptable confidentiality or startup effects",
             "Unknown effective settings alone do not block normal dispatch unless the request itself requires proof of them",
             "Confirm actual reads and evidence quality from the child's results and the parent's source verification after collection",
+            "Missing mode or required-guarantee records, including legacy tasks, also prevent automatic reuse.",
+            "Do not turn those accepted residuals alone into a technical-proof requirement.",
+            "subject to the selected mode's eligibility in step 4",
+            "For either mode, a policy denial, failed attempt, timeout, or ambiguous outcome is not capability absence.",
         )
         for clause in clauses:
             for placement in ("deleted", "nonruntime"):
@@ -1190,6 +1211,52 @@ class InstructionTests(unittest.TestCase):
                     changed[path] += "\n## Nonruntime test rationale\n" + clause + "\n"
                 with self.subTest(clause=clause, placement=placement), self.assertRaises(AssertionError):
                     self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_modes_reject_weakened_authorization_and_exec_boundaries(self) -> None:
+        """Reject agent-led relaxation, legacy-route normal authority, and broader exec authority."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        mutations = (
+            ("Only the user may later explicitly choose normal, subject to higher contracts that still require strict",
+             "The primary task may later explicitly choose normal regardless of higher contracts"),
+            ("the primary task must not relax its own stopped strict determination",
+             "the primary task may relax its stopped strict determination"),
+            ("Unknown or broader-than-parent effective exec authority blocks only that exec candidate, not an otherwise usable native child.",
+             "Known broader-than-parent exec authority is permitted."),
+            ("For normal exec, unknown or broader-than-parent effective authority blocks this candidate",
+             "For normal exec, broader-than-parent effective authority qualifies this candidate"),
+            ("Normal fallback requires either current explicit user authorization for normal delegation or an actual effective durable route explicitly authorizing normal investigation delegation.",
+             "Any durable delegation route authorizes normal fallback."),
+            ("A legacy route allowing only safety-verified conditional fallback candidates authorizes strict-eligible fallback only; normal preflight is not its safety proof.",
+             "Normal preflight satisfies a legacy safety-verified fallback route."),
+            ("Skill presence, edits or host templates alone do not establish deployment authorization.",
+             "Skill presence alone establishes normal deployment authorization."),
+        )
+        for before, after in mutations:
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
+
+    def test_readonly_normal_rejects_known_appended_strict_requirements(self) -> None:
+        """Detect bounded contradictory additions without claiming general semantic analysis."""
+        texts = self.readonly_fallback_sources()
+        path = f"{VALIDATOR.SKILLS}/delegate-readonly-investigation/SKILL.md"
+        for requirement in ("Require all five conditions together:", "actually read the authorized file content",
+                            "technically prevented", "Also require actual-read evidence."):
+            changed = dict(texts)
+            changed[path] = changed[path].replace("## Verify Normal Eligibility\n",
+                                                  "## Verify Normal Eligibility\n" + requirement + "\n", 1)
+            with self.subTest(requirement=requirement), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
+        for profile in ("dot_codex", "dot_codex-personal"):
+            route_path = f"chezmoi/{profile}/create_AGENTS.md"
+            changed = dict(texts)
+            changed[route_path] = changed[route_path].replace("including the Skill's conditional fallback routes",
+                                                           "including the Skill's conditional fallback routes, only safety-verified", 1)
+            with self.subTest(profile=profile), self.assertRaises(AssertionError):
+                self.assert_readonly_fallback_contract(changed)
 
     def test_readonly_fallback_rejects_deleted_or_relocated_conditions(self) -> None:
         """Reject removing each safety gate or moving it outside its owning section."""
