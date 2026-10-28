@@ -11,7 +11,7 @@ description: Used to read or write GitHub service/API issues, pull requests, rev
 
 - Positive trigger: Read or write resource on GitHub service/API.
 - Negative trigger: Operates only local checkout and Git transport of Git repository.
-- Conditional dependency: Apply the common policy kernel, and when redesign material is needed, refer to the non-runtime Design section in this Skill. Common authorization is not defined redundantly.
+- Conditional dependency: The common policy kernel is always applicable. Apply external-operation-authorization, approval-request-workflow, and external-posting only when their respective authorization/write-lifecycle, approval-request, or posting-content responsibilities arise, as routed in the Guide. Refer to the non-runtime Design section only when redesign material is needed; do not redefine common authorization here.
 - Failure mode: If the GitHub service contract cannot be resolved, it will fail-safely stop without falling back to another route.
 
 ## Runtime contract
@@ -23,7 +23,7 @@ The common policy kernel that is always applied is `link-targets/agents/AGENTS.m
 ## Guide
 
 Applies when reading or writing issues, pull requests, reviews, comments, labels, releases, repository metadata, etc. on the GitHub service/API.
-This guide is not an explanation of GitHub operations in general. It is a normative contract that keeps only GitHub service-specific matters that cannot be judged from the common terms and general GitHub knowledge alone. General authorization, approval request, external posting, write lifecycle, and retry should be delegated to a common contract that has its own responsibilities, and should not be added here redundantly.
+This guide is not an explanation of GitHub operations in general. It is a normative contract that keeps only GitHub service-specific matters that cannot be judged from the common terms and general GitHub knowledge alone. Do not restate or redefine common responsibilities here. The common policy kernel is `link-targets/agents/AGENTS.md`. When their responsibilities arise, apply `link-targets/agents/skills/external-operation-authorization/SKILL.md` for authorization boundaries and the write lifecycle, `link-targets/agents/skills/approval-request-workflow/SKILL.md` for approval requests, and `link-targets/agents/skills/external-posting/SKILL.md` for posting content.
 When changing or redesigning this contract itself, refer to the non-runtime Design section below only when necessary.
 
 ### Scope
@@ -36,12 +36,12 @@ When changing or redesigning this contract itself, refer to the non-runtime Desi
 
 ### Diagnosing access failure
 
-- If the host uses a network-restricted sandbox, `gh` / `gh api`, which requires network access to GitHub, is not retried after failing within that sandbox; the host's official execution path with network access allowed is used from the beginning. Codex uses `require_escalated`. This is different from user privilege escalation by Linux's `sudo`, etc., and does not uniformly escalate up to `gh` operations that do not require network.
+- When the host's sandbox network restriction is known or determinable from its configuration, use the host's official network-enabled execution path for network-dependent `gh` / `gh api` from the beginning; do not deliberately try the restricted sandbox first. Codex uses `require_escalated`. This is different from user privilege escalation by Linux's `sudo`, etc., and does not uniformly escalate operations that do not require network. An unexpected sandbox failure is not covered by the automatic diagnostic retry below: stop, report the intended operation, target, and reason, and obtain the user confirmation required by the common policy kernel's "Permission errors and alternatives" rule before any further read-only attempt, in addition to satisfying host execution permissions. Technical auto-approval does not replace that user confirmation. This diagnostic paragraph grants no further write attempt; the write-failure contract below applies.
 - Do not conclude that a single `gh` access/auth/connectivity failure or normal display is a permanent credential failure. If you suspect authentication failure, execute `gh auth status -h github.com --json hosts` and check `state` / `error` in the JSON instead of the exit status alone. If the same host has multiple accounts, only the `active: true` entry (or the account selected by `--active`) is subject to diagnosis, and the status of inactive accounts is not mixed into the credential validity judgment.
 - A failure is classified as a credential failure only when `error` clearly indicates that the token / credential itself is invalid / revoked / expired, etc. Execution environment constraints such as unknown errors, DNS / network / TLS / rate limit / GitHub API failure, unreachable, `socket: operation not permitted`, etc. are not assumed to be credential failures.
 - Do not execute `gh auth refresh` / `gh auth login` etc. as recovery unless credential failure can be confirmed.
 - A GitHub access failure with no external effects that occurs outside the network-restricted sandbox is retried once via the same standard route to ensure effective availability. If the retry also fails, stop without falling back to another route.
-- This retry is a read-only diagnostic and does not specify write retransmission, ambiguous outcome, read-back, or the retry lifecycle; those are the responsibility of a common contract.
+- This retry is a read-only diagnostic owned by this Guide. It does not authorize retrying a write, even when a write reports an access error. For every write failure, including a sandbox failure, authorization, retransmission, ambiguous outcome, read-back, and consumption follow `link-targets/agents/skills/external-operation-authorization/SKILL.md`.
 
 ### Body text transport
 

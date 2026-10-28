@@ -65,6 +65,59 @@ GUIDE_RUNTIME_RULES = {
     ),
     "advisor-review": ("Advisor output is treated as attributable advice, not as a ruling or implementation approval.",),
 }
+EXTERNAL_OPERATION_RULES = {
+    "external-operation-authorization": (
+        "`INDETERMINATE` never permits execution.",
+        "Obtain all required physical evidence for identity, selector membership, remaining quantities, boundary validity, and execution outcomes; neither existing nor new approval can substitute for that evidence.",
+        "before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`.",
+        "If any required evidence remains unavailable, keep execution stopped.",
+        "| New approval obtained but target identity, selector membership or counts remain unconfirmed | `INDETERMINATE` | Stop; approval does not replace missing operational evidence |",
+        "If there are both known out-of-range items and unconfirmed items, set it to `OUTSIDE_BOUNDARY`",
+        "Pause until new approval and also obtain evidence of unconfirmed items",
+        "If it cannot be confirmed by read-back that it has not been applied, stop even if authorization remains.",
+        "The approval request workflow does not supply or replace those execution guarantees.",
+        'When authoring or maintaining this authorization instruction layout, apply the mandatory rule in "Instruction-layout authoring rule" below.',
+        "Stop until both boundary revalidation yields `WITHIN_BOUNDARY` and the required new review or verification is complete",
+        "existing or new authorization, review evidence, or unrelated evidence cannot replace the required validity or identity evidence",
+        "Do not change targets, services, accounts, credentials, permissions, remotes, refs, public scope, or routes due to retry.",
+        "403, 404, authentication change, scope addition, and switching to another CLI/API are not included in automatic retry.",
+        "Immediately before each publication attempt, verify with current physical evidence that the actual destination and the audience able to access the content remain within the approved destination and disclosure scope.",
+        "Prior approval and user-provided content do not replace this verification.",
+        "If any confirmed destination or audience is broader than authorized, stop as `OUTSIDE_BOUNDARY`; otherwise, if either cannot be confirmed, stop as `INDETERMINATE`. Do not publish in either state.",
+        "| User-provided content and publication approval exist, but current destination or audience access cannot be verified | `INDETERMINATE` | Do not publish; obtain current physical evidence before revalidation |",
+        "| Current destination or audience access is confirmed broader than the approved disclosure scope | `OUTSIDE_BOUNDARY` | Do not publish; resolve the authorization boundary and revalidate current evidence |",
+    ),
+    "external-posting": (
+        "If an existing explicit instruction already covers that inclusion, destination, and disclosure scope, do not request the same confirmation again.",
+        "Merely providing local information does not instruct the agent to publish it.",
+        "This editorial discretion does not enlarge the authorized target, operation, content, or disclosure scope.",
+        "the user has supplied the information, and an explicit user instruction authorizes publishing that information to the identified destination and disclosure scope.",
+        "Supplying the information alone is not publication authorization; publication authorization alone does not supply the information.",
+        "Publication authorization does not establish factual accuracy.",
+        "For every external publication, the content must be user-provided information and an explicit user instruction must authorize the publication content, destination, and disclosure scope.",
+        "If user-provided provenance is absent or uncertain, do not publish. All editorial discretion below is subject to these prerequisites.",
+        "User-provided information includes information supplied directly by the user and the contents of materials the user explicitly designates as sources.",
+        "Faithful extraction or summarization of those contents retains that provenance; distinguish it from hypotheses or conclusions independently inferred by the agent.",
+        "Such independently inferred, unverified hypotheses or conclusions are not user-provided information unless the user explicitly adopts them.",
+        "Preserve their source, attribution as agent inference, and uncertainty even after adoption.",
+        "Adoption does not itself authorize publication or establish factual accuracy.",
+        "Designating a material does not authorize publishing all its contents.",
+        "Neither material designation nor publication permission overrides third-party confidentiality, applicable authority limits, or other independent restrictions.",
+        "If user-provided status, adoption, permitted content, destination, disclosure scope, or compliance with applicable restrictions is indeterminate, do not publish; request the clarification needed to resolve that uncertainty.",
+        'These content prerequisites do not replace the authorization contract\'s "Verification just before execution"',
+    ),
+    "github": (
+        "An unexpected sandbox failure is not covered by the automatic diagnostic retry below:",
+        'obtain the user confirmation required by the common policy kernel\'s "Permission errors and alternatives" rule before any further read-only attempt, in addition to satisfying host execution permissions.',
+        "Technical auto-approval does not replace that user confirmation.",
+        "It does not authorize retrying a write, even when a write reports an access error.",
+        "For every write failure, including a sandbox failure, authorization, retransmission, ambiguous outcome, read-back, and consumption follow `link-targets/agents/skills/external-operation-authorization/SKILL.md`.",
+    ),
+    "approval-request-workflow": (
+        "When the user explicitly rejects a presented approval item, do not additionally display a withdrawal for that rejection.",
+        "This exception concerns the user's answer, not an agent's refusal to perform an operation.",
+    ),
+}
 
 
 def guide_section(text: str) -> str:
@@ -806,6 +859,124 @@ class InstructionTests(unittest.TestCase):
             changed[path] = changed[path].replace(clause, "", 1)
             with self.subTest(owner=name), self.assertRaises(AssertionError):
                 self.assert_resolver_procedures(changed)
+
+    def assert_external_operation_rules(self, texts: dict[str, str]) -> None:
+        """Require the safety clauses and ownership boundaries in the runtime Guide text."""
+        kernel = texts[f"{VALIDATOR.AGENTS}/AGENTS.md"]
+        self.assertIn("For those external-operation responsibilities, apply the skill only when an external operation occurs; stop if the applicable contract cannot be resolved.", kernel)
+        for name, rules in EXTERNAL_OPERATION_RULES.items():
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            normalized_guide = " ".join(guide_section(texts[path]).split())
+            for rule in rules:
+                self.assertIn(" ".join(rule.split()), normalized_guide, path)
+        authorization = texts[f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"]
+        self.assertNotIn("Place only the minimum authorization boundaries", guide_section(authorization))
+        authoring_heading = "## Instruction-layout authoring rule\n"
+        self.assertIn(authoring_heading, authorization)
+        authoring_section = re.split(r"^## ", authorization.split(authoring_heading, 1)[1], maxsplit=1, flags=re.MULTILINE)[0]
+        self.assertIn("Place only the minimum authorization boundaries", authoring_section)
+        self.assertIn("This is a mandatory authoring rule when maintaining the instruction layout", authoring_section)
+        discovery = authorization.split("## Discovery contract", 1)[1].split("## Runtime contract", 1)[0]
+        self.assertIn("or author or maintain the placement of these authorization rules in the instruction layout.", discovery)
+        self.assertIn("no authoring or maintenance of this authorization instruction layout.", discovery)
+
+    def test_external_operation_runtime_contract(self) -> None:
+        """Check source-contract safeguards without claiming to execute an authorization engine."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        self.assert_external_operation_rules(texts)
+
+    def test_external_operation_rules_reject_missing_or_nonruntime_safeguards(self) -> None:
+        """Reject deletion or nonruntime relocation of each required execution safeguard."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        for name, rules in EXTERNAL_OPERATION_RULES.items():
+            path = f"{VALIDATOR.SKILLS}/{name}/SKILL.md"
+            for rule in rules:
+                for placement in ("removed", "nonruntime"):
+                    changed = dict(texts)
+                    self.assertIn(rule, changed[path])
+                    changed[path] = changed[path].replace(rule, "", 1)
+                    if placement == "nonruntime":
+                        changed[path] += "\n\n## Test nonruntime placement\n\n" + rule + "\n"
+                    with self.subTest(owner=name, rule=rule, placement=placement), self.assertRaises(AssertionError):
+                        self.assert_external_operation_rules(changed)
+
+    def test_external_operation_authoring_rule_requires_its_authoring_section(self) -> None:
+        """Reject relocating the authoring obligation into runtime metadata or design rationale."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"
+        rule = "Place only the minimum authorization boundaries necessary at all times in AGENTS.md."
+        for heading in ("Guide", "Discovery contract", "Runtime contract", "Design"):
+            changed = dict(texts)
+            changed[path] = changed[path].replace(rule, "", 1)
+            if heading == "Design":
+                changed[path] += "\n\n## Design\n\n" + rule + "\n"
+            else:
+                changed[path] = changed[path].replace(f"## {heading}\n", f"## {heading}\n\n{rule}\n", 1)
+            with self.subTest(heading=heading), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
+
+    def test_external_operation_authoring_route_is_discoverable(self) -> None:
+        """Reject deleting the local authoring trigger or reinstating its contradictory exclusion."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-operation-authorization/SKILL.md"
+        mutations = (
+            ("; or author or maintain the placement of these authorization rules in the instruction layout.", "."),
+            ("no authoring or maintenance of this authorization instruction layout.", "only local work/verification is performed."),
+        )
+        for before, after in mutations:
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
+
+    def test_external_operation_kernel_does_not_cancel_local_authoring(self) -> None:
+        """Reject an unqualified kernel exclusion that would defeat the local authoring trigger."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.AGENTS}/AGENTS.md"
+        changed = dict(texts)
+        before = "For those external-operation responsibilities, apply the skill only when an external operation occurs"
+        self.assertIn(before, changed[path])
+        changed[path] = changed[path].replace(before, "Apply the skill only when an external operation occurs", 1)
+        with self.assertRaises(AssertionError):
+            self.assert_external_operation_rules(changed)
+
+    def test_external_posting_requires_both_provision_and_publication_permission(self) -> None:
+        """Reject weakening the two independent prerequisites to an either-or condition."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        path = f"{VALIDATOR.SKILLS}/external-posting/SKILL.md"
+        changed = dict(texts)
+        before = "the user has supplied the information, and an explicit user instruction"
+        self.assertIn(before, changed[path])
+        changed[path] = changed[path].replace(before, "the user has supplied the information, or an explicit user instruction", 1)
+        with self.assertRaises(AssertionError):
+            self.assert_external_operation_rules(changed)
+
+    def test_external_publication_rejects_inferred_provenance_or_stale_audience_checks(self) -> None:
+        """Reject treating independent inference as user supply or approval as current audience evidence."""
+        root = VALIDATOR.instruction_root(SCRIPT)
+        texts, _ = VALIDATOR.validate(root)
+        mutations = (
+            ("external-posting", "For every external publication, the content must be user-provided information", "For sensitive external publication, the content must be user-provided information"),
+            ("external-posting", "are not user-provided information unless the user explicitly adopts them", "are user-provided information"),
+            ("external-posting", "Adoption does not itself authorize publication or establish factual accuracy.", "Adoption authorizes publication."),
+            ("external-posting", "Designating a material does not authorize publishing all its contents.", "Designating a material authorizes publishing its contents."),
+            ("external-operation-authorization", "Prior approval and user-provided content do not replace this verification.", "Prior approval replaces this verification."),
+            ("external-operation-authorization", "otherwise, if either cannot be confirmed, stop as `INDETERMINATE`", "otherwise, if either cannot be confirmed, publish under the existing approval"),
+        )
+        for owner, before, after in mutations:
+            path = f"{VALIDATOR.SKILLS}/{owner}/SKILL.md"
+            changed = dict(texts)
+            self.assertIn(before, changed[path])
+            changed[path] = changed[path].replace(before, after, 1)
+            with self.subTest(owner=owner, before=before), self.assertRaises(AssertionError):
+                self.assert_external_operation_rules(changed)
 
     def test_repository_dependency_and_model_composition(self) -> None:
         """Preserve actual ownership, conditional closure and model combinations."""

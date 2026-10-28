@@ -9,8 +9,8 @@ description: Handles semantic authorization boundaries for operations with exter
 
 - Host fallback: required
 
-- Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.
-- Negative trigger: There is no operation with external effects, only local work/verification is performed.
+- Positive trigger: Determine the authorization or execution lifecycle of logical operations with external effects such as push, external service/API write, post, publish, deploy, etc.; or author or maintain the placement of these authorization rules in the instruction layout.
+- Negative trigger: Only unrelated local work/verification is performed, with no external operation and no authoring or maintenance of this authorization instruction layout.
 - Conditional dependency: The GitHub service, approval discovery, external posting, and review evidence Skills are each applied only when their own responsibilities arise, and the authorization boundary is not defined redundantly.
 - Failure mode: If the target/operation/approval/boundary or execution result cannot be confirmed, stop in fail-safe mode and do not perform any external operations.
 
@@ -65,13 +65,17 @@ Even if the specific values differ from those at the time of approval, the metho
 - Items to be compared for semantic inclusion are purpose, permitted operation, semantic content, and transmission body.
 - The items to compare the remaining number are the upper limit of the target set, the number of targets actually expanded, the number of successful applications, and the retry budget.
 
+Immediately before each publication attempt, verify with current physical evidence that the actual destination and the audience able to access the content remain within the approved destination and disclosure scope. Prior approval and user-provided content do not replace this verification. If any confirmed destination or audience is broader than authorized, stop as `OUTSIDE_BOUNDARY`; otherwise, if either cannot be confirmed, stop as `INDETERMINATE`. Do not publish in either state.
+
 Use the following three values.
 
 | Judgment | Condition | Execution |
 | --- | --- | --- |
 | `WITHIN_BOUNDARY` | Verify all items with physical evidence and satisfy identity, inclusion, and remaining quantity | Can be done |
 | `OUTSIDE_BOUNDARY` | One or more of the confirmed items is out of scope | New approval required |
-| `INDETERMINATE` | Unable to confirm required items or determine whether they are within range | Suspended until evidence obtained or new approval |
+| `INDETERMINATE` | Unable to confirm required items or determine whether they are within range | Stop; resolve the missing evidence or unclear authorization scope, then revalidate all required items |
+
+`INDETERMINATE` never permits execution. Distinguish missing operational evidence from uncertainty about what the user authorized. Obtain all required physical evidence for identity, selector membership, remaining quantities, boundary validity, and execution outcomes; neither existing nor new approval can substitute for that evidence. If the user's intended semantic scope is unclear, request a new explicit boundary for the concrete proposed operation. New approval resolves only that authorization uncertainty: before execution, revalidate all required items against the new boundary and obtain `WITHIN_BOUNDARY`. If any required evidence remains unavailable, keep execution stopped.
 
 If the expansion result of selector exceeds the upper limit of the target set, set it as `OUTSIDE_BOUNDARY`, and if the expansion cannot be completed or the number of targets cannot be confirmed, set it as `INDETERMINATE`.
 
@@ -101,9 +105,12 @@ Do not change targets, services, accounts, credentials, permissions, remotes, re
 | Case | Physical Evidence and Expected Judgment | Run or Stop |
 | --- | --- | --- |
 | Only the concrete transmission body changes and semantic inclusion holds | `WITHIN_BOUNDARY` | Executes without reauthorization and consumes on success |
-| Unable to determine specific semantic inclusion | `INDETERMINATE` | Stop until evidence is obtained, and if unresolvable, seek new approval |
+| Unable to determine specific semantic inclusion | `INDETERMINATE` | Stop; obtain evidence of inclusion or request a new explicit boundary, then revalidate all required items |
 | The number of targets expanded into selector exceeds the target set limit | `OUTSIDE_BOUNDARY` | Stop until new approval |
 | Unable to confirm completion of selector expansion or number of targets | `INDETERMINATE` | Stop until evidence is obtained and do not run based on guess |
+| New approval obtained but target identity, selector membership or counts remain unconfirmed | `INDETERMINATE` | Stop; approval does not replace missing operational evidence |
+| User-provided content and publication approval exist, but current destination or audience access cannot be verified | `INDETERMINATE` | Do not publish; obtain current physical evidence before revalidation |
+| Current destination or audience access is confirmed broader than the approved disclosure scope | `OUTSIDE_BOUNDARY` | Do not publish; resolve the authorization boundary and revalidate current evidence |
 | A semantically similar target that is outside the enumeration set, or whose identity cannot be confirmed | `OUTSIDE_BOUNDARY` or `INDETERMINATE` | Do not use similarity as a basis for permission, and stop it as out of scope or unconfirmable |
 | Both known out-of-bounds and unconfirmed items | `OUTSIDE_BOUNDARY` (supersedes `INDETERMINATE`) | Pause until new approval and also obtain evidence of unconfirmed items |
 | Retry budget remains for the same operation after confirming that there is no external effect | One automatic retry of the same operation from `FAILED_NO_EFFECT` | Consumes only when retry is successful, no additional automatic retry |
@@ -123,17 +130,19 @@ Authorization boundaries and review evidence tied to targets or epochs are treat
 | Valid and unchanged | Significant changes | Approval can be maintained, but will not run until a new review or verification epoch is completed |
 | `OUTSIDE_BOUNDARY` | Unchanged | New approval required |
 | `OUTSIDE_BOUNDARY` | Changed | New approval and new review or verification required |
-| `INDETERMINATE` | Unchanged | Stop pending evidence. If resolved as `OUTSIDE_BOUNDARY` or it remains unresolvable, obtain new authorization; only `WITHIN_BOUNDARY` permits proceeding without it |
-| `INDETERMINATE` | Changed | Suspended until both approval and review or verification are resolved |
-| Unable to confirm validity or identity | Any | Stop execution as `INDETERMINATE`; do not use authorization or any evidence as grounds for execution |
+| `INDETERMINATE` | Unchanged | Stop; resolve missing evidence or unclear authorization scope as above. If confirmed `OUTSIDE_BOUNDARY`, obtain new approval; execute only after revalidation yields `WITHIN_BOUNDARY` |
+| `INDETERMINATE` | Changed | Stop until both boundary revalidation yields `WITHIN_BOUNDARY` and the required new review or verification is complete |
+| Unable to confirm validity or identity | Any | Stop execution as `INDETERMINATE`; existing or new authorization, review evidence, or unrelated evidence cannot replace the required validity or identity evidence |
 
 Do not map boundary to `USER_AUTHORIZED`, `PASS_WITH_USER_AUTHORIZATION`, target/epoch evidence. Execution lifecycle fail-closed identities, review contracts, ledgers, and regular review requirements are maintained as separate contracts.
 
 ### Discretion of express delegation
 
-Even if there is an explicit delegation such as `対応して`, `保守して`, "respond", or "maintain", discretion is limited to materialization within the boundary. Confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments can be determined within a semantic range.
+Even if there is an explicit delegation such as `対応して`, `保守して`, "respond", or "maintain", discretion is limited to materialization within the established authorization boundary. Confirmed facts, performed work, verification results, faithful summaries of existing judgments, and ordinary writing quality and presentation adjustments can be determined only within that boundary. Editorial discretion does not establish target identity or selector membership, enlarge disclosure scope, or authorize a new operation.
 
 If the agent newly creates any of the following on the user's behalf (in the user's name or voice), additional confirmation is required.
+
+"Newly creates" means adding a substantive claim, commitment, or judgment attributed to the user, rather than writing new wording for a faithful summary of an existing authorized statement. An explicit instruction already covering that substantive addition satisfies this confirmation requirement; do not ask for the same confirmation again. Independent factual evidence and other posting requirements still apply.
 
 * Promises, deadlines, support responsibilities, risk acceptance
 * Legal, Compliance, Financial, Security Policy
@@ -152,10 +161,14 @@ After the operation, record the operation ID, target, specific operation, extern
 
 ### Application order
 
-Place only the minimum authorization boundaries necessary at all times in AGENTS.md.
+When authoring or maintaining this authorization instruction layout, apply the mandatory rule in "Instruction-layout authoring rule" below. It is not a precondition or step for ordinary external operations.
 
 GitHub, issue management, external posting, and execution lifecycle guides apply this contract to logical operations.
 
 Identification of approval requests, bulk acquisition, pending state, and coordination with plans shall be the responsibility of a separate approval request workflow. The subsequent approval request workflow passes the obtained approval to the execution input as a boundary record in this guide.
 
-The validity, consumption, retry, and post-execution recording of that boundary are the responsibility of this guide, and do not assume that implementation of #48 has been completed.
+The validity, consumption, retry, and post-execution recording of that boundary remain the responsibility of this guide. The approval request workflow does not supply or replace those execution guarantees.
+
+## Instruction-layout authoring rule
+
+Place only the minimum authorization boundaries necessary at all times in AGENTS.md. This is a mandatory authoring rule when maintaining the instruction layout, not an additional external-operation runtime step. The Guide above retains the runtime ownership and application rules.

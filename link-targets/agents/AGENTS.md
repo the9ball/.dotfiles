@@ -111,7 +111,7 @@
 
 - Push, creating and updating PRs/issues, sending/publishing/sharing/deploying to external services, changing permissions, and changing external data should only be done with explicit user instructions. Approval of file changes does not serve as approval of external operations.
 - Do not extend external effects beyond the scope of targeted and authorized operations, and do not interpret consent to procedures or arrangements as approval for public operations.
-- The external-operation-authorization skill owns detailed boundary, last-minute confirmation, consumption, retry, read-back, and result recording. Apply the same skill only when an external operation occurs, and stop if it cannot be resolved.
+- The external-operation-authorization skill owns detailed boundary, last-minute confirmation, consumption, retry, read-back, and result recording. For those external-operation responsibilities, apply the skill only when an external operation occurs; stop if the applicable contract cannot be resolved.
 
 
 ## Git commit policy
