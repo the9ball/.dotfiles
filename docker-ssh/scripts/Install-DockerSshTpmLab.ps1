@@ -27,6 +27,15 @@ if ($binding.ProviderName -ne 'Microsoft Platform Crypto Provider' -or $binding.
     $binding.UserSid -ne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) { throw 'Only this user and an explicitly created PoC key are accepted.' }
 $docker = (Get-Command docker.exe -CommandType Application -ErrorAction Stop).Source
 $helper = Join-Path $PackageDirectory 'docker-credential-ssh-tpm.exe'
+$publicShell = Join-Path $PSScriptRoot '../chezmoi/AppData/Local/Dotfiles/DockerSsh'
+$dispatcherDirectory = Join-Path $PSScriptRoot '../src/DockerSshDispatcher/bin/Release/net10.0-windows'
+$additionalFiles = @{}
+foreach ($name in @('docker.exe','docker.dll','docker.deps.json','docker.runtimeconfig.json')) { $additionalFiles['bin/0.5.0/' + $name] = Join-Path $dispatcherDirectory $name }
+foreach ($name in @('Get-TpmDockerEnvironment.ps1','Invoke-DockerSshTpm.ps1')) { $additionalFiles['shell/' + $name] = Join-Path $publicShell $name }
+foreach ($relative in $additionalFiles.Keys) {
+    $manifestName = if ($relative.StartsWith('shell/')) { $relative } else { [IO.Path]::GetFileName($relative) }
+    $manifest[$manifestName] = (Get-FileHash -LiteralPath $additionalFiles[$relative]).Hash
+}
 
 function Invoke-LabHelper {
     <# .SYNOPSIS Runs only a nonsecret preflight or initialization, with conservative timeout handling. #>
@@ -57,10 +66,13 @@ function Invoke-LabHelper {
 Invoke-LabHelper -Operation validate-path -Root $destination -Executable $helper
 if (Test-Path -LiteralPath $destination) {
     $installed = Get-Content -LiteralPath (Join-Path $destination 'settings.json') -Raw | ConvertFrom-Json
-    if ($installed.Version -ne 1 -or $installed.HelperKind -ne 'tpm' -or $installed.HelperVersion -ne '0.4.0' -or
+    if ($installed.Version -ne 1 -or $installed.HelperKind -ne 'tpm' -or $installed.HelperVersion -ne '0.5.0' -or
         $installed.EngineEndpoint -ne $EngineEndpoint -or $installed.DockerExecutable -ne $docker) { throw 'Existing deployment differs; no update or repair performed.' }
     foreach ($name in $required) {
-        if ((Get-FileHash -LiteralPath (Join-Path $destination ('bin/0.4.0/' + $name))).Hash -cne $manifest[$name]) { throw 'Installed binary differs; no repair performed.' }
+        if ((Get-FileHash -LiteralPath (Join-Path $destination ('bin/0.5.0/' + $name))).Hash -cne $manifest[$name]) { throw 'Installed binary differs; no repair performed.' }
+    }
+    foreach ($relative in $additionalFiles.Keys) {
+        if ((Get-FileHash -LiteralPath (Join-Path $destination $relative)).Hash -cne (Get-FileHash -LiteralPath $additionalFiles[$relative]).Hash) { throw 'Installed dispatcher or shell differs.' }
     }
     $installedBinding = Get-Content -LiteralPath (Join-Path $destination 'key-binding.json') -Raw | ConvertFrom-Json
     if ($installedBinding.KeyName -ne $binding.KeyName -or $installedBinding.UniqueNameSHA256 -ne $binding.UniqueNameSHA256 -or $installedBinding.PublicSpkiSHA256 -ne $binding.PublicSpkiSHA256) { throw 'Public key identity differs.' }
@@ -77,14 +89,19 @@ $security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($owne
 [void][IO.FileSystemAclExtensions]::CreateDirectory($security, $destination)
 $claim = [IO.FileStream]::new((Join-Path $destination 'installation.claim'), [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
 $claim.Dispose()
-$binaryDirectory = Join-Path $destination 'bin/0.4.0'
+$binaryDirectory = Join-Path $destination 'bin/0.5.0'
 [void][IO.Directory]::CreateDirectory($binaryDirectory)
 foreach ($name in $required) { Copy-Item -LiteralPath (Join-Path $PackageDirectory $name) -Destination (Join-Path $binaryDirectory $name) }
+foreach ($relative in $additionalFiles.Keys) {
+    $target = Join-Path $destination $relative
+    [void][IO.Directory]::CreateDirectory((Split-Path -Parent $target))
+    Copy-Item -LiteralPath $additionalFiles[$relative] -Destination $target
+}
 # Staging and credential initialization are separate: this script never opens a TPM key.
 Copy-Item -LiteralPath $BindingPath -Destination (Join-Path $destination 'key-binding.json')
 [void][IO.Directory]::CreateDirectory((Join-Path $destination 'docker-config'))
 '{"credsStore":"ssh-tpm"}' | Set-Content -LiteralPath (Join-Path $destination 'docker-config/config.json') -Encoding utf8NoBOM
-Copy-Item -LiteralPath $ManifestPath -Destination (Join-Path $destination 'installed-manifest.json')
-@{ Version=1; State='STAGED'; HelperKind='tpm'; HelperVersion='0.4.0'; InstallationId=[guid]::NewGuid().ToString('N'); EngineEndpoint=$EngineEndpoint; DockerExecutable=$docker } |
+$manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'installed-manifest.json') -Encoding utf8NoBOM
+@{ Version=1; State='STAGED'; HelperKind='tpm'; HelperVersion='0.5.0'; InstallationId=[guid]::NewGuid().ToString('N'); EngineEndpoint=$EngineEndpoint; DockerExecutable=$docker; PowerShellExecutable=(Get-Process -Id $PID).Path } |
     ConvertTo-Json | Set-Content -LiteralPath (Join-Path $destination 'settings.json') -Encoding utf8NoBOM
 Write-Output 'Disposable TPM PoC deployment staged; no key, original Docker configuration, or context changed.'
