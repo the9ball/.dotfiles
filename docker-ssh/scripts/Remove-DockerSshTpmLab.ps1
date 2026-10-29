@@ -12,6 +12,10 @@ $owner = [Security.Principal.WindowsIdentity]::GetCurrent().User
 $allowed = @('installation.claim', 'settings.json', 'installed-manifest.json', 'key-binding.json', 'docker-config/config.json',
     'store/initialization.claim', 'store/store.lock', 'store/settings.json', 'store/vault.tpm',
     'bin/0.4.0/docker-credential-ssh-tpm.exe', 'bin/0.4.0/docker-credential-ssh-tpm.dll', 'bin/0.4.0/docker-credential-ssh-tpm.deps.json', 'bin/0.4.0/docker-credential-ssh-tpm.runtimeconfig.json')
+if ($settings.HelperVersion -eq '0.5.0') {
+    $allowed = @($allowed | ForEach-Object { $_.Replace('bin/0.4.0/','bin/0.5.0/') })
+    $allowed += @('bin/0.5.0/docker.exe','bin/0.5.0/docker.dll','bin/0.5.0/docker.deps.json','bin/0.5.0/docker.runtimeconfig.json','shell/Get-TpmDockerEnvironment.ps1','shell/Invoke-DockerSshTpm.ps1')
+} elseif ($settings.HelperVersion -ne '0.4.0') { throw 'Unsupported lab version.' }
 # Inspect each directory before descending; never traverse an unverified reparse point.
 $pending = [Collections.Generic.Stack[string]]::new()
 $pending.Push($destination)
@@ -27,7 +31,7 @@ while ($pending.Count) {
     }
     if ($item.PSIsContainer) {
         $relativeDirectory = [IO.Path]::GetRelativePath($destination, $current).Replace('\', '/')
-        if ($relativeDirectory -notin @('.', 'bin', 'bin/0.4.0', 'docker-config', 'store')) { throw 'Unrecognized directory; preserve the package.' }
+        if ($relativeDirectory -notin @('.', 'bin', ('bin/' + $settings.HelperVersion), 'shell', 'docker-config', 'store')) { throw 'Unrecognized directory; preserve the package.' }
         foreach ($child in Get-ChildItem -LiteralPath $current -Force) { $pending.Push($child.FullName) }
     } else {
         $relative = [IO.Path]::GetRelativePath($destination, $current).Replace('\', '/')

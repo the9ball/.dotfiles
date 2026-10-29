@@ -1,0 +1,59 @@
+# Initialize only explicitly managed native Windows SSH shells; the caller exits on any failure.
+case "${OSTYPE-}" in msys*|cygwin*) ;; *) return 0 ;; esac
+[[ -n ${SSH_CONNECTION-} && ${DOTFILES_DOCKER_SSH-} == required ]] || return 0
+
+# Validate before exporting parent state; metadata is data, never evaluated as shell code.
+_dotfiles_docker_ssh_initialize() {
+    local hook powershell metadata binary name repository_directory
+    local -a fields
+    repository_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || return 1
+    hook="$repository_directory/docker-ssh/chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1"
+    powershell=$(command -v pwsh.exe) || return 1
+    [[ -f $hook && ! -L $hook && -x $powershell ]] || return 1
+    metadata=$("$powershell" -NoProfile -File "$(cygpath -am -- "$hook")") || return 1
+    mapfile -t fields <<< "$metadata"
+    [[ ${#fields[@]} == 6 && $metadata != *$'\r'* ]] || return 1
+    binary=$(cygpath -u -- "${fields[2]}") || return 1
+    [[ -f $binary/docker.exe && ! -L $binary/docker.exe ]] || return 1
+    if alias docker >/dev/null 2>&1 || declare -F docker >/dev/null; then
+        printf '%s\n' 'Managed SSH Docker refuses an existing docker alias or function.' >&2
+        return 1
+    fi
+    if [[ ${_dotfiles_docker_ssh_saved-} != 1 ]]; then
+        # Preserve both the value and the distinction between unset and set-to-empty.
+        declare -gA _dotfiles_docker_ssh_values=() _dotfiles_docker_ssh_set=() _dotfiles_docker_ssh_exported=()
+        for name in PATH DOCKER_CONFIG DOCKER_SSH_HELPER_ROOT DOCKER_SSH_DEPLOYMENT DOCKER_SSH_MANAGED PSMUX_SSH_AUTOATTACH MSYS2_ENV_CONV_EXCL; do
+            _dotfiles_docker_ssh_set[$name]=${!name+x}
+            _dotfiles_docker_ssh_exported[$name]=$(declare -p "$name" 2>/dev/null)
+            _dotfiles_docker_ssh_values[$name]=${!name-}
+        done
+        _dotfiles_docker_ssh_saved=1
+    fi
+    export DOCKER_SSH_DEPLOYMENT="${fields[0]}" DOCKER_CONFIG="${fields[3]}" DOCKER_SSH_HELPER_ROOT="${fields[4]}"
+    export DOCKER_SSH_MANAGED=1 PSMUX_SSH_AUTOATTACH=0
+    export PATH="$binary:$PATH"
+    export MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}DOCKER_CONFIG;DOCKER_SSH_HELPER_ROOT;DOCKER_SSH_DEPLOYMENT"
+    hash -r
+}
+
+# Restore the exact original parent values; already running child processes retain their own environment.
+docker-ssh-restore-environment() {
+    [[ ${_dotfiles_docker_ssh_saved-} == 1 ]] || return 0
+    local name
+    for name in "${!_dotfiles_docker_ssh_values[@]}"; do
+        if [[ ${_dotfiles_docker_ssh_set[$name]} == x ]]; then
+            printf -v "$name" '%s' "${_dotfiles_docker_ssh_values[$name]}"
+            case "${_dotfiles_docker_ssh_exported[$name]}" in
+                "declare -x "*) export "$name" ;;
+                *) export -n "$name" ;;
+            esac
+        else
+            unset "$name"
+        fi
+    done
+    unset _dotfiles_docker_ssh_saved _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported
+    hash -r
+}
+
+_dotfiles_docker_ssh_initialize || return 1
+unset -f _dotfiles_docker_ssh_initialize

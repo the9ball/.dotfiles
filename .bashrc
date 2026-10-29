@@ -86,6 +86,24 @@ if [ -r "$HOME/.bashrc.local" ]; then
 	. "$HOME/.bashrc.local"
 fi
 
+# Host-local opt-in is inert until explicitly enabled; a required SSH bootstrap failure ends this shell.
+case "${OSTYPE-}:${SSH_CONNECTION-}" in
+    msys*:?*|cygwin*:?*)
+        case "${DOTFILES_DOCKER_SSH-}" in
+            ''|disabled|required) ;;
+            *) printf '%s\n' 'Invalid managed SSH Docker mode.' >&2; exit 1 ;;
+        esac
+        ;;
+esac
+case "${OSTYPE-}:${SSH_CONNECTION-}:${DOTFILES_DOCKER_SSH-}" in
+    msys*:?*:required|cygwin*:?*:required)
+        if [ ! -r "$HOME/.dotfiles/.bashrc.docker-ssh" ] || ! . "$HOME/.dotfiles/.bashrc.docker-ssh"; then
+            printf '%s\n' 'Required managed SSH Docker bootstrap failed; ending this shell.' >&2
+            exit 1
+        fi
+        ;;
+esac
+
 # Select the SSH overlay after ordinary settings, before attaching to psmux.
 if [ -r "$HOME/.dotfiles/.bashrc.ssh-psmux" ]; then
 	. "$HOME/.dotfiles/.bashrc.ssh-psmux"

@@ -5,7 +5,7 @@ if (-not [IO.Path]::IsPathFullyQualified($OutputRoot) -or (Test-Path -LiteralPat
 $packageDirectory=[IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($OutputRoot))
 if ([IO.Path]::GetDirectoryName($packageDirectory) -ine [IO.Path]::GetFullPath($env:LOCALAPPDATA) -or [IO.Path]::GetFileName($packageDirectory) -notlike 'docker-ssh-issue142-lab-package-*') { throw 'Use an explicit disposable package directory immediately under LocalAppData.' }
 $source = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-foreach ($project in @('src/DockerCredentialTpm/DockerCredentialTpm.csproj','src/TpmKeySetup/TpmKeySetup.csproj')) {
+foreach ($project in @('src/DockerCredentialTpm/DockerCredentialTpm.csproj','src/TpmKeySetup/TpmKeySetup.csproj','src/DockerSshDispatcher/DockerSshDispatcher.csproj')) {
     $start = [Diagnostics.ProcessStartInfo]::new('dotnet')
     $start.UseShellExecute = $false
     $start.WorkingDirectory = $source
@@ -30,7 +30,7 @@ $security.SetAccessRuleProtection($true,$false)
 $security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($owner,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
 [void][IO.FileSystemAclExtensions]::CreateDirectory($security,$packageDirectory)
 $files = [ordered]@{}
-foreach ($component in @(@{Name='helper';Project='DockerCredentialTpm';Base='docker-credential-ssh-tpm'},@{Name='key-tool';Project='TpmKeySetup';Base='docker-ssh-tpm-key'})) {
+foreach ($component in @(@{Name='helper';Project='DockerCredentialTpm';Base='docker-credential-ssh-tpm'},@{Name='key-tool';Project='TpmKeySetup';Base='docker-ssh-tpm-key'},@{Name='dispatcher';Project='DockerSshDispatcher';Base='docker'})) {
     foreach ($extension in @('.exe','.dll','.deps.json','.runtimeconfig.json')) {
         $relative = $component.Name + '/' + $component.Base + $extension
         $destination = Join-Path $OutputRoot $relative
@@ -39,11 +39,11 @@ foreach ($component in @(@{Name='helper';Project='DockerCredentialTpm';Base='doc
         $files[$relative] = (Get-FileHash -LiteralPath $destination).Hash
     }
 }
-foreach ($name in @('docker-ssh.bash','Get-TpmDockerEnvironment.ps1')) {
+foreach ($name in @('docker-ssh.bash','Get-TpmDockerEnvironment.ps1','Invoke-DockerSshTpm.ps1','Enter-DockerSshEnvironment.ps1')) {
     $destination = Join-Path $OutputRoot ('shell/' + $name)
     [void][IO.Directory]::CreateDirectory((Split-Path -Parent $destination))
     Copy-Item -LiteralPath (Join-Path $source ('chezmoi/AppData/Local/Dotfiles/DockerSsh/' + $name)) -Destination $destination
     $files['shell/' + $name] = (Get-FileHash -LiteralPath $destination).Hash
 }
-@{Version='0.4.0';Runtime='Microsoft.NETCore.App 10';Files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $OutputRoot 'package.json') -Encoding utf8NoBOM
-Write-Output 'TPM package 0.4.0 built; ten public files; no key or credential initialization.'
+@{Version='0.5.0';Runtime='Microsoft.NETCore.App 10';Files=$files} | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $OutputRoot 'package.json') -Encoding utf8NoBOM
+Write-Output 'TPM package 0.5.0 built; sixteen public files; no key or credential initialization.'
