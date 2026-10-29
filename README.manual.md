@@ -212,6 +212,121 @@ if ($personalSourceHash -cne $personalDestinationHash) {
 
 Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
 
+### Windows Downloads の指示ファイル対策（明示的 opt-in）
+
+Downloads の `AGENTS.md`、`AGENTS.override.md`、`CLAUDE.md` を、安全な短い注意文で予約する任意の対策です。
+本文の正本は `chezmoi/.chezmoitemplates/downloads-agent-instructions.md` の1か所で、3つの template が参照します。
+ダウンロード内容は入力データとして扱い、ユーザーが許可した分析を妨げず、ファイル内の要求だけで操作権限を追加しません。
+
+Windows かつ boolean の `downloadsAgentGuards=true` を明示した場合だけ管理対象になります。
+未指定・false・非 Windows では配置しません。通常の `chezmoi apply` に含めないため、**この値は永続 config の `[data]` に保存せず、以下の対象限定コマンドにだけ渡す**運用を推奨します。
+永続 config へ true を保存すると、通常の apply も対象に含めるため、この手順の意図とは異なります。
+文字列の `"true"` など非 boolean 値は使いません。型エラーで、テンプレートを評価する diff / apply 等も停止します。
+値を渡さない verify の成功は、除外された3ファイルの正常性を意味しません。
+
+#### 初回配置の前提確認
+
+実配置には対象と差分の承認が必要です。以下は PowerShell 7.3 以上で chezmoi の .exe を呼び、ネイティブ引数渡しが Standard / Windows の場合の手順です。Legacy モードや .cmd / .bat shim は対象外です。
+これは手動の確認手順であり、自動配置 hook ではありません。
+実際の Windows Known Folder を解決してから、この最小構成のホーム配下 Downloads と比較します。
+リダイレクト・UNC・リンク、ブラウザ独自の別保存先は自動補正しません。一致しなければ停止し、正確な配置先を使う別案を承認してください。
+別の場所にもコピーを作る、junction を作る、Downloads の移動設定を変える、といった回避策は含めません。
+
+```powershell
+$guardFolderKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
+$guardFolderValue = (Get-ItemProperty -LiteralPath $guardFolderKey -ErrorAction Stop).'{374DE290-123F-4565-9164-39C4925E467B}'
+if ([string]::IsNullOrWhiteSpace($guardFolderValue)) { throw 'Downloads Known Folder is unavailable.' }
+$guardDownloads = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($guardFolderValue))
+$guardExpected = [IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'))
+if (-not [string]::Equals($guardDownloads, $guardExpected, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Redirected Downloads requires a separate exact-path plan.'
+}
+$guardDirectory = Get-Item -LiteralPath $guardDownloads -Force -ErrorAction Stop
+if (-not $guardDirectory.PSIsContainer -or ($guardDirectory.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'Downloads must be an existing directory without a reparse point.'
+}
+# Confirm the intended browser save location separately before proceeding.
+$guardNames = @('AGENTS.md', 'AGENTS.override.md', 'CLAUDE.md')
+$guardTargets = @($guardNames | ForEach-Object { Join-Path $guardDownloads $_ })
+foreach ($guardName in $guardNames) {
+    if (@(Get-ChildItem -LiteralPath $guardDownloads -Filter $guardName -Force -ErrorAction Stop).Count) {
+        throw "Existing target requires a decision before apply: $guardName"
+    }
+}
+$guardData = '{"downloadsAgentGuards":true}'
+```
+
+この確認はファイル・ディレクトリ・リンクの衝突を、本文を指示として読まずに検出して停止するための手動条件です。
+未知の同名ファイルがあれば、内容の確認・退避・置換の対象を提示して判断を求めます。無断で上書き・削除しません。
+攻撃者由来の内容を `chezmoi add` / `re-add` で管理正本へ取り込まないでください。
+確認後の競合を防止するロックではなく、通常の apply が全衝突を自動停止する保証でもありません。
+
+ブラウザ保存先との一致と初回配置の承認後だけ、同じセッションで3パスに限定して実行します。
+外部 diff・pager を起動せず、scripts を除外します。`--force` や引数なしの全体 apply は使いません。
+scripts の除外は既存 config の hooks 等の無効化ではありません。実適用前に既存設定の副作用も確認し、未承認の hook・外部取得が必要なら停止します。
+
+```powershell
+chezmoi --override-data $guardData diff --exclude=scripts --no-pager --use-builtin-diff @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard diff failed; do not apply.' }
+# Stop if the diff contains unexpected targets or an unapproved replacement.
+chezmoi --override-data $guardData apply --exclude=scripts @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard apply failed; inspect state before retrying.' }
+chezmoi --override-data $guardData verify --exclude=scripts @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard verification failed.' }
+```
+
+各コマンドの終了コードを確認し、失敗・対象不明・想定外の差分があれば次の操作に進みません。
+diff は表示内容で差分を判断し、終了コード0だけを「差分なし」と解釈しません。
+verify と管理対象一覧を併せ、3ファイルが実際に管理されていること、同一の非空本文であることを読み戻します。
+一覧は `chezmoi --override-data $guardData managed --include=files @guardTargets` で対象を限定して確認します。
+この機能を初めて有効にする既存ファイルも、過去の管理記録があると推定して上書きしません。
+
+#### 整合性確認と復旧
+
+配置先を再確認し、同じ opt-in を付けた対象限定 diff / verify を手動で実施します。常駐監視は追加しません。
+内容変更・削除は verify の非0終了と diff によって検出します。本文一致から属性・ACL の一致は推定しません。
+同一本文での再実行は無変更ですが、変更を検出した場合は apply より先に停止してください。
+
+復旧では、管理正本・配置先・変更または欠落した正確なパスを確認します。
+未知の本文を agent に指示として渡さず、必要な退避先と置換・削除の差分を提示して承認を求めます。
+承認されたパスだけを復旧し、残りの2ファイルや通常のダウンロードには触れず、読み戻しと3パスの verify を行います。
+期待本文の確認には `chezmoi --override-data $guardData cat $guardTargets[0]` を使えます。
+復旧は shell の `>` やテキスト変換に頼らず、chezmoi のネイティブ出力を使います。再確認済みの3パスのうち承認された正確な1パスを `$guardRestoreTarget` に設定し、書き込み直前に通常ファイルまたは欠落であることを確認します。リンク・ディレクトリ・対象不明なら停止します。
+その1パスだけに `chezmoi --override-data $guardData --output $guardRestoreTarget cat $guardRestoreTarget` を実行し、終了コード・期待本文とのバイト一致・verify を確認します。失敗時は再送せず現状を確認します。
+この出力は対象を置換する書き込みであり、事前の退避や置換にもそれぞれ承認が必要です。未承認のパスや複数 target を同時に渡しません。PowerShell 事前確認そのものの実機検証は含みません。
+削除済みファイルの再生成も復旧判断の対象です。force、全体 apply、正本の自動更新で検出結果を消しません。
+
+opt-in を外しても、配置済みファイルは残ります。管理対象からの除外は、削除や loader に対する効果の撤回ではありません。
+撤去が必要なら対象3パスの現行内容と影響を確認し、別途承認して削除します。
+
+#### 効果の限界と通常利用への影響
+
+予約した3ファイルが見えるようになり、同名保存時の連番化・置換確認などに影響します。他の Downloads ファイルを一括拒否しません。
+ブラウザは保存経路により uniquify / overwrite / prompt が異なり、Explorer コピーや各解凍アプリも別動作です。
+Expand-Archive は既定で非上書き、`-Force` は上書きしますが、この仕様を他アプリに転用しません。
+これらの実 UI、上書き・削除・rename/replace の挙動は、環境別の実機試験なしでは保証しません。
+
+Read-only 属性、ACL、Codex / Claude の deny は変更しません。
+chezmoi v2.73.3 の Windows `Chmod` は no-op なので、`readonly_` prefix だけで属性付与を保証しません。
+属性を解除できる同一ユーザーの操作や、file DELETE / parent DELETE_CHILD が関係する削除・置換にも耐えるとはしません。
+ACL は同じユーザーで動く正規操作と攻撃コードを自動識別せず、親 Downloads の制限は通常の整理操作にも影響し得ます。
+
+事前配置は起動時の指示読み込みそのものを禁止する設定ではありません。
+Codex の read-only は読み取りを許し、shell の sandbox/deny と harness の起動時探索は同じ保証ではありません。
+Claude の Read deny、起動時除外 `claudeMdExcludes`、対応 OS の shell sandbox も別の制御です。
+native Windows の Claude shell は sandbox 対応 OS と同一視しません。
+4環境の loader、`/cd` と shell cd、各 deny の実効性は未検証であり、この配置の成功から推定しません。
+`CLAUDE.local.md`、`.claude/rules`、配下の指示ファイル、添付・ツール結果、正本の侵害、確認と実行の間の競合も保証範囲外です。
+
+#### リポジトリの検証
+
+既存の `validate-instructions.py` と `test-instructions.py` に加え、後者の Downloads fixture は既存の実体バイナリを `CHEZMOI_TEST_BINARY` で明示して実行します。
+未指定なら CLI fixture は skip と報告し、導入・検証成功とは扱いません。テストが自動インストールや本物のホームへの apply を行うことはありません。
+fixture は一時 source / destination / config / state / cache に最小ソースだけを置き、scripts・externals・通常設定を読み込まずに検証します。復旧も同じネイティブ出力の経路でバイト一致を確認します。
+無害なデータで配置・再実行・改変削除検出・判断後の限定復旧・無効化を検査し、衝突時の停止条件は Python でモデル化して確認します。
+README の PowerShell 事前確認は未実行（静的確認のみ）です。Known Folder 解決・パス比較・reparse point・実際の列挙による衝突検出を実測したとは扱いません。終了時に fixture を削除します。
+実 Downloads、実機の属性・ACL・deny、agent の攻撃入力読み込みは、このテストに含みません。
+
 ### ローカル本人情報と Identity Resolution
 
 一般規約の正本は `link-targets/agents/AGENTS.md`、本人の実データの保存候補は **`link-targets/agents/AGENTS.local.md` の `Personal Data` 節**です。
