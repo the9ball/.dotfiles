@@ -1,8 +1,10 @@
 {{- if ne .chezmoi.os "windows" }}
 .psmux.conf
-.codex/.codex-global-state.json
 AppData/
 {{- end }}
+
+# Keep Codex Desktop projects and runtime state managed by the app.
+.codex/.codex-global-state.json
 
 # Keep repository instructions out of the destination home directory.
 AGENTS.md

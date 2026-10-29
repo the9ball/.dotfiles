@@ -23,9 +23,6 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 ~~~sh
 # 初回はAqua管理のCLI（Codexを含む）を先に導入する
 aqua install --config "$HOME/.dotfiles/aqua.yaml"
-# リポジトリ以外のディレクトリで、プロジェクトや依頼を指定せずCodexを1回起動する
-cd "$HOME"
-codex
 # 初回だけ、リポジトリを明示してchezmoiの設定を生成する
 cd "$HOME/.dotfiles"
 chezmoi --source "$HOME/.dotfiles" init
@@ -34,7 +31,10 @@ chezmoi apply
 chezmoi verify --exclude=scripts
 ~~~
 
-初回の`init`以後は、リポジトリのルートを明示せず`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を実行できます。Windowsで初回の空起動を省略してグローバル状態がないまま適用すると、状態変更用テンプレートは失敗します。状態を自動作成・黙ってスキップはせず、空起動してから再試行してください。
+初回の`init`以後は、リポジトリのルートを明示せず`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を実行できます。
+
+Codex Desktopのプロジェクトと関連フォルダーの設定は、アプリで行います。
+`~/.codex/.codex-global-state.json`はchezmoiの管理対象から除外しています。
 
 `chezmoi apply`は、次の処理を実行します。
 

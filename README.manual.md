@@ -148,21 +148,19 @@ cd "$HOME/.dotfiles"
 ```
 
 すでにclone済みの場合は、`git pull --rebase`で更新します。
-初回の`chezmoi apply`でCodexのグローバル状態を更新できるよう、先にAqua管理のCLIを導入し、プロジェクトや依頼を指定せずCodexを1回起動して終了します。
+先にAqua管理のCLIを導入します。
 
 ```sh
 aqua install --config "$HOME/.dotfiles/aqua.yaml"
-cd "$HOME"
-codex
 ```
 
-Codexを終了した後、初回だけリポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
+初回だけリポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
 
 ```sh
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
-以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
+以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。
 
 Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
 
