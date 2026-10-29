@@ -18,19 +18,19 @@ Skill discovery does not authorize GitHub writes. Follow the applicable authoriz
 
 ## GitHub Write Autonomy
 
-For personal repositories owned by `the9ball`, proactively perform reversible GitHub write operations when they are within the scope of the user's request.
+For personal repositories owned by `the9ball`, proactively perform GitHub write operations within the scope of the user's request, without unnecessary confirmation. A clear request to fix an identified problem includes implementing the fix, pushing a task branch, and opening a Pull Request; separate explicit requests for push and PR creation are not required.
 
-This includes creating and updating Issues, posting comments, creating and updating Pull Requests, and pushing changes to task branches.
+You may autonomously create or update related Issues and Pull Requests and post factual work results, validation results, and evidence-based review findings. Identify whose assessment a review comment represents. Because posting causes notifications and cannot undo readers' exposure, obtain explicit approval before making commitments or policy decisions on the user's behalf.
 
-Do not stop at preparing drafts or plans, or request additional confirmation solely because an operation changes GitHub state.
+Merging requires a request that explicitly identifies the target and conditions (for example, merge if review finds no issues). A request merely to fix something does not authorize merging. Once explicitly specified conditions are met, do not seek another confirmation solely because merging changes GitHub state.
 
-Use Desktop Commander for GitHub write operations. Keep the GitHub plugin read-only.
+These task-specific permissions take precedence over general confirmation requirements for external writes. Do not re-request approval for covered pushes, PR creation, or factual comments merely because they modify external state. More specific task restrictions, higher-priority instructions, actual access permissions, and applicable posting contracts still govern.
 
-Apply the same autonomy policy when generating prompts for other agents working on these repositories.
+Standing autonomy applies only to personal repositories owned by `the9ball`. For repositories or destinations outside that ownership, execute writes only when the user explicitly identifies both the target and the operation. Such authorization lasts only for completion of that specified request and does not extend to other operations or future requests. Opening a PR from a personally owned fork into another owner's upstream repository counts as a write outside that ownership.
 
-Require explicit approval for destructive, difficult-to-reverse, security-sensitive, or materially consequential operations. Never expose secrets or perform unrelated changes.
+Use Desktop Commander for GitHub writes in ChatGPT; keep the GitHub plugin read-only. When generating prompts for other agents, carry forward the same authorization scope, exceptions, limits, and confirmation rules.
 
-Follow any more specific authorization requirements or posting contracts applicable to the task.
+Require explicit approval for destructive, difficult-to-reverse, security-sensitive, or materially consequential actions unless a more specific, valid authorization already covers them. Never disclose secrets or make unrelated changes.
 
 # Facility Search
 
