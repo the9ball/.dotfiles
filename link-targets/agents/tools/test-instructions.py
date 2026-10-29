@@ -1840,5 +1840,193 @@ if ($LASTEXITCODE -ne 0) { throw 'Identical repeat failed' }
                     self.assertTrue(all((downloads / name).read_bytes() == self.notice for name in self.names))
 
 
+class DownloadsPrivatePreflightTests(unittest.TestCase):
+    """Exercise the user-run checker solely against synthetic paths and config."""
+
+    def setUp(self):
+        """Load the checker without invoking its host-dependent entry point."""
+        checker_path = SCRIPT.with_name("check-downloads-guards.py")
+        specification = importlib.util.spec_from_file_location("downloads_preflight", checker_path)
+        self.checker = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(self.checker)
+        self.temporary = tempfile.TemporaryDirectory(prefix="downloads-private-check-")
+        self.addCleanup(self.temporary.cleanup)
+        self.profile = Path(self.temporary.name).resolve() / "synthetic profile"
+        self.downloads = self.profile / "Downloads"
+        self.downloads.mkdir(parents=True)
+        self.repository = Path(self.temporary.name) / "repository"
+        self.environment = patch.dict(os.environ, {"USERPROFILE": str(self.profile)}, clear=True)
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
+
+    def test_clean_metadata_and_all_collision_names(self):
+        """Detect each reserved name without opening existing file contents."""
+        rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+        self.assertTrue(all(row[1] == "PASS" for row in rows))
+        for name in self.checker.NAMES:
+            with self.subTest(name=name):
+                target = self.downloads / name
+                target.write_bytes(b"synthetic private content")
+                with patch.object(Path, "open", side_effect=AssertionError("must not read")), \
+                        patch("builtins.open", side_effect=AssertionError("must not read")), \
+                        patch("io.open", side_effect=AssertionError("must not read")), \
+                        patch.object(os, "open", side_effect=AssertionError("must not read")):
+                    rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+                self.assertIn((name, "BLOCKED", "ENTRY_EXISTS"), rows)
+                target.unlink()
+
+    def test_redirect_and_directory_collision(self):
+        """Keep redirect mismatch and directory collisions blocked."""
+        rows = self.checker.path_checks(self.downloads, self.profile, self.profile / "elsewhere")
+        self.assertEqual(rows[0][1], "BLOCKED")
+        (self.downloads / "AGENTS.md").mkdir()
+        rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+        self.assertIn(("AGENTS.md", "BLOCKED", "ENTRY_EXISTS"), rows)
+
+    def test_configuration_flags_remain_separate_from_effect_safety(self):
+        """Parse synthetic config without treating missing hooks as execution proof."""
+        directory = self.profile / ".config" / "chezmoi"
+        directory.mkdir(parents=True)
+        (directory / "chezmoi.json").write_text(json.dumps({
+            "sourceDir": str(self.repository), "data": {"downloadsAgentGuards": True},
+            "hooks": {"apply": {"pre": {"command": "never-execute"}}},
+        }), encoding="utf-8")
+        rows = self.checker.configuration_checks(self.profile, self.repository)
+        self.assertIn(("chezmoi_source", "PASS", "EXPECTED_SOURCE"), rows)
+        self.assertIn(("config_opt_in", "BLOCKED", "ENABLED_OR_INVALID_TYPE"), rows)
+        self.assertIn(("persistent_opt_in", "UNKNOWN", "SOURCE_DATA_NOT_CHECKED"), rows)
+        self.assertIn(("hooks", "BLOCKED", "PRESENT"), rows)
+        self.assertIn(("diff_verify", "UNKNOWN", "NOT_EXECUTED_CONFIG_EFFECTS_UNPROVEN"), rows)
+
+    def test_override_and_unsupported_config_do_not_pass(self):
+        """Do not guess environment overrides or unsupported configuration syntax."""
+        with patch.dict(os.environ, {"CHEZMOI_CONFIG": "synthetic-secret"}):
+            rows = self.checker.configuration_checks(self.profile, self.repository)
+            self.assertEqual(rows, [("configuration", "UNKNOWN", "ENVIRONMENT_OVERRIDE_PRESENT")])
+        directory = self.profile / ".config" / "chezmoi"
+        directory.mkdir(parents=True)
+        (directory / "chezmoi.yaml").write_text("synthetic: private", encoding="utf-8")
+        rows = self.checker.configuration_checks(self.profile, self.repository)
+        self.assertEqual(rows[0][1], "UNKNOWN")
+
+    def test_exception_and_config_values_never_reach_output(self):
+        """Suppress private exception details and keep all output to status codes."""
+        import contextlib
+        import io
+
+        output = io.StringIO()
+        with patch.object(sys, "platform", "win32"), contextlib.redirect_stdout(output):
+            with patch.object(self.checker, "local_paths", side_effect=OSError("synthetic-secret")):
+                self.assertEqual(self.checker.main(), 2)
+        self.assertNotIn("synthetic-secret", output.getvalue())
+        for line in output.getvalue().splitlines():
+            self.assertRegex(line, r"^[A-Za-z_.]+\|(PASS|BLOCKED|UNKNOWN)\|[A-Z_]+$")
+
+    def test_home_and_search_overrides_remain_unknown(self):
+        """Do not use Known Folder defaults for a different CLI home or search root."""
+        for override, reason in [
+            ({"USERPROFILE": "different-home"}, "HOME_ENVIRONMENT_MISMATCH"),
+            ({"USERPROFILE": ""}, "HOME_ENVIRONMENT_MISMATCH"),
+            ({"XDG_CONFIG_DIRS": "synthetic-search"}, "ADDITIONAL_CONFIG_SEARCH_ROOTS"),
+        ]:
+            with self.subTest(reason=reason), patch.dict(os.environ, override):
+                rows = self.checker.configuration_checks(self.profile, self.repository)
+                self.assertEqual(rows, [("configuration", "UNKNOWN", reason)])
+
+    def test_case_variant_keys_cannot_hide_effects(self):
+        """Recognize case variants and reject ambiguous duplicate spellings."""
+        directory = self.profile / ".config" / "chezmoi"
+        directory.mkdir(parents=True)
+        (directory / "chezmoi.json").write_text(json.dumps({
+            "destdir": str(self.profile / "elsewhere"), "Hooks": {"apply": {}},
+            "Data": {"DownloadsAgentGuards": True},
+        }), encoding="utf-8")
+        rows = self.checker.configuration_checks(self.profile, self.repository)
+        self.assertIn(("chezmoi_target", "BLOCKED", "DESTINATION_OVERRIDE"), rows)
+        self.assertIn(("hooks", "BLOCKED", "PRESENT"), rows)
+        self.assertIn(("config_opt_in", "BLOCKED", "ENABLED_OR_INVALID_TYPE"), rows)
+        with self.assertRaises(ValueError):
+            self.checker.normalized_keys({"hooks": {}, "Hooks": {}})
+
+    def test_alias_collision_uses_exact_name_metadata(self):
+        """Detect an alias lookup even when directory enumeration omits the name."""
+        original_stat = Path.lstat
+
+        def alias_stat(path, *arguments, **keywords):
+            """Expose only reserved-name lookups as synthetic alias entries."""
+            return original_stat(self.downloads if path.name in self.checker.NAMES else path,
+                                 *arguments, **keywords)
+
+        with patch.object(Path, "lstat", alias_stat):
+            rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+        self.assertTrue(all(row[1] == "BLOCKED" for row in rows[1:]))
+
+    def test_duplicate_json_keys_and_private_parse_errors(self):
+        """Never turn ambiguous duplicate JSON hooks into an absence PASS."""
+        import contextlib
+        import io
+
+        directory = self.profile / ".config" / "chezmoi"
+        directory.mkdir(parents=True)
+        (directory / "chezmoi.json").write_text('{"hooks":{"private":"value"},"hooks":{}}', encoding="utf-8")
+        output = io.StringIO()
+        with patch.object(sys, "platform", "win32"), contextlib.redirect_stdout(output):
+            with patch.object(self.checker, "local_paths", return_value=(self.downloads, self.profile, self.downloads)):
+                self.assertEqual(self.checker.main(), 2)
+        self.assertIn("configuration|UNKNOWN|CONFIG_QUERY_OR_PARSE_FAILED", output.getvalue())
+        self.assertNotIn("hooks|PASS", output.getvalue())
+        self.assertNotIn("private", output.getvalue())
+        self.assertTrue(output.getvalue().endswith("summary|UNKNOWN|PREFLIGHT_INCOMPLETE\n"))
+
+    def test_nonlocal_drive_is_stopped_before_metadata_access(self):
+        """Reject remote or unknown drives without enumerating target entries."""
+        with patch.object(self.checker, "fixed_local_drive", return_value=False):
+            with patch.object(os, "scandir", side_effect=AssertionError("must not enumerate")):
+                rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+                self.assertEqual(rows, [("location", "BLOCKED", "NONLOCAL_OR_UNCONFIRMED_DRIVE")])
+                rows = self.checker.configuration_checks(self.profile, self.repository)
+                self.assertEqual(rows, [("configuration", "UNKNOWN", "NONLOCAL_OR_UNCONFIRMED_DRIVE")])
+
+    def test_parent_link_is_rejected_before_child_access(self):
+        """Do not inspect a descendant of an observed reparse ancestor."""
+        from types import SimpleNamespace
+
+        original_stat = Path.lstat
+
+        def parent_stat(path, *arguments, **keywords):
+            """Model an ancestor reparse and forbid access to its child."""
+            if path == self.profile:
+                return SimpleNamespace(st_mode=0o040000, st_file_attributes=0x400)
+            if self.profile in path.parents:
+                raise AssertionError("must not follow parent")
+            return original_stat(path, *arguments, **keywords)
+
+        with patch.object(Path, "lstat", parent_stat):
+            rows = self.checker.path_checks(self.downloads, self.profile, self.downloads)
+        self.assertEqual(rows, [("location", "BLOCKED", "ANCESTOR_NOT_PLAIN_DIRECTORY")])
+
+    def test_config_permission_failure_cannot_mean_absence(self):
+        """Keep unreadable config candidates unknown instead of declaring no hooks."""
+        import contextlib
+        import io
+
+        (self.profile / ".config" / "chezmoi").mkdir(parents=True)
+        original_stat = Path.lstat
+
+        def restricted_stat(path, *arguments, **keywords):
+            """Deny one synthetic config candidate without emitting its path."""
+            if path.name == "chezmoi.toml":
+                raise PermissionError("synthetic private value")
+            return original_stat(path, *arguments, **keywords)
+
+        output = io.StringIO()
+        with patch.object(sys, "platform", "win32"), contextlib.redirect_stdout(output), \
+                patch.object(Path, "lstat", restricted_stat), \
+                patch.object(self.checker, "local_paths", return_value=(self.downloads, self.profile, self.downloads)):
+            self.assertEqual(self.checker.main(), 2)
+        self.assertIn("configuration|UNKNOWN|CONFIG_QUERY_OR_PARSE_FAILED", output.getvalue())
+        self.assertNotIn("hooks|PASS", output.getvalue())
+
+
 if __name__ == "__main__":
     unittest.main()

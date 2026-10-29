@@ -224,6 +224,29 @@ Windows かつ boolean の `downloadsAgentGuards=true` を明示した場合だ�
 文字列の `"true"` など非 boolean 値は使いません。型エラーで、テンプレートを評価する diff / apply 等も停止します。
 値を渡さない verify の成功は、除外された3ファイルの正常性を意味しません。
 
+#### 実値を公開しない読み取り専用の事前確認
+
+実パスや private 指示ファイルの出力は配置の前提ではありません。以前拒否された本文出力を再試行せず、必要なメタデータと判定だけを扱います。
+エージェントの実機確認が利用できない場合は、利用者が Windows 上のこの checkout で次を実行し、`項目|PASS/BLOCKED/UNKNOWN|理由コード` の行だけを返してください。既に利用可能な実体の Python 3.11 以上が必要です。Microsoft Store alias / installer は起動せず、インストールや PATH 変更は行いません。
+
+```sh
+python -I -S -B link-targets/agents/tools/check-downloads-guards.py
+```
+
+このスクリプトは Windows Known Folder API（Downloads / Profile）、Downloads の登録値、祖先ディレクトリの属性、3名のエントリ名を調べます。Downloads 内のファイル本文は読みません。
+既定の chezmoi config は TOML / JSON のみデータとして読み、値を表示せず、配置元・配置先・config 内の opt-in・hook の有無を判定します。source の data ファイルは未確認なので、全体の永続 opt-in は UNKNOWN のままです。個人情報や例外本文、環境変数の値を出力しません。私的な指示ファイルを読みません。
+chezmoi、shell、template、hook、script、external は起動せず、Downloads・設定・レジストリ・属性を書き換えません。`-I -S -B` は Python のユーザー設定・site 起動処理・bytecode 保存を除外する指定です。
+環境変数 override、Profile と USERPROFILE の不一致、追加 config 探索先、非対応 config、照会失敗等は UNKNOWN です。設定キーの case 違いを照合し、曖昧な重複は UNKNOWN にします。
+UNC と固定ローカルドライブと確認できない対象は、ディレクトリにアクセスする前に停止します。subst の解決や任意の wrapper / 明示 CLI 引数による設定変更は未確認です。後続コマンドの実体・引数・探索範囲も別途固定します。
+祖先は根から子の順に確認し、リンク・reparse・不明な属性があればその先へ進みません。config 候補の照会失敗も、不在と推定せず UNKNOWN にします。これらの確認は競合を防ぐロックではありません。
+現時点では source 全体の副作用を検証していないため、scripts / externals / diff_verify は UNKNOWN を返します。最後の `summary` 行まで正常に出力された場合のみ、終了コード1は BLOCKED が存在、2は UNKNOWN を含む未完了を意味します。終了コードだけで判定せず、0による実導入の許可も出しません。
+diff の外部コマンド・pager・encryption・secret・textconv 等の個別の設定効果も、未評価の diff_verify に含めます。
+
+BLOCKED があれば実ファイルに触れず、その種類についてだけ判断します。UNKNOWN を PASS と扱わず、通常 config での diff / verify / apply を続けません。
+結果を受けて、公開 source と対象限定コマンドの評価、または既存 config / hooks / externals を使用しない guard 専用の一時 source / config の提案に絞ります。後者も承認レビューや安全設定を無効化する経路ではなく、別途示す配置操作の範囲です。実配置はどちらの場合も別承認です。
+Python の起動失敗・中断・閉じた出力先等の診断は判定結果ではありません。traceback や shell の診断を貼らず、実行できなかった旨だけを伝えてください。
+この確認の成功からブラウザ保存先、競合防止、loader の防御効果は推定しません。実配置直前には配置先・3名の欠落を再確認し、途中失敗なら自動再送・削除・置換を行いません。
+
 #### 初回配置の前提確認
 
 実配置には対象と差分の承認が必要です。以下は PowerShell 7.3 以上で chezmoi の .exe を呼び、ネイティブ引数渡しが Standard / Windows の場合の手順です。Legacy モードや .cmd / .bat shim は対象外です。
