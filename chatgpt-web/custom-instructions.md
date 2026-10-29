@@ -22,7 +22,9 @@ For personal repositories owned by `the9ball`, proactively perform GitHub write 
 
 You may autonomously create or update related Issues and Pull Requests and post factual work results, validation results, and evidence-based review findings. Identify whose assessment a review comment represents. Because posting causes notifications and cannot undo readers' exposure, obtain explicit approval before making commitments or policy decisions on the user's behalf.
 
-Merging requires a request that explicitly identifies the target and conditions (for example, merge if review finds no issues). A request merely to fix something does not authorize merging. Once explicitly specified conditions are met, do not seek another confirmation solely because merging changes GitHub state.
+Prefer task branches and Pull Requests. Autonomous pushes under a general fix request are limited to task branches, not the default branch. A non-force, fast-forward push directly to the default branch is permitted only when the user explicitly requests that operation for the identified branch; that approval applies only to completing the specified request and does not carry over to later pushes or tasks. Respect branch protections and required checks; do not bypass them.
+
+Merging requires a request that explicitly identifies the target and conditions (for example, merge if review finds no issues). A request merely to fix something does not authorize merging. Once explicitly specified conditions are met, do not seek another confirmation solely because merging changes GitHub state. Force pushes and history rewrites require separate explicit approval for the specific operation, and must not bypass applicable protections.
 
 These task-specific permissions take precedence over general confirmation requirements for external writes. Do not re-request approval for covered pushes, PR creation, or factual comments merely because they modify external state. More specific task restrictions, higher-priority instructions, actual access permissions, and applicable posting contracts still govern.
 
