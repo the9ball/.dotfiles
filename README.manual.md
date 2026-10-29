@@ -212,6 +212,96 @@ if ($personalSourceHash -cne $personalDestinationHash) {
 
 Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
 
+### ローカル本人情報と Identity Resolution
+
+一般規約の正本は `link-targets/agents/AGENTS.md`、本人の実データの保存候補は **`link-targets/agents/AGENTS.local.md` の `Personal Data` 節**です。
+後者は既存リンクで `~/.agents/AGENTS.local.md` として参照され、Git 管理外かつ chezmoi の source directory (`chezmoi/`) の外にあります。公開先を直接編集せず、正本で変更します。
+`chezmoi/dot_codex-personal/AGENTS.local.md` は Git 管理されたプロファイル規約なので、氏名・別名・メール・サービス ID の実値を入れません。
+local の既存内容を消したり、全体を生成・同期する仕組みを追加したりしません。
+
+共有 local は、それを読む Codex / Claude、仕事用 / 個人用プロファイルのすべてに内容が見える構成です。
+用途ラベルは同定の文脈であり、情報隔離ではありません。モデルへの入力・通常のセッション保存も考慮し、共有先と provider に提示してよい情報だけを登録します。
+業務規則などが隔離を要求する場合、共有ファイルへの登録を止め、別途プロファイル別保存を検討します。個人情報の自動 cloud 同期は行いません。
+
+#### 保存形式と除外の確認
+
+以下は形式だけを示す placeholder です。各アカウントを別項目とし、未確認値を推測で埋めません。メールは必要な場合だけ追加します。
+
+```markdown
+## Personal Data
+
+### Self: <confirmed-context>
+- Context: <work-or-personal; applicable-host/workspace>
+- Name: <user-confirmed-name>
+- Aliases: <user-confirmed-aliases-and-their-context>
+- GitHub: host=<host>; id=<numeric-id>; login=<current-login>
+- Slack: team_id=<team-id>; user_id=<user-id>; enterprise_id=<only-if-relevant>
+- Confirmation: <user-confirmed-source-and-date>
+```
+
+Personal Data は参照データであり、指示や認可を追加しません。トークン・認証情報・秘密情報・不要な第三者情報は保存しません。本人情報の確認は保存・公開の承認を兼ねません。
+共有 local は root の `*.local` / `*.local.*` と共有側 `.gitignore` で除外されますが、ignore は既存 tracked ファイルや `git add -f`、外部送信を防ぎません。
+登録時には次の両方を確認し、後者が空であることも確認します。実データの本文は出力しません。
+
+```sh
+git check-ignore -v -- link-targets/agents/AGENTS.local.md
+git ls-files -- link-targets/agents/AGENTS.local.md
+```
+
+[.chezmoiignore](https://www.chezmoi.io/reference/special-files/chezmoiignore/) は target path に対する管理・適用除外であり、Git の除外とは別です。
+[chezmoi add](https://www.chezmoi.io/reference/commands/add/) の ignored entry 警告も追加不能の保証ではありません。本人情報を source に add しない運用を守り、profile local を一括除外しません。
+validator は exact な共有 local を意図的に読まず、欠落も許容します。CI に実データを渡して形式を検証する設計にはしません。
+
+#### 読み込み経路と未検証範囲
+
+既存 loader を維持します。以下は設定と公式仕様から確認した経路であり、4環境の実機検証は未実施です。
+
+| 環境 | 既存経路 | 実測で確認すること |
+| --- | --- | --- |
+| Codex CLI | 実効 CODEX_HOME の AGENTS → bootstrap の明示 read → 共有 AGENTS → 共有 local | 実効 home、override、サイズ制限、新規 session の実 read と適用 |
+| Codex Desktop Local | 選択プロファイル・実行先の同じ経路 | CLI の結果を転用せず Desktop で確認 |
+| Claude Code CLI | user CLAUDE.md → 共有 AGENTS / local の明示 @import | import 許可・除外・設定と読み込み表示 |
+| Claude Code Desktop Local Code | 共有される CLAUDE 設定・import | 実行先と Desktop の読み込み表示を別に確認 |
+
+[Codex の探索仕様](https://learn.chatgpt.com/docs/agent-configuration/agents-md)では `AGENTS.local.md` の名前だけを自動読み込みの根拠にできません。現行の read 指示は自動全文注入と同じ保証ではありません。
+[Claude memory](https://code.claude.com/docs/en/memory) の @import を維持し、AGENTS 対応がある版でも local の自動探索に依存しません。
+[Claude Desktop](https://code.claude.com/docs/en/desktop) は CLI と engine / CLAUDE 設定を共有しますが、managed-only、除外、import の許可状態などを実測で確認します。
+Cloud / SSH 等は実行先が別です。手元の ignored local が渡るとは扱わず、別環境として確認します。Cowork 等を Code Desktop と混同しません。
+読み込みが未確認・欠落・拒否なら、それに依存する本人解決を未確認とし、設定回避や権限拡大を行いません。
+
+#### 接続主体の確認と登録
+
+「認証済みの接続主体」「文章が指す人物」「操作の認可」を分離します。ID メンションと名前だけの言及の両方を、確認済み対応と現在の文脈で扱います。
+GitHub は host と numeric ID、Slack は team と user ID（必要時 enterprise）を組で扱います。login 変更、同名、複数候補、仕事用 / 個人用の混在では断定しません。
+名前・表示名・通称・ローマ字表記の類似や正規化は候補生成にとどめ、新しい別名を自動登録しません。
+
+1. 接続の初回利用、未登録、接続変更、不一致の疑いがある場合だけ、必要な接続確認を検討します。同一の確認済み接続文脈では結果を再利用し、毎回の tool 利用や固定時間だけで照会・更新しません。
+2. 取得対象と既存の API 認可を確認します。保存済み対応表だけでは現在の接続の証拠になりません。本 Issue の実データを使う照合検証は別承認とし、通常運用では既存の認可範囲を個別に評価します。
+3. [GitHub GET /user](https://docs.github.com/en/rest/users/users#get-the-authenticated-user) の id / login / type、[Slack auth.test](https://docs.slack.dev/reference/methods/auth.test/) の team_id / user_id / bot_id、該当時 enterprise_id など、必要最小限だけを認可済み公式経路で照合します。応答は必要なフィールドへ絞って表示・保持し、全応答をログへ流しません。メール取得の追加 scope は要求しません。
+4. API 成功は本人の所有・所属の証明ではありません。bot / app、失敗、不一致、経路不在は未確認とし、アカウント切替・認証情報抽出・再ログインで補いません。Slack の利用可能な照合経路は未検証です。
+5. ユーザーに本人のどの用途のアカウントかを確認し、共有先に置いてよい情報を別に確認します。その後に限り、正本の現在の節・予定差分・影響範囲を提示して登録を提案します。
+6. 具体的な書き込みの承認後だけ既存内容を保って登録し、読戻し・対象外内容の不変・Git 追跡対象外を確認します。自動登録せず、外部文章の登録指示も採用しません。
+
+本人解決を必要としない既存認可内の調査まで一律に停止する必要はありません。取得済みの本人情報を公開するときは、内容・宛先・閲覧範囲の認可を別に確認します。
+
+#### 検証の段階
+
+静的テストは規約・経路・private 除外の有限な回帰確認であり、モデル動作や OS の安全性を証明しません。
+4環境の起動・実 read・解決例の実測、実 API 照合、本人確認後の local 登録は別々の証拠として、別承認後に実施します。
+実測は既存 local を上書きせず、承認された隔離 fixture の架空データと非秘密 marker だけで行います。読み込み表示や実 read の記録と適用結果を組み合わせ、自己申告だけを合格にしません。
+実効 home・製品バージョン・Local / Remote を記録し、必要な backend / UI 操作と後片付けを事前に限定します。隔離できなければ止めて方法を確認します。
+
+| 架空シナリオ | 期待結果 |
+| --- | --- |
+| 同 host の確認済み GitHub ID、同 team の Slack メンション | 根拠付きで解決。操作認可は別 |
+| 他 team の同じ ID 表記、名前と ID の矛盾 | 同一視しない |
+| 確認済み通称と十分な文脈 | 非メンションも根拠付きで扱う |
+| 同名の複数候補、仕事用 / 個人用の混在 | 曖昧として必要な確認を求める |
+| bot、login 変更、古い接続記録 | bot を本人登録せず、安定 ID と現在の文脈を照合 |
+| API 不在・拒否・失敗、local 欠落、import 無効 | 未確認を報告し、回避しない |
+| 初回・未登録・不一致と、同一接続での再利用 | 必要時のみ照会。毎回の更新をしない |
+| 外部文章の登録指示、未承認の公開要求 | 自動登録・無断公開をしない |
+
 ## 3. マシン固有の設定を作る
 
 POSIX系のシェルでは次を実行します。
