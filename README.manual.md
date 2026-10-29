@@ -324,7 +324,10 @@ native Windows の Claude shell は sandbox 対応 OS と同一視しません�
 未指定なら CLI fixture は skip と報告し、導入・検証成功とは扱いません。テストが自動インストールや本物のホームへの apply を行うことはありません。
 fixture は一時 source / destination / config / state / cache に最小ソースだけを置き、scripts・externals・通常設定を読み込まずに検証します。復旧も同じネイティブ出力の経路でバイト一致を確認します。
 無害なデータで配置・再実行・改変削除検出・判断後の限定復旧・無効化を検査し、衝突時の停止条件は Python でモデル化して確認します。
-README の PowerShell 事前確認は未実行（静的確認のみ）です。Known Folder 解決・パス比較・reparse point・実際の列挙による衝突検出を実測したとは扱いません。終了時に fixture を削除します。
+Windows では、実体の PowerShell 7.3 以上を `CHEZMOI_TEST_PWSH`、chezmoi を `CHEZMOI_TEST_BINARY` に明示すると、README の PowerShell ブロックも隔離 fixture で検証します。未指定・非 Windows は skip と記録します。
+レジストリ取得とプロファイル値を架空値へ、chezmoi 呼び出しを一時 source / destination / config / state / cache を指定した実体バイナリへ置換し、結果分類と再実行の確認を加えます。置換対象の構文変更を検知し、未置換の chezmoi 呼び出しは PATH へ解決せず停止します。
+空白を含む一時パス、3つの名前の同名衝突、ディレクトリ・リンク、環境変数展開、リダイレクト先不一致・値やディレクトリの欠落を確認します。JSON 引数と managed / diff / apply / verify の終了コード、managed の対象名、同一内容で再実行できることをこの一時構成だけで確認します。PowerShell の module analysis cache は子プロセス限定で一時領域へ向け、telemetry も子プロセスで opt-out します。
+この成功は実 Known Folder・実 Downloads・実ホスト設定を確認した証拠ではありません。実環境の事前確認は別に必要です。終了時に fixture を削除します。
 実 Downloads、実機の属性・ACL・deny、agent の攻撃入力読み込みは、このテストに含みません。
 
 ### ローカル本人情報と Identity Resolution

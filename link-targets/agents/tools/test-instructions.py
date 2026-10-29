@@ -1706,6 +1706,139 @@ class DownloadsInstructionTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("incompatible types for comparison", result.stderr)
 
+    def test_windows_powershell_preflight_with_synthetic_registration(self) -> None:
+        """Run README commands on disposable Windows paths with no actual registry access."""
+        powershell = os.environ.get("CHEZMOI_TEST_PWSH")
+        if os.name != "nt" or not powershell or not self.binary:
+            self.skipTest("native Windows and explicit CHEZMOI_TEST_PWSH/CHEZMOI_TEST_BINARY are required")
+        for executable in (powershell, self.binary):
+            self.assertTrue(Path(executable).is_absolute() and Path(executable).is_file())
+            self.assertEqual(Path(executable).suffix.lower(), ".exe")
+        manual = (SCRIPT.parents[3] / "README.manual.md").read_text(encoding="utf-8")
+        section = manual.split("### Windows Downloads の指示ファイル対策", 1)[1].split("### ローカル本人情報", 1)[0]
+        blocks = re.findall(r"```powershell\n(.*?)```", section, re.DOTALL)
+        self.assertEqual(len(blocks), 2)
+        selector = "[Environment]::GetFolderPath('UserProfile')"
+        self.assertEqual(blocks[0].count(selector), 1)
+        self.assertEqual(blocks[0].count("Get-ItemProperty -LiteralPath $guardFolderKey"), 1)
+        self.assertNotRegex(blocks[0], r"(?i)Get-ItemPropertyValue|Registry::|\\Get-ItemProperty")
+        self.assertNotRegex(blocks[0], r"(?i)chezmoi")
+        self.assertNotRegex(blocks[0], r"(?i)\$HOME\b|\$env:USERPROFILE\b|~[/\\]")
+        self.assertEqual(blocks[1].count("chezmoi --override-data"), 3)
+        preflight = blocks[0].replace(selector, "$fixtureProfile")
+        operations = blocks[1].replace("chezmoi --override-data", "& $fixtureNative @fixtureArguments --override-data")
+        self.assertNotRegex(operations, r"(?i)chezmoi")
+        prefix = r'''param([string]$fixtureProfile,[string]$fixtureCase,[string]$fixtureRegistryPath,[string]$fixtureNative,[string]$fixtureSource,[string]$fixtureConfig,[string]$fixtureState,[string]$fixtureCache)
+$ErrorActionPreference='Stop'
+if ($PSVersionTable.PSVersion -lt [version]'7.3') { throw 'PowerShell 7.3 or newer is required' }
+function chezmoi {
+    <#
+    .SYNOPSIS
+    Stop an unmodified command before it can resolve through PATH.
+    #>
+    throw 'Unsubstituted chezmoi invocation'
+}
+function Get-ItemProperty {
+    <#
+    .SYNOPSIS
+    Return synthetic metadata without reading the actual registry.
+    #>
+    param([string]$LiteralPath,[string]$ErrorAction)
+    if ($LiteralPath -ne 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders') { throw 'Unexpected registry selector' }
+    return [pscustomobject]@{'{374DE290-123F-4565-9164-39C4925E467B}'=$fixtureRegistryPath}
+}
+try {
+'''
+        suffix = r'''
+} catch {
+    $errorType = $_.Exception.GetType().Name
+    $errorMessage = $_.Exception.Message
+    $reason = switch -Regex ($errorMessage) {
+        '^Existing target requires a decision' { 'collision'; break }
+        '^Redirected Downloads requires' { 'redirect'; break }
+        '^Downloads Known Folder is unavailable' { 'missing-registration'; break }
+        '^Downloads must be an existing directory' { 'directory-link'; break }
+        default { $errorType }
+    }
+    $target = if ($reason -eq 'collision') { ($errorMessage -split ': ',2)[1] } else { $null }
+    [pscustomobject]@{case=$fixtureCase;reason=$reason;target=$target}|ConvertTo-Json -Compress
+    exit 3
+}
+if ($fixtureCase -notin @('clean','expanded-registration')) { exit 4 }
+$fixtureArguments=@('--source',$fixtureSource,'--destination',$fixtureProfile,'--config',$fixtureConfig,'--persistent-state',$fixtureState,'--cache',$fixtureCache,'--refresh-externals=never','--no-tty')
+'''
+        final = r'''
+$managed=@(& $fixtureNative @fixtureArguments --override-data $guardData managed --include=files @guardTargets)
+if ($LASTEXITCODE -ne 0 -or $managed.Count -ne 3) { throw 'Managed target set mismatch' }
+$managedNames=@($managed | ForEach-Object { $_.Replace('\','/') } | Sort-Object)
+$expectedNames=@('Downloads/AGENTS.md','Downloads/AGENTS.override.md','Downloads/CLAUDE.md') | Sort-Object
+if (($managedNames -join "`n") -cne ($expectedNames -join "`n")) { throw 'Managed names mismatch' }
+& $fixtureNative @fixtureArguments --override-data $guardData apply --exclude=scripts @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Identical repeat failed' }
+[pscustomobject]@{case=$fixtureCase;managed=$managed.Count;argumentPassing=$PSNativeCommandArgumentPassing.ToString()}|ConvertTo-Json -Compress
+'''
+        script = self.root / "preflight.ps1"
+        script.write_text(prefix + preflight + suffix + operations + final, encoding="utf-8", newline="\n")
+        cases = {"clean": None, "expanded-registration": None, **{f"file-{name}": "collision" for name in self.names},
+                 "directory": "collision", "broken-link": "collision", "redirect": "redirect",
+                 "missing-registration": "missing-registration", "missing-directory": "ItemNotFoundException",
+                 "directory-link": "directory-link"}
+        base_environment = {key: value for key, value in os.environ.items() if not key.startswith("CHEZMOI_")}
+        base_environment["POWERSHELL_TELEMETRY_OPTOUT"] = "1"
+        for case, reason in cases.items():
+            with self.subTest(case=case):
+                environment = base_environment.copy()
+                profile = self.root / case / "home with spaces"
+                downloads = profile / "Downloads"
+                downloads.mkdir(parents=True)
+                registration = str(downloads)
+                if case.startswith("file-"):
+                    (downloads / case.removeprefix("file-")).write_bytes(b"harmless fixture data\n")
+                elif case == "directory":
+                    (downloads / "AGENTS.override.md").mkdir()
+                elif case == "redirect":
+                    registration = str(profile / "OtherDownloads")
+                elif case == "missing-registration":
+                    registration = ""
+                elif case == "missing-directory":
+                    downloads.rmdir()
+                elif case == "expanded-registration":
+                    environment["ISSUE192_FIXTURE_PROFILE"] = str(profile)
+                    registration = "%ISSUE192_FIXTURE_PROFILE%\\Downloads"
+                elif case in ("broken-link", "directory-link"):
+                    try:
+                        if case == "broken-link":
+                            (downloads / "CLAUDE.md").symlink_to(profile / "missing")
+                        elif case == "directory-link":
+                            downloads.rmdir()
+                            other = profile / "OtherDownloads"
+                            other.mkdir()
+                            downloads.symlink_to(other, target_is_directory=True)
+                    except OSError as error:
+                        self.skipTest(f"fixture symlink unavailable: {error.__class__.__name__}")
+                environment["PSModuleAnalysisCachePath"] = str(self.root / f"{case}-module-cache")
+                result = subprocess.run(
+                    [powershell, "-NoProfile", "-NonInteractive", "-File", str(script),
+                     "-fixtureProfile", str(profile), "-fixtureCase", case, "-fixtureRegistryPath", registration,
+                     "-fixtureNative", self.binary, "-fixtureSource", str(self.source),
+                     "-fixtureConfig", str(self.configuration), "-fixtureState", str(self.root / f"{case}.boltdb"),
+                     "-fixtureCache", str(self.root / f"{case}-cache")],
+                    cwd=self.root, env=environment, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
+                )
+                self.assertEqual(result.returncode, 0 if reason is None else 3, f"fixture case {case}: subprocess output withheld")
+                observation = json.loads(result.stdout.splitlines()[-1])
+                if reason is not None:
+                    self.assertEqual(observation["reason"], reason)
+                    if reason == "collision":
+                        expected_name = {"directory": "AGENTS.override.md", "broken-link": "CLAUDE.md"}.get(case, case.removeprefix("file-"))
+                        self.assertEqual(observation["target"], expected_name)
+                    if case.startswith("file-"):
+                        self.assertEqual((downloads / case.removeprefix("file-")).read_bytes(), b"harmless fixture data\n")
+                else:
+                    self.assertEqual(observation["managed"], 3)
+                    self.assertIn(observation["argumentPassing"], ("Standard", "Windows"))
+                    self.assertTrue(all((downloads / name).read_bytes() == self.notice for name in self.names))
+
 
 if __name__ == "__main__":
     unittest.main()
