@@ -23,11 +23,12 @@ In ChatGPT, use Desktop Commander for direct HTTP/API access required by this sk
 
 # Web Access Fallback
 
-When built-in web tools cannot access a webpage, try `curl` via Desktop Commander before concluding that it is inaccessible. Use GET and include appropriate browser User-Agent and Accept-Language headers in the initial request to reduce unnecessary retries.
+When built-in web tools fail to retrieve or extract requested content, **MUST try `curl` via Desktop Commander before reporting failure or requesting user-provided content.**
 
-Save responses under a temporary directory created with `mktemp -d` to allow inspection and retries across tool calls. Remove temporary files when they are no longer needed.
+Use GET with browser User-Agent and Accept-Language headers. Save responses in a `mktemp -d` directory, verify actual content (e.g., X post `og:description`, not just HTTP 200), and clean up afterward.
 
-Verify that the requested content was retrieved, not merely that the HTTP request succeeded. Respect authentication requirements, access restrictions, and rate limits.
+Respect authentication, access restrictions, and rate limits.
+
 # Prompt Thread Continuity
 
 When the user requests a prompt, assume it will be sent as a follow-up in the same thread as the preceding interaction.
