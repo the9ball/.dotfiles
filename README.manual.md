@@ -224,6 +224,29 @@ Windows かつ boolean の `downloadsAgentGuards=true` を明示した場合だ�
 文字列の `"true"` など非 boolean 値は使いません。型エラーで、テンプレートを評価する diff / apply 等も停止します。
 値を渡さない verify の成功は、除外された3ファイルの正常性を意味しません。
 
+#### 実値を公開しない読み取り専用の事前確認
+
+実パスや private 指示ファイルの出力は配置の前提ではありません。以前拒否された本文出力を再試行せず、必要なメタデータと判定だけを扱います。
+エージェントの実機確認が利用できない場合は、利用者が Windows 上のこの checkout で次を実行し、`項目|PASS/BLOCKED/UNKNOWN|理由コード` の行だけを返してください。既に利用可能な実体の Python 3.11 以上が必要です。Microsoft Store alias / installer は起動せず、インストールや PATH 変更は行いません。
+
+```sh
+python -I -S -B link-targets/agents/tools/check-downloads-guards.py
+```
+
+このスクリプトは Windows Known Folder API（Downloads / Profile）、Downloads の登録値、祖先ディレクトリの属性、3名のエントリ名を調べます。Downloads 内のファイル本文は読みません。
+既定の chezmoi config は TOML / JSON のみデータとして読み、値を表示せず、配置元・配置先・config 内の opt-in・hook の有無を判定します。source の data ファイルは未確認なので、全体の永続 opt-in は UNKNOWN のままです。個人情報や例外本文、環境変数の値を出力しません。私的な指示ファイルを読みません。
+chezmoi、shell、template、hook、script、external は起動せず、Downloads・設定・レジストリ・属性を書き換えません。`-I -S -B` は Python のユーザー設定・site 起動処理・bytecode 保存を除外する指定です。
+環境変数 override、Profile と USERPROFILE の不一致、追加 config 探索先、非対応 config、照会失敗等は UNKNOWN です。設定キーの case 違いを照合し、曖昧な重複は UNKNOWN にします。
+UNC と固定ローカルドライブと確認できない対象は、ディレクトリにアクセスする前に停止します。subst の解決や任意の wrapper / 明示 CLI 引数による設定変更は未確認です。後続コマンドの実体・引数・探索範囲も別途固定します。
+祖先は根から子の順に確認し、リンク・reparse・不明な属性があればその先へ進みません。config 候補の照会失敗も、不在と推定せず UNKNOWN にします。これらの確認は競合を防ぐロックではありません。
+現時点では source 全体の副作用を検証していないため、scripts / externals / diff_verify は UNKNOWN を返します。最後の `summary` 行まで正常に出力された場合のみ、終了コード1は BLOCKED が存在、2は UNKNOWN を含む未完了を意味します。終了コードだけで判定せず、0による実導入の許可も出しません。
+diff の外部コマンド・pager・encryption・secret・textconv 等の個別の設定効果も、未評価の diff_verify に含めます。
+
+BLOCKED があれば実ファイルに触れず、その種類についてだけ判断します。UNKNOWN を PASS と扱わず、通常 config での diff / verify / apply を続けません。
+結果を受けて、公開 source と対象限定コマンドの評価、または既存 config / hooks / externals を使用しない guard 専用の一時 source / config の提案に絞ります。後者も承認レビューや安全設定を無効化する経路ではなく、別途示す配置操作の範囲です。実配置はどちらの場合も別承認です。
+Python の起動失敗・中断・閉じた出力先等の診断は判定結果ではありません。traceback や shell の診断を貼らず、実行できなかった旨だけを伝えてください。
+この確認の成功からブラウザ保存先、競合防止、loader の防御効果は推定しません。実配置直前には配置先・3名の欠落を再確認し、途中失敗なら自動再送・削除・置換を行いません。
+
 #### 初回配置の前提確認
 
 実配置には対象と差分の承認が必要です。以下は PowerShell 7.3 以上で chezmoi の .exe を呼び、ネイティブ引数渡しが Standard / Windows の場合の手順です。Legacy モードや .cmd / .bat shim は対象外です。
@@ -281,7 +304,34 @@ verify と管理対象一覧を併せ、3ファイルが実際に管理されて
 一覧は `chezmoi --override-data $guardData managed --include=files @guardTargets` で対象を限定して確認します。
 この機能を初めて有効にする既存ファイルも、過去の管理記録があると推定して上書きしません。
 
-#### 整合性確認と復旧
+#### 読み取り専用の配置後整合性確認
+
+初回配置の直後と、後日信頼状態を確かめたいときは、既存の実体 Python 3.11 以上で次を実行します。検知を伴わない強制上書きは未採用の提案で、書き込みの承認もありません。このコマンドに修復機能はありません。
+
+```sh
+python -I -S -B link-targets/agents/tools/verify-downloads-guards.py
+```
+
+chezmoi / hooks / scripts / externals / host config は起動・評価しません。Windows Known Folder API / 登録値 / Profile 配下の配置先、固定ドライブ / DOS mapping、祖先のリンク・reparse を確認し、不明なら対象本文を読みません。
+3名の存在・種類・reparse を検査し、通常ファイルだけを最終リンクを辿らない読み取り handle で開きます。正本と対象の read は上限付きで、file identity も照合します。
+共通正本554 bytesの固定 SHA256 は `752f5b04f25729c3c8f962ed30a5668bd9e447714a852418f83cdf200a4ae0f0` です。正本自体の一致を先に確認し、3ファイルは期待バイト列と直接比較します。正本を変更しても期待ハッシュを自動更新しません。
+
+| 判定 | 意味 | 動作 |
+| --- | --- | --- |
+| PASS | 読み取り時点で期待バイト列に一致 | 修復しない |
+| MODIFIED | 通常ファイルのバイト列が不一致 | 内容・実ハッシュを表示せず、停止 |
+| MISSING | 指定名が存在しない | 再作成しない |
+| UNKNOWN | 配置先・正本・種類・リンク・権限・途中競合等が未確認 | PASS と扱わず、修復しない |
+
+出力は `項目|判定|理由コード` と最後の summary だけです。実パス・本文・個人情報・例外値は出しません。summary まで正常に出た場合、終了コード0は全3名 PASS、1は MODIFIED / MISSING、2は UNKNOWN です。起動失敗や中断の診断を共有しないでください。
+常駐監視・自動実行・通知は追加しません。検査する間隔の変更、修復、強制上書き、削除はこの読み取り操作とは別です。異常なら追加の書き込みをせず、必要な対象・操作の承認を求めます。
+
+これは外部の信頼を代替する仕組みではありません。検査コード・埋め込まれた期待ハッシュ・Python / OS を同じ攻撃者が変更できれば、偽の PASS を出せます。信頼できる別の参照先の commit / hash と照合し、正本と検査コードを同時に改ざんされた状態を自己証明できるとは扱いません。
+`-B` は pyc の保存を止めるだけで、stdlib の既存 pyc の読み取りを無効にする指定ではありません。依存する path checker は固定 hash と一致した同じ source bytes を compile / exec します。署名検証や任意コードの sandbox の代わりにはなりません。
+判定は各ファイルの読み取り時点です。3ファイル全体の原子的 snapshot、祖先の名前空間競合の完全防止、検査後の変更防止、hard link の別名からの変更防止、同一ユーザーに対する耐改ざん、loader の実動作は保証しません。
+隔離 fixture は正常・改変・削除・種類・配置先・正本不一致・出力を検証します。Windows の実ファイル symlink fixture は作成権限不足で未検証として skip し、権限変更や別方式で再試行しません。合成 reparse 属性による拒否判定と、実 symlink を使った検証は別の証拠です。
+
+#### chezmoi による整合性確認と復旧
 
 配置先を再確認し、同じ opt-in を付けた対象限定 diff / verify を手動で実施します。常駐監視は追加しません。
 内容変更・削除は verify の非0終了と diff によって検出します。本文一致から属性・ACL の一致は推定しません。
@@ -324,7 +374,10 @@ native Windows の Claude shell は sandbox 対応 OS と同一視しません�
 未指定なら CLI fixture は skip と報告し、導入・検証成功とは扱いません。テストが自動インストールや本物のホームへの apply を行うことはありません。
 fixture は一時 source / destination / config / state / cache に最小ソースだけを置き、scripts・externals・通常設定を読み込まずに検証します。復旧も同じネイティブ出力の経路でバイト一致を確認します。
 無害なデータで配置・再実行・改変削除検出・判断後の限定復旧・無効化を検査し、衝突時の停止条件は Python でモデル化して確認します。
-README の PowerShell 事前確認は未実行（静的確認のみ）です。Known Folder 解決・パス比較・reparse point・実際の列挙による衝突検出を実測したとは扱いません。終了時に fixture を削除します。
+Windows では、実体の PowerShell 7.3 以上を `CHEZMOI_TEST_PWSH`、chezmoi を `CHEZMOI_TEST_BINARY` に明示すると、README の PowerShell ブロックも隔離 fixture で検証します。未指定・非 Windows は skip と記録します。
+レジストリ取得とプロファイル値を架空値へ、chezmoi 呼び出しを一時 source / destination / config / state / cache を指定した実体バイナリへ置換し、結果分類と再実行の確認を加えます。置換対象の構文変更を検知し、未置換の chezmoi 呼び出しは PATH へ解決せず停止します。
+空白を含む一時パス、3つの名前の同名衝突、ディレクトリ・リンク、環境変数展開、リダイレクト先不一致・値やディレクトリの欠落を確認します。JSON 引数と managed / diff / apply / verify の終了コード、managed の対象名、同一内容で再実行できることをこの一時構成だけで確認します。PowerShell の module analysis cache は子プロセス限定で一時領域へ向け、telemetry も子プロセスで opt-out します。
+この成功は実 Known Folder・実 Downloads・実ホスト設定を確認した証拠ではありません。実環境の事前確認は別に必要です。終了時に fixture を削除します。
 実 Downloads、実機の属性・ACL・deny、agent の攻撃入力読み込みは、このテストに含みません。
 
 ### ローカル本人情報と Identity Resolution
