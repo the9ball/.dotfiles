@@ -388,6 +388,7 @@ Windows では、実体の PowerShell 7.3 以上を `CHEZMOI_TEST_PWSH`、chezmo
 local の既存内容を消したり、全体を生成・同期する仕組みを追加したりしません。
 
 共有 local は、それを読む Codex / Claude、仕事用 / 個人用プロファイルのすべてに内容が見える構成です。
+Git 管理外の `AGENTS.local.md` でも、製品・プロファイル間の情報隔離は提供しません。
 用途ラベルは同定の文脈であり、情報隔離ではありません。モデルへの入力・通常のセッション保存も考慮し、共有先と provider に提示してよい情報だけを登録します。
 業務規則などが隔離を要求する場合、共有ファイルへの登録を止め、別途プロファイル別保存を検討します。個人情報の自動 cloud 同期は行いません。
 
@@ -422,14 +423,24 @@ validator は exact な共有 local を意図的に読まず、欠落も許容�
 
 #### 読み込み経路と未検証範囲
 
-既存 loader を維持します。以下は設定と公式仕様から確認した経路であり、4環境の実機検証は未実施です。
+既存 loader を維持します。以下は設定と公式仕様から確認した経路と、過去の実測状況です。
 
-| 環境 | 既存経路 | 実測で確認すること |
+| 環境 | 既存経路 | 実測状況と未確認事項 |
 | --- | --- | --- |
-| Codex CLI | 実効 CODEX_HOME の AGENTS → bootstrap の明示 read → 共有 AGENTS → 共有 local | 実効 home、override、サイズ制限、新規 session の実 read と適用 |
-| Codex Desktop Local | 選択プロファイル・実行先の同じ経路 | CLI の結果を転用せず Desktop で確認 |
-| Claude Code CLI | user CLAUDE.md → 共有 AGENTS / local の明示 @import | import 許可・除外・設定と読み込み表示 |
-| Claude Code Desktop Local Code | 共有される CLAUDE 設定・import | 実行先と Desktop の読み込み表示を別に確認 |
+| Codex CLI | 実効 CODEX_HOME の AGENTS → bootstrap の明示 read → 共有 AGENTS → 共有 local | 過去の明示読み取りのみ限定 PASS。自動起動時の読み込みは未検証 |
+| Codex Desktop Local | 選択プロファイル・実行先の同じ経路 | 未検証。CLI の結果を転用せず Desktop で確認 |
+| Claude Code CLI | user CLAUDE.md → 共有 AGENTS / local の明示 @import | 未検証。import 許可・除外・設定と読み込み表示を確認 |
+| Claude Code Desktop Local Code | 共有される CLAUDE 設定・import | 未検証。実行先と Desktop の読み込み表示を別に確認 |
+
+実測状況の根拠は [Issue #188 の読み込み確認報告](https://github.com/the9ball/.dotfiles/issues/188#issuecomment-6491756388) です。
+Codex CLI の限定 PASS は、その時点のセッションで明示的に読めた範囲だけを示します。
+実効 home、override、サイズ制限、新規 session の自動読み込み順序・適用を保証しません。
+他3環境の未検証を、失敗や別環境の成功に読み替えません。
+Claude Code CLI の試験起動は、private 文脈の provider 送信リスクで実行前の承認レビューに拒否され、回避・再試行していません。
+
+目的はモデルとのやり取りの円滑化であり、読み込みの利便性はベストエフォートで扱います。
+4環境すべての自動読み込み保証や本人情報の登録は、一般規約の導入に必須ではありません。
+ただし、未確認の本人対応を断定せず、個人情報保護と自動登録禁止を維持します。
 
 [Codex の探索仕様](https://learn.chatgpt.com/docs/agent-configuration/agents-md)では `AGENTS.local.md` の名前だけを自動読み込みの根拠にできません。現行の read 指示は自動全文注入と同じ保証ではありません。
 [Claude memory](https://code.claude.com/docs/en/memory) の @import を維持し、AGENTS 対応がある版でも local の自動探索に依存しません。
@@ -438,6 +449,9 @@ Cloud / SSH 等は実行先が別です。手元の ignored local が渡ると�
 読み込みが未確認・欠落・拒否なら、それに依存する本人解決を未確認とし、設定回避や権限拡大を行いません。
 
 #### 接続主体の確認と登録
+
+本人確認 API の実行、本人情報の照合、ローカル登録は未実施です。
+本 Issue の後続工程として行う場合は、API 実行・照合と保存の具体的な対象・範囲をそれぞれ提示し、別承認を得ます。
 
 「認証済みの接続主体」「文章が指す人物」「操作の認可」を分離します。ID メンションと名前だけの言及の両方を、確認済み対応と現在の文脈で扱います。
 GitHub は host と numeric ID、Slack は team と user ID（必要時 enterprise）を組で扱います。login 変更、同名、複数候補、仕事用 / 個人用の混在では断定しません。
