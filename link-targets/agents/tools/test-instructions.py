@@ -1646,6 +1646,13 @@ class DownloadsInstructionTests(unittest.TestCase):
         self.run_chezmoi("apply", "--exclude=scripts", *(str(target) for target in self.targets), enabled=True)
         self.assertEqual(before, {target.name: (target.read_bytes(), target.stat().st_mtime_ns) for target in self.targets})
         self.assertTrue(all(target.read_bytes() == self.notice for target in self.targets))
+        verifier_path = SCRIPT.with_name("verify-downloads-guards.py")
+        specification = importlib.util.spec_from_file_location("applied_guard_verifier", verifier_path)
+        verifier = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(verifier)
+        rows = verifier.verify_directory(self.targets[0].parent,
+                                         self.source / ".chezmoitemplates/downloads-agent-instructions.md")
+        self.assertEqual(rows, [(name, "PASS", "BYTES_MATCH") for name in self.names])
         self.assertEqual({path.name for path in self.targets[0].parent.iterdir()}, set(self.names))
         expected = self.root / "expected.md"
         self.run_chezmoi("--output", str(expected), "cat", str(self.targets[0]), enabled=True)
@@ -2026,6 +2033,194 @@ class DownloadsPrivatePreflightTests(unittest.TestCase):
             self.assertEqual(self.checker.main(), 2)
         self.assertIn("configuration|UNKNOWN|CONFIG_QUERY_OR_PARSE_FAILED", output.getvalue())
         self.assertNotIn("hooks|PASS", output.getvalue())
+
+
+class DownloadsIntegrityTests(unittest.TestCase):
+    """Verify integrity verdicts on isolated files without actual Known Folder reads."""
+
+    def setUp(self):
+        """Load the verifier and prepare a canonical copy plus three harmless guards."""
+        path = SCRIPT.with_name("verify-downloads-guards.py")
+        specification = importlib.util.spec_from_file_location("guard_integrity", path)
+        self.verifier = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(self.verifier)
+        self.temporary = tempfile.TemporaryDirectory(prefix="guard-integrity-")
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name).resolve()
+        self.directory = self.root / "Downloads"
+        self.directory.mkdir()
+        self.canonical = self.root / "canonical.md"
+        self.payload = (self.verifier.ROOT / "chezmoi/.chezmoitemplates/downloads-agent-instructions.md").read_bytes()
+        self.canonical.write_bytes(self.payload)
+        for name in self.verifier.NAMES:
+            (self.directory / name).write_bytes(self.payload)
+
+    def test_matching_files_are_unchanged(self):
+        """PASS requires exact content while leaving content and modification time intact."""
+        before = {path.name: (path.read_bytes(), path.stat().st_mtime_ns)
+                  for path in [self.canonical, *self.directory.iterdir()]}
+        rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows, [(name, "PASS", "BYTES_MATCH") for name in self.verifier.NAMES])
+        after = {path.name: (path.read_bytes(), path.stat().st_mtime_ns)
+                 for path in [self.canonical, *self.directory.iterdir()]}
+        self.assertEqual(before, after)
+
+    def test_modified_extra_and_truncated_bytes(self):
+        """Detect byte changes, extra bytes, and truncation without repair."""
+        for data in [b"synthetic altered", self.payload + b"x", self.payload[:-1]]:
+            with self.subTest(length=len(data)):
+                target = self.directory / self.verifier.NAMES[0]
+                target.write_bytes(data)
+                rows = self.verifier.verify_directory(self.directory, self.canonical)
+                self.assertEqual(rows[0][1], "MODIFIED")
+                self.assertEqual(target.read_bytes(), data)
+
+    def test_missing_file_stays_missing(self):
+        """Report deletion without recreating the missing guard."""
+        target = self.directory / self.verifier.NAMES[1]
+        target.unlink()
+        rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows[1], (target.name, "MISSING", "NO_ENTRY"))
+        self.assertFalse(target.exists())
+
+    @unittest.skipIf(os.name == "nt", "Windows symlink setup denied; no privilege or alternate-route retry")
+    def test_link_replacement_is_not_read(self):
+        """Refuse a final link without opening the referenced file."""
+        target = self.directory / self.verifier.NAMES[0]
+        target.unlink()
+        target.symlink_to(self.canonical)
+        with patch.object(self.verifier, "open_readonly", wraps=self.verifier.open_readonly) as opened:
+            rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows[0][1], "UNKNOWN")
+        self.assertNotIn(target, [call.args[0] for call in opened.call_args_list])
+        self.assertTrue(target.is_symlink())
+
+    @unittest.skipIf(os.name == "nt", "Windows symlink setup denied; no privilege or alternate-route retry")
+    def test_link_substitution_between_stat_and_open(self):
+        """Use native no-follow behavior when a final entry changes before open."""
+        target = self.directory / self.verifier.NAMES[0]
+        original_open = self.verifier.open_readonly
+
+        def substitute(path):
+            """Replace one fixture entry with a link just before opening it."""
+            if path == target:
+                path.unlink()
+                path.symlink_to(self.canonical)
+            return original_open(path)
+
+        with patch.object(self.verifier, "open_readonly", substitute):
+            rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows[0][1], "UNKNOWN")
+
+    def test_synthetic_reparse_replacement_is_not_opened(self):
+        """Refuse simulated reparse metadata without needing Windows link privileges."""
+        from types import SimpleNamespace
+
+        target = self.directory / self.verifier.NAMES[0]
+        original_stat = Path.lstat
+
+        def reparse_stat(path, *arguments, **keywords):
+            """Describe one ordinary fixture entry as an observed reparse point."""
+            if path == target:
+                return SimpleNamespace(st_mode=0o100644, st_file_attributes=0x400)
+            return original_stat(path, *arguments, **keywords)
+
+        with patch.object(Path, "lstat", reparse_stat), \
+                patch.object(self.verifier, "open_readonly", wraps=self.verifier.open_readonly) as opened:
+            rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows[0][1], "UNKNOWN")
+        self.assertNotIn(target, [call.args[0] for call in opened.call_args_list])
+
+    def test_directory_replacement_is_unknown(self):
+        """Do not treat a directory as a readable guard file."""
+        target = self.directory / self.verifier.NAMES[2]
+        target.unlink()
+        target.mkdir()
+        rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertEqual(rows[2][1], "UNKNOWN")
+        self.assertTrue(target.is_dir())
+
+    def test_unknown_directory_prevents_guard_reads(self):
+        """Keep unknown locations unresolved instead of inferring missing guards."""
+        rows = self.verifier.verify_directory(self.root / "not-present", self.canonical)
+        self.assertTrue(all(row[1:] == ("UNKNOWN", "LOCATION_NOT_CONFIRMED") for row in rows))
+
+    def test_canonical_mismatch_blocks_target_inspection(self):
+        """Reject a changed canonical source rather than learning a new expected hash."""
+        self.canonical.write_bytes(b"synthetic changed source")
+        with patch.object(self.verifier, "open_readonly", wraps=self.verifier.open_readonly) as opened:
+            rows = self.verifier.verify_directory(self.directory, self.canonical)
+        self.assertTrue(all(row[1:] == ("UNKNOWN", "CANONICAL_SOURCE_MISMATCH") for row in rows))
+        self.assertEqual([call.args[0] for call in opened.call_args_list], [self.canonical])
+
+    def test_private_exception_is_not_printed(self):
+        """Do not disclose failed lookup details through main or summary output."""
+        import contextlib
+        import io
+
+        output = io.StringIO()
+        with patch.object(sys, "platform", "win32"), patch.object(sys, "argv", ["verifier"]), \
+                patch.object(self.verifier, "load_path_helper", side_effect=OSError("synthetic private path")), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(self.verifier.main(), 2)
+        self.assertNotIn("synthetic private", output.getvalue())
+        self.assertIn("summary|UNKNOWN|POINT_IN_TIME_ONLY", output.getvalue())
+
+    def test_location_refusals_do_not_touch_directory(self):
+        """Reject mismatched, nonlocal, unknown-drive and SUBST locations before IO."""
+        from pathlib import PureWindowsPath
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        base = (self.directory, self.root, self.directory)
+        cases = [
+            ((Path("relative"), self.root, self.directory), True, r"\Device\HarddiskVolume3", "NONLOCAL_LOCATION"),
+            ((PureWindowsPath("//server/share/Downloads"), self.root, self.directory), True, "", "NONLOCAL_LOCATION"),
+            ((self.directory, self.root, self.root / "elsewhere"), True, "", "LOCATION_MISMATCH"),
+            (base, False, "", "DRIVE_UNKNOWN"),
+            (base, True, r"\??\C:\fixture", "DIRECT_VOLUME_UNCONFIRMED"),
+            (base, True, "", "DIRECT_VOLUME_UNCONFIRMED"),
+        ]
+        for paths, fixed, response, reason in cases:
+            helper = SimpleNamespace(local_paths=Mock(return_value=paths), fixed_local_drive=Mock(return_value=fixed))
+
+            def query(device, buffer, capacity):
+                """Return a synthetic DOS mapping without querying the host."""
+                buffer.value = response
+                return len(response) + 2 if response else 0
+
+            with self.subTest(reason=reason), \
+                    patch.object(self.verifier.ctypes, "WinDLL", create=True,
+                                 return_value=SimpleNamespace(QueryDosDeviceW=query)), \
+                    patch.object(self.verifier, "plain_parents") as parents:
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.verifier.resolve_downloads(helper)
+                parents.assert_not_called()
+
+    def test_native_reparse_handle_never_becomes_a_reader(self):
+        """Model a post-open reparse flag and forbid conversion to a readable fd."""
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        target = self.directory / self.verifier.NAMES[0]
+
+        def information(handle, category, buffer, length):
+            """Expose a synthetic reparse tag on the already-open native handle."""
+            attributes = self.verifier.ctypes.cast(buffer, self.verifier.ctypes.POINTER(self.verifier.ctypes.c_uint32))
+            attributes[0] = 0x400
+            attributes[1] = 0xA000000C
+            return 1
+
+        kernel = SimpleNamespace(CreateFileW=Mock(return_value=17), CloseHandle=Mock(return_value=1),
+                                 GetFileType=Mock(return_value=1), GetFileInformationByHandleEx=Mock(side_effect=information))
+        runtime = SimpleNamespace(open_osfhandle=Mock(side_effect=AssertionError("must not convert")))
+        with patch.object(os, "name", "nt"), patch.dict(sys.modules, {"msvcrt": runtime}), \
+                patch.object(self.verifier.ctypes, "WinDLL", create=True, return_value=kernel):
+            with self.assertRaisesRegex(ValueError, "OPENED_ENTRY_NOT_PLAIN"):
+                self.verifier.open_readonly(target)
+        runtime.open_osfhandle.assert_not_called()
+        kernel.CloseHandle.assert_called_once_with(17)
+        self.assertEqual(kernel.CreateFileW.call_args.args[4:6], (3, 0x00200000))
 
 
 if __name__ == "__main__":
