@@ -97,4 +97,4 @@ diffRemoved = "#fa423e"
 skill = "#ad7bf9"
 
 [windows]
-sandbox = "unelevated"
+sandbox = "mxc"
