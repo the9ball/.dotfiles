@@ -559,7 +559,12 @@ class InstructionTests(unittest.TestCase):
         self.assertIn("@~/.agents/AGENTS.md", router.splitlines())
         self.assertIn("@~/.agents/AGENTS.local.md", router.splitlines())
         manual = (root / "README.manual.md").read_text(encoding="utf-8")
-        self.assertIn("4環境の実機検証は未実施", manual)
+        for status in (
+            "過去の明示読み取りのみ限定 PASS。自動起動時の読み込みは未検証",
+            "他3環境の未検証", "本人確認 API の実行、本人情報の照合、ローカル登録は未実施",
+            "製品・プロファイル間の情報隔離は提供しません",
+        ):
+            self.assertIn(status, manual)
 
     def test_identity_private_overlay_git_boundary(self) -> None:
         """Verify real ignore behavior and its tracked-file limit in a fixture."""
