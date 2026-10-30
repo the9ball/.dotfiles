@@ -1,0 +1,109 @@
+{
+  "session_id": "01a13da0-def8-7ea1-81bc-ec2139d096b7",
+  "usage": {
+    "input_tokens": 23132,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1993,
+    "reasoning_output_tokens": 337
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.066194,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "Q1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58-64, DeliveryService.dispatch and command_response",
+        "cause": "DeliveryService.dispatch now returns a dictionary, while command_response still treats its result as a list of delivered identifiers.",
+        "impact": "The documented scheduler response contract is no longer preserved: count measures dictionary keys and ids contains a dictionary.",
+        "trigger": "Any invocation of command_response; even zero delivered notices produces count=1 and ids={\"delivered\": []}.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 returns the wrapper; lines 62-64 document existing scheduler clients and construct the response using the former return contract. Base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 returned the identifier list directly. Discovered through CRQ-004's documentation/caller comparison; requires return to Phase 1 through the root."
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Names used in the changed expressions communicate queue state, batch capacity, transport operation, and delivered identifiers. No new identifier declarations were introduced.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:9-16, 24-36, 58-64: batch_size, pending, batch, send, and delivered have visible declarations or callers.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Changed expressions retain the surrounding queue and delivery vocabulary; the added delivered key matches the established delivered terminology.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:16, 27-36, 43, 58-64. Compared naming within the complete supplied dispatch.py.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "UNVERIFIED",
+        "result": "UNVERIFIED",
+        "reason": "Changed methods have role-oriented docstrings, but applicable repository documentation requirements cannot be resolved from the frozen evidence.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-25 and 54-55. The referenced ~/.agents/AGENTS.md, any applicable AGENTS.local.md, and repository comment rules were not supplied; file access is prohibited.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The description of command_response as serving existing scheduler clients is inconsistent with the changed dispatch return value and unchanged response construction.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58-64; compared with base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3, dispatch.py:55-61, and the explicit scheduler-interface preservation requirement.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The replacement is inline and leaves no superseded helper, abandoned branch, or comment explicitly describing removed behavior in the supplied change.",
+        "evidence": "Complete base-to-candidate dispatch.py and diff inspected: base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3, candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86. Candidate lines 24-37 contain the replaced loop; lines 40-69 retain snapshot, service, command, and monitoring paths. No helper deletion is proposed based on absent external callers.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "No library, service, or internal-module dependency is added or newly used. The existing injected transport remains the delivery dependency.",
+        "evidence": "Complete supplied dispatch.py and base-to-candidate diff inspected at candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86: sole import at line 3 is unchanged; transport binding at lines 9-13 and send usage at line 30 already existed in the base.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied single commit subject and file list suggest one purpose, but no commit ID, per-commit patch, or ancestry establishes the actual sequence and rollback boundaries.",
+        "evidence": "Reviewed comparison identities: base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 and candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86. Commit metadata supplies only the subject 'Batch notice dispatch and retain temporarily unavailable deliveries' and dispatch.py; relevant commit IDs are unavailable.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Inspection used only frozen evidence. No tools, external services, file access, modifications, or test execution occurred.",
+      "Phase 1 completion under the current review contract is not evidenced. This checklist evaluation does not establish that prerequisite or authorize workflow advancement.",
+      "Routing limitation: candidate dispatch.py:27 excludes queues smaller than batch_size from explicit flush. This conflicts with the supplied requirement and must return to Phase 1 through the root; it was not expanded into an unrestricted-review finding.",
+      "Routing limitation: candidate dispatch.py:31 catches Exception, including the ValueError required to remain visible to callers. This must return to Phase 1 through the root; it was not expanded into an unrestricted-review finding.",
+      "Q1 requires Phase 1 resolution through the root. Checklist passes do not override it or the unresolved evidence."
+    ]
+  },
+  "label": "codex-R2-F1-C-checklist",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792035315.0152025,
+  "elapsed_seconds": 46.26818585395813,
+  "input_sha256": "58a13a790242ed010d71b8789bfbc76dc8ac59784c4fc97ebcf2df05a7bf79e3",
+  "raw_output_sha256": "11c9705c015d3f2dddb101cc4012d58b303190c34edd5a5a652ea426efe82878",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

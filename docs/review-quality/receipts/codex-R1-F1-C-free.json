@@ -1,0 +1,66 @@
+{
+  "session_id": "01a13d89-ada4-70f2-be14-b1e3ecd4331f",
+  "usage": {
+    "input_tokens": 22081,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 725,
+    "reasoning_output_tokens": 160
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.051412,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:27, NoticeQueue.flush",
+        "cause": "The loop runs only while at least batch_size notices remain.",
+        "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver queues smaller than one batch.",
+        "trigger": "With batch_size=20, enqueue one notice and call flush(); transport.send is never called. With 21 notices, the final notice remains queued.",
+        "evidence": "The condition `while len(self.pending) >= self.batch_size` excludes every nonempty partial batch. Continue while pending is nonempty and cap each batch at batch_size."
+      },
+      {
+        "id": "F2",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:31, NoticeQueue.flush",
+        "cause": "The exception handler catches Exception instead of ConnectionError.",
+        "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
+        "trigger": "Queue at least one full batch and have transport.send raise ValueError for an invalid payload; flush returns normally.",
+        "evidence": "ValueError is caught by `except Exception`, whose body only breaks the loop. Catch ConnectionError specifically so ValueError propagates."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58, DeliveryService.dispatch",
+        "cause": "dispatch now returns a dictionary, but command_response still treats its result as a list of delivered identifiers.",
+        "impact": "The scheduler response has an incorrect count and a nested dictionary in ids, breaking the required existing command interface.",
+        "trigger": "With batch_size=2 and two successfully delivered notices, command_response returns {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. An empty dispatch also reports count=1.",
+        "evidence": "The changed return wraps flush() in `{\"delivered\": ...}`; unchanged command_response computes len(delivered) and assigns that dictionary directly to ids. Preserve dispatch's list return."
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Review used only the embedded complete base-to-candidate evidence. No tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R1-F1-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792033795.0493028,
+  "elapsed_seconds": 22.254990577697754,
+  "input_sha256": "9e673594171865719e8bbfddb680c525f9f9f7aa81588f17c07715183b2a0f4b",
+  "raw_output_sha256": "e242442f4d2d762cb47ac65d310e24a149cd5070ac39ffad0b51f8858e9ad50b",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}
