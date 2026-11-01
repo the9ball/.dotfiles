@@ -26,7 +26,7 @@ Apart from external posting/delegation approval under `link-targets/agents/AGENT
 ### Copyable code
 
 - A code block that users copy and use starts and ends with five consecutive U+0060 (backticks).
-- Before sending, check the opening and closing counts, the language specification, and nesting support.
+- Before sending, check the opening and closing fence counts and the language specification. For relay text containing code blocks, also check the nesting of the inner three-backtick code fences inside the single outer five-backtick `markdown` fence.
 
 ### Body to be passed to other agents
 
