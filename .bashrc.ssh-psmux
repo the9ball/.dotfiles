@@ -11,6 +11,8 @@ case "${PSMUX_SESSION-}:${TMUX-}" in
 			printf '%s\n' 'Personal setup incomplete: apply ~/.bashrc.ssh.' >&2
 			return 0
 		fi
+		# The home launcher is installed by chezmoi and is checked separately.
+		# shellcheck disable=SC1091
 		. "$HOME/.bashrc.ssh"
 		return 0
 		;;
@@ -34,6 +36,8 @@ if [ ! -r "$HOME/.bashrc.ssh" ]; then
 	printf '%s\n' 'SSH setup incomplete: apply ~/.bashrc.ssh before auto-attaching.' >&2
 	return 0
 fi
+# The home launcher is installed by chezmoi and is checked separately.
+# shellcheck disable=SC1091
 . "$HOME/.bashrc.ssh"
 
 # Bypassing attachment still keeps the direct SSH shell in its personal home.
