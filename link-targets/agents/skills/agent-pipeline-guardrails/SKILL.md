@@ -36,9 +36,7 @@ collects the minimum confirmation rules that the orchestrator (this session itse
 the user decides which to use, so do not route work to the Implementer on the orchestrator's judgment alone.
 
 - **The user has explicitly designated an Implementer** → Pass it to the Implementer (whether to pass the Architect first is determined below).
-- **No designation** → If it falls under the "pass-through gate (素通しゲート)" below, the orchestrator implements it. Otherwise, before
-  implementation starts, ask the user to choose among: the orchestrator implements it; it is passed to the Implementer; or a plan is
-  created for the user to pass to Codex. Do not decide on the user's behalf.
+- **No designation** → When no implementer has been designated and the pass-through gate does not apply, first determine the route below. If Architect is required, obtain approval of the completed plan before asking the user to choose the orchestrator, the Implementer, or Codex at the user's direction. Otherwise, ask before implementation starts. Ask once for that implementation stage; do not choose for the user.
 
 ### Whether to go through Architect first (routing tasks for which there is no plan yet)?
 
@@ -51,8 +49,7 @@ file would require a runbook first even for a one-line change, which is highly i
    "direct task mode"). No plan file is created. When calling, do not pass a plan file path; pass the change itself as the task.
 3. **None of the above** → Create a plan in Architect as before, get user approval, and then proceed with implementation (do not omit this order).
    Use this route as a guide when design judgment is needed, work spans multiple layers or files, the impact scope is unclear, or side
-   effects such as regenerating generated files or changing a schema are involved. Once the plan is complete, the user again decides
-   who implements it: the orchestrator itself, an Implementer, or Codex at the user's direction.
+   effects such as regenerating generated files or changing a schema are involved. For this route, follow the implementation-choice rule above after plan approval.
 
 - **If in doubt, lean toward Architect first**. However, if the user has clearly said "it is minor, so just do it directly",
   respect that decision.
@@ -87,7 +84,7 @@ a defect or bug report in existing code is not `reviewer`'s role. If you need to
 `investigator`; otherwise the orchestrator investigates it itself.
 
 Since `reviewer` runs in Opus and rereads the differences and related code, writing a report for a small change can cost more than the change
-itself. You may omit the review in the following cases (leave a line explaining the omission).
+itself. You may omit the Reviewer only when the omission criterion is met and none of the mandatory cases below applies; record the reason.
 
 - All verifications by the implementation side have passed, and the diff is 1-2 files and low risk (such as a change to a setting value or log output
   that does not add logic branches)
@@ -106,8 +103,7 @@ default behavior and does not override explicit requests.
 Even when a request is made for a "final review before PR," only Claude runs the review. **The orchestrator does not send review requests to Codex.**
 Requests to Codex are made by the user.
 
-- **Claude's review**: Follow the criteria in "Whether to call a reviewer" above. When calling `reviewer`, call it as `Agent`
-  (`run_in_background: false`); if the omission criteria apply, the orchestrator performs the review itself.
+- **Claude's review**: For the final review before PR creation, apply the same Reviewer-selection rules. When the Reviewer may be omitted, the orchestrator performs the final review. When calling `reviewer`, call it as `Agent` (`run_in_background: false`).
 - **If you want a second opinion from Codex**: There is no way for the orchestrator to start Codex. If you judge it necessary, tell the user so,
   together with the perspectives you want checked, and have the user request it from Codex. If the user pastes the results, reconcile them with
   Claude's review and combine them.

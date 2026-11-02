@@ -16,7 +16,7 @@ First, determine whether the request is a one-off or an ongoing investigation.
 - As a general rule, one-off metrics, logs, dashboards, and document references should be delegated to read-only subagents.
 - If you need to adjust a query multiple times based on recent results, explore across multiple pieces of Datadog data, or expect constant references during a conversation, load the related skills and how to use the MCP on the main thread and run the work there directly. This avoids the loss of context and the back-and-forth that delegation causes.
 - If an existing agent or session is already responsible for reading and investigating the same purpose, target, and authority range and can be reused, reuse it instead of creating a new one. Whether one can be reused depends on the execution environment; if there is no way to reuse one, you may delegate to a new one.
-- If the subagent asks for necessary permissions, authentication, user approval, or write operations, it stops and returns to the main thread.
+- If completing the delegated investigation requires additional permissions or authentication, a new user decision, or an external write or destructive operation, stop the delegated investigation before attempting that operation or requesting additional authority. Return the required operation, target, reason, available evidence, errors, and unconfirmed work to the main thread. The main thread handles the necessary user decision.
 
 ## Skill and tool selection
 
@@ -29,7 +29,7 @@ First, determine whether the request is a one-off or an ongoing investigation.
 ## Authorization and privacy
 
 - This skill is read-only. Do not modify Datadog settings, permissions, authentication, monitors, dashboards, workflows, etc.
-- If an external write or destructive operation is required, do not continue the read-only investigation; ask for the user's explicit approval.
+- If an external write or destructive operation is required, do not continue the delegated read-only investigation; return to the main thread, which obtains the user's explicit approval.
 - Never display or request a SAT value, save it to a file, or embed it in a delegation prompt, wherever it is stored: treat it the same whether it is in an environment variable (such as `DD_ACCESS_TOKEN`), in the `Authorization` header of an MCP configuration file, or in any other configuration file.
 - Specify the minimum necessary time range, granularity, and result-count limit for each query. Do not return or repeat log text, host names, email addresses, user IDs, etc. unless needed for the answer.
 
