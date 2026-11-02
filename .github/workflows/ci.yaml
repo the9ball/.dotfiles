@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  # Share Phase 0's checks and scan the event's commit range on a disposable runner.
+  checks:
+    name: syntax-and-secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      # Keep PR merge-tree validation, with complete history for the PR head scan.
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Bootstrap aqua without installing the repository's entire tool collection.
+      - name: Install aqua
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: v2.65.2
+          enable_aqua_install: 'false'
+          github_token: ''
+
+      # Match the reviewed digest in both run_before_00-aqua-policy templates.
+      - name: Verify and allow aqua policy
+        shell: bash
+        run: |
+          expected_policy_sha256='8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7'
+          printf '%s  aqua-policy.yaml\n' "$expected_policy_sha256" | sha256sum --check --strict
+          aqua policy allow aqua-policy.yaml
+
+      # Eagerly download all six tools before entering steps without a token.
+      - name: Install CI tools
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: aqua install --tags ci
+
+      # Run the same definitions and manual stage used before a local push.
+      - name: Run syntax and configuration checks
+        shell: bash
+        run: prek run --all-files --stage manual
+
+      # Use event SHAs as data; a missing base or history error must fail the job.
+      - name: Scan commit range for secrets
+        shell: bash
+        env:
+          COMPARISON_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || '' }}
+          SCAN_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'push' && github.sha || '' }}
+        run: |
+          commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA")
+          gitleaks git --redact --log-opts="$commit_range"
+
+  # Keep a stable required check; every dependency must explicitly succeed.
+  required:
+    name: ci-required
+    if: ${{ always() }}
+    needs: [checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      # Require at least one dependency; skipped and cancelled results must fail.
+      - name: Require successful checks
+        shell: bash
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$JOB_RESULTS" | jq --exit-status 'length > 0 and all(.[]; .result == "success")'
