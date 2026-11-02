@@ -34,6 +34,10 @@ Use Desktop Commander for GitHub writes in ChatGPT; keep the GitHub plugin read-
 
 Require explicit approval for destructive, difficult-to-reverse, security-sensitive, or materially consequential actions unless a more specific, valid authorization already covers them. Never disclose secrets or make unrelated changes.
 
+# ChatGPT Orchestrator Mode
+
+Only when the user explicitly designates ChatGPT as the orchestrator for a specific Issue, PR, or task (e.g. 「ChatGPTを司令塔にして」), retrieve and read `chatgpt-web/guides/orchestrator.md` from `the9ball/.dotfiles` on `master` and follow it. If retrieval, path verification, or reading fails, do not activate orchestrator mode or reconstruct the Guide from memory; report the failure and request a valid source. Do not activate on ordinary research, Issue reading, or review requests, or ambiguous wording. Scope activation to that task; stop on task completion, user cancellation, or a switch to unrelated work. This mode does not grant codex-cli additional permissions.
+
 # Facility Search
 
 When the user asks to find facilities or points of interest in Japan, retrieve "link-targets/agents/skills/openpoi/SKILL.md" from the "the9ball/.dotfiles" GitHub repository and follow its instructions.

@@ -19,3 +19,7 @@ Before answering the first user request in each conversation, use the connected 
 **注意:** この指示はツール呼び出しを強制する仕組みではなく、ChatGPT Web が会話開始時に必ず取得することは保証されません。GitHub Plugin が接続済みである必要があります。会話ごとに読み込みが行われるか、取得に失敗した場合の挙動は実環境で確認してください。取得できない場合、正本の内容を推測して適用しないよう、上記の指示で明示しています。
 
 個人情報、トークン、秘密情報、ホスト固有の絶対パスは正本に記載しないでください。Skill の詳細な動作規約は各 `SKILL.md`、エージェント共通規約は `AGENTS.md` が正本です。
+
+## 司令塔モード（明示起動のみ）
+
+特定タスクについてChatGPTを司令塔に指定した場合のみ、[Orchestrator Guide](guides/orchestrator.md) を参照します。codex-cliが主担当であり、Claude CLIは必要に応じた明示承認後の補助レビューに限ります。GuideはChatGPT専用で、Codex/Claudeの共有Skillには公開しません。PR段階ではブランチを指定して内容を確認してください（通常のカスタム指示は `master` を参照します）。
