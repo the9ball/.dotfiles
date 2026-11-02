@@ -1,47 +1,7 @@
-# Stable Codex settings shared by the personal profile.
-# Runtime state such as projects, hooks.state, and tui.model_availability_nux
-# is intentionally kept in the destination config and is not managed here.
-# Host-specific absolute paths belong in codex-personal-defaults.toml.local.
-# Model and reasoning effort defaults fill only missing target settings.
-# Existing selections are preserved; explicit .local overrides take precedence.
+# Personal Codex permission and Desktop defaults, layered over common defaults.
+# Host-specific overrides belong in codex-personal-defaults.toml.local.
 
-approval_policy = "on-request"
-approvals_reviewer = "auto_review"
-service_tier = "default"
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
-personality = "pragmatic"
-model_verbosity = "low"
-model_reasoning_summary = "concise"
 default_permissions = "personal-standard"
-suppress_unstable_features_warning = true
-
-[notice]
-fast_default_opt_out = true
-
-[agents]
-enabled = true
-default_subagent_model = "gpt-6.1-sol"
-default_subagent_reasoning_effort = "low"
-max_concurrent_threads_per_session = 10
-max_depth = 5
-
-[features]
-daemon_auto_start = false
-js_repl = false
-multi_agent = true
-default_mode_request_user_input = true
-network_proxy = true
-
-[features.multi_agent_v2]
-enabled = true
-# Default each v2 wait call to 20 minutes when no timeout is specified.
-# Cap any single v2 wait call at one hour.
-default_wait_timeout_ms = 1_200_000
-max_wait_timeout_ms = 3_600_000
-
-[features.context_management]
-experimental_mode = true
 
 [permissions.personal-standard]
 extends = ":workspace"
@@ -95,6 +55,3 @@ surface = "#181818"
 diffAdded = "#40c977"
 diffRemoved = "#fa423e"
 skill = "#ad7bf9"
-
-[windows]
-sandbox = "mxc"

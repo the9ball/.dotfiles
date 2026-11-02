@@ -1,0 +1,50 @@
+{{- /*
+Merge shared and profile-specific Codex defaults while preserving runtime-owned state.
+Expects chezmoi, defaultsFile, and removeWorkPermissions in the template context.
+Existing model and worker selections survive unless a host-local overlay overrides them.
+Only Personal removes the legacy work permission profile. Authentication files are never read.
+*/ -}}
+{{- $existingConfiguration := dict -}}
+{{- $inputConfiguration := index .chezmoi "stdin" -}}
+{{- if $inputConfiguration -}}
+{{-   $existingConfiguration = fromToml $inputConfiguration -}}
+{{- end -}}
+{{- $commonDefaults := fromToml (include ".chezmoitemplates/codex-common-defaults.toml") -}}
+{{- $profileDefaults := fromToml (include (printf ".chezmoitemplates/%s" .defaultsFile)) -}}
+{{- $defaultConfiguration := mergeOverwrite $commonDefaults $profileDefaults -}}
+{{- range $selectionKey := list "model" "model_reasoning_effort" -}}
+{{-   if hasKey $existingConfiguration $selectionKey -}}
+{{-     $defaultConfiguration = unset $defaultConfiguration $selectionKey -}}
+{{-   end -}}
+{{- end -}}
+{{- if hasKey $existingConfiguration "agents" -}}
+{{-   $configuredAgents := index $existingConfiguration "agents" -}}
+{{-   $defaultAgents := index $defaultConfiguration "agents" -}}
+{{-   range $selectionKey := list "default_subagent_model" "default_subagent_reasoning_effort" -}}
+{{-     if hasKey $configuredAgents $selectionKey -}}
+{{-       $defaultAgents = unset $defaultAgents $selectionKey -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $defaultConfiguration = set $defaultConfiguration "agents" $defaultAgents -}}
+{{- end -}}
+{{- $localDefaultsPath := printf "%s/.chezmoitemplates/%s.local" .chezmoi.sourceDir .defaultsFile -}}
+{{- if (stat $localDefaultsPath) -}}
+{{-   $localConfiguration := fromToml (include (printf ".chezmoitemplates/%s.local" .defaultsFile)) -}}
+{{-   $defaultConfiguration = mergeOverwrite $defaultConfiguration $localConfiguration -}}
+{{- end -}}
+{{- /* Permission Profiles cannot coexist with legacy sandbox keys; remove them from both input layers. */ -}}
+{{- range $configuration := list $existingConfiguration $defaultConfiguration -}}
+{{-   $configuration = unset $configuration "sandbox_mode" -}}
+{{-   $configuration = unset $configuration "sandbox_workspace_write" -}}
+{{-   if and $.removeWorkPermissions (hasKey $configuration "permissions") -}}
+{{-     $permissions := index $configuration "permissions" -}}
+{{-     $permissions = unset $permissions "default-permissions" -}}
+{{-     if eq (len $permissions) 0 -}}
+{{-       $configuration = unset $configuration "permissions" -}}
+{{-     else -}}
+{{-       $configuration = set $configuration "permissions" $permissions -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $configuration := mergeOverwrite $existingConfiguration $defaultConfiguration -}}
+{{ $configuration | toToml }}
