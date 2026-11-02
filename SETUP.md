@@ -145,10 +145,15 @@ Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツー�
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
+ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、タグ指定 `rev: v8.30.1`）を取得します。
+manual ステージでは gitleaks フックを実行しませんが、取得自体は発生し、この取得にトークンは使いません。
 
 CI には次の残留リスクがあります。
 
+- gitleaks のコミット範囲走査は内部で `git log -p` を使うため、競合の解消やマージ時の手編集など、マージコミットで初めて入った変更は走査対象になりません。
+  上記のローカルの手動走査でも同じ制約があります。
 - PR で `.github/workflows/*`、`.pre-commit-config.yaml`、`scripts/`、`aqua.yaml`、`aqua-registry.yaml`、`aqua-policy.yaml` などを書き換えると、runner 上で任意のコマンド実行や外部通信が起こりえます。policy の照合処理も書き換えられるため、信頼境界にはなりません。
+- PR で `.gitleaks.toml` や `.gitleaksignore` を追加または変更すると、gitleaks の検出を抑止できます。
 - `pull_request` を使い、`permissions` は `contents: read` のみ、checkout は `persist-credentials: false` とし、ワークフローは secrets を参照しません。fork PR は GitHub 側の権限制約と実行承認の設定を境界にします。同一リポジトリからの PR と push では、ワークフローの書き換えにより書き込み権限や設定済みの secrets に届くリスクが残ります。Actions の既定トークン権限を read にしても上限にはなりません。このリスクは当面受容し、[Issue #208](https://github.com/the9ball/.dotfiles/issues/208) で見直します。
 - `aqua.yaml` の checksum 検証は無効のままです。今回の CI 追加では有効化していません。
 - policy の固定 SHA-256 は、既存の `run_before_00-aqua-policy.ps1.tmpl` / `run_before_00-aqua-policy.sh.tmpl` と CI ワークフローで二重管理します。policy を変更するときは、内容を確認したうえで双方の固定値を更新します。
