@@ -355,6 +355,79 @@ function Remove-TestState {
     }
 }
 
+function Test-NotifierMockOutcomes {
+    <#
+    .SYNOPSIS
+    Exercises notifier outcomes with an in-process HTTP substitute and no publish.
+
+    .PARAMETER NotifierPath
+    The production notifier whose function definitions are loaded without its entrypoint.
+
+    .OUTPUTS
+    None. Assertions fail the isolated test process on a contract violation.
+    #>
+    param([Parameter(Mandatory)][string]$NotifierPath)
+
+    $NotifierTokens = $null
+    $NotifierErrors = $null
+    $NotifierAst = [Management.Automation.Language.Parser]::ParseFile(
+        $NotifierPath, [ref]$NotifierTokens, [ref]$NotifierErrors)
+    Assert-Condition ($NotifierErrors.Count -eq 0) 'notifier_mock_source_parses'
+    foreach ($Definition in $NotifierAst.EndBlock.Statements) {
+        if ($Definition -is [Management.Automation.Language.FunctionDefinitionAst]) {
+            . ([scriptblock]::Create($Definition.Extent.Text))
+        }
+    }
+
+    $NotifierMock = @{ Outcome = ''; Calls = 0 }
+    function Invoke-WebRequest {
+        <#
+        .SYNOPSIS
+        Substitutes deterministic HTTP responses and transport failures for the notifier.
+        .OUTPUTS
+        PSCustomObject. Returns a status or throws a simulated transport error.
+        #>
+        param(
+            $Method, $Uri, $ContentType, $Body, $ConnectionTimeoutSeconds,
+            $OperationTimeoutSeconds, $MaximumRedirection, [switch]$SkipHttpErrorCheck
+        )
+        $NotifierMock.Calls++
+        switch ($NotifierMock.Outcome) {
+            '2xx' { return [pscustomobject]@{ StatusCode = 204 } }
+            'non2xx' { return [pscustomobject]@{ StatusCode = 503 } }
+            'timeout' { throw [TimeoutException]::new('mock timeout') }
+            'connection' { throw [IO.IOException]::new('mock connection error') }
+            'TLS' { throw [Security.Authentication.AuthenticationException]::new('mock TLS error') }
+            'DNS' { throw [Net.Sockets.SocketException]::new() }
+            default { throw 'unexpected mock case' }
+        }
+    }
+
+    try {
+        [Environment]::SetEnvironmentVariable('NTFY_TOPIC', 'fixture-topic', 'Process')
+        foreach ($Outcome in @('2xx', 'non2xx', 'timeout', 'connection', 'TLS', 'DNS')) {
+            $NotifierMock.Outcome = $Outcome
+            $NotifierMock.Calls = 0
+            $Result = Invoke-NtfyPublish -Message 'fixture'
+            $ExpectedReason = if ($Outcome -eq '2xx') { 'success' }
+                elseif ($Outcome -eq 'non2xx') { 'http_failure' }
+                else { 'transport_failure' }
+            Assert-Condition ($Result.Ok -eq ($Outcome -eq '2xx') -and
+                $Result.Reason -eq $ExpectedReason) "notifier_mock_$Outcome"
+            Assert-Condition ($NotifierMock.Calls -eq 1) "notifier_mock_one_attempt_$Outcome"
+            Assert-Condition (($Result.PSObject.Properties.Name -join ',') -eq 'Ok,Reason') "notifier_mock_private_$Outcome"
+        }
+        [Environment]::SetEnvironmentVariable('NTFY_TOPIC', $null, 'Process')
+        $NotifierMock.Calls = 0
+        $Result = Invoke-NtfyPublish -Message 'fixture'
+        Assert-Condition ($Result.Ok -eq $false -and $Result.Reason -eq 'topic_missing') 'notifier_mock_missing_topic'
+        Assert-Condition ($NotifierMock.Calls -eq 0) 'notifier_mock_missing_topic_no_http'
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('NTFY_TOPIC', $null, 'Process')
+    }
+}
+
 $OriginalNtfyTopic = [Environment]::GetEnvironmentVariable('NTFY_TOPIC', 'Process')
 $OriginalCodexHome = [Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')
 $OriginalWatcherMode = [Environment]::GetEnvironmentVariable('TASK_COMPLETE_NOTIFY_WATCHER', 'Process')
@@ -435,6 +508,7 @@ try {
     $NotifyJson = $NotifyResult.Stdout.Trim() | ConvertFrom-Json
     Assert-Condition ($NotifyJson.Ok -eq $false -and $NotifyJson.Reason -eq 'topic_missing') 'notify_missing_topic'
     Assert-Condition ([string]::IsNullOrWhiteSpace($NotifyResult.Stderr)) 'notify_no_stderr'
+    Test-NotifierMockOutcomes -NotifierPath $NotifyPath
 
     $ArmPath = Join-Path $ScriptDirectory 'arm-notification.ps1'
     $CancelPath = Join-Path $ScriptDirectory 'cancel-notification.ps1'

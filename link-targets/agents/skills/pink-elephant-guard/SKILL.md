@@ -48,7 +48,7 @@ Judgments are made by section/description, not by the entire document.
 This is because a section for recording the process and a section for external explanations may coexist in one document.
 Even within the same document, sections of external explanations that do not fall under the non-applicability exceptions are inspected as usual.
 
-It should not be used in the following descriptions.
+Do not use this skill for the following descriptions.
 
 - Clauses/descriptions in which it is a requirement to preserve rejection hypotheses, policy changes, and failure paths
   (This includes ADR, minutes, postmortems, `*.history.md`, memos for continuing work, conversation handover documents, etc.)
@@ -56,7 +56,7 @@ It should not be used in the following descriptions.
 - Comparison of plans A and B, audit records, cause analysis
 - Necessary displays related to laws, contracts, safety, medical care, and accessibility, currently valid restrictions and warranty scope,
   compatibility, migration instructions, and security information. Below, these are collectively referred to as **required information**.
-- Non-use appeal explicitly requested by the user (must include "decaffeinated", etc.)
+- Non-use claims explicitly requested by the user, such as an explicit instruction to include "decaffeinated".
 
 When there are conflicting decisions, prioritize from top to bottom.
 
@@ -122,7 +122,7 @@ Do not supplement with information derived from past conversations that have bee
    Construct it in an affirmative form that holds true even without X.
    Do not include reasons derived solely from past conversations that were rejected or revised, or old proposals.
    However, constraints and reasons that are necessary for the current judgment and that pass the first-stage basis judgment should be included.
-   However, control instructions that define current output requirements are not subject to this restriction.
+   The restrictions on drafting from rejected or revised conversation history do not apply to control instructions that define current output requirements.
 4. **Judge.** Apply the first stage (foundation determination) and then the second stage (self-sufficiency determination) to each claim in the draft.
    For code, first identify the set of changes described by the artifact, then consult the diff.
    - commit: distinguish between staged diffs, unstaged diffs, and untracked files
