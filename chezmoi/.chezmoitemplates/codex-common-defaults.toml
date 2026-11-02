@@ -1,0 +1,43 @@
+# Portable Codex defaults shared by regular and personal profiles.
+# Existing model and worker selections are preserved by codex-config-modify.tmpl;
+# explicit host-local overlays take precedence. Runtime-owned state stays in place.
+
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+service_tier = "default"
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+personality = "pragmatic"
+model_verbosity = "low"
+model_reasoning_summary = "concise"
+suppress_unstable_features_warning = true
+
+[notice]
+fast_default_opt_out = true
+
+[agents]
+enabled = true
+default_subagent_model = "gpt-6.1-sol"
+default_subagent_reasoning_effort = "low"
+max_concurrent_threads_per_session = 10
+max_depth = 5
+
+[features]
+daemon_auto_start = false
+js_repl = false
+multi_agent = true
+default_mode_request_user_input = true
+network_proxy = true
+
+[features.multi_agent_v2]
+enabled = true
+# Default each v2 wait call to 20 minutes when no timeout is specified.
+# Cap any single v2 wait call at one hour.
+default_wait_timeout_ms = 1_200_000
+max_wait_timeout_ms = 3_600_000
+
+[features.context_management]
+experimental_mode = true
+
+[windows]
+sandbox = "mxc"
