@@ -53,3 +53,6 @@ enabled = true
 [permissions.default-permissions.network.domains]
 "api.github.com" = "allow"
 "github.com" = "allow"
+
+[windows]
+sandbox = "mxc"
