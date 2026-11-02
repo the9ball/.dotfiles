@@ -75,9 +75,13 @@ Arguments are always treated as `"$@"` on the Bash side. Do not use `$*`, `eval`
 
 ## Safety and failure handling
 
+Wrapper behavior:
+
 - The wrapper exits with a non-zero status if the Aqua configuration, the dedicated `CODEX_HOME`, the working directory, or the Aqua-managed Codex executable does not exist.
-- The wrapper does not install, log in, create directories, or background.
-- Do not automatically add privilege relaxation options such as `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, `--approve-for-me`.
-- Returns the Codex standard output/standard error and exit code without processing. Does not automatically re-execute the same request when it fails.
-- WSL startup, Codex CLI execution, and exit code confirmation are treated as a single synchronous process, and no processes are left behind.
-- Do not save credentials, tokens, or the contents of `CODEX_HOME` in the repository.
+- The wrapper itself does not install, log in, create directories, background the invocation, or retry it. It invokes Codex once with the supplied arguments using `exec`, without processing Codex's stdout, stderr, or exit status.
+
+Caller requirements:
+
+- Pass only user-specified options. Do not automatically add privilege-relaxation options such as `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, or `--approve-for-me`.
+- Run WSL startup, Codex execution, and exit-code collection as one synchronous operation. Do not background or detach the invocation, leave processes running, or automatically rerun a failed request. Return stdout, stderr, and exit code unchanged.
+- Do not save credentials, tokens, or `CODEX_HOME` contents in the repository.

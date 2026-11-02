@@ -37,7 +37,7 @@ Supplements `link-targets/agents/AGENTS.md`'s common contract and owns delegatio
 
 - The handoff should include the purpose, target, exclusion, constraints, completion conditions, verification method, and conditions for stopping and confirming when the estimate is exceeded, so that it can be performed without implicit assumptions from the conversation.
 - Prefer a fresh context with a self-contained handoff. Inherit the conversation only when the rediscovery it avoids outweighs copying the context into the child, and never where the role requires independence.
-- Do not extend the authority, scope of approval, or external operation authority passed to the delegatee. Only read-only work is allowed before edit gate approval.
+- Do not extend the authority, scope of approval, or external operation authority passed to the delegatee. The applicable edit gate is “Scope confirmation before file changes” in `link-targets/agents/AGENTS.md`. Only read-only work may be delegated until that section's applicable requirements are satisfied, including explicit user approval wherever that section or another applicable instruction requires it.
 - Do not run work specified as "one by one" or "in order" in parallel. In the shared work tree, only one person is responsible for editing each file, and root will not edit the same range until the person in charge is completed.
 - Do not create, select, move, or delete a worktree at the discretion of the delegate. If a separate working directory is required, check user approval and repository-specific operations first.
 
@@ -86,7 +86,7 @@ For a listed GPT-6 model, the caller reads both the family and variant reference
 
 ### Evidence child
 
-- Substantive exploration, specification/behavior/dependency confirmation, reproduction, and evidence collection will be delegated to the read-only `scount` Evidence child after confirming the necessity. An exception will be made when the Reviewer/Respondent directly verifies the subject for independence.
+- As a general rule, delegate substantive exploration, specification/behavior/dependency confirmation, reproduction, and evidence collection to the read-only `scount` Evidence child, applying the delegation-necessity criteria above. Reviewer and Respondent may verify the subject directly when required for independence.
 - `scount` must not modify files, workspaces, or ledgers; spawn child agents; escalate privileges; perform external changes or sends; or finalize judgments or review states.
 - The packet includes the fixed request, source, version or source hash, confirmation method, evidence that could not be obtained, and uncertainty. The root verifies the packet's target and epoch against the actual evidence before accepting it.
 - Reuse the child context only when the runtime indicates success in restarting the same target/epoch. If the target or epoch changes, the packet, context, and judgment will be invalidated, and automatic transport and automatic retry will not be performed.
