@@ -39,5 +39,6 @@ max_wait_timeout_ms = 3_600_000
 [features.context_management]
 experimental_mode = true
 
+# Native Windows sandbox selection; unused on Linux and WSL.
 [windows]
 sandbox = "mxc"

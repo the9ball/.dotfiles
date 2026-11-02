@@ -1,4 +1,7 @@
-"""Exercise regular and personal Codex modify templates in isolated chezmoi fixtures."""
+"""Exercise regular and personal Codex modify templates in isolated chezmoi fixtures.
+
+Run: uv run --no-project --python 3.13 python -B tests/codex-config.py -v
+"""
 
 import os
 from pathlib import Path

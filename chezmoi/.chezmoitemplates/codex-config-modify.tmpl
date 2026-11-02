@@ -32,7 +32,7 @@ Only Personal removes the legacy work permission profile. Authentication files a
 {{-   $localConfiguration := fromToml (include (printf ".chezmoitemplates/%s.local" .defaultsFile)) -}}
 {{-   $defaultConfiguration = mergeOverwrite $defaultConfiguration $localConfiguration -}}
 {{- end -}}
-{{- /* Apply the same legacy-key cleanup to existing state and local defaults. */ -}}
+{{- /* Permission Profiles cannot coexist with legacy sandbox keys; remove them from both input layers. */ -}}
 {{- range $configuration := list $existingConfiguration $defaultConfiguration -}}
 {{-   $configuration = unset $configuration "sandbox_mode" -}}
 {{-   $configuration = unset $configuration "sandbox_workspace_write" -}}
