@@ -145,8 +145,18 @@ Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツー�
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
-ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、タグ指定 `rev: v8.30.1`）を取得します。
+ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、`v8.30.1` に対応するコミット SHA `83d9cd684c87d95d656c1458ef04895a7f1cbd8e` に固定）を取得します。
 manual ステージでは gitleaks フックを実行しませんが、取得自体は発生し、この取得にトークンは使いません。
+
+gitleaks を更新するときは、`gitleaks-system` フックが使う実行ファイルのバージョン（`aqua.yaml` の `gitleaks/gitleaks@v8.30.1`）と、フック定義の取得元（`.pre-commit-config.yaml` の `rev` と `# frozen:` コメント）を同じバージョンに揃えて更新します。
+対象タグが指すコミットは、次のコマンドで確認します。更新時は `v8.30.1` を対象のタグに置き換えます。
+
+```sh
+gh api repos/gitleaks/gitleaks/git/ref/tags/v8.30.1 --jq '.object | {type, sha}'
+```
+
+`type` が `commit` なら、表示された `sha` を `rev: <SHA>  # frozen: <タグ名>` の形式で設定します。
+`type` が `tag`（注釈付きタグ）なら、`gh api repos/gitleaks/gitleaks/git/tags/<表示されたSHA> --jq '.object | {type, sha}'` で参照先をたどり、`type` が `commit` になった時点の `sha` を使います。
 
 CI には次の残留リスクがあります。
 
