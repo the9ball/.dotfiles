@@ -69,10 +69,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
-      # Check the whole needs object, including skipped and cancelled dependencies.
+      # Require at least one dependency; skipped and cancelled results must fail.
       - name: Require successful checks
         shell: bash
         env:
           JOB_RESULTS: ${{ toJSON(needs) }}
         run: |
-          printf '%s\n' "$JOB_RESULTS" | jq --exit-status 'all(.[]; .result == "success")'
+          printf '%s\n' "$JOB_RESULTS" | jq --exit-status 'length > 0 and all(.[]; .result == "success")'
