@@ -33,9 +33,7 @@ Use the `--changes` example for deletion-only hunks; it is their only selection 
 
 - Preserve existing staged changes and never rewrite the working tree.
 - Put the path after `--`; do not pass an ambiguous request or infer nearby changes.
-- Select complete text hunks only. `L` uses new-side lines and `D` uses old-side
-  lines; deletion hunks require `--changes`. Replacement hunks show both sides,
-  for example `L20/D20-80 (+1/-61)`, and are staged as one unit.
+- Select complete text hunks only. `L` uses new-side lines and `D` uses old-side lines. Deletion-only hunks (no added lines) require `--changes`. Replacement hunks can be selected by a line range containing all their new-side changed lines, or by `--changes`; both sides, for example `L20/D20-80 (+1/-61)`, are staged as one unit. If a line range also overlaps a deletion-only hunk's old-side coordinates, use `--changes` to select the intended hunks explicitly.
 - Normalize overlapping or adjacent line ranges by merging them; do not add lines outside their union.
 - Reject unsupported renames, copies, binary files, symlinks, submodules,
   mode-only changes, conflicts, malformed hunks, and failed verification.
