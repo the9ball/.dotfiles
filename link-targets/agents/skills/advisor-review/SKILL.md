@@ -1,6 +1,6 @@
 ---
 name: advisor-review
-description: Used when execution-lifecycle-gate or an explicit review contract requests an independent review by an Advisor within a read-only scope.
+description: Used when execution-lifecycle-gate or an explicit review contract requests iterative confirmation or independent review by an Advisor within a fixed read-only scope.
 ---
 
 # Advisor review workflow
@@ -10,7 +10,7 @@ description: Used when execution-lifecycle-gate or an explicit review contract r
 - Host fallback: required
 
 - Positive trigger: The execution-lifecycle-gate or explicit Advisor review contract requires a read-scope declaration to pass the target file to the Advisor.
-- Negative trigger: Regular review, short confirmation, grammar correction, etc. that do not require a fixed reading scope for the Independent Advisor.
+- Negative trigger: Regular user review, grammar correction, etc. that do not require an Advisor's fixed reading scope.
 - Conditional dependency: Apply the execution lifecycle's independence and read-only conditions, and instruction-root resolution stated in its Guide.
 - Failure mode: If skill contract, instruction root, target identity or required read scope cannot be resolved, stop in fail-safe and do not treat as CLEAR / PASS.
 
@@ -27,6 +27,12 @@ Advisor output is treated as attributable advice, not as a ruling or implementat
 Apply this Guide when creating a read-scope declaration that passes target files to the Advisor and when recording the result.
 
 A contract to fix the target and reading range in a reproducible manner when specifying files to Advisor in AI review. Don't just give the path and let Advisor guess the search scope or target version.
+
+### Review kind and context provenance
+
+- Declare `review_kind: iterative-confirmation` or `independent-review` in every request and result. The lifecycle or explicit execution contract owns when each kind is required and whether the gate can pass; this Skill owns fixed input and reading evidence for both kinds. A `CLEAR` from iterative confirmation is not independent Advisor evidence.
+- Record context provenance separately from `materialization`: parent-inherited, resumed (with handle and prior target/epoch), or fresh. Prefer parent inheritance for implementation/correction confirmation when the host and applicable model/effort selections permit it. A fresh fallback remains iterative confirmation unless explicitly dispatched as independent review with verified role and input isolation. Use the context-start and role-separation rules in `link-targets/agents/skills/delegation/SKILL.md`.
+- Inherited history is background, not evidence of the current revision. Fix and supply the current target, delta, findings and required dependencies under the declarations below; identify which earlier facts were reverified and which remain unconfirmed. Do not claim the parent history was excluded or independently verified. Independent review uses a fresh context without the parent's implementation reasoning; a follow-up to that review records its own provenance and does not retroactively make a changed target independently reviewed.
 
 ### Items to be fixed in the request
 
@@ -66,8 +72,8 @@ For each file, record the following read scope declaration in the request statem
 ### Cases in which fixation is not possible and recording of results
 
 - If the target identity or required range cannot be uniquely fixed, do not guess and dispatch, but request the necessary evidence as `NEEDS_EVIDENCE`. For uncommitted targets, the snapshot identity of the real index, working tree, untracked, and ignored manifest is fixed at the start of capture. If the snapshot changes during capture or immediate post-capture revalidation, discard the capture, record `review_delta_classification=REVIEW_INVALIDATING` and `evidence_status=NEEDS_EVIDENCE`, and stop dispatch or evidence reuse based on that capture. Before any recapture, establish the new target identity and review epoch under the applicable lifecycle rules.
-- The revision difference after snapshot capture is completed is classified into `review_delta_classification` of `execution-lifecycle-gate` and `REVIEW_PRESERVING` or `REVIEW_INVALIDATING`. Validated preserving diffs use an append-only inheritance edge and do not require redundant Advisor dispatch just because of a revision change after the capture is complete. If the target changes the review contract, rule, schema, allowlist, or governance, bind the classification and fresh advisor dispatch to the source contract snapshot/hash of `from_revision`, and do not use the changed destination rule for self-evaluation. If the source contract cannot be fixed, use `NEEDS_EVIDENCE`.
-- Advisor results record target identity, epoch identity, materialization, whether the identity was verified by the Advisor or asserted by the root, whether a reference was offered, range actually read, range additionally read, unconfirmed range, and reason for nonconfirmation. If the requested primary scope, required surrounding context, or dependency closure remains unconfirmed, the result will not be treated as `CLEAR` or `PASS`.
+- The revision difference after snapshot capture is completed is classified into `review_delta_classification` of `execution-lifecycle-gate` and `REVIEW_PRESERVING` or `REVIEW_INVALIDATING`. Validated preserving diffs use an append-only inheritance edge and do not require redundant Advisor dispatch just because of a revision change after the capture is complete. An invalidating change uses the lifecycle's current-target assessment, not preserving inheritance. If the target changes the review contract, rule, schema, allowlist, or governance, bind classification and the applicable review/pass conditions to the source contract snapshot/hash of `from_revision`; do not use destination rules for self-evaluation. If the source contract requires fresh independent dispatch, perform it. If the source contract cannot be fixed, use `NEEDS_EVIDENCE`.
+- Advisor results record review kind, context provenance, target identity, epoch identity, materialization, whether the identity was verified by the Advisor or asserted by the root, whether a reference was offered, range actually read, range additionally read, unconfirmed range, and reason for nonconfirmation. Include finding dispositions and correction evidence, cumulative impact since the independent anchor when supplied, and whether re-independent review is needed (with reason and scope, or unknown). If the requested primary scope, required surrounding context, or dependency closure remains unconfirmed, the result will not be treated as `CLEAR` or `PASS`.
 - If the dependencies cannot be determined in advance, unlimited search is not allowed, and the discovered dependence candidates and necessary evidence are returned to `NEEDS_EVIDENCE`. Additional readings are not recorded as changes to the requested scope. Record each additional range, its reason, and its boundary in the Advisor result. Where a shared ledger is used, also record it there.
 
 ### Revision and evidence inheritance
