@@ -30,13 +30,14 @@ It supplements the responsibilities of `link-targets/agents/AGENTS.md`, root `AG
 - For commands whose sole purpose is to view the repository status, specify `git --no-optional-locks` before the subcommand whenever possible. Do not specify `--no-optional-locks` for commands that can update the index, working tree, references, or history.
 - If an `index.lock` error occurs, identify the target using the path displayed in the error or `git rev-parse --git-path index.lock`.
 - If a Git process is operating on the same repository or worktree, wait for it to finish before trying again.
-- Do not delete the lock file or stop the process without the user's explicit approval, even if read-only checks confirm the cause and that the lock is residual from a process that has exited.
+- Do not delete the identified lock file or stop the identified process without explicit user approval covering that operation, subject to the applicable authorization boundaries in `link-targets/agents/AGENTS.md`. Reuse existing approval only within its recorded scope. Read-only confirmation that a lock is residual does not itself authorize deletion.
 
 ### Permission error
 
 - If the cause is considered to be access denial, lack of authentication/authorization, sandbox restrictions, etc., obtain confirmation by indicating the required operation, target, and reason.
 - Except for read-only operations to check the cause, do not silently switch to a browser, another CLI/API, another account, or another save location.
 - Privilege elevation exception:
+  - This exception applies only when the Git operation is already authorized and applicable higher-priority instructions and host/repository policies permit the formal execution route. Preserve any required approvals. If those conditions cannot be established, stop the affected operation. This exception does not authorize bypassing an explicit denial or changing the command's target or effects.
   - If you cannot create or update `index.lock` in the Git management area and the same command results in a privilege error, you can elevate the privileges of that same Git command and re-execute it.
   - In an environment where you know in advance that you cannot write to the Git management area with normal privileges, you can elevate the privileges of the Git command that updates the index from the beginning. However, priority should be given to checking the higher level policy.
   - Presence of locks, separate Git processes, and residual locks are not treated as insufficient privileges. Deleting locks, changing credentials, and switching to another route are not included in this exception.
