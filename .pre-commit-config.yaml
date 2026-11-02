@@ -4,3 +4,62 @@ repos:
     hooks:
       - id: gitleaks-system
         pass_filenames: false
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: shellcheck-bash
+        name: ShellCheck (bash)
+        language: system
+        entry: sh scripts/check-files.sh shellcheck-bash
+        stages: [manual, pre-push]
+        files: &bash_files '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
+        exclude: &bash_excludes '(^scripts/check-files\.sh$|^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
+      - id: bash-syntax
+        name: Bash syntax
+        language: system
+        entry: sh scripts/check-files.sh bash-syntax
+        stages: [manual, pre-push]
+        files: *bash_files
+        exclude: *bash_excludes
+      - id: shellcheck-sh
+        name: ShellCheck (POSIX sh)
+        language: system
+        entry: sh scripts/check-files.sh shellcheck-sh
+        stages: [manual, pre-push]
+        files: &sh_files '^(bin/fs|scripts/check-files\.sh)$'
+        exclude: &template_excludes '(^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
+      - id: sh-syntax
+        name: POSIX sh syntax
+        language: system
+        entry: sh scripts/check-files.sh sh-syntax
+        stages: [manual, pre-push]
+        files: *sh_files
+        exclude: *template_excludes
+      - id: json-parse
+        name: JSON parse
+        language: system
+        entry: sh scripts/check-files.sh json
+        stages: [manual, pre-push]
+        files: '\.json$'
+        exclude: *template_excludes
+      - id: yaml-parse
+        name: YAML parse
+        language: system
+        entry: sh scripts/check-files.sh yaml
+        stages: [manual, pre-push]
+        files: '\.ya?ml$'
+        exclude: *template_excludes
+      - id: toml-parse
+        name: TOML parse
+        language: system
+        entry: sh scripts/check-files.sh toml
+        stages: [manual, pre-push]
+        files: '\.toml$'
+        exclude: *template_excludes
+      - id: actionlint
+        name: GitHub Actions lint
+        language: system
+        entry: actionlint
+        stages: [manual, pre-push]
+        files: '^\.github/workflows/[^/]+\.ya?ml$'
+        exclude: *template_excludes
