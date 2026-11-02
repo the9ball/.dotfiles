@@ -549,6 +549,8 @@ while true; do
       issue_is_closed=1
     fi
 
+    # $journal_ids is a jq variable and must reach jq without shell expansion.
+    # shellcheck disable=SC2016
     if ! latest_journal_id="$(printf '%s' "${issue_json}" | jq_strip -r '
       if (.issue.journals | type) != "array" then error("journals")
       else

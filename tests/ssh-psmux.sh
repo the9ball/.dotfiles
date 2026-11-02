@@ -36,7 +36,7 @@ run_case() (
 	local HOME=$test_directory PATH="$test_directory:$original_path"
 	local OSTYPE=msys SSH_CONNECTION='127.0.0.1 12345 127.0.0.1 22'
 	local SHLVL=1
-	local TMUX= PSMUX_SESSION= PSMUX_SSH_AUTOATTACH= BASH_EXECUTION_STRING=
+	local TMUX='' PSMUX_SESSION='' PSMUX_SSH_AUTOATTACH='' BASH_EXECUTION_STRING=''
 	local __dotfiles_psmux_autoattach_attempted=
 	local CODEX_HOME=existing
 	local GH_CONFIG_DIR=existing-gh
@@ -70,25 +70,44 @@ OVERLAY
 		named-other-socket) PSMUX_SESSION=ssh; TMUX=/tmp/psmux-123/default,456,0 ;;
 		main-ssh-socket) PSMUX_SESSION=main; TMUX=/tmp/psmux-123/dotfiles-ssh,456,0 ;;
 		missing-overlay) rm -f "$HOME/.bashrc.ssh" ;;
-		bypass-env) PSMUX_SSH_AUTOATTACH=0 ;;
+		bypass-env)
+			# The sourced overlay reads this shell-local switch.
+			# shellcheck disable=SC2034
+			PSMUX_SSH_AUTOATTACH=0 ;;
 		bypass-file) touch "$HOME/.psmux-no-autoattach" ;;
 		command) BASH_EXECUTION_STRING='printf command' ;;
 		nested) SHLVL=2 ;;
-		missing) PATH=/nonexistent ;;
+		missing)
+			# Simulate a missing executable by intentionally changing command lookup.
+			# shellcheck disable=SC2123
+			PATH=/nonexistent ;;
 		failure) export PSMUX_TEST_EXIT=42 ;;
 	esac
 	if [[ $scenario == psmux-command ]]; then BASH_EXECUTION_STRING='printf command'; fi
 	case "$scenario" in
-		input-pipe|psmux-input-pipe) source "$hook_path" </dev/null ;;
-		output-pipe|psmux-output-pipe) source "$hook_path" > "$test_directory/output" ;;
+		input-pipe|psmux-input-pipe)
+			# Exercise the runtime-selected overlay with redirected input.
+			# shellcheck disable=SC1090
+			source "$hook_path" </dev/null ;;
+		output-pipe|psmux-output-pipe)
+			# Exercise the same overlay with redirected output.
+			# shellcheck disable=SC1090
+			source "$hook_path" > "$test_directory/output" ;;
 		noninteractive|psmux-noninteractive) bash --noprofile --norc -c 'source "$1"; printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' bash "$hook_path" ;;
 		interactive-command|psmux-interactive-command) SHLVL=0 bash --noprofile --rcfile "$hook_path" -ic 'printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' ;;
-		*) source "$hook_path" ;;
+		*)
+			# The overlay path is derived from this test's checkout.
+			# shellcheck disable=SC1090
+			source "$hook_path" ;;
 	esac
+	# Re-source the runtime-selected overlay to test repeat attachment.
+	# shellcheck disable=SC1090
 	if [[ $scenario == repeat ]]; then source "$hook_path"; fi
 	if [[ $scenario == psmux-reload ]]; then
 		CODEX_HOME=existing
 		GH_CONFIG_DIR=existing-gh
+		# The overlay path is derived from this test's checkout.
+		# shellcheck disable=SC1090
 		source "$hook_path"
 	fi
 	PATH=$original_path

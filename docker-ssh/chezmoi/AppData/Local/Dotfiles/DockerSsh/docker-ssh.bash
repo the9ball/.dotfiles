@@ -56,6 +56,8 @@ docker-ssh-activate() {
     DOCKER_SSH_DEPLOYMENT=$1
     _docker_ssh_active=1
     # Delegate ordinary Docker syntax while leaving all environment overrides in the subshell above.
+    # Called interactively after activation; declare -f docker only snapshots its definition for ownership checks.
+    # shellcheck disable=SC2329
     docker() { docker-ssh "$@"; }
     _docker_ssh_function_definition=$(declare -f docker)
 }

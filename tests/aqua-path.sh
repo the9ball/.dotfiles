@@ -80,6 +80,8 @@ run_case() (
 			[[ $case_name != macos ]] || OSTYPE=darwin
 			;;
 	esac
+	# Source the checkout under test with the fixture's environment.
+	# shellcheck disable=SC1091
 	. "$repository_directory/.bashrc"
 	assert_equal "$(< "$test_directory/assertion-failures")" ''
 	assert_equal "$PATH" "$expected_path"
@@ -93,6 +95,8 @@ run_case() (
 		assert_equal "$(command -v curl)" "$test_aqua_bin_directory/curl"
 	fi
 	if [[ $case_name == repeated ]]; then
+		# Re-source the same checkout to check idempotence.
+		# shellcheck disable=SC1091
 		. "$repository_directory/.bashrc"
 		assert_equal "$(< "$test_directory/assertion-failures")" ''
 		assert_equal "$PATH" "$expected_path"

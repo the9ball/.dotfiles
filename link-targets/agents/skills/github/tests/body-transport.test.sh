@@ -35,6 +35,8 @@ chmod +x -- "$mock_bin/gh"
 export PATH="$mock_bin:$PATH"
 cd "$test_root"
 
+# This value must remain literal in the quoted fixture body below.
+# shellcheck disable=SC2034
 VAR='expanded value'
 cat > "$test_root/body.md" <<'BODY'
 Issue #89 body transport fixture.
