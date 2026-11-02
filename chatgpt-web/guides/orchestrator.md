@@ -7,7 +7,7 @@ This guide applies **only to ChatGPT** when the user explicitly appoints ChatGPT
 - ChatGPT performs external web research, examines related GitHub Issues/PRs, plans the handoff, delegates, conducts the final review, and handles authorized merging and post-merge Issue maintenance through Desktop Commander and gh. Avoid duplicate external research by codex-cli when ChatGPT can provide the evidence.
 - **codex-cli is the primary executor** on the user's host. It performs local investigation, implementation, tests, routine remediation, and task-branch Git work (including authorized push and PR creation, but normally not merging) under its own AGENTS and applicable Skills. This guide grants it no new authority and does not redefine its lifecycle, delegation, or Advisor contracts.
 - Prefer one self-contained initial delegation, autonomous execution, and a final ChatGPT review over frequent user-mediated checkpoints. Escalate only additional external research, consequential user decisions, operations outside granted authority, or unresolved blockers. Include the minimum evidence needed to resume.
-- Claude CLI is optional, not a routine co-executor. If an independent Claude review would materially help, codex-cli may propose it; run it **only after the user's explicit request/approval**, under the existing `claude-cli-review` contract. Never silently substitute it for Advisor. Reconsidering this policy requires a separate decision and any necessary contract changes.
+- Claude CLI is optional, not a routine co-executor. If an independent Claude review would materially help, codex-cli may propose it. Run it **only after the user explicitly approves the specific review and its scope**. No shared `claude-cli-review` Skill is assumed to exist: before execution, verify the actual Claude CLI review procedure and applicable permissions in the executing environment; if these cannot be established, stop and ask the user rather than inventing a contract. Never silently substitute it for Advisor. Reconsidering this policy requires a separate decision and any necessary contract changes.
 
 ## Initial codex-cli handoff
 
@@ -17,7 +17,7 @@ The initial delegation is a **new-thread kickoff prompt**, not a follow-up under
 2. Current base and intended task branch; which GitHub operations are authorized (including explicit **yes/no** for push and PR creation), and any user approvals. ChatGPT's own GitHub write autonomy **does not transfer** to codex-cli. Do not imply permissions the user has not granted. Explicitly prohibit default-branch push, force push, and destructive operations unless separately and specifically authorized. Reserve merge execution for ChatGPT via Desktop Commander and gh by default; instruct codex-cli not to merge. Follow codex-cli's `AGENTS.md` and external-operation authorization requirements.
 3. Expected verification and durable handoff artifacts, plus conditions for escalating rather than guessing.
 
-ChatGPT's own authorized GitHub writes use Desktop Commander and `gh`; the GitHub plugin remains read-only. Respect all existing approval, branch-protection, and external-posting rules.
+ChatGPT's own authorized GitHub writes use Desktop Commander and `gh`; the GitHub plugin remains read-only. When referring to existing Codex Skills, resolve their canonical paths under `the9ball/.dotfiles/link-targets/agents/skills/<skill-name>/SKILL.md` at the task's pinned revision, subject to the executor's own discovery rules; do not assume a named Skill exists without checking. Respect all existing approval, branch-protection, and external-posting rules.
 
 ## Durable record and final review
 
@@ -31,6 +31,10 @@ Before the final ChatGPT review, codex-cli should leave in the PR body or commen
 - ChatGPT's review judgment is not user authorization. Merge only if the user explicitly authorizes the **specific PR and conditions**, including an advance conditional instruction such as "merge if all reviews pass". A general implementation request, a passing Advisor review, or this guide alone never authorizes merge. Do not merge a Draft PR or bypass protections.
 - Immediately before an authorized merge, verify the PR's current head SHA against the reviewed range, unresolved findings, required reviews, checks, draft state, and branch protections. If the head or conditions change, re-evaluate or stop; never silently merge an unreviewed revision.
 - After a successful merge, ChatGPT uses Desktop Commander and gh to maintain the related Issue and consolidate review outcomes where applicable, following existing review-consolidation, authorization, and external-posting contracts. Do not close unrelated work or assume an Issue is complete if acceptance criteria remain unmet.
+
+## Guide retrieval failure
+
+On activation, fetch this ChatGPT-only guide from `the9ball/.dotfiles` at `chatgpt-web/guides/orchestrator.md` on `master` (or an explicitly specified PR branch for pre-merge inspection). If the fetch fails, the path cannot be verified, or its contents cannot be read, **do not activate orchestrator mode** or reconstruct the guide from memory. Report the failure and request a valid source. Do not treat a PR-branch inspection as activation of the master version.
 
 ## Validation before merge
 
