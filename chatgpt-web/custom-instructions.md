@@ -45,11 +45,9 @@ In ChatGPT, use Desktop Commander for direct HTTP/API access required by this sk
 
 # Web Access Fallback
 
-When built-in web tools fail to retrieve or extract requested content, **MUST try `curl` via Desktop Commander before reporting failure or requesting user-provided content.**
+When built-in web tools fail to retrieve or extract requested content, **MUST retrieve and follow `chatgpt-web/guides/web-access-fallback.md` from this repository before reporting failure or requesting user-provided content.**
 
-Use GET with browser User-Agent and Accept-Language headers. Save responses in a `mktemp -d` directory, verify actual content (e.g., X post `og:description`, not just HTTP 200), and clean up afterward.
-
-Respect authentication, access restrictions, and rate limits.
+Do not conclude content is inaccessible after a single unsuccessful extraction. If the guide cannot be retrieved, report that limitation rather than inventing its contents.
 
 # Prompt Thread Continuity
 
