@@ -5,7 +5,7 @@ description: Before creating or editing program source code, resolve the applica
 
 # Code formatting
 
-Apply this skill before the first source-code write, including scripts and new files. Carry its selected settings and validation route through the edit and its final verification. The trigger phrase "プログラムコードの編集前" means "before editing program source code."
+Apply this skill before the first source-code write, including scripts and new files. Carry its selected settings and validation route through the edit and its final verification.
 
 ## Before editing
 
@@ -33,7 +33,7 @@ Honor indentation, newline convention, encoding/BOM, trailing whitespace, and fi
 3. Use the native tool's verification mode for language-specific checks. Treat parser, project-load, and tool-execution failures separately from formatting violations. An empty diagnostic list from a failed or skipped check is not success.
 4. Fix violations attributable to the task and rerun the affected checks. If a failure persists after two evidence-based corrections, identify the remaining cause and report it instead of looping. Existing out-of-scope violations are reported separately and are not automatically added to the task.
 
-Checker supports only its documented property set; for example, `tab_width` is not supported by the currently documented release. Its automatic fixes cover only some properties and can rewrite files. Use such fixes only within the same approved scope; indentation, encoding, and language syntax need the appropriate editing or formatting route.
+Checker supports only its documented property set; for example, `tab_width` is not supported by the currently documented release. Its automatic fixes cover only some properties and can rewrite files. Use automatic fixes only within the authorized change scope identified for this task; indentation, encoding, and language syntax need the appropriate editing or formatting route.
 
 Do not modify `.editorconfig`, formatter settings, severity settings, or exclusions merely to make verification pass. Configuration changes require their own task scope.
 

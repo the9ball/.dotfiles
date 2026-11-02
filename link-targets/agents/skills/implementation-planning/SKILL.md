@@ -74,12 +74,12 @@ For each candidate, write at least **target/operation/cause**. Conditional candi
 ### Counted and excluded
 
 - Exclude: test code, automatic artifacts, migration generation, configuration files, comments, and empty lines.
-- Write a rough estimate of the test code in a separate box. When included in the main body estimate, tests are removed to maintain line count.
+- Estimate test code separately from implementation code. Including test code in the implementation estimate can create pressure to remove tests merely to meet the line-count target.
 - Deleted lines of existing code are not counted.
 
 ### If the estimate is exceeded
 
-1. When the number of lines exceeds 1.5 times and +30 lines, stop implementing that step.
+1. Let E be the step's estimated counted lines, using the upper bound for a range, and A the actual counted lines. Stop implementing the step when both `A > 1.5 × E` and `A > E + 30`. At `A = E + 30`, the second condition is not met.
 2. Categorize and report the reason for the excess. (a) The estimate was lax (b) The requirements were more complex than planned (c) Elements not included in the plan were added.
 3. Show countermeasures. In case (c), explicitly check whether the element is really within the scope of the request.
 4. Get approval before proceeding.
