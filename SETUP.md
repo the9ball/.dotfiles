@@ -87,7 +87,8 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 リポジトリのルートで、push 前に次を手動実行します。
 Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
 チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck、Bash / POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
-`.github/workflows/` に対象ファイルがなければ actionlint はスキップします。
+GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と次のコマンドを実行します。
+ワークフロー自体も actionlint の検査対象です。
 
 ```sh
 prek run --all-files --stage manual
@@ -123,6 +124,34 @@ push 前にコミット範囲を走査する場合は、別途次を手動実行
 ```sh
 gitleaks git --redact --log-opts=origin/master..HEAD
 ```
+
+CI では、上の構文・設定チェックとは別に `gitleaks git --redact` でイベントのコミット範囲を走査します。
+ローカルのステージ済み差分の検査と異なり、PR は base と PR head の merge-base（起点を含まない）から PR head まで、master への push は `github.event.before`（起点を含まない）から `github.sha` までが対象です。
+PR の構文・設定チェックは checkout が用意するマージ結果、gitleaks は PR head までの履歴を検査します。
+checkout は `fetch-depth: 0` とし、範囲は Bash スクリプト [`scripts/ci-gitleaks-range.sh`](scripts/ci-gitleaks-range.sh) で計算します。
+引数はイベント名（`pull_request` / `push`）、比較元の完全なコミット SHA、走査先の完全なコミット SHA です。
+SHA の欠落・全桁ゼロ・存在しないコミット、浅い履歴、merge-base の欠落・複数候補、push の比較元が head の祖先でない場合、履歴の取得・比較・走査の失敗は CI を失敗させます。
+代わりの範囲を作ったり、検査をスキップして成功にしたりしません。
+CI で秘密情報を検出した時点で内容は remote に到達しているため、漏えいとして該当の認証情報を無効化・差し替えます。
+
+CI の検査ジョブは GitHub-hosted の `ubuntu-24.04` で動き、集約ジョブのチェック名は `ci-required` です。
+集約ジョブは `always()` で実行し、`needs` のすべての結果が `success` の場合だけ成功します。
+`failure` / `cancelled` / `skipped` は失敗として扱います。
+このチェックを ruleset に登録する作業は別途行います。
+
+Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツール導入は無効にします。
+既存の chezmoi スクリプトと同じ固定 SHA-256 を照合してから `aqua policy allow aqua-policy.yaml` を実行します。
+`aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks の 6 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
+読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
+prek と gitleaks の実行ステップには渡しません。
+必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
+
+CI には次の残留リスクがあります。
+
+- PR で `.github/workflows/*`、`.pre-commit-config.yaml`、`scripts/`、`aqua.yaml`、`aqua-registry.yaml`、`aqua-policy.yaml` などを書き換えると、runner 上で任意のコマンド実行や外部通信が起こりえます。policy の照合処理も書き換えられるため、信頼境界にはなりません。
+- `pull_request` を使い、`permissions` は `contents: read` のみ、checkout は `persist-credentials: false` とし、ワークフローは secrets を参照しません。fork PR は GitHub 側の権限制約と実行承認の設定を境界にします。同一リポジトリからの PR と push では、ワークフローの書き換えにより書き込み権限や設定済みの secrets に届くリスクが残ります。Actions の既定トークン権限を read にしても上限にはなりません。このリスクは当面受容し、[Issue #208](https://github.com/the9ball/.dotfiles/issues/208) で見直します。
+- `aqua.yaml` の checksum 検証は無効のままです。今回の CI 追加では有効化していません。
+- policy の固定 SHA-256 は、既存の `run_before_00-aqua-policy.ps1.tmpl` / `run_before_00-aqua-policy.sh.tmpl` と CI ワークフローで二重管理します。policy を変更するときは、内容を確認したうえで双方の固定値を更新します。
 
 ## Windows
 
