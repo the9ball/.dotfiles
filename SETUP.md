@@ -82,6 +82,47 @@ Aqua管理の`codex`に対して`codex update`は使用しません。
 
 WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)の「通常CLIを更新する」を参照してください。
 
+## ローカルでの構文・設定チェック
+
+リポジトリのルートで、push 前に次を手動実行します。
+Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
+チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck、Bash / POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
+`.github/workflows/` に対象ファイルがなければ actionlint はスキップします。
+
+```sh
+prek run --all-files --stage manual
+```
+
+Windows の構文チェックは Git Bash 内の `/bin/bash` と `/bin/sh` を使います。
+`System32/bash.exe`（WSL ランチャー）の PATH 順序には依存しません。
+Git Bash の `sh` が PATH にある環境で実行してください。
+
+push 時にも実行したい人だけ、次で pre-push フックを導入します。
+通常の `prek install` が導入する pre-commit ステージでは、追加した構文・設定チェックは実行せず、既存の gitleaks フックだけを実行します。
+
+```sh
+prek install -t pre-push
+# push せずに pre-push と同じチェックを試す
+prek run --all-files --stage pre-push
+```
+
+`prek`、`shellcheck`、`jq`、`yq`、`actionlint`、`gitleaks` が PATH にない場合は、リポジトリのルートで `aqua install` を実行し、Aqua の bin を PATH に追加してから再実行します。
+ローカルレジストリの承認が必要な場合は、上の Aqua 導入手順を参照してください。
+WSL でも WSL 側の Aqua とツールを用意します。
+一部のツールが動かない実行環境もあるため、pre-push の導入は任意です。
+利用できないツールのチェックは、その環境で検証済みとは扱いません。
+
+テンプレート（`*.tmpl`、chezmoi の `.chezmoitemplates/`、`modify_*`、`create_*`）と外部取り込みの `git-completion/` は除外します。
+テンプレート展開後の検証は後続の Phase 2 で扱います。
+
+既存の gitleaks フックはステージ済みの差分を対象とします。
+push 前にコミット範囲を走査する場合は、別途次を手動実行します。
+比較先の `origin/master` が意図した基準か確認し、必要に応じて範囲を変更してください。
+
+```sh
+gitleaks git --redact --log-opts=origin/master..HEAD
+```
+
 ## Windows
 
 ### Git Bash で SSH 接続時に psmux へ復帰する
