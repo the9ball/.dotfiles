@@ -1,6 +1,6 @@
 #!/bin/bash
 # Print the gitleaks commit range for a pull_request or push event.
-# Usage: bash scripts/ci-gitleaks-range.sh EVENT BASE_SHA HEAD_SHA
+# Usage: bash scripts/ci-gitleaks-range.sh EVENT BASE_SHA HEAD_SHA [PR_MERGE_SHA]
 # Requires complete local history and full commit SHAs; never fetches or substitutes
 # a comparison base. Invalid, missing, ambiguous, or unrelated history fails closed.
 set -euo pipefail
@@ -8,9 +8,14 @@ set -euo pipefail
 event_name=${1:?An event name is required}
 comparison_base_sha=${2:?A comparison base SHA is required}
 scan_head_sha=${3:?A scan head SHA is required}
+scan_commits=("$comparison_base_sha" "$scan_head_sha")
+if [[ "$event_name" == pull_request ]]; then
+    pr_merge_sha=${4:?A PR merge SHA is required}
+    scan_commits+=("$pr_merge_sha")
+fi
 
 # Restrict revisions to object IDs so Git cannot interpret options or expressions.
-for commit_sha in "$comparison_base_sha" "$scan_head_sha"; do
+for commit_sha in "${scan_commits[@]}"; do
     if [[ ! "$commit_sha" =~ ^[0-9a-fA-F]{40}$ || "$commit_sha" =~ ^0+$ ]]; then
         printf 'A nonzero full commit SHA is required: %s\n' "$commit_sha" >&2
         exit 1
@@ -25,6 +30,16 @@ fi
 
 case "$event_name" in
     pull_request)
+        if [[ $(git rev-parse --verify HEAD) != "$pr_merge_sha" ]]; then
+            printf 'The PR merge SHA must match checkout HEAD.\n' >&2
+            exit 1
+        fi
+        # Exact parent-list equality also rejects non-merges and octopus merges.
+        merge_parents=$(git show --no-patch --format=%P "$pr_merge_sha")
+        if [[ "$merge_parents" != "$comparison_base_sha $scan_head_sha" ]]; then
+            printf 'The PR merge parents must match the event base and head.\n' >&2
+            exit 1
+        fi
         # Multiple merge bases do not identify the single required starting point.
         merge_base_sha=$(git merge-base --all "$comparison_base_sha" "$scan_head_sha")
         if [[ ! "$merge_base_sha" =~ ^[0-9a-fA-F]{40}$ ]]; then
