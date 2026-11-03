@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { createHash, randomUUID, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const source = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -20,10 +21,10 @@ let created = false;
 let indeterminate = false;
 const reviewedFiles = [
     'src/TpmKeySetup/Program.cs', 'src/TpmKeySetup/TpmKeySetup.csproj', 'poc-tpm-v2/Policy.cs',
-    'src/DockerCredentialTpm/Program.cs', 'src/DockerCredentialTpm/TpmCipher.cs', 'src/DockerCredentialTpm/AclChecks.cs', 'src/DockerCredentialTpm/DockerCredentialTpm.csproj',
+    'src/DockerCredentialTpm/Program.cs', 'src/DockerCredentialTpm/CredentialKey.cs', 'src/DockerCredentialTpm/TpmCipher.cs', 'src/DockerCredentialTpm/AclChecks.cs', 'src/DockerCredentialTpm/DockerCredentialTpm.csproj',
     'scripts/Build-TpmDockerPackage.ps1', 'scripts/Initialize-DockerSshTpm.ps1', 'scripts/Remove-DockerSshTpm.ps1', 'scripts/TpmSetupRuntime.ps1',
-    'tests/ColdBootEnvironment.ps1', 'tests/Verify-TpmSetup.mjs',
-    'chezmoi/AppData/Local/Dotfiles/DockerSsh/docker-ssh.bash', 'chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1', 'global.json',
+    'src/DockerSshDispatcher/Program.cs', 'src/DockerSshDispatcher/DockerSshDispatcher.csproj', 'tests/ColdBootEnvironment.ps1', 'tests/Verify-TpmSetup.mjs',
+    'chezmoi/AppData/Local/Dotfiles/DockerSsh/docker-ssh.bash', 'chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1', 'chezmoi/AppData/Local/Dotfiles/DockerSsh/Invoke-DockerSshTpm.ps1', 'chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1', 'global.json',
 ];
 
 /** Reject incomplete, duplicate, escaping or changed source sets before any attempt claim, build or persistent key operation. */
@@ -38,6 +39,14 @@ function validateAuthorization(value, sid) {
         seen.add(entry.Path);
     }
     if (seen.size !== reviewedFiles.length) throw new Error('Incomplete source set');
+}
+
+/** Resolve only the supported installed helper from verified settings, never an obsolete fixed path. */
+function installedHelperPath(settings, root) {
+    if (settings.Version !== 1 || settings.HelperKind !== 'tpm' || settings.HelperVersion !== '0.5.0') throw new Error('Unsupported installed helper');
+    const helper = path.join(root, 'bin', settings.HelperVersion, 'docker-credential-ssh-tpm.exe');
+    if (!fs.statSync(helper).isFile() || fs.lstatSync(helper).isSymbolicLink()) throw new Error('Installed helper missing or redirected');
+    return helper;
 }
 
 /** Hash file bytes without reading credential values or printing contents. */
@@ -89,7 +98,23 @@ if (authorizationSelfTest) {
         try { validateAuthorization({ ...valid, Files }, 'test-user'); } catch { rejected = true; }
         if (!rejected) throw new Error('Unsafe manifest accepted');
     }
-    console.log('setup-authorization : PASS; assertions=7; key-operations=0; builds=0');
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'docker-ssh-issue185-path-'));
+    try {
+        const expected = path.join(fixture, 'bin/0.5.0/docker-credential-ssh-tpm.exe');
+        fs.mkdirSync(path.dirname(expected), { recursive: true });
+        fs.writeFileSync(expected, 'inert path fixture; never executable');
+        const settings = { Version: 1, HelperKind: 'tpm', HelperVersion: '0.5.0' };
+        if (installedHelperPath(settings, fixture) !== expected) throw new Error('Current helper path mismatch');
+        for (const HelperVersion of ['0.4.0', '../escape']) {
+            let rejected = false;
+            try { installedHelperPath({ ...settings, HelperVersion }, fixture); } catch { rejected = true; }
+            if (!rejected) throw new Error('Obsolete or escaping helper path accepted');
+        }
+    } finally {
+        if (path.dirname(path.resolve(fixture)) !== path.resolve(os.tmpdir()) || !path.basename(fixture).startsWith('docker-ssh-issue185-path-')) throw new Error('Fixture cleanup boundary mismatch');
+        fs.rmSync(fixture, { recursive: true });
+    }
+    console.log('setup-authorization : PASS; assertions=10; key-operations=0; builds=0');
     process.exit(0);
 }
 
@@ -159,7 +184,7 @@ try {
         const settingsBefore = digest(path.join(destination, 'settings.json'));
         check('idempotent-verify-no-rewrite', (await script('scripts/Initialize-DockerSshTpm.ps1', [...setupArgs(), '-Execute'])).code === 0 && digest(path.join(destination, 'settings.json')) === settingsBefore);
         const environment = { DOCKER_SSH_HELPER_ROOT: path.join(destination, 'store') };
-        const helper = path.join(destination, 'bin/0.4.0/docker-credential-ssh-tpm.exe');
+        const helper = installedHelperPath(JSON.parse(fs.readFileSync(path.join(destination, 'settings.json'), 'utf8')), destination);
         const secret = randomBytes(32).toString('hex');
         const request = JSON.stringify({ ServerURL: 'setup.invalid', Username: 'setup-user', Secret: secret });
         check('dummy-store', (await run(helper, ['store'], request, environment)).code === 0);

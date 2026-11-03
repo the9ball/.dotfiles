@@ -1,5 +1,8 @@
 # Git Bashでの利用
 
+SSHの親子プロセスへ自動適用する0.5系は [ISSUE-185.md](ISSUE-185.md) を参照する。
+以下は引き続き利用できる明示的な手動入口であり、別途起動するnative子プロセスへactivate関数を継承するものではない。
+
 手順の正本は [INSTALL.md](INSTALL.md)。公開ランチャーのsourceと、明示deploymentへのactivationだけを行う。
 通常のDocker Desktop設定は変更しない。`docker-ssh-deactivate`でshellの選択を戻す。
 

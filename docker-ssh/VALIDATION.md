@@ -1,5 +1,11 @@
 # 別Windows 11で必要時に行う検証
 
+## Issue #185の0.5系実装
+
+SSH自動選択・OAuth対応は [ISSUE-185.md](ISSUE-185.md) を参照する。
+ソースと隔離試験の段階であり、host反映・実TPM/実認証・再起動検証は別承認で未実施。
+以下のIssue #142の実績は0.4系の履歴であり、0.5系の成功を意味しない。
+
 **別Windows実機：未実施・必要時に検証。** 今回のIssue #142の必須完了条件には含めない。以下は将来の再現用手順であり成功の報告ではない。
 将来の担当モデルは、本書、[INSTALL.md](INSTALL.md)、実装、その時点の最新公式仕様を参照して、対象端末に必要な試験を選ぶ。
 今回の判定は [ACCEPTANCE.md](ACCEPTANCE.md)、方針変更の履歴は [VALIDATION.history.md](VALIDATION.history.md) を参照する。
@@ -38,7 +44,7 @@ Verify-TpmLaunchersは非ASCIIパス、UTF-8のpipe、誤configパス、routing/
 - Mode=poc、MaxKeys=1、AllowCreateAndExactDelete=true、State=APPROVED_ONE_TRIAL。
 - UserSidは対象端末の実行ユーザー。KeyNameはdocker-ssh-issue142-poc-とInstallationId。
 - DestinationRootはその端末のLocalAppData直下のdocker-ssh-issue142-lab-install-とInstallationId。
-- FilesはVerify-TpmSetup.mjsのreviewedFilesに列挙された16ファイル全件と実際のSHA-256。欠落・重複・変更を拒否する。
+- FilesはVerify-TpmSetup.mjsのreviewedFilesに列挙されたファイル全件と実際のSHA-256。欠落・重複・変更を拒否する。
 
 `````bash
 node tests/Verify-TpmSetup.mjs 'ABSOLUTE_PATH_TO_REVIEWED_AUTHORIZATION.json'
