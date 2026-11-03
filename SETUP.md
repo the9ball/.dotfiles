@@ -114,8 +114,28 @@ WSL でも WSL 側の Aqua とツールを用意します。
 一部のツールが動かない実行環境もあるため、pre-push の導入は任意です。
 利用できないツールのチェックは、その環境で検証済みとは扱いません。
 
-テンプレート（`*.tmpl`、chezmoi の `.chezmoitemplates/`、`modify_*`、`create_*`）と外部取り込みの `git-completion/` は除外します。
-テンプレート展開後の検証は後続の Phase 2 で扱います。
+通常の構文チェックではテンプレート（`*.tmpl`、chezmoi の `.chezmoitemplates/`、`modify_*`、`create_*`）と外部取り込みの `git-completion/` を除外します。
+テンプレートは `chezmoi-templates` フックで Linux / Windows のダミーデータを使って展開し、展開エラーと JSON / TOML のパースエラーを検出します。
+named helper は実際の wrapper から読み込み、静的な `create_AGENTS.md` の配置は検査しません。
+`.chezmoiexternal.toml` も展開後に TOML として検査しますが、外部ファイルは取得しません。
+
+このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、事前導入済みの Aqua / chezmoi、Git が必要です。
+Python は CI の Ubuntu 24.04 runner に標準搭載されたものを使い、追加の Python package や setup Action は導入しません。
+ローカルでは Python 3.11 以上を用意し、chezmoi が未導入なら検証前に `aqua install` を実行してください。
+チェッカー自身は不足ツールのダウンロードを行いません。
+単体で実行する場合も共通の入口を使います。
+
+```sh
+prek run chezmoi-templates --all-files --stage manual
+```
+
+追跡済みの作業ツリー入力だけを一時 source にコピーし、HOME 系の環境変数・config・state・cache を一時領域に向けます。
+認証変数を子プロセスへ渡さず、実 HOME の設定、未追跡のホスト用 `.local`、外部ファイル取得に依存しません。
+setup script や hook、`apply` は実行しません。
+既存の `tests/codex-config.py` の 6 テストもこのフックから同じ隔離環境で実行し、スキップが発生した場合も失敗にします。
+生成結果の設定値・動作の正しさは修正担当とレビュー担当が確認し、新しい意味的回帰テストは追加していません。
+Windows の OS 値を渡す試験はネイティブ実行・配置の保証ではなく、それらは Phase 3 の対象です。
+一時 HOME は悪意あるテンプレート関数の sandbox ではなく、OS レベルの通信遮断も行いません。
 
 既存の gitleaks フックはステージ済みの差分を対象とします。
 push 前にコミット範囲を走査する場合は、別途次を手動実行します。
@@ -141,7 +161,7 @@ CI の検査ジョブは GitHub-hosted の `ubuntu-24.04` で動き、集約ジ�
 
 Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツール導入は無効にします。
 既存の chezmoi スクリプトと同じ固定 SHA-256 を照合してから `aqua policy allow aqua-policy.yaml` を実行します。
-`aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks の 6 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
+`aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks、chezmoi の 7 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。

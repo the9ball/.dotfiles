@@ -1,6 +1,6 @@
 """Exercise regular and personal Codex modify templates in isolated chezmoi fixtures.
 
-Run: uv run --no-project --python 3.13 python -B tests/codex-config.py -v
+Run: python3 -B tests/codex-config.py -v
 """
 
 import os
@@ -72,6 +72,7 @@ class CodexConfigTests(unittest.TestCase):
                 "--destination", str(self.home),
                 "--config", str(self.configuration),
                 "--persistent-state", str(self.root / "state.boltdb"),
+                "--cache", str(self.root / "cache"),
                 "execute-template", "--with-stdin", "--file",
                 str(self.source / directory / "modify_config.toml"),
             ],
@@ -172,4 +173,5 @@ class CodexConfigTests(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    result = unittest.main(exit=False).result
+    raise SystemExit(not result.wasSuccessful() or bool(result.skipped))

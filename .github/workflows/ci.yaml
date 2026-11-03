@@ -39,7 +39,7 @@ jobs:
           printf '%s  aqua-policy.yaml\n' "$expected_policy_sha256" | sha256sum --check --strict
           aqua policy allow aqua-policy.yaml
 
-      # Eagerly download all six tools before entering steps without a token.
+      # Eagerly download all seven tools before entering steps without a token.
       - name: Install CI tools
         shell: bash
         env:
