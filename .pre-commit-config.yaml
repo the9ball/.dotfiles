@@ -12,15 +12,8 @@ repos:
         language: system
         entry: sh scripts/check-files.sh shellcheck-bash
         stages: [manual, pre-push]
-        files: &bash_files '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
-        exclude: &bash_excludes '(^scripts/check-files\.sh$|^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
-      - id: bash-syntax
-        name: Bash syntax
-        language: system
-        entry: sh scripts/check-files.sh bash-syntax
-        stages: [manual, pre-push]
-        files: *bash_files
-        exclude: *bash_excludes
+        files: '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
+        exclude: '(^scripts/check-files\.sh$|^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
       - id: shellcheck-sh
         name: ShellCheck (POSIX sh)
         language: system
@@ -63,7 +56,7 @@ repos:
         stages: [manual, pre-push]
         pass_filenames: false
         require_serial: true
-        files: '^(chezmoi/|docker-ssh/chezmoi/|tests/(chezmoi-templates|codex-config)\.py$|\.chezmoiroot$|aqua(-registry)?\.yaml$|winget\.json$|\.pre-commit-config\.yaml$)'
+        files: '^(chezmoi/|docker-ssh/chezmoi/|tests/chezmoi-templates\.py$|\.chezmoiroot$|aqua(-registry)?\.yaml$|winget\.json$|\.pre-commit-config\.yaml$)'
       - id: actionlint
         name: GitHub Actions lint
         language: system

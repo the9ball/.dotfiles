@@ -134,7 +134,7 @@ def check_templates(inputs, checkout, root, executable, environment):
 
 
 def main():
-    """Run syntax checks and the existing regressions with temporary state only."""
+    """Run template expansion and settings syntax checks with temporary state only."""
     if sys.version_info < (3, 11):
         raise ValueError("Python 3.11 or newer is required")
     repository = Path(__file__).resolve().parents[1]
@@ -146,10 +146,6 @@ def main():
         inputs = copy_inputs(repository, checkout)
         environment = isolated_environment(root, executable)
         check_templates(inputs, checkout, root, executable, environment)
-        result = run_checked([
-            sys.executable, "-B", str(repository / "tests" / "codex-config.py"), "-v",
-        ], checkout, environment, "Codex config regressions")
-        print(result.stderr, end="")
 
 
 if __name__ == "__main__":

@@ -86,7 +86,7 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 リポジトリのルートで、push 前に次を手動実行します。
 Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
-チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck、Bash / POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
+チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck（Bash / POSIX sh）、POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
 GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と次のコマンドを実行します。
 ワークフロー自体も actionlint の検査対象です。
 
@@ -94,9 +94,19 @@ GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、mast
 prek run --all-files --stage manual
 ```
 
-Windows の構文チェックは Git Bash 内の `/bin/bash` と `/bin/sh` を使います。
+POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI では runner の `/bin/sh` を使います。
 `System32/bash.exe`（WSL ランチャー）の PATH 順序には依存しません。
 Git Bash の `sh` が PATH にある環境で実行してください。
+
+Bash の対象は ShellCheck の `-s bash` で構文と lint を検査し、同じ対象への `bash -n` フックは重複分として外しています。
+POSIX sh の `-s sh` は移植性の検査で、実際のシステムシェルの受理判定とは異なるため、`sh -n` は残します。
+ShellCheck と native parser は完全に同等ではなく、構文診断をコメントで抑止すると ShellCheck が通る場合もあります。
+通常の構文破損を ShellCheck が検出することは確認していますが、Bash 診断を抑止する変更は修正担当とレビュー担当が確認してください。
+native Bash の構文判定も必要な場合は、対象を指定して手動実行できます。
+
+```sh
+sh scripts/check-files.sh bash-syntax path/to/script.sh
+```
 
 push 時にも実行したい人だけ、次で pre-push フックを導入します。
 通常の `prek install` が導入する pre-commit ステージでは、追加した構文・設定チェックは実行せず、既存の gitleaks フックだけを実行します。
@@ -143,10 +153,24 @@ prek run chezmoi-templates --all-files --stage manual
 追跡済みの作業ツリー入力だけを一時 source にコピーし、HOME 系の環境変数・config・state・cache を一時領域に向けます。
 認証変数を子プロセスへ渡さず、実 HOME の設定、未追跡のホスト用 `.local`、外部ファイル取得に依存しません。
 setup script や hook、`apply` は実行しません。
-既存の `tests/codex-config.py` の 6 テストもこのフックから同じ隔離環境で実行し、スキップが発生した場合も失敗にします。
 生成結果の設定値・動作の正しさは修正担当とレビュー担当が確認し、新しい意味的回帰テストは追加していません。
 Windows の OS 値を渡す試験はネイティブ実行・配置の保証ではなく、それらは Phase 3 の対象です。
 一時 HOME は悪意あるテンプレート関数の sandbox ではなく、OS レベルの通信遮断も行いません。
+
+### Codex 設定の回帰テストを手動実行する
+
+`tests/codex-config.py` の既存 6 テストは、モデル名・権限・既存値保持・ローカル上書き・冪等性などを検査します。
+必須 CI と `chezmoi-templates` フックからは実行せず、Codex 設定を修正・レビューするときに手動で実行します。
+上記のツール導入手順で `CHEZMOI_TEST_BINARY` を設定してから、リポジトリのルートで次を実行してください。
+
+```sh
+python3 -B tests/codex-config.py -v
+```
+
+テスト自体が source・destination・config・state・cache を一時領域に作り、実設定の代わりに synthetic な既存値と `.local` を使います。
+6 テストの内容は維持し、失敗またはスキップが発生した場合は非0で終了します。
+
+### gitleaks と必須 CI
 
 既存の gitleaks フックはステージ済みの差分を対象とします。
 push 前にコミット範囲を走査する場合は、別途次を手動実行します。
