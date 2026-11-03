@@ -119,10 +119,21 @@ WSL でも WSL 側の Aqua とツールを用意します。
 named helper は実際の wrapper から読み込み、静的な `create_AGENTS.md` の配置は検査しません。
 `.chezmoiexternal.toml` も展開後に TOML として検査しますが、外部ファイルは取得しません。
 
-このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、事前導入済みの Aqua / chezmoi、Git が必要です。
+このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、事前導入済み chezmoi の実体パスを指定する `CHEZMOI_TEST_BINARY`、Git が必要です。
 Python は CI の Ubuntu 24.04 runner に標準搭載されたものを使い、追加の Python package や setup Action は導入しません。
-ローカルでは Python 3.11 以上を用意し、chezmoi が未導入なら検証前に `aqua install` を実行してください。
-チェッカー自身は不足ツールのダウンロードを行いません。
+ローカルでは Python 3.11 以上を用意し、ツール導入時に以下を実行してください。
+`aqua which` は registry の取得・更新を伴うことがあるため、導入工程でだけ呼び出します。
+
+```sh
+aqua install --tags ci
+export CHEZMOI_TEST_BINARY="$(aqua which chezmoi)"
+```
+
+PowerShell では、導入後に `$env:CHEZMOI_TEST_BINARY = (aqua which chezmoi).Trim()` と設定します。
+この値は信頼できる事前導入済みの実体を指定する契約で、PATH 上の Aqua shim や別の実行ファイルは指定しません。
+CI もツール導入ステップ内で解決した実体パスだけを後続へ渡します。
+チェッカーは Aqua を呼ばず、変数が未指定または実体が存在しない場合はダウンロードせずに失敗します。
+子プロセスには `AQUA_DISABLE_LAZY_INSTALL=true` も渡しますが、これは package の遅延取得に対する補助で、shim による registry 取得までを防ぐものではありません。
 単体で実行する場合も共通の入口を使います。
 
 ```sh

@@ -12,16 +12,16 @@ import sys
 import tempfile
 
 
-def installed_chezmoi(repository):
-    """Resolve an existing native executable without triggering an aqua shim."""
+def installed_chezmoi():
+    """Require the trusted native path resolved during tool installation."""
     executable = os.environ.get("CHEZMOI_TEST_BINARY")
     if not executable:
-        executable = subprocess.check_output(
-            ["aqua", "which", "chezmoi"], cwd=repository, text=True, timeout=30
-        ).strip()
+        raise ValueError("set CHEZMOI_TEST_BINARY to a preinstalled native chezmoi")
     executable = Path(executable).resolve(strict=True)
-    if not executable.is_file():
-        raise ValueError("chezmoi must be installed before running checks")
+    if not executable.is_file() or executable.name.lower() in (
+        "aqua-proxy", "aqua-proxy.exe",
+    ):
+        raise ValueError("CHEZMOI_TEST_BINARY must be a native chezmoi, not aqua-proxy")
     return executable
 
 
@@ -67,6 +67,7 @@ def isolated_environment(root, executable):
         environment[name] = str(directory)
     environment["PATH"] = str(executable.parent)
     environment["CHEZMOI_TEST_BINARY"] = str(executable)
+    environment["AQUA_DISABLE_LAZY_INSTALL"] = "true"
     environment["PYTHONUTF8"] = "1"
     environment["PYTHONDONTWRITEBYTECODE"] = "1"
     return environment
@@ -137,7 +138,7 @@ def main():
     if sys.version_info < (3, 11):
         raise ValueError("Python 3.11 or newer is required")
     repository = Path(__file__).resolve().parents[1]
-    executable = installed_chezmoi(repository)
+    executable = installed_chezmoi()
     print(f"Python {sys.version.split()[0]}", flush=True)
     with tempfile.TemporaryDirectory(prefix="chezmoi-template-check-") as temporary:
         root = Path(temporary)

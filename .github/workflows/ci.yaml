@@ -44,7 +44,11 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: aqua install --tags ci
+        run: |
+          aqua install --tags ci
+          chezmoi_binary=$(aqua which chezmoi)
+          test -f "$chezmoi_binary"
+          printf 'CHEZMOI_TEST_BINARY=%s\n' "$chezmoi_binary" >> "$GITHUB_ENV"
 
       # Run the same definitions and manual stage used before a local push.
       - name: Run syntax and configuration checks
