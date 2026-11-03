@@ -177,16 +177,20 @@ push 前にコミット範囲を走査する場合は、別途次を手動実行
 比較先の `origin/master` が意図した基準か確認し、必要に応じて範囲を変更してください。
 
 ```sh
-gitleaks git --redact --log-opts=origin/master..HEAD
+gitleaks git --redact --log-opts="--diff-merges=first-parent origin/master..HEAD"
 ```
 
 CI では、上の構文・設定チェックとは別に `gitleaks git --redact` でイベントのコミット範囲を走査します。
 ローカルのステージ済み差分の検査と異なり、PR は base と PR head の merge-base（起点を含まない）から PR head まで、master への push は `github.event.before`（起点を含まない）から `github.sha` までが対象です。
-PR の構文・設定チェックは checkout が用意するマージ結果、gitleaks は PR head までの履歴を検査します。
+PR の構文・設定チェックは checkout が用意するマージ結果を検査します。
+gitleaks は PR head までの履歴に加え、GitHub Actions の synthetic merge commit を1件だけ追加走査します。
+両方の走査で `--diff-merges=first-parent` を指定し、マージ時に追加された変更も親1との差分で検査します。
+履歴の辿り方を制限する `--first-parent` は使わず、通常コミットや side branch で追加後に削除された秘密も走査対象に残します。
 checkout は `fetch-depth: 0` とし、範囲は Bash スクリプト [`scripts/ci-gitleaks-range.sh`](scripts/ci-gitleaks-range.sh) で計算します。
-引数はイベント名（`pull_request` / `push`）、比較元の完全なコミット SHA、走査先の完全なコミット SHA です。
+引数はイベント名（`pull_request` / `push`）、比較元の完全なコミット SHA、走査先の完全なコミット SHA です。PR では第4引数にイベントの merge SHA（`github.sha`）も必須です。
+PR の merge SHA は checkout HEAD と一致し、実在するコミットで、親がちょうど2件、親1がイベントの base SHA、親2が head SHA であることを範囲の出力前に検証します。
 SHA の欠落・全桁ゼロ・存在しないコミット、浅い履歴、merge-base の欠落・複数候補、push の比較元が head の祖先でない場合、履歴の取得・比較・走査の失敗は CI を失敗させます。
-代わりの範囲を作ったり、検査をスキップして成功にしたりしません。
+merge SHA・親・checkout HEAD の不一致も失敗です。別の ref や全履歴を代わりに走査したり、検査をスキップして成功にしたりしません。
 CI で秘密情報を検出した時点で内容は remote に到達しているため、漏えいとして該当の認証情報を無効化・差し替えます。
 
 CI の検査ジョブは GitHub-hosted の `ubuntu-24.04` で動き、集約ジョブのチェック名は `ci-required` です。
@@ -215,8 +219,8 @@ gh api repos/gitleaks/gitleaks/git/ref/tags/v8.30.1 --jq '.object | {type, sha}'
 
 CI には次の残留リスクがあります。
 
-- gitleaks のコミット範囲走査は内部で `git log -p` を使うため、競合の解消やマージ時の手編集など、マージコミットで初めて入った変更は走査対象になりません。
-  上記のローカルの手動走査でも同じ制約があります。
+- gitleaks は Git の差分を走査します。マージ差分を有効にしても、未変更行を含む複数行の合成パターンなど、最終ファイル全体で初めて成立する秘密を完全には検出できません。リポジトリ全体の snapshot 走査は行いません。
+- PR の走査対象はその実行時の synthetic merge です。後の base 更新や実マージ時の追加修正まで保証しないため、master への push の履歴・マージ差分走査も維持します。
 - PR で `.github/workflows/*`、`.pre-commit-config.yaml`、`scripts/`、`aqua.yaml`、`aqua-registry.yaml`、`aqua-policy.yaml` などを書き換えると、runner 上で任意のコマンド実行や外部通信が起こりえます。policy の照合処理も書き換えられるため、信頼境界にはなりません。
 - PR で `.gitleaks.toml` や `.gitleaksignore` を追加または変更すると、gitleaks の検出を抑止できます。
 - `pull_request` を使い、`permissions` は `contents: read` のみ、checkout は `persist-credentials: false` とし、ワークフローは secrets を参照しません。fork PR は GitHub 側の権限制約と実行承認の設定を境界にします。同一リポジトリからの PR と push では、ワークフローの書き換えにより書き込み権限や設定済みの secrets に届くリスクが残ります。Actions の既定トークン権限を read にしても上限にはなりません。このリスクは当面受容し、[Issue #208](https://github.com/the9ball/.dotfiles/issues/208) で見直します。

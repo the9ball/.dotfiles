@@ -61,9 +61,13 @@ jobs:
         env:
           COMPARISON_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || '' }}
           SCAN_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'push' && github.sha || '' }}
+          PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
         run: |
-          commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA")
-          gitleaks git --redact --log-opts="$commit_range"
+          commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA" "$PR_MERGE_SHA")
+          gitleaks git --redact --log-opts="--diff-merges=first-parent $commit_range"
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            gitleaks git --redact --log-opts="--diff-merges=first-parent --max-count=1 $PR_MERGE_SHA"
+          fi
 
   # Keep a stable required check; every dependency must explicitly succeed.
   required:
