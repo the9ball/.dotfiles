@@ -7,13 +7,47 @@ $ErrorActionPreference = 'Stop'
 $serviceName = 'Cloudflared'
 # Keep this path in sync with scripts/windows-cloudflared-service.ps1.
 $serviceExecutable = Join-Path $env:LOCALAPPDATA 'cloudflared-service\cloudflared.exe'
+# Staging next to the target keeps the final swap a same-volume rename.
+$stagedExecutable = "$serviceExecutable.new"
+$previousExecutable = "$serviceExecutable.old"
+
+function Get-ServiceExecutablePath {
+    <#
+    .SYNOPSIS
+    Extracts the executable path from a service command line.
+    .PARAMETER PathName
+    The service command line, with or without a quoted executable path.
+    .OUTPUTS
+    The executable path, or $null when the command line cannot be parsed.
+    #>
+    param([string]$PathName)
+
+    # Keep this pattern in sync with scripts/windows-cloudflared-service.ps1. aqua
+    # stores the binary inside a directory that also ends in ".exe", so an
+    # unquoted path must end at an ".exe" that is followed by whitespace.
+    if ($PathName -notmatch '^\s*(?:"(?<executable>[^"]+)"|(?<executable>\S+?\.exe)(?=\s|$))') {
+        return $null
+    }
+    return $Matches.executable
+}
+
+function Start-ServiceIfStopped {
+    <#
+    .SYNOPSIS
+    Starts the tunnel service unless it is already running.
+    #>
+    if ((Get-Service -Name $serviceName).Status -ne 'Running') {
+        Start-Service -Name $serviceName
+    }
+}
 
 $service = Get-CimInstance Win32_Service -Filter "Name='$serviceName'"
 if (-not $service) {
     # Hosts without the tunnel service have nothing to update.
     return
 }
-if ($service.PathName -notlike "*$serviceExecutable*") {
+$currentExecutable = Get-ServiceExecutablePath -PathName $service.PathName
+if (-not [string]::Equals($currentExecutable, $serviceExecutable, [StringComparison]::OrdinalIgnoreCase)) {
     Write-Warning "$serviceName does not run $serviceExecutable; run scripts/windows-cloudflared-service.ps1 once as an administrator."
     return
 }
@@ -26,23 +60,43 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceExecutable -Path
     throw "aqua could not resolve an installed cloudflared (exit code: $LASTEXITCODE)"
 }
 
+$sourceHash = (Get-FileHash -LiteralPath $sourceExecutable).Hash
 # Comparing hashes keeps a re-run after a failed start from restarting needlessly.
-$isCurrent = (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
-    ((Get-FileHash -LiteralPath $sourceExecutable).Hash -eq (Get-FileHash -LiteralPath $serviceExecutable).Hash)
-if ($isCurrent) {
-    if ((Get-Service -Name $serviceName).Status -ne 'Running') {
-        Start-Service -Name $serviceName
-    }
+if ((Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
+    (Get-FileHash -LiteralPath $serviceExecutable).Hash -eq $sourceHash) {
+    Start-ServiceIfStopped
     return
 }
 
-# The running image is locked on Windows, so the service must stop before the copy.
+# Prepare and verify the replacement while the tunnel keeps running, so a failed
+# copy never leaves the service without a working binary.
+Copy-Item -LiteralPath $sourceExecutable -Destination $stagedExecutable -Force
+if ((Get-FileHash -LiteralPath $stagedExecutable).Hash -ne $sourceHash) {
+    Remove-Item -LiteralPath $stagedExecutable -Force
+    throw "The staged cloudflared binary does not match $sourceExecutable"
+}
+Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction SilentlyContinue
+
+# The running image is locked on Windows, so the service must stop before the swap.
 Stop-Service -Name $serviceName
 try {
-    Copy-Item -LiteralPath $sourceExecutable -Destination $serviceExecutable -Force
-}
-finally {
+    if (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) {
+        [IO.File]::Replace($stagedExecutable, $serviceExecutable, $previousExecutable)
+    } else {
+        [IO.File]::Move($stagedExecutable, $serviceExecutable)
+    }
     Start-Service -Name $serviceName
 }
+catch {
+    $updateError = $_
+    # Roll back to the previous binary so the tunnel comes back on the old version.
+    if (Test-Path -LiteralPath $previousExecutable -PathType Leaf) {
+        Stop-Service -Name $serviceName -ErrorAction SilentlyContinue
+        [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
+    }
+    Start-ServiceIfStopped
+    throw "Updating $serviceName failed; the previous binary was restored when available: $updateError"
+}
+Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction SilentlyContinue
 Write-Host "$serviceName now runs $(& $serviceExecutable --version)"
 {{- end }}

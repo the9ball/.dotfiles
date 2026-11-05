@@ -39,7 +39,9 @@ pwsh -NoProfile -File "$HOME\.dotfiles\scripts\windows-cloudflared-service.ps1"
 ## 更新時の動作と確認
 
 `aqua.yaml`のcloudflaredのバージョンが変わると、次の`chezmoi apply`でサービスが数秒停止し、新しいバージョンで再起動します。
-`chezmoi apply`が失敗した場合は、原因を解消して再実行すれば同じ処理をやり直します。
+新しい実行ファイルはサービスを止める前に`cloudflared.exe.new`へコピーしてハッシュを検証し、置き換え時は旧版を`cloudflared.exe.old`へ退避します。
+置き換えまたは起動に失敗した場合は旧版へ戻して起動し、`chezmoi apply`はエラーで終了します。原因を解消して再実行すれば同じ処理をやり直します。
+初回セットアップのスクリプトも、実行ファイルと起動コマンドがすでに期待どおりならサービスを停止しません。
 
 ```powershell
 Get-CimInstance Win32_Service -Filter "Name='Cloudflared'" | Select-Object State, PathName | Format-List

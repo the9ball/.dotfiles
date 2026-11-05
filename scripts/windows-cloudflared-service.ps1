@@ -119,21 +119,43 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceExecutable -Path
     throw "aqua could not resolve an installed cloudflared; run aqua install first (exit code: $LASTEXITCODE)"
 }
 
-if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
-    Stop-Service -Name $ServiceName
-}
-if ($PSCmdlet.ShouldProcess($serviceExecutable, "Copy $sourceExecutable")) {
-    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $serviceExecutable) | Out-Null
-    Copy-Item -LiteralPath $sourceExecutable -Destination $serviceExecutable -Force
-}
-if ($PSCmdlet.ShouldProcess($ServiceName, "Set binPath to $binaryPath")) {
-    & sc.exe config $ServiceName binPath= $binaryPath | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-        throw "sc.exe config failed (exit code: $LASTEXITCODE)"
+$sourceHash = (Get-FileHash -LiteralPath $sourceExecutable).Hash
+$isBinaryCurrent = (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
+    (Get-FileHash -LiteralPath $serviceExecutable).Hash -eq $sourceHash
+$isCommandLineCurrent = ($service.PathName.Trim() -replace '\s+', ' ') -ieq $binaryPath
+
+# Stopping the service interrupts the tunnel, so it happens only when the binary
+# or the command line actually needs to change.
+if ($isBinaryCurrent -and $isCommandLineCurrent) {
+    Write-Host "$ServiceName already runs the current binary and command line."
+} else {
+    $stagedExecutable = "$serviceExecutable.new"
+    if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($stagedExecutable, "Stage $sourceExecutable")) {
+        # Prepare and verify the copy before stopping, so a failed copy leaves the service untouched.
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $serviceExecutable) | Out-Null
+        Copy-Item -LiteralPath $sourceExecutable -Destination $stagedExecutable -Force
+        if ((Get-FileHash -LiteralPath $stagedExecutable).Hash -ne $sourceHash) {
+            Remove-Item -LiteralPath $stagedExecutable -Force
+            throw "The staged cloudflared binary does not match $sourceExecutable"
+        }
+    }
+    if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
+        Stop-Service -Name $ServiceName
+    }
+    if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($serviceExecutable, "Replace with $stagedExecutable")) {
+        [IO.File]::Move($stagedExecutable, $serviceExecutable, $true)
+    }
+    if (-not $isCommandLineCurrent -and $PSCmdlet.ShouldProcess($ServiceName, "Set binPath to $binaryPath")) {
+        & sc.exe config $ServiceName binPath= $binaryPath | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "sc.exe config failed (exit code: $LASTEXITCODE)"
+        }
     }
 }
 Add-ServiceControlEntry -UserSid $userSid
-if ($PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
+$needsStart = -not ($isBinaryCurrent -and $isCommandLineCurrent) -or
+    (Get-Service -Name $ServiceName).Status -ne 'Running'
+if ($needsStart -and $PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
     Start-Service -Name $ServiceName
 }
 
