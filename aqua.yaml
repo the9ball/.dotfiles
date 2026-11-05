@@ -78,3 +78,4 @@ packages:
 - name: mikefarah/yq@v4.54.1
   tags: [ci]
 - name: terraform-linters/tflint@v0.65.0
+- name: rclone/rclone@v1.75.2
