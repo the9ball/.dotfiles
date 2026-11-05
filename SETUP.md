@@ -271,6 +271,9 @@ Windows OpenSSH Serverはaqua管理外です。新規端末ではWindows標準�
 [Windows OpenSSHの運用記録](docs/windows-openssh.md)に、標準版と、明示的に承認した端末限定のZIP版運用の分岐、検証範囲、復旧参照をまとめています。
 ZIP版10.0.0.0p2-Previewの結果は検証した端末・経路に限定し、別端末への展開や任意のSSH機能の保証には使いません。
 
+cloudflaredのWindowsサービスを使う端末では、初回に管理者権限でのセットアップが必要です。以降は`chezmoi apply`がaquaのバージョン更新にサービスを追従させます。
+手順と経緯は[Windows cloudflaredサービスの更新](docs/windows-cloudflared.md)を参照してください。
+
 既定シェルの変更は管理者による手動設定です。
 `chezmoi apply` は SSHサーバーの導入・更新・サービス操作や、OpenSSH のレジストリ、`sshd_config`、鍵、認証方式の変更を行いません。
 [README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。

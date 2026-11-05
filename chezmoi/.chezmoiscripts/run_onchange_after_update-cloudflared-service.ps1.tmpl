@@ -1,0 +1,119 @@
+{{ if eq .chezmoi.os "windows" -}}
+# cloudflared package: {{ include "../aqua.yaml" | regexFind "cloudflare/cloudflared@\\S+" }}
+# Runs after run_onchange_after_tools (alphabetical order) so aqua has already
+# installed the pinned cloudflared. See docs/windows-cloudflared.md.
+$ErrorActionPreference = 'Stop'
+
+$serviceName = 'Cloudflared'
+# Keep this path in sync with scripts/windows-cloudflared-service.ps1.
+$serviceExecutable = Join-Path $env:LOCALAPPDATA 'cloudflared-service\cloudflared.exe'
+# Staging next to the target keeps the final swap a same-volume rename.
+$stagedExecutable = "$serviceExecutable.new"
+$previousExecutable = "$serviceExecutable.old"
+
+function Get-ServiceExecutablePath {
+    <#
+    .SYNOPSIS
+    Extracts the executable path from a service command line.
+    .PARAMETER PathName
+    The service command line, with or without a quoted executable path.
+    .OUTPUTS
+    The executable path, or $null when the command line cannot be parsed.
+    #>
+    param([string]$PathName)
+
+    # Keep this pattern in sync with scripts/windows-cloudflared-service.ps1. aqua
+    # stores the binary inside a directory that also ends in ".exe", so an
+    # unquoted path must end at an ".exe" that is followed by whitespace.
+    if ($PathName -notmatch '^\s*(?:"(?<executable>[^"]+)"|(?<executable>\S+?\.exe)(?=\s|$))') {
+        return $null
+    }
+    return $Matches.executable
+}
+
+function Start-ServiceIfStopped {
+    <#
+    .SYNOPSIS
+    Starts the tunnel service unless it is already running.
+    #>
+    if ((Get-Service -Name $serviceName).Status -ne 'Running') {
+        Start-Service -Name $serviceName
+    }
+}
+
+$service = Get-CimInstance Win32_Service -Filter "Name='$serviceName'"
+if (-not $service) {
+    # Hosts without the tunnel service have nothing to update.
+    return
+}
+$currentExecutable = Get-ServiceExecutablePath -PathName $service.PathName
+if (-not [string]::Equals($currentExecutable, $serviceExecutable, [StringComparison]::OrdinalIgnoreCase)) {
+    Write-Warning "$serviceName does not run $serviceExecutable; run scripts/windows-cloudflared-service.ps1 once as an administrator."
+    return
+}
+
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$aquaConfig = Join-Path $repoRoot 'aqua.yaml'
+$aqua = (Get-Command aqua -ErrorAction Stop).Source
+$sourceExecutable = (& $aqua -c $aquaConfig which cloudflared | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceExecutable -PathType Leaf)) {
+    throw "aqua could not resolve an installed cloudflared (exit code: $LASTEXITCODE)"
+}
+
+$sourceHash = (Get-FileHash -LiteralPath $sourceExecutable).Hash
+# Comparing hashes keeps a re-run after a failed start from restarting needlessly.
+if ((Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
+    (Get-FileHash -LiteralPath $serviceExecutable).Hash -eq $sourceHash) {
+    Start-ServiceIfStopped
+    return
+}
+
+# Prepare and verify the replacement while the tunnel keeps running, so a failed
+# copy never leaves the service without a working binary.
+Copy-Item -LiteralPath $sourceExecutable -Destination $stagedExecutable -Force
+if ((Get-FileHash -LiteralPath $stagedExecutable).Hash -ne $sourceHash) {
+    Remove-Item -LiteralPath $stagedExecutable -Force
+    throw "The staged cloudflared binary does not match $sourceExecutable"
+}
+Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction Ignore
+
+# The running image is locked on Windows, so the service must stop before the swap.
+Stop-Service -Name $serviceName
+$binaryReplaced = $false
+try {
+    if (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) {
+        [IO.File]::Replace($stagedExecutable, $serviceExecutable, $previousExecutable)
+    } else {
+        [IO.File]::Move($stagedExecutable, $serviceExecutable)
+    }
+    $binaryReplaced = $true
+    Start-Service -Name $serviceName
+}
+catch {
+    $updateError = $_
+    $rollbackErrors = @()
+    # Restore only this run's backup: after a successful swap, or after a partial
+    # File.Replace failure that moved the original to the backup but left the target
+    # missing. A stale backup from an earlier run must not cause a downgrade.
+    $needsBinaryRestore = $binaryReplaced -or -not (Test-Path -LiteralPath $serviceExecutable -PathType Leaf)
+    if ($needsBinaryRestore -and (Test-Path -LiteralPath $previousExecutable -PathType Leaf)) {
+        try {
+            Stop-Service -Name $serviceName -ErrorAction Stop
+            [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
+        } catch {
+            $rollbackErrors += "restore binary: $_"
+        }
+    }
+    try {
+        Start-ServiceIfStopped
+    } catch {
+        $rollbackErrors += "restart service: $_"
+    }
+    if ($rollbackErrors.Count -gt 0) {
+        throw "Updating $serviceName failed: $updateError. Rollback also failed: $($rollbackErrors -join '; ')"
+    }
+    throw "Updating $serviceName failed and the service was restarted on the previous binary when one was available: $updateError"
+}
+Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction SilentlyContinue
+Write-Host "$serviceName now runs $(& $serviceExecutable --version)"
+{{- end }}
