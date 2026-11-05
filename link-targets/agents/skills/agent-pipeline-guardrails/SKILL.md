@@ -100,12 +100,13 @@ default behavior and does not override explicit requests.
 
 ## Final review before PR creation
 
-Even when a request is made for a "final review before PR," only Claude runs the review. **The orchestrator does not send review requests to Codex.**
-Requests to Codex are made by the user.
+When a "final review before PR" is requested, Claude runs the review. When the user also asks for a review by Codex, the orchestrator starts it
+directly as well.
 
 - **Claude's review**: For the final review before PR creation, apply the same Reviewer-selection rules. When the Reviewer may be omitted, the orchestrator performs the final review. When calling `reviewer`, call it as `Agent` (`run_in_background: false`).
-- **If you want a second opinion from Codex**: There is no way for the orchestrator to start Codex. If you judge it necessary, tell the user so,
-  together with the perspectives you want checked, and have the user request it from Codex. If the user pastes the results, reconcile them with
+- **Codex's review**: When the user asks for a Codex review, start it from the orchestrator, for example with `codex review --base <branch>`.
+  `codex review` does not accept `--base` together with a prompt argument, so do not combine them. If you judge a second opinion from Codex
+  necessary without the user asking for it, propose it to the user together with the perspectives you want checked. Reconcile the results with
   Claude's review and combine them.
 - **When combining**: Compare both sides' findings and sort them into (a) findings raised by both (high confidence), (b) findings raised by only
   one side (state the source), and (c) points where the two disagree, and produce one comprehensive review. Do not casually treat one side as
