@@ -153,14 +153,18 @@ if ($isBinaryCurrent -and $isCommandLineCurrent) {
         Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction Ignore
     }
 
+    $serviceStopped = $false
+    $usedReplace = $false
     $binaryReplaced = $false
     $commandLineChanged = $false
     try {
         if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
             Stop-Service -Name $ServiceName
+            $serviceStopped = $true
         }
         if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($serviceExecutable, "Replace with $stagedExecutable")) {
             if (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) {
+                $usedReplace = $true
                 [IO.File]::Replace($stagedExecutable, $serviceExecutable, $previousExecutable)
             } else {
                 [IO.File]::Move($stagedExecutable, $serviceExecutable)
@@ -183,7 +187,6 @@ if ($isBinaryCurrent -and $isCommandLineCurrent) {
         # stopped window restores what changed and tries to bring the service back.
         $updateError = $_
         $rollbackErrors = @()
-        Stop-Service -Name $ServiceName -ErrorAction Ignore
         if ($commandLineChanged) {
             try {
                 # The CIM method takes the command line verbatim, unlike sc.exe binPath= quoting.
@@ -196,22 +199,29 @@ if ($isBinaryCurrent -and $isCommandLineCurrent) {
                 $rollbackErrors += "restore command line: $_"
             }
         }
-        # A partial File.Replace failure can move the original to the backup without
-        # moving the replacement in, which leaves the target missing.
-        $needsBinaryRestore = $binaryReplaced -or -not (Test-Path -LiteralPath $serviceExecutable -PathType Leaf)
+        # Only a File.Replace in this run creates a backup worth restoring; the Move path
+        # had no previous target, so any .old left there is stale. A partial Replace
+        # failure can move the original to the backup and leave the target missing.
+        $needsBinaryRestore = $usedReplace -and
+            ($binaryReplaced -or -not (Test-Path -LiteralPath $serviceExecutable -PathType Leaf))
         if ($needsBinaryRestore -and (Test-Path -LiteralPath $previousExecutable -PathType Leaf)) {
             try {
+                Stop-Service -Name $ServiceName -ErrorAction Stop
                 [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
             } catch {
                 $rollbackErrors += "restore binary: $_"
             }
         }
-        try {
-            if ((Get-Service -Name $ServiceName).Status -ne 'Running') {
-                Start-Service -Name $ServiceName
+        # Restart only a service this run stopped or rolled back, so a stop declined
+        # under -Confirm is not overridden by the rollback.
+        if ($serviceStopped -or $needsBinaryRestore) {
+            try {
+                if ((Get-Service -Name $ServiceName).Status -ne 'Running') {
+                    Start-Service -Name $ServiceName
+                }
+            } catch {
+                $rollbackErrors += "restart service: $_"
             }
-        } catch {
-            $rollbackErrors += "restart service: $_"
         }
         if ($rollbackErrors.Count -gt 0) {
             throw "Updating $ServiceName failed: $updateError. Rollback also failed: $($rollbackErrors -join '; ')"
