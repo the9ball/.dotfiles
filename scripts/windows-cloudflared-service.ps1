@@ -14,6 +14,8 @@ Name of the existing cloudflared tunnel service.
 .PARAMETER UserName
 Account that runs chezmoi apply and receives the service control rights.
 #>
+# The swap uses .NET APIs that Windows PowerShell 5.1 lacks; fail before any change.
+#Requires -Version 7
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [string]$ServiceName = 'Cloudflared',
@@ -122,14 +124,23 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceExecutable -Path
 $sourceHash = (Get-FileHash -LiteralPath $sourceExecutable).Hash
 $isBinaryCurrent = (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
     (Get-FileHash -LiteralPath $serviceExecutable).Hash -eq $sourceHash
-$isCommandLineCurrent = ($service.PathName.Trim() -replace '\s+', ' ') -ieq $binaryPath
+$originalPathName = $service.PathName
+$isCommandLineCurrent = ($originalPathName.Trim() -replace '\s+', ' ') -ieq ($binaryPath -replace '\s+', ' ')
+
+# Granting rights does not depend on the service state, so it stays outside the stopped window.
+Add-ServiceControlEntry -UserSid $userSid
 
 # Stopping the service interrupts the tunnel, so it happens only when the binary
 # or the command line actually needs to change.
 if ($isBinaryCurrent -and $isCommandLineCurrent) {
     Write-Host "$ServiceName already runs the current binary and command line."
+    if ((Get-Service -Name $ServiceName).Status -ne 'Running' -and
+        $PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
+        Start-Service -Name $ServiceName
+    }
 } else {
     $stagedExecutable = "$serviceExecutable.new"
+    $previousExecutable = "$serviceExecutable.old"
     if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($stagedExecutable, "Stage $sourceExecutable")) {
         # Prepare and verify the copy before stopping, so a failed copy leaves the service untouched.
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $serviceExecutable) | Out-Null
@@ -138,25 +149,75 @@ if ($isBinaryCurrent -and $isCommandLineCurrent) {
             Remove-Item -LiteralPath $stagedExecutable -Force
             throw "The staged cloudflared binary does not match $sourceExecutable"
         }
+        # A stale backup must not be mistaken for this run's backup during rollback.
+        Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction Ignore
     }
-    if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
-        Stop-Service -Name $ServiceName
-    }
-    if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($serviceExecutable, "Replace with $stagedExecutable")) {
-        [IO.File]::Move($stagedExecutable, $serviceExecutable, $true)
-    }
-    if (-not $isCommandLineCurrent -and $PSCmdlet.ShouldProcess($ServiceName, "Set binPath to $binaryPath")) {
-        & sc.exe config $ServiceName binPath= $binaryPath | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            throw "sc.exe config failed (exit code: $LASTEXITCODE)"
+
+    $binaryReplaced = $false
+    $commandLineChanged = $false
+    try {
+        if ($PSCmdlet.ShouldProcess($ServiceName, 'Stop service')) {
+            Stop-Service -Name $ServiceName
+        }
+        if (-not $isBinaryCurrent -and $PSCmdlet.ShouldProcess($serviceExecutable, "Replace with $stagedExecutable")) {
+            if (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) {
+                [IO.File]::Replace($stagedExecutable, $serviceExecutable, $previousExecutable)
+            } else {
+                [IO.File]::Move($stagedExecutable, $serviceExecutable)
+            }
+            $binaryReplaced = $true
+        }
+        if (-not $isCommandLineCurrent -and $PSCmdlet.ShouldProcess($ServiceName, "Set binPath to $binaryPath")) {
+            & sc.exe config $ServiceName binPath= $binaryPath | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                throw "sc.exe config failed (exit code: $LASTEXITCODE)"
+            }
+            $commandLineChanged = $true
+        }
+        if ($PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
+            Start-Service -Name $ServiceName
         }
     }
-}
-Add-ServiceControlEntry -UserSid $userSid
-$needsStart = -not ($isBinaryCurrent -and $isCommandLineCurrent) -or
-    (Get-Service -Name $ServiceName).Status -ne 'Running'
-if ($needsStart -and $PSCmdlet.ShouldProcess($ServiceName, 'Start service')) {
-    Start-Service -Name $ServiceName
+    catch {
+        # This host may be reached through the tunnel itself, so every failure in the
+        # stopped window restores what changed and tries to bring the service back.
+        $updateError = $_
+        $rollbackErrors = @()
+        Stop-Service -Name $ServiceName -ErrorAction Ignore
+        if ($commandLineChanged) {
+            try {
+                # The CIM method takes the command line verbatim, unlike sc.exe binPath= quoting.
+                $restoreResult = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" |
+                    Invoke-CimMethod -MethodName Change -Arguments @{ PathName = $originalPathName }
+                if ($restoreResult.ReturnValue -ne 0) {
+                    throw "Win32_Service.Change returned $($restoreResult.ReturnValue)"
+                }
+            } catch {
+                $rollbackErrors += "restore command line: $_"
+            }
+        }
+        # A partial File.Replace failure can move the original to the backup without
+        # moving the replacement in, which leaves the target missing.
+        $needsBinaryRestore = $binaryReplaced -or -not (Test-Path -LiteralPath $serviceExecutable -PathType Leaf)
+        if ($needsBinaryRestore -and (Test-Path -LiteralPath $previousExecutable -PathType Leaf)) {
+            try {
+                [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
+            } catch {
+                $rollbackErrors += "restore binary: $_"
+            }
+        }
+        try {
+            if ((Get-Service -Name $ServiceName).Status -ne 'Running') {
+                Start-Service -Name $ServiceName
+            }
+        } catch {
+            $rollbackErrors += "restart service: $_"
+        }
+        if ($rollbackErrors.Count -gt 0) {
+            throw "Updating $ServiceName failed: $updateError. Rollback also failed: $($rollbackErrors -join '; ')"
+        }
+        throw "Updating $ServiceName failed and the previous state was restored: $updateError"
+    }
 }
 
 if (-not $WhatIfPreference) {

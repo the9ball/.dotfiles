@@ -75,27 +75,44 @@ if ((Get-FileHash -LiteralPath $stagedExecutable).Hash -ne $sourceHash) {
     Remove-Item -LiteralPath $stagedExecutable -Force
     throw "The staged cloudflared binary does not match $sourceExecutable"
 }
-Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction SilentlyContinue
+Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction Ignore
 
 # The running image is locked on Windows, so the service must stop before the swap.
 Stop-Service -Name $serviceName
+$binaryReplaced = $false
 try {
     if (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) {
         [IO.File]::Replace($stagedExecutable, $serviceExecutable, $previousExecutable)
     } else {
         [IO.File]::Move($stagedExecutable, $serviceExecutable)
     }
+    $binaryReplaced = $true
     Start-Service -Name $serviceName
 }
 catch {
     $updateError = $_
-    # Roll back to the previous binary so the tunnel comes back on the old version.
-    if (Test-Path -LiteralPath $previousExecutable -PathType Leaf) {
-        Stop-Service -Name $serviceName -ErrorAction SilentlyContinue
-        [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
+    $rollbackErrors = @()
+    # Restore only this run's backup: after a successful swap, or after a partial
+    # File.Replace failure that moved the original to the backup but left the target
+    # missing. A stale backup from an earlier run must not cause a downgrade.
+    $needsBinaryRestore = $binaryReplaced -or -not (Test-Path -LiteralPath $serviceExecutable -PathType Leaf)
+    if ($needsBinaryRestore -and (Test-Path -LiteralPath $previousExecutable -PathType Leaf)) {
+        try {
+            Stop-Service -Name $serviceName -ErrorAction Stop
+            [IO.File]::Copy($previousExecutable, $serviceExecutable, $true)
+        } catch {
+            $rollbackErrors += "restore binary: $_"
+        }
     }
-    Start-ServiceIfStopped
-    throw "Updating $serviceName failed; the previous binary was restored when available: $updateError"
+    try {
+        Start-ServiceIfStopped
+    } catch {
+        $rollbackErrors += "restart service: $_"
+    }
+    if ($rollbackErrors.Count -gt 0) {
+        throw "Updating $serviceName failed: $updateError. Rollback also failed: $($rollbackErrors -join '; ')"
+    }
+    throw "Updating $serviceName failed and the service was restarted on the previous binary when one was available: $updateError"
 }
 Remove-Item -LiteralPath $previousExecutable -Force -ErrorAction SilentlyContinue
 Write-Host "$serviceName now runs $(& $serviceExecutable --version)"
