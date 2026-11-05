@@ -104,15 +104,31 @@ When a "final review before PR" is requested, Claude runs the review. When the u
 directly as well.
 
 - **Claude's review**: For the final review before PR creation, apply the same Reviewer-selection rules. When the Reviewer may be omitted, the orchestrator performs the final review. When calling `reviewer`, call it as `Agent` (`run_in_background: false`).
-- **Codex's review**: When the user asks for a Codex review, start it from the orchestrator, for example with `codex review --base <branch>`.
-  `codex review` does not accept `--base` together with a prompt argument, so do not combine them. If you judge a second opinion from Codex
-  necessary without the user asking for it, propose it to the user together with the perspectives you want checked. Reconcile the results with
-  Claude's review and combine them.
+- **Codex's review**: When the user asks for a Codex review, start it from the orchestrator with the Codex CLI (see "Running a Codex review"
+  below). If you judge a second opinion from Codex necessary without the user asking for it, propose it to the user together with the
+  perspectives you want checked. Reconcile the results with Claude's review and combine them.
 - **When combining**: Compare both sides' findings and sort them into (a) findings raised by both (high confidence), (b) findings raised by only
   one side (state the source), and (c) points where the two disagree, and produce one comprehensive review. Do not casually treat one side as
   correct. Present each disagreement with "whose claim it is" preserved, and leave the final decision to the user.
 - **No corrections in the final review**: This is only a review. Corrections based on the findings are made separately, and whether the result is
   adopted for production is decided by the user (the same as the other guardrails of this skill).
+
+### Running a Codex review
+
+- **Command**: Use `codex review --base <base-branch>` to review the branch against its base, or `codex review --uncommitted` to review
+  uncommitted changes.
+- **No custom prompt with `--base`**: `codex review` rejects `--base` combined with a prompt argument (exit code 2, "the argument
+  '--base <BRANCH>' cannot be used with '[PROMPT]'"). Focus perspectives cannot be passed in that combination.
+- **Long-running**: Run it in the background and write its output to a new file under the OS temporary directory, not inside the repository.
+- **Reading the result**: The final review is the part of the log after the last line consisting of `codex`. Do not judge success by the exit
+  code alone; the run can exit with 0 and still end with "Review blocked …". Treat that as a failed review and report it.
+- **Managed networking failure on Windows**: In a non-elevated Windows environment, Codex's managed networking defaults can make every shell call
+  fail with "managed networking requires the elevated Windows sandbox backend", so Codex cannot read the diff. Only when that error appears,
+  ask the user before retrying with `-c features.network_proxy=false -c permissions.default-permissions.network.enabled=false`, because these
+  overrides change how Codex's sandbox handles networking. A review only reads the diff and does not need network access.
+  `-c sandbox_workspace_write.network_access=false` does not resolve this error.
+- **Log handling**: The Codex output log includes the loaded instruction content such as `AGENTS.md`. Do not share the log outside this
+  machine, and delete it when the review task ends.
 
 ## Why
 
