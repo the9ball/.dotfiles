@@ -1,0 +1,48 @@
+{{ if eq .chezmoi.os "windows" -}}
+# cloudflared package: {{ include "../aqua.yaml" | regexFind "cloudflare/cloudflared@\\S+" }}
+# Runs after run_onchange_after_tools (alphabetical order) so aqua has already
+# installed the pinned cloudflared. See docs/windows-cloudflared.md.
+$ErrorActionPreference = 'Stop'
+
+$serviceName = 'Cloudflared'
+# Keep this path in sync with scripts/windows-cloudflared-service.ps1.
+$serviceExecutable = Join-Path $env:LOCALAPPDATA 'cloudflared-service\cloudflared.exe'
+
+$service = Get-CimInstance Win32_Service -Filter "Name='$serviceName'"
+if (-not $service) {
+    # Hosts without the tunnel service have nothing to update.
+    return
+}
+if ($service.PathName -notlike "*$serviceExecutable*") {
+    Write-Warning "$serviceName does not run $serviceExecutable; run scripts/windows-cloudflared-service.ps1 once as an administrator."
+    return
+}
+
+$repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
+$aquaConfig = Join-Path $repoRoot 'aqua.yaml'
+$aqua = (Get-Command aqua -ErrorAction Stop).Source
+$sourceExecutable = (& $aqua -c $aquaConfig which cloudflared | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $sourceExecutable -PathType Leaf)) {
+    throw "aqua could not resolve an installed cloudflared (exit code: $LASTEXITCODE)"
+}
+
+# Comparing hashes keeps a re-run after a failed start from restarting needlessly.
+$isCurrent = (Test-Path -LiteralPath $serviceExecutable -PathType Leaf) -and
+    ((Get-FileHash -LiteralPath $sourceExecutable).Hash -eq (Get-FileHash -LiteralPath $serviceExecutable).Hash)
+if ($isCurrent) {
+    if ((Get-Service -Name $serviceName).Status -ne 'Running') {
+        Start-Service -Name $serviceName
+    }
+    return
+}
+
+# The running image is locked on Windows, so the service must stop before the copy.
+Stop-Service -Name $serviceName
+try {
+    Copy-Item -LiteralPath $sourceExecutable -Destination $serviceExecutable -Force
+}
+finally {
+    Start-Service -Name $serviceName
+}
+Write-Host "$serviceName now runs $(& $serviceExecutable --version)"
+{{- end }}
