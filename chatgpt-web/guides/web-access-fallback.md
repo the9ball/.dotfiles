@@ -16,7 +16,7 @@ Example (adapt paths and URLs to the target environment):
 
 ```sh
 workdir=$(mktemp -d)
-# Run cleanup when finished, including on failure.
+# Clean up once the conclusion is final, even if retrieval failed.
 curl -L --max-time 20 -sS \
   -A 'Mozilla/5.0' -H 'Accept-Language: ja,en;q=0.8' \
   -w 'HTTP=%{http_code} URL=%{url_effective} SIZE=%{size_download}\n' \
@@ -28,6 +28,7 @@ rm -rf -- "$workdir"
 ## Recover from extraction failure
 
 - First inspect the **saved** response. Try alternate representations such as HTML `<title>`, Open Graph or other metadata, JSON-LD, embedded JSON, and visible page content as appropriate.
+- Prefer a structural parser (an HTML or JSON parser) over a single ad hoc `grep`; minified pages often put everything on a few very long lines. Before concluding that needed information is absent, confirm it with a second, independent method on the same saved response.
 - Check whether the response is a login page, challenge, empty shell, error page, or genuinely useful content. A 200 status alone is insufficient.
 - Re-fetch only if the saved response is incomplete, stale, unusable, or a different URL, endpoint, or representation is needed. Prefer a canonical URL or a legitimately public API where appropriate.
 - Keep attempts bounded and purposeful; change the approach rather than repeating the same request without evidence it might succeed.
@@ -38,4 +39,4 @@ Apply the same retrieval steps to the linked, quoted, or parent content that the
 
 ## Completion and reporting
 
-Verify that the **requested information**, not merely an HTTP response, was retrieved. State what was confirmed, what could not be extracted, and any material limitations. If reasonable retrieval and extraction alternatives fail, report that fact without inventing content. Remove the temporary directory and its contents when the investigation ends; do not rely on files surviving across turns.
+Verify that the **requested information**, not merely an HTTP response, was retrieved. State what was confirmed, what could not be extracted, and any material limitations. If reasonable retrieval and extraction alternatives fail, report that fact without inventing content. Keep the saved response until the conclusion is final so it can be re-analyzed, then remove the temporary directory and its contents; do not rely on files surviving across turns.
