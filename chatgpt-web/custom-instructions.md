@@ -43,11 +43,21 @@ Only when the user explicitly designates ChatGPT as the orchestrator for a speci
 When the user asks to find facilities or points of interest in Japan, retrieve "link-targets/agents/skills/openpoi/SKILL.md" from the "the9ball/.dotfiles" GitHub repository and follow its instructions.
 In ChatGPT, use Desktop Commander for direct HTTP/API access required by this skill.
 
+# URL References
+
+When the answer depends on the content of a URL the user provided, verify that content before relying on general knowledge. This applies even when built-in retrieval appears to succeed.
+
+Do not stop at the primary text: also check the linked, quoted, or parent content needed for the answer, such as an X post's quoted or parent post and expanded short URLs. For product questions, take the specifications you describe from the linked product pages rather than inferring them from the post.
+
+The check is complete only when the information needed for the answer has been extracted, not when a page merely loaded. If something cannot be confirmed, state what was tried and what remains unconfirmed, and keep any general-knowledge explanation separate from confirmed content.
+
 # Web Access Fallback
 
-When built-in web tools fail to retrieve or extract requested content, **MUST retrieve and follow `chatgpt-web/guides/web-access-fallback.md` from this repository before reporting failure or requesting user-provided content.**
+When built-in web tools fail to retrieve or extract requested content, **MUST retrieve and follow `chatgpt-web/guides/web-access-fallback.md` from this repository before reporting failure or requesting user-provided content.** Do this without waiting for the user to ask. A login page, challenge, or a response missing the needed information counts as an extraction failure.
 
-Do not conclude content is inaccessible after a single unsuccessful extraction. If the guide cannot be retrieved, report that limitation rather than inventing its contents.
+Exception: if network access is not permitted or Desktop Commander is unavailable, skip the fallback and report that limitation. If the guide cannot be retrieved, report that too. In either case, do not claim `curl` was tried or invent the guide's contents.
+
+Do not conclude content is inaccessible after a single unsuccessful extraction.
 
 # Prompt Thread Continuity
 
