@@ -21,6 +21,30 @@ and `actions: write`. Because a PR created by that token does not trigger
 `workflow_dispatch` on the PR head branch. That run reports the required
 `ci-required` check against the PR head SHA; GitHub auto-merge waits for it.
 
+## Verifying changes after merge
+
+This automation cannot be exercised from a pull request branch:
+
+- GitHub only dispatches workflows that exist on the default branch, so a new
+  or changed `aqua-update.yaml` cannot be run before it reaches `master`.
+- The update branch is cut from `master`, so the CI it dispatches uses the
+  `ci.yaml` on `master`. A change to the `workflow_dispatch` path in `ci.yaml`
+  takes effect only after it is merged.
+- The parts most likely to fail (PR creation by `GITHUB_TOKEN`, the dispatched
+  `ci-required` check attaching to the PR, and auto-merge) need a real PR, so a
+  dry run on a branch would not cover them.
+
+After merging a change to either workflow, run **Update aqua packages**
+manually once and check that:
+
+1. The run opens a `chore/aqua-update-*` PR, or reports no updates or an
+   already-open update PR.
+2. The dispatched **CI** run reports `ci-required` on that PR's head commit.
+3. The PR merges automatically once `ci-required` passes.
+
+When no package update is available, steps 2 and 3 wait for the next run that
+opens a PR.
+
 ## Safeguards
 
 - An already-open `chore/aqua-update-` PR opened by GitHub Actions blocks a
