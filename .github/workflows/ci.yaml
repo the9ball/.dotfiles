@@ -5,6 +5,7 @@ on:
     branches: [master]
   push:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -63,7 +64,20 @@ jobs:
           SCAN_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'push' && github.sha || '' }}
           PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
         run: |
-          commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA" "$PR_MERGE_SHA")
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            # Run on the update PR head; scan commits since the single merge base.
+            git fetch origin master
+            base_sha=$(git merge-base --all origin/master HEAD)
+            if [[ ! "$base_sha" =~ ^[0-9a-f]{40}$ ]]; then
+              echo '::error::Expected exactly one merge base with master.'
+              exit 1
+            fi
+            git merge-base --is-ancestor "$base_sha" HEAD
+            commit_range="$base_sha..HEAD"
+            git rev-list "$commit_range" > /dev/null
+          else
+            commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA" "$PR_MERGE_SHA")
+          fi
           gitleaks git --redact --log-opts="--diff-merges=first-parent $commit_range"
           if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
             gitleaks git --redact --log-opts="--diff-merges=first-parent --max-count=1 $PR_MERGE_SHA"
