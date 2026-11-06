@@ -27,7 +27,8 @@ rm -rf -- "$workdir"
 
 ## Recover from extraction failure
 
-- First inspect the **saved** response. Try alternate representations such as HTML `<title>`, Open Graph or other metadata, JSON-LD, embedded JSON, and visible page content as appropriate.
+- A tool call rejected before it runs (for example by a safety or permission check) is not evidence that the content is unavailable. Do not try to evade the check; retry once with simpler, separate commands (fetch first, then parse the saved file).
+- Once a response is saved, inspect the **saved** response first. Try alternate representations such as HTML `<title>`, Open Graph or other metadata, JSON-LD, embedded JSON, and visible page content as appropriate.
 - Prefer a structural parser (an HTML or JSON parser) over a single ad hoc `grep`; minified pages often put everything on a few very long lines. Before concluding that needed information is absent, confirm it with a second, independent method on the same saved response.
 - Check whether the response is a login page, challenge, empty shell, error page, or genuinely useful content. A 200 status alone is insufficient.
 - Re-fetch only if the saved response is incomplete, stale, unusable, or a different URL, endpoint, or representation is needed. Prefer a canonical URL or a legitimately public API where appropriate.
