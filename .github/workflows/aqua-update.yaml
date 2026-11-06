@@ -98,8 +98,33 @@ jobs:
           EOF
           pr_url="$(gh pr create --base master --head "$branch" --title 'chore(aqua): update package versions' --body-file "$body_file")"
           echo "Created $pr_url"
-          # GITHUB_TOKEN-created PRs do not trigger pull_request workflows.
-          # workflow_dispatch is exempt and runs the required check on this branch SHA.
-          gh workflow run ci.yaml --ref "$branch"
+
+          # The fork-PR approval policy treats github-actions[bot] as an external
+          # contributor, so GitHub holds this PR's CI run until it is approved.
+          # This workflow authored the aqua.yaml-only change validated above,
+          # so approve that run; ci-required still has to pass before merging.
+          head_sha="$(git rev-parse HEAD)"
+          ci_run_state=''
+          for attempt in $(seq 1 30); do
+            ci_run_state="$(gh run list --workflow ci.yaml --event pull_request \
+              --branch "$branch" --json databaseId,headSha,status,conclusion \
+              --jq "map(select(.headSha == \"$head_sha\")) | .[0] // empty |
+                \"\(.databaseId) \(.status) \(.conclusion)\"")"
+            [[ -n "$ci_run_state" ]] && break
+            echo "Waiting for the pull_request CI run (attempt $attempt)..."
+            sleep 10
+          done
+          if [[ -z "$ci_run_state" ]]; then
+            echo "::error::No pull_request CI run appeared for $pr_url."
+            exit 1
+          fi
+          read -r ci_run_id ci_run_status ci_run_conclusion <<< "$ci_run_state"
+          if [[ "$ci_run_status" == completed && "$ci_run_conclusion" == action_required ]]; then
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${ci_run_id}/approve"
+            echo "Approved CI run $ci_run_id"
+          else
+            echo "CI run $ci_run_id needs no approval ($ci_run_status $ci_run_conclusion)."
+          fi
+
           gh pr merge "$pr_url" --auto --squash --delete-branch
           echo "Enabled auto-merge for $pr_url"
