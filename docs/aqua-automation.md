@@ -23,7 +23,8 @@ and `actions: write`. Because a PR created by that token does not trigger
 
 ## Safeguards
 
-- An already-open `chore/aqua-update-` PR blocks a duplicate run.
+- An already-open `chore/aqua-update-` PR opened by GitHub Actions blocks a
+  duplicate run. A failed lookup of open PRs fails the run.
 - Changes outside `aqua.yaml` cause a failure rather than an automatic PR.
 - Changes to kubectx/kubens are blocked because their completion archive
   versions and checksums in `chezmoi/.chezmoiexternal.toml` must also change.

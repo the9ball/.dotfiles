@@ -8,8 +8,9 @@
 # for general setup; an explicitly approved, host-specific ZIP deployment is
 # documented in docs/windows-openssh.md. Do not add sshd or service automation.
 #
-# バージョンは自動更新されない。このリポジトリでRenovateなどのbotは動いておらず、
-# GitHub上のリモートも受け皿にすぎないため、折を見て手動で更新する。
+# バージョンは .github/workflows/aqua-update.yaml が毎日 `aqua update` で確認し、
+# 変更があれば更新PRを作成して ci-required 通過後に自動マージする。
+# 詳細と安全策は docs/aqua-automation.md を参照する。手動で更新してもよい。
 # openai/codexもAquaで管理する。更新時は`aqua update codex`で宣言を更新し、
 # 差分を確認してコミットした後に`aqua install`を実行する。
 # Aqua管理のcodexには`codex update`を使用しない。
