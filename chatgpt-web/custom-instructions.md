@@ -57,7 +57,7 @@ When built-in web tools fail to retrieve or extract requested content, **MUST re
 
 Exception: if network access is not permitted or Desktop Commander is unavailable, skip the fallback and report that limitation. If the guide cannot be retrieved, report that too. In either case, do not claim `curl` was tried or invent the guide's contents.
 
-Do not conclude content is inaccessible after a single unsuccessful extraction.
+Do not conclude content is inaccessible after a single unsuccessful extraction. Before reporting that content could not be retrieved, list each attempt and its outcome. If no fetch actually ran (for example, every call was rejected before running), you have not tried yet: retry with simpler, separate commands first.
 
 # Prompt Thread Continuity
 
