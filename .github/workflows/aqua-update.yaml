@@ -1,0 +1,105 @@
+name: Update aqua packages
+
+on:
+  schedule:
+    - cron: '30 23 * * *' # 08:30 JST (next calendar day)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: aqua-package-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Install aqua
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: v2.65.2
+          enable_aqua_install: 'false'
+          github_token: ''
+
+      - name: Update, validate and open PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Avoid parallel pending updates; let CI/auto-merge settle first.
+          # Query outside the condition so a failed lookup fails the job instead
+          # of reading as "no open PR"; only PRs this workflow opened count.
+          # Filter authors in jq: `--author` switches gh to the search API,
+          # whose index lag could miss a PR opened moments ago.
+          open_update_branches="$(gh pr list --state open --limit 200 \
+            --json headRefName,author \
+            --jq '.[] | select(.author.login == "app/github-actions") | .headRefName')"
+          if grep -q '^chore/aqua-update-' <<< "$open_update_branches"; then
+            echo 'An aqua update PR is already open; skipping.'
+            exit 0
+          fi
+
+          # Aqua uses GITHUB_TOKEN for API rate limits.
+          aqua update
+
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo 'No aqua package updates.'
+            exit 0
+          fi
+
+          git diff --check
+          # Only the package manifest may change automatically.
+          if [[ "$(git status --porcelain | awk '{print $NF}')" != 'aqua.yaml' ]]; then
+            echo '::error::Unexpected changed files; manual review required.'
+            git status --short
+            exit 1
+          fi
+
+          # kubectx/kubens completion archives are pinned separately in chezmoi.
+          # Never change these packages without updating their companion hashes.
+          if ! diff -u <(git show HEAD:aqua.yaml | grep 'ahmetb/kubectx') <(grep 'ahmetb/kubectx' aqua.yaml); then
+            echo '::error::kubectx/kubens updates need companion completion hash updates.'
+            exit 1
+          fi
+
+          branch="chore/aqua-update-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add -- aqua.yaml
+          git commit -m 'chore(aqua): update package versions'
+          git push --set-upstream origin "$branch"
+
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          cat > "$body_file" <<'EOF'
+          Automated aqua package version updates.
+
+          - Trigger: daily schedule or manual workflow dispatch
+          - Validation: existing `ci-required` check on the pull request
+          - Merge: GitHub native auto-merge after required checks pass
+
+          Note: kubectx/kubens upgrades require synchronized completion archive hashes and are intentionally blocked.
+          EOF
+          pr_url="$(gh pr create --base master --head "$branch" --title 'chore(aqua): update package versions' --body-file "$body_file")"
+          echo "Created $pr_url"
+          # GITHUB_TOKEN-created PRs do not trigger pull_request workflows.
+          # workflow_dispatch is exempt and runs the required check on this branch SHA.
+          gh workflow run ci.yaml --ref "$branch"
+          gh pr merge "$pr_url" --auto --squash --delete-branch
+          echo "Enabled auto-merge for $pr_url"
