@@ -44,8 +44,11 @@ jobs:
           # Avoid parallel pending updates; let CI/auto-merge settle first.
           # Query outside the condition so a failed lookup fails the job instead
           # of reading as "no open PR"; only PRs this workflow opened count.
-          open_update_branches="$(gh pr list --state open --author app/github-actions \
-            --json headRefName --jq '.[].headRefName')"
+          # Filter authors in jq: `--author` switches gh to the search API,
+          # whose index lag could miss a PR opened moments ago.
+          open_update_branches="$(gh pr list --state open --limit 200 \
+            --json headRefName,author \
+            --jq '.[] | select(.author.login == "app/github-actions") | .headRefName')"
           if grep -q '^chore/aqua-update-' <<< "$open_update_branches"; then
             echo 'An aqua update PR is already open; skipping.'
             exit 0
