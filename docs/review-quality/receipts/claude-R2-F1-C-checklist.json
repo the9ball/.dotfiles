@@ -1,0 +1,152 @@
+{
+  "session_id": "1c07837d-da3a-4dbe-8323-71c212b84322",
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 2348,
+    "cache_read_input_tokens": 6302,
+    "output_tokens": 5121,
+    "output_tokens_details": {
+      "thinking_tokens": 2702
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2348,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5121,
+        "cache_read_input_tokens": 6302,
+        "cache_creation_input_tokens": 2348,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2348
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 5121,
+      "cacheReadInputTokens": 6302,
+      "cacheCreationInputTokens": 2348,
+      "webSearchRequests": 0,
+      "costUSD": 0.12247239999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2702,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "effective_model": [
+    "claude-opus-5-5"
+  ],
+  "estimated_usd": 0.12247239999999998,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "CF-1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "dispatch.py:58 (DeliveryService.dispatch)、コミット「Batch notice dispatch and retain temporarily unavailable deliveries」",
+        "cause": "唯一のコミットに、件名が示すバッチ化と未配信保持の変更（dispatch.py:27-32）と、件名に記載のない `DeliveryService.dispatch` の戻り値形状の変更（list から {\"delivered\": list}、dispatch.py:58）が混在している。",
+        "impact": "戻り値形状の変更だけを独立してロールバックすることができない。また、コミット件名から公開インターフェースへの影響を読み取れない。",
+        "trigger": "scheduler 側の不具合を受けて dispatch の戻り値変更だけを revert しようとすると、バッチ化の変更も一緒に巻き戻すか、手作業で部分的に revert する必要がある。",
+        "evidence": "commits[0].subject と diff の 2 つの hunk（@@ -24,9 +24,12 @@ と @@ -52,7 +55,7 @@）。要件は scheduler command interface の維持を求めており、戻り値変更は要求された目的に含まれていない。"
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "変更で導入・変更された識別子は、`batch`（dispatch.py:28）、既存属性 `self.batch_size` の利用（dispatch.py:27-28）、新しい dict キー `\"delivered\"`（dispatch.py:58）のみである。いずれも役割（1 回の送信単位、件数上限、配信済み ID）をそのまま表している。dispatch.py:63 の `delivered` 変数が dict を受け取るようになった不整合は命名の問題ではなく戻り値形状の欠陥に起因するため、Phase 1 へ回付した（limitations 参照）。",
+        "evidence": "candidate 885577a5… dispatch.py:27-32, 58, 63",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "新しいキー `\"delivered\"` は、既存の `self.delivered`（dispatch.py:16）や snapshot の `\"delivered\"` キー（dispatch.py:43）と同じ語彙を使っている。`batch` / `batch_size` も既存の `__init__` の語彙（dispatch.py:9-14）と一致している。",
+        "evidence": "candidate 885577a5… dispatch.py:9-16, 28, 43, 58",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "明示的なコメント・ドキュメント規約のファイルは証拠に含まれていない。一方、既存ファイルではモジュール・クラス・関数のすべてに docstring があるという局所的な慣習が確認できる。変更対象の flush（dispatch.py:25）と dispatch（dispatch.py:55）は docstring を保持しており、新しい宣言は追加されていない。",
+        "evidence": "base f31f6ecb… / candidate 885577a5… dispatch.py:1, 7, 10, 19, 25, 40, 48, 51, 55, 62, 68",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "flush の docstring「Attempt queued deliveries」（dispatch.py:25）は、要件どおりの挙動であれば正確である。現在は乖離しているが、その原因は docstring ではなく実装の欠陥（端数を送信しない、例外を握りつぶす）にある。command_response の docstring（dispatch.py:62）と実際の応答形状の乖離も、戻り値変更の欠陥に起因する。いずれも Phase 1 へ回付済みであり、この PASS はそれらの欠陥を相殺しない。",
+        "evidence": "candidate 885577a5… dispatch.py:25-37, 55-58, 62-64",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "置き換えられたのは flush の無制限ループ（base dispatch.py:27-29）だけで、取り残された補助関数や分岐はない。base では未使用だった `self.batch_size` が今回使われるようになった。`pending_count`、`snapshot`、`command_response` は変更されておらず、呼び出し元も現存している。",
+        "evidence": "base f31f6ecb… dispatch.py:14, 27-29、candidate 885577a5… dispatch.py:27-37, 39-44, 61-69",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "import は base と candidate のどちらも `from collections import deque`（dispatch.py:3）のみである。diff に依存関係の追加はなく、新しいモジュールやサービスの利用もない。",
+        "evidence": "base f31f6ecb… / candidate 885577a5… dispatch.py:3、diff 全体",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "単一コミットに、件名に記載された変更と、件名にない公開戻り値の形状変更が混在しており、独立したロールバックが難しい。",
+        "evidence": "commits[0]（ID は未提供）、diff hunk @@ -52,7 +55,7 @@、candidate dispatch.py:58",
+        "finding_ids": [
+          "CF-1"
+        ]
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Phase 1 への回付（チェックリスト対象外の重大な正確性欠陥。本 Phase 2 の結果ではこれらを相殺できない）: (1) candidate dispatch.py:58 で dispatch が dict を返すようになったため、command_response（dispatch.py:63-64）は count=1、ids=dict を返す。scheduler command interface の維持要件に違反する。(2) dispatch.py:27 の `while len(self.pending) >= self.batch_size` により、batch_size 未満の端数は明示的に flush しても送信されない。端数の配信要件に違反する。(3) dispatch.py:31-32 の `except Exception: break` が ValueError を含むすべての例外を握りつぶす。ValueError を呼び出し元へ可視化する要件に違反し、ConnectionError のみを保持対象とする意図とも一致しない。",
+      "コミット ID が証拠に含まれていないため、CRQ-007 ではコミット件名とファイル一覧で特定した。",
+      "リポジトリのコメント・ドキュメント規約の文書は証拠に含まれていないため、CRQ-003 は dispatch.py 内で観察できる慣習に基づいて判断した。",
+      "テストは実行していない。ツールは使用せず、埋め込まれた証拠のみで評価した。"
+    ]
+  },
+  "label": "claude-R2-F1-C-checklist",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792039438.9477978,
+  "elapsed_seconds": 53.414933919906616,
+  "input_sha256": "58a13a790242ed010d71b8789bfbc76dc8ac59784c4fc97ebcf2df05a7bf79e3",
+  "raw_output_sha256": "bb886a353205b3581acca4286b8bc9046dc6b5b1296f3479ccb2f7536bec619e",
+  "configured_model": "host default (no override)",
+  "configured_effort": "host default (no override)",
+  "effective_effort": null
+}

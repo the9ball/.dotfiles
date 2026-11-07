@@ -1,0 +1,82 @@
+{
+  "session_id": "01a13d90-e5b9-7633-ac4e-c2ef7962269e",
+  "usage": {
+    "input_tokens": 22065,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 717,
+    "reasoning_output_tokens": 108
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.0513,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P3",
+        "category": "quality",
+        "location": {
+          "file": "inventory.py",
+          "line": 45,
+          "symbol": "format_digest"
+        },
+        "cause": "The modified docstring describes comma-separated output, while the implementation and required contract use tabs.",
+        "impact": "The function documentation misstates the export format and can mislead future maintenance. Correcting the documentation is warranted; changing the delimiter would violate the requirements.",
+        "trigger": "A maintainer consults the docstring to determine the export delimiter.",
+        "evidence": "The docstring says \"comma-separated\", but the header and row formatter both contain tab separators. The requirements explicitly retain tab-separated exports."
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "optional",
+        "location": {
+          "file": "inventory.py",
+          "line": 39,
+          "symbol": "build_digest"
+        },
+        "cause": "The descriptive local name totals was replaced with x.",
+        "impact": "This reduces readability in a change intended to prepare the renderer for maintenance. Restoring the descriptive name is an optional improvement.",
+        "trigger": "A maintainer reads the intermediate grouping result in build_digest.",
+        "evidence": "The diff changes totals = group_stock(records) and render_rows(totals) to x = group_stock(records) and render_rows(x), without changing behavior."
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "optional",
+        "location": {
+          "file": "inventory.py",
+          "line": 67,
+          "symbol": "_legacy_header"
+        },
+        "cause": "An unused helper introduces an alternate export header without an included consumer.",
+        "impact": "It adds maintenance surface and a competing header representation without contributing to current behavior. Removing it is optional cleanup.",
+        "trigger": "The added helper remains unused by every implementation and consumer included in the frozen change.",
+        "evidence": "The complete candidate contains no reference to _legacy_header. format_digest constructs its own tab-separated header; the helper returns \"Warehouse,Item,On hand\"."
+      }
+    ],
+    "coverage": [
+      {
+        "file": "inventory.py",
+        "scope": "Entire supplied base, candidate, and diff inspected, including normalization, aggregation, sorting, zero omission, negative quantities, formatting, command integration, and the added helper.",
+        "result": "No material behavioral regression identified. Existing functions retain docstrings, and the new helper has one."
+      }
+    ],
+    "limitations": [
+      "Static inspection used only the embedded frozen evidence. No tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R1-F2-A-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034268.182887,
+  "elapsed_seconds": 18.81358790397644,
+  "input_sha256": "bb7147f9e74da2314cf71127a08e18529b15591256f4cab9ffc7823e75e440b6",
+  "raw_output_sha256": "df8bcc656e0d8190340883602a66663b197808bd08f8aee774a816ca6592176c",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

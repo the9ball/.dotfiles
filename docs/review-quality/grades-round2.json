@@ -1,0 +1,358 @@
+{
+  "schema_version": 1,
+  "source_commit": "9a044fa9cf723b7a2be10e15e7033ca850f18ea1",
+  "source_blob": "0f8a5d9fd52032beab32075a7cc0e1f6fc776fbc",
+  "observations": [
+    {
+      "observation_id": "O27105890662b",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F3-M1",
+          "reason": "The report_id-only cache shares metadata across tenants. After tenant A populates an ID, tenant B requesting the same ID bypasses ownership lookup and receives the cached export and filename."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F3-M2",
+          "reason": "The string-prefix test accepts a resolved sibling such as ../exports-private/secret.csv under root exports. The target is outside directory ancestry yet download reads it, violating permitted-root containment."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F3-M3",
+          "reason": "Warming a report cache and then rotating the repository leaves its old entry active. Subsequent hits never query updated metadata, so obsolete exports remain in use or fail after old-path removal."
+        },
+        {
+          "finding_id": "f004",
+          "truth_id": "F3-Q1",
+          "reason": "The metadata-to-zz rename hides the domain role of the value used for export path and filename; maintaining or reading download establishes the frozen quality issue without alleging runtime change."
+        },
+        {
+          "finding_id": "f005",
+          "truth_id": "F3-Q2",
+          "reason": "The added private header formatter has no caller in the complete supplied implementation and explicitly targets a retired response adapter, creating obsolete and misleading maintenance surface."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Odc7a48434a78",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F2-Q2",
+          "reason": "The changed docstring claims comma-separated output, while header and rows still use tabs as required. A maintainer relying on that docstring receives incorrect delimiter guidance."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F2-Q1",
+          "reason": "Renaming totals to x obscures that the intermediate value contains warehouse/SKU stock totals; reading or maintaining the grouping-to-rendering handoff establishes the frozen readability issue."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F2-Q3",
+          "reason": "The complete supplied implementation has no caller for newly added _legacy_header, whose alternate header and retired-renderer role add obsolete maintenance surface when maintaining the renderer."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O90b4d240c3a0",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F1-M2",
+          "reason": "The guard requires at least batch_size notices, so explicit flush skips nonempty partial queues and leaves final remainders pending. The stated sub-batch or nonmultiple queue trigger establishes undelivered work."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F1-M3",
+          "reason": "For an eligible full batch, except Exception catches the transport ValueError and returns normally. This hides the required invalid-payload signal rather than restricting recovery to temporary ConnectionError."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F1-M1",
+          "reason": "dispatch wraps the delivered-ID list in a mapping while command_response still takes len of that result and emits it as ids. The stated scheduler invocation, including empty dispatch or successful batch, causes the incorrect count and mapping-valued ids."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O0f457bdc1227",
+      "matches": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Ofa5756737271",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F2-Q2",
+          "reason": "The changed docstring claims comma-separated output, while header and rows still use tabs as required. A maintainer relying on that docstring receives incorrect delimiter guidance."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F2-Q1",
+          "reason": "Renaming totals to x obscures that the intermediate value contains warehouse/SKU stock totals; reading or maintaining the grouping-to-rendering handoff establishes the frozen readability issue."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F2-Q3",
+          "reason": "The complete supplied implementation has no caller for newly added _legacy_header, whose alternate header and retired-renderer role add obsolete maintenance surface when maintaining the renderer."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Oc68e36db7e2e",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F1-M2",
+          "reason": "The guard requires at least batch_size notices, so explicit flush skips nonempty partial queues and leaves final remainders pending. The stated sub-batch or nonmultiple queue trigger establishes undelivered work."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F1-M3",
+          "reason": "For an eligible full batch, except Exception catches the transport ValueError and returns normally. This hides the required invalid-payload signal rather than restricting recovery to temporary ConnectionError."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F1-M1",
+          "reason": "dispatch wraps the delivered-ID list in a mapping while command_response still takes len of that result and emits it as ids. The stated scheduler invocation, including empty dispatch or successful batch, causes the incorrect count and mapping-valued ids."
+        }
+      ],
+      "extras": [
+        {
+          "finding_id": "f004",
+          "classification": "valid_unseeded",
+          "reason": "The batching change converts the entire remaining deque before slicing on each successful batch. For a large backlog N and fixed batch size B, copies total N+(N-B)+... = O(N squared/B), whereas the base drains in one pass. The stated successful successive-batch trigger and allocation/copying impact are supported by source. This unseeded performance regression remains outside the frozen truth denominator."
+        }
+      ],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Of10f59bff42f",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F1-M1",
+          "reason": "dispatch wraps the delivered-ID list in a mapping while command_response still takes len of that result and emits it as ids. The stated scheduler invocation, including empty dispatch or successful batch, causes the incorrect count and mapping-valued ids."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O225d57daf01b",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F3-M1",
+          "reason": "The report_id-only cache shares metadata across tenants. After tenant A populates an ID, tenant B requesting the same ID bypasses ownership lookup and receives the cached export and filename."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F3-M2",
+          "reason": "The string-prefix test accepts a resolved sibling such as ../exports-private/secret.csv under root exports. The target is outside directory ancestry yet download reads it, violating permitted-root containment."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F3-M3",
+          "reason": "Warming a report cache and then rotating the repository leaves its old entry active. Subsequent hits never query updated metadata, so obsolete exports remain in use or fail after old-path removal."
+        },
+        {
+          "finding_id": "f004",
+          "truth_id": "F3-Q1",
+          "reason": "The metadata-to-zz rename hides the domain role of the value used for export path and filename; maintaining or reading download establishes the frozen quality issue without alleging runtime change."
+        },
+        {
+          "finding_id": "f005",
+          "truth_id": "F3-Q2",
+          "reason": "The added private header formatter has no caller in the complete supplied implementation and explicitly targets a retired response adapter, creating obsolete and misleading maintenance surface."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O6b7a7d4c284f",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F3-M1",
+          "reason": "The report_id-only cache shares metadata across tenants. After tenant A populates an ID, tenant B requesting the same ID bypasses ownership lookup and receives the cached export and filename."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F3-M2",
+          "reason": "The string-prefix test accepts a resolved sibling such as ../exports-private/secret.csv under root exports. The target is outside directory ancestry yet download reads it, violating permitted-root containment."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F3-M3",
+          "reason": "Warming a report cache and then rotating the repository leaves its old entry active. Subsequent hits never query updated metadata, so obsolete exports remain in use or fail after old-path removal."
+        },
+        {
+          "finding_id": "f004",
+          "truth_id": "F3-Q1",
+          "reason": "The metadata-to-zz rename hides the domain role of the value used for export path and filename; maintaining or reading download establishes the frozen quality issue without alleging runtime change."
+        },
+        {
+          "finding_id": "f005",
+          "truth_id": "F3-Q2",
+          "reason": "The added private header formatter has no caller in the complete supplied implementation and explicitly targets a retired response adapter, creating obsolete and misleading maintenance surface."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Ofb0cd237861f",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F2-Q2",
+          "reason": "The changed docstring claims comma-separated output, while header and rows still use tabs as required. A maintainer relying on that docstring receives incorrect delimiter guidance."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F2-Q1",
+          "reason": "Renaming totals to x obscures that the intermediate value contains warehouse/SKU stock totals; reading or maintaining the grouping-to-rendering handoff establishes the frozen readability issue."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F2-Q3",
+          "reason": "The complete supplied implementation has no caller for newly added _legacy_header, whose alternate header and retired-renderer role add obsolete maintenance surface when maintaining the renderer."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O1481023073db",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F3-Q1",
+          "reason": "The metadata-to-zz rename hides the domain role of the value used for export path and filename; maintaining or reading download establishes the frozen quality issue without alleging runtime change."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F3-M2",
+          "reason": "The string-prefix test accepts a resolved sibling such as ../exports-private/secret.csv under root exports. The target is outside directory ancestry yet download reads it, violating permitted-root containment."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F3-Q2",
+          "reason": "The added private header formatter has no caller in the complete supplied implementation and explicitly targets a retired response adapter, creating obsolete and misleading maintenance surface."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O3dc8aa7f5a4d",
+      "matches": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O727c747c65a9",
+      "matches": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Od97a0f71a577",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F1-M2",
+          "reason": "The guard requires at least batch_size notices, so explicit flush skips nonempty partial queues and leaves final remainders pending. The stated sub-batch or nonmultiple queue trigger establishes undelivered work."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F1-M3",
+          "reason": "For an eligible full batch, except Exception catches the transport ValueError and returns normally. This hides the required invalid-payload signal rather than restricting recovery to temporary ConnectionError."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F1-M1",
+          "reason": "dispatch wraps the delivered-ID list in a mapping while command_response still takes len of that result and emits it as ids. The stated scheduler invocation, including empty dispatch or successful batch, causes the incorrect count and mapping-valued ids."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "O0f98ae0a2c23",
+      "matches": [
+        {
+          "finding_id": "f001",
+          "truth_id": "F2-Q1",
+          "reason": "Renaming totals to x obscures that the intermediate value contains warehouse/SKU stock totals; reading or maintaining the grouping-to-rendering handoff establishes the frozen readability issue."
+        },
+        {
+          "finding_id": "f002",
+          "truth_id": "F2-Q2",
+          "reason": "The changed docstring claims comma-separated output, while header and rows still use tabs as required. A maintainer relying on that docstring receives incorrect delimiter guidance."
+        },
+        {
+          "finding_id": "f003",
+          "truth_id": "F2-Q3",
+          "reason": "The complete supplied implementation has no caller for newly added _legacy_header, whose alternate header and retired-renderer role add obsolete maintenance surface when maintaining the renderer."
+        }
+      ],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Od0d2994d5115",
+      "matches": [],
+      "extras": [],
+      "duplicates": [],
+      "severity_overstatements": [],
+      "optional_as_required": []
+    }
+  ],
+  "limitations": [
+    "Only the 16 new anonymous observations are scored here. Structured equality checks confirmed all four fixtures and all 16 prior observations unchanged from c4e048e48f37bb665940dc992264b0f73593cfec.",
+    "Evaluation uses the frozen complete source and requirements; external reproduction references were not executed or read.",
+    "P3 readability and obsolete-code findings match frozen minor-quality targets irrespective of optional category labels. P3 quality reporting alone does not assert a functional acceptance requirement; no finding explicitly makes optional cleanup mandatory."
+  ]
+}

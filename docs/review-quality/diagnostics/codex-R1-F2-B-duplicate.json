@@ -1,0 +1,135 @@
+{
+  "session_id": "01a13d8d-3414-7200-9547-1fcefdb9e958",
+  "usage": {
+    "input_tokens": 23120,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2210,
+    "reasoning_output_tokens": 515
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.06834,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "F1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:39-40",
+        "cause": "Renaming totals to x removes the variable's domain meaning and departs from the surrounding vocabulary.",
+        "impact": "Readers must inspect group_stock to understand what is passed to render_rows.",
+        "trigger": "Maintaining the aggregation-to-rendering flow in build_digest.",
+        "evidence": "At candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, lines 39-40 use x; group_stock uses totals at lines 17-21 and render_rows accepts totals at line 24."
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:45",
+        "cause": "The changed docstring describes comma-separated output while the implementation still emits tabs.",
+        "impact": "The documented export contract contradicts both the implementation and the required tab-separated format.",
+        "trigger": "A maintainer or consumer relies on format_digest's documented delimiter.",
+        "evidence": "At candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, line 45 says comma-separated; lines 46 and 49 use tab delimiters."
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:67-69",
+        "cause": "The change adds an unused private helper for a retired renderer without a demonstrated retention purpose.",
+        "impact": "It adds maintenance surface and introduces an obsolete export header alongside the active format.",
+        "trigger": "The maintenance preparation change is retained with _legacy_header present.",
+        "evidence": "At candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, the complete supplied inventory.py contains only the declaration of _legacy_header at lines 67-69 and no callers. The requirements state that all implementation and consumers are included."
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The changed aggregation variable no longer communicates its role.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:39-40; compared with group_stock at lines 15-21.",
+        "finding_ids": [
+          "F1"
+        ]
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The new x name departs from the established totals vocabulary for the same aggregate.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:17-24 and 39-40.",
+        "finding_ids": [
+          "F1"
+        ]
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "All functions and methods have role-describing docstrings, satisfying the supplied repository policy. Documentation accuracy is assessed separately.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:6-69; docstrings occur at lines 7, 16, 25, 38, 45, 58, 62, and 68.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The export docstring incorrectly describes the delimiter.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:45 versus lines 46-51; DigestCommand.run invokes this formatter at line 64.",
+        "finding_ids": [
+          "F2"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "An unused private helper describing retired behavior is introduced without a retention reason.",
+        "evidence": "Candidate 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a, inventory.py:67-69. Inspected the entire supplied implementation and consumer scope, inventory.py:1-69, for references.",
+        "finding_ids": [
+          "F3"
+        ]
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "No libraries, services, or internal module dependencies are added or newly used.",
+        "evidence": "Complete inventory.py base-to-candidate comparison, df510e44193cd2a25d4101c34b2d9729c1f9f8e85d1d5cdaa33b4f10de69837d to 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a. The sole import at line 3 and its Counter usage at line 17 are unchanged.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied single-commit description suggests one maintenance purpose, but no commit ID or explicit mapping of that commit to the reviewed identities is supplied, preventing the required commit-specific verification.",
+        "evidence": "The commits array lists only the subject 'Prepare inventory digest renderer for maintenance' and inventory.py. Reviewed comparison identities are df510e44193cd2a25d4101c34b2d9729c1f9f8e85d1d5cdaa33b4f10de69837d and 9e820b67f9d60428301b77c0aa8985e7c426041a45900e93c3e4f81ed9cec11a; individual commit IDs are unavailable.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "inventory.py"
+    ],
+    "limitations": [
+      "Static inspection used only the supplied frozen evidence; no tools were used and no tests were executed.",
+      "No runtime behavior defect was identified: aggregation, deterministic ordering, zero omission, negative quantities, and tab-separated output remain unchanged.",
+      "Findings are recorded once under checklist_findings; unrestricted review identified no additional underlying causes.",
+      "Commit-specific rollback assessment remains unverified because individual commit identities were not supplied."
+    ]
+  },
+  "label": "codex-R1-F2-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034026.0654309,
+  "elapsed_seconds": 45.65992832183838,
+  "input_sha256": "e25dee3b3bedeed2598238a13ef30662064f55ede6048c10385bca3a1d8a9dd2",
+  "raw_output_sha256": "db87361c78d57e9726bf6f6b9a7e37202268c7e291c69597228970ae63b49b37",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "exclusion_reason": "Accidental controller restart after failed recovery assertion; original valid session retained regardless of findings"
+}

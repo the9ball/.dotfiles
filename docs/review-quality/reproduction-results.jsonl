@@ -1,0 +1,14 @@
+{"baseline": {"count": 2, "ids": [1, 2]}, "candidate": {"count": 1, "ids": {"delivered": [1, 2]}}, "expected": {"count": 2, "ids": [1, 2]}, "id": "F1-M1", "status": "expected_failure_observed"}
+{"baseline": 0, "candidate": 1, "expected": 0, "id": "F1-M2", "status": "expected_failure_observed"}
+{"baseline": "ValueError", "candidate": "no exception", "expected": "ValueError", "id": "F1-M3", "status": "expected_failure_observed"}
+{"baseline": "beta", "candidate": "alpha", "expected": "beta", "id": "F3-M1", "status": "expected_failure_observed"}
+{"baseline": "PermissionError", "candidate": "secret", "expected": "PermissionError", "id": "F3-M2", "status": "expected_failure_observed"}
+{"baseline": "beta", "candidate": "alpha", "expected": "beta", "id": "F3-M3", "status": "expected_failure_observed"}
+{"id": "F2-Q1", "status": "quality_seed_confirmed"}
+{"id": "F2-Q2", "status": "quality_seed_confirmed"}
+{"id": "F2-Q3", "status": "quality_seed_confirmed"}
+{"id": "F3-Q1", "status": "quality_seed_confirmed"}
+{"id": "F3-Q2", "status": "quality_seed_confirmed"}
+{"id": "F2-behavior", "status": "pass"}
+{"id": "F4-clean", "status": "pass"}
+{"status": "pass", "material_defects": 6, "quality_seeds": 5}

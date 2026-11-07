@@ -1,0 +1,11 @@
+{
+  "label": "codex-R1-F1-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "elapsed_seconds": 54.851080894470215,
+  "input_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
+  "raw_output_sha256": "26c62f61fdee8661ce781f33ba52dad4f9a287219d5f242201caa0e61149e363",
+  "status": "invalid_not_admitted",
+  "error": "Incomplete or unexpected changed-file coverage",
+  "retained_private_receipt": true
+}

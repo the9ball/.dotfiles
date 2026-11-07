@@ -1,0 +1,66 @@
+{
+  "session_id": "01a13da1-93d9-7a83-9c38-3de085f8b667",
+  "usage": {
+    "input_tokens": 22083,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 625,
+    "reasoning_output_tokens": 72
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.050416,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:27, NoticeQueue.flush",
+        "cause": "The loop runs only while at least batch_size notices remain.",
+        "impact": "Explicit flushes leave partial batches undelivered, violating the requirement to deliver entries smaller than one batch.",
+        "trigger": "With batch_size=20, enqueue one notice and call flush(); alternatively, enqueue 21 notices and flush.",
+        "evidence": "The condition `while len(self.pending) >= self.batch_size` skips transport.send entirely for one notice and leaves the final notice pending after delivering the first 20 of 21."
+      },
+      {
+        "id": "F2",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:31, NoticeQueue.flush",
+        "cause": "The handler catches every Exception rather than specifically ConnectionError.",
+        "impact": "Invalid transport payloads silently remain queued instead of exposing ValueError to the caller, violating the explicit error contract.",
+        "trigger": "A full batch reaches transport.send and the transport raises ValueError for an invalid payload.",
+        "evidence": "`except Exception: break` catches ValueError and returns the accumulated completed IDs normally. Neither DeliveryService.dispatch nor command_response can observe the required exception."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58, DeliveryService.dispatch",
+        "cause": "dispatch now wraps the delivered ID list in a dictionary, while command_response still treats its return value as the list.",
+        "impact": "Scheduler responses have an incorrect count and an incompatible ids value, violating the requirement to preserve the command interface.",
+        "trigger": "Call command_response with a service whose queue successfully delivers a batch of two notices using batch_size=2.",
+        "evidence": "dispatch returns `{\"delivered\": [1, 2]}`. The unchanged command_response consequently returns `{\"count\": 1, \"ids\": {\"delivered\": [1, 2]}}` instead of the previous `{\"count\": 2, \"ids\": [1, 2]}`. An empty delivery also produces count=1."
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Static inspection of the supplied frozen evidence only; no tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F1-A-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792035361.318394,
+  "elapsed_seconds": 15.509124755859375,
+  "input_sha256": "9e673594171865719e8bbfddb680c525f9f9f7aa81588f17c07715183b2a0f4b",
+  "raw_output_sha256": "514e19b90955002bbe624629c12995a334bd76ef99dfccc32e15a93680b62e9c",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

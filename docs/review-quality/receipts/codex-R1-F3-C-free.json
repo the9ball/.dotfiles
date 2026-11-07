@@ -1,0 +1,90 @@
+{
+  "session_id": "01a13d91-2fdf-72c1-a287-af7d909d2c10",
+  "usage": {
+    "input_tokens": 22426,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 986,
+    "reasoning_output_tokens": 178
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.054712,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.metadata",
+        "cause": "The cache key contains only report_id, excluding tenant.",
+        "impact": "A tenant can receive another tenant's export and filename because cache hits bypass the database adapter's ownership check.",
+        "trigger": "Tenant A downloads report ID 7, then tenant B requests ID 7 through the same service.",
+        "evidence": "key = report_id; repository.lookup(tenant, report_id) runs only on a cache miss. download uses the cached path and filename."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py: ReportService.resolve_export",
+        "cause": "String-prefix comparison does not enforce filesystem directory containment.",
+        "impact": "Downloads can read files outside the permitted export storage root.",
+        "trigger": "With storage_root '/srv/exports', metadata path '../exports-private/secret.csv' resolves to an existing '/srv/exports-private/secret.csv', which passes the prefix check.",
+        "evidence": "The candidate replaces target.is_relative_to(self.storage_root) with str(target).startswith(str(self.storage_root)); download then calls target.read_bytes()."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "reports.py: ReportService.replace_repository and ReportService.metadata",
+        "cause": "Repository replacement leaves cached metadata intact, and cache hits never refresh it.",
+        "impact": "Previously requested reports retain obsolete paths and filenames after rotation. Refreshed metadata remains unavailable, and downloads fail if an obsolete export path no longer exists.",
+        "trigger": "Cache a report, rotate to a repository returning an updated path or filename for that report, then request it again.",
+        "evidence": "replace_repository only assigns self.repository. metadata returns the existing cache entry without consulting the replacement repository."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: ReportService.download",
+        "cause": "The descriptive local variable metadata is renamed to zz.",
+        "impact": "The download flow becomes harder to understand and maintain; restoring a descriptive name is an optional readability improvement.",
+        "trigger": "A maintainer reads or modifies the metadata-dependent path and filename handling.",
+        "evidence": "The diff replaces metadata with zz in the assignment and both field accesses without changing its purpose."
+      },
+      {
+        "id": "F5",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py: _format_content_disposition",
+        "cause": "The change adds an unused helper for a retired adapter.",
+        "impact": "It adds maintenance surface without contributing to the supplied download flow; removing it is optional cleanup.",
+        "trigger": "The supplied implementation is maintained with this helper present despite having no caller.",
+        "evidence": "All implementation and callers are supplied, none reference _format_content_disposition, and its docstring explicitly identifies the consuming adapter as retired."
+      }
+    ],
+    "coverage": [
+      {
+        "file": "reports.py",
+        "scope": "Entire supplied base, candidate, diff, and callers inspected, including cache behavior, tenant ownership, path containment, repository rotation, download compatibility, and function docstrings.",
+        "policy_result": "Every supplied candidate function has a docstring."
+      }
+    ],
+    "limitations": [
+      "Review used only the embedded frozen evidence. No tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R1-F3-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034287.0473225,
+  "elapsed_seconds": 26.539674043655396,
+  "input_sha256": "29ac401547caf6f5a35caa419717ce3fec7540f8dd9aaa10c188ecec8292968a",
+  "raw_output_sha256": "2286d6c473596fff714cbe9d4bd6f5944929620174f107f73ae9f9736499723f",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

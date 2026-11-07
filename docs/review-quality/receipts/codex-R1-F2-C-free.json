@@ -1,0 +1,69 @@
+{
+  "session_id": "01a13d8d-e685-7e12-b4a3-2e7d2c26fc05",
+  "usage": {
+    "input_tokens": 22069,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 734,
+    "reasoning_output_tokens": 194
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.051478,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:45 (format_digest)",
+        "cause": "The changed docstring describes a comma-separated export, while the implementation produces tab-separated text.",
+        "impact": "The function documentation misstates the required export contract and can mislead future maintenance.",
+        "trigger": "A maintainer consults format_digest's docstring to determine the delimiter.",
+        "evidence": "The header and row formatter still use \\t, and the requirements explicitly require tab-separated exports. Restore the accurate delimiter description."
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "optional",
+        "location": "inventory.py:39–40 (build_digest)",
+        "cause": "The descriptive local name totals is replaced with x without changing its role.",
+        "impact": "Readers must trace the assignment to understand that render_rows receives grouped stock totals, reducing readability for the stated maintenance objective.",
+        "trigger": "A maintainer reads or modifies build_digest.",
+        "evidence": "The complete diff changes totals = group_stock(records) and render_rows(totals) to the equivalent expressions using x. Retaining totals is an optional readability improvement."
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "optional",
+        "location": "inventory.py:67 (_legacy_header)",
+        "cause": "An unused helper introduces a second, incompatible header representation.",
+        "impact": "It adds maintenance surface and an alternative header that has no demonstrated role in the export path.",
+        "trigger": "A maintainer searches for header definitions or considers reusing _legacy_header.",
+        "evidence": "All implementation and consumers are included; none reference _legacy_header. It returns Warehouse,Item,On hand, while format_digest directly constructs warehouse\\tsku\\tquantity. Removing the helper is optional cleanup."
+      }
+    ],
+    "coverage": [
+      "inventory.py: inspected the complete supplied base, candidate, and diff, including normalization, grouping, row filtering and ordering, digest totals, formatting, command integration, and the added helper."
+    ],
+    "limitations": [
+      "Static inspection of the embedded frozen evidence only; no tools were used and no tests were executed.",
+      "No runtime behavior regression was identified: sorting, zero-row omission, negative adjustments, and tab-separated output remain unchanged."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R1-F2-C-free",
+  "host": "codex",
+  "cli_exit": null,
+  "started_unix": 1792034071.7613165,
+  "elapsed_seconds": 21.93176031112671,
+  "input_sha256": "bb7147f9e74da2314cf71127a08e18529b15591256f4cab9ffc7823e75e440b6",
+  "raw_output_sha256": "b481905029411e9616fcbfe274ae2ba1470b3ff4e2a775c20cfc1197c2f076bb",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "timestamp_note": "Controller intentionally stopped; child completed naturally with turn.completed and valid answer. Exact child exit code unavailable. Duration reconstructed from raw file timestamps.",
+  "completion_evidence": "turn.completed plus final valid JSON and complete coverage; no tool calls"
+}

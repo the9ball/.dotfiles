@@ -1,0 +1,12 @@
+{
+  "label": "codex-R1-F2-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792033865.417308,
+  "elapsed_seconds": 43.66465449333191,
+  "input_sha256": "e25dee3b3bedeed2598238a13ef30662064f55ede6048c10385bca3a1d8a9dd2",
+  "raw_output_sha256": "cde7abb4023eb4a6f388e064395303b30cae854bb73bd1c27ce0502cc407ad83",
+  "status": "parser_exception_then_verified_complete",
+  "error": "AttributeError: dict has no startswith",
+  "retained_private_receipt": true
+}

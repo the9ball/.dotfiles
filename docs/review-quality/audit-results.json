@@ -1,0 +1,43 @@
+{
+  "frozen_fixture_and_prompt_identities_preserved": true,
+  "observations": 64,
+  "unique_sessions": 64,
+  "observations_by_host": {
+    "claude": 32,
+    "codex": 32
+  },
+  "no_reviewer_tool_calls": true,
+  "complete_declared_coverage": true,
+  "independent_C_order_checks": 16,
+  "codex_cost_arithmetic_checks": 32,
+  "reviewer_envelopes": [
+    {
+      "fixture": "F1",
+      "truth_excluded": true,
+      "free_prompt_no_checklist": true
+    },
+    {
+      "fixture": "F2",
+      "truth_excluded": true,
+      "free_prompt_no_checklist": true
+    },
+    {
+      "fixture": "F3",
+      "truth_excluded": true,
+      "free_prompt_no_checklist": true
+    },
+    {
+      "fixture": "F4",
+      "truth_excluded": true,
+      "free_prompt_no_checklist": true
+    }
+  ],
+  "excluded_paid_duplicates": 1,
+  "excluded_duplicate_estimated_usd": 0.06834,
+  "canonical_prompt_hash_note": "Manifest hashes LF text; original Windows stdin writes CRLF. Canonical inputs and newline translation are constant across observations.",
+  "limitations": [
+    "Declared coverage and explicit completion do not prove every line received equal cognitive attention",
+    "Effective backend effort is not independently emitted",
+    "One recovered child exit code and two process durations are not exact"
+  ]
+}

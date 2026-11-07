@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "source_commit": "ea62dadbdc825d396caf521117b2907cb53206a0",
+  "source_blob": "37038e4306a692d2dd31106ec27e9f58dacffac0",
+  "correction_notes": [
+    "Original pass: 40 matches, 14 extras (3 valid unseeded, 6 false positives, 5 uncertain), 0 duplicates, 14 severity overstatements, 1 optional-as-required.",
+    "Corrected evidence adds synthetic commit summaries. Four history claims now receive limited quality-defect credit from the single-commit summaries and supplied source comparison; no ancestry or per-commit patches were verified.",
+    "P1 means serious defect under the stated contract, without requiring security impact. Severity annotations retain the frozen P2/P3 assessment on impact grounds, with security-only reasoning removed.",
+    "Explicit optional suggestions receive their own extras class. A quality category alone does not prove mandatory treatment, so the original optional-as-required annotation is removed."
+  ],
+  "observations": [
+    {
+      "observation_id": "O455085a012b4",
+      "matches": [],
+      "extras": [{"finding_id":"f001","classification":"optional_suggestion","reason":"Optional documentation expansion, not a demonstrated defect: the existing summary remains true, all functions have docstrings, and filtering and cursor behavior satisfy the stated contract."}],
+      "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "O0c5a69a9a671",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F1-M2","reason":"Full-batch loop excludes a short queue or remainder from explicit flush, leaving required deliveries pending."},
+        {"finding_id":"f002","truth_id":"F1-M3","reason":"Exception catch swallows transport ValueError, concealing invalid payload failure and retaining the failing head batch."},
+        {"finding_id":"f003","truth_id":"F1-M1","reason":"Mapping return reaches unchanged command_response; len counts its key and ids becomes a mapping."}
+      ],
+      "extras": [{"finding_id":"f004","classification":"valid_unseeded_defect","reason":"Source demonstrates a performance regression: each batch copies all remaining deque entries, producing quadratic aggregate copying at fixed batch size. It is correctly offered as optional optimization; no service-level failure threshold is established."}],
+      "duplicates": [],
+      "severity_overstatements": [
+        {"finding_id":"f001","reason":"P1 exceeds frozen P2: the demonstrated impact is retained, undelivered partial batches. The finding supplies no additional urgency, irreversible loss, or broader critical-service consequence supporting escalation."},
+        {"finding_id":"f002","reason":"P1 exceeds frozen P2: hidden ValueError and blockage of that queue are material, but repeated failure is a consequence of the same retained invalid payload, without evidence of wider critical outage or irreversible loss."},
+        {"finding_id":"f003","reason":"P1 exceeds frozen P2: count and ids violate the scheduler response contract, but delivery is still attempted and the finding adds no demonstrated downstream critical consequence beyond the known response incompatibility."}
+      ], "optional_as_required": []
+    },
+    {
+      "observation_id": "Oc24bdd6a3076",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F2-Q1","reason":"Replacing totals with x hides the stock aggregation role while behavior stays unchanged."},
+        {"finding_id":"f002","truth_id":"F2-Q2","reason":"Comma-separated docstring contradicts the unchanged tab-separated renderer and required format."},
+        {"finding_id":"f003","truth_id":"F2-Q3","reason":"New private retired-renderer header has no consumers in the complete supplied source."}
+      ], "extras": [], "duplicates": [],
+      "severity_overstatements": [{"finding_id":"f002","reason":"P2 escalates a P3 documentation defect using hypothetical future parser or maintenance mistakes; present export behavior is preserved."}], "optional_as_required": []
+    },
+    {
+      "observation_id": "O5f3c77dc8766",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F3-M1","reason":"Report-only cache key bypasses tenant ownership lookup on a cross-tenant ID collision and returns another tenant's export."},
+        {"finding_id":"f002","truth_id":"F3-M2","reason":"String prefix containment accepts a resolved sibling directory sharing the root prefix, permitting an outside read."},
+        {"finding_id":"f003","truth_id":"F3-M3","reason":"Warm entries survive repository rotation so a subsequent download keeps the old path instead of consulting the new dependency."},
+        {"finding_id":"f004","truth_id":"F3-Q1","reason":"zz replaces metadata and obscures the dictionary's domain role."},
+        {"finding_id":"f005","truth_id":"F3-Q2","reason":"Unused private helper explicitly targets a retired adapter; the hypothetical header injection is qualified as future-only and is not treated as an active security defect."}
+      ], "extras": [], "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "O7f6c7b645713",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F1-M2","reason":"Short queues and final partial batches never enter the flush loop, violating explicit delivery requirements."},
+        {"finding_id":"f002","truth_id":"F1-M3","reason":"Broad catch hides ValueError instead of limiting temporary retention to ConnectionError."},
+        {"finding_id":"f003","truth_id":"F1-M1","reason":"Changed dispatch return shape breaks count and ids in the unchanged scheduler adapter."}
+      ],
+      "extras": [
+        {"finding_id":"f004","classification":"valid_unseeded_defect","reason":"Whole-deque copying for each fixed-size batch introduces quadratic aggregate copying. The source supports this performance cost, and the finding explicitly keeps the optimization optional."},
+        {"finding_id":"f005","classification":"valid_unseeded_defect","reason":"The supplied single synthetic commit summary names batching and temporary-failure retention, while source comparison also shows the unrelated return-shape change in its listed dispatch.py. This supports a minor cohesion and subject-coverage problem separate from interface correctness. Only summary-level grouping is verified; actual ancestry and per-commit patch assignment are not supplied."}
+      ], "duplicates": [],
+      "severity_overstatements": [
+        {"finding_id":"f001","reason":"P1 exceeds frozen P2: partial batches remain recoverable in pending; no additional critical operational consequence or irreversible loss is established beyond the material delivery failure."},
+        {"finding_id":"f002","reason":"Hidden errors and repeated blockage of the invalid head batch support frozen P2; the finding establishes no additional critical outage scope or irreversible consequence warranting P1."},
+        {"finding_id":"f003","reason":"The malformed scheduler response supports frozen P2 material incompatibility; no concrete downstream consequence establishes a more urgent serious-defect classification."}
+      ], "optional_as_required": []
+    },
+    {
+      "observation_id": "Od249287376e1",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F1-M2","reason":"The full-batch guard omits residual work even on an explicit flush."},
+        {"finding_id":"f002","truth_id":"F1-M3","reason":"Exception catch consumes transport ValueError and silently retains the invalid batch."},
+        {"finding_id":"f003","truth_id":"F1-M1","reason":"Dictionary return is interpreted as the previous list, yielding count 1 and mapping-valued ids."}
+      ],
+      "extras": [{"finding_id":"f004","classification":"valid_unseeded_defect","reason":"Repeated full-deque conversion before slicing causes quadratic aggregate copying at fixed batch size; source validates this optional performance improvement without establishing an operational failure threshold."}], "duplicates": [],
+      "severity_overstatements": [
+        {"finding_id":"f001","reason":"P1 exceeds frozen P2: the demonstrated violation leaves notices pending rather than destroying them, with no additional evidence of critical operational scope or irreversible impact."},
+        {"finding_id":"f002","reason":"P1 exceeds frozen P2 hidden payload failure and queue blockage; the trigger adds no critical-system consequence beyond the retained failing batch and its blocked successors."},
+        {"finding_id":"f003","reason":"P1 exceeds frozen P2 scheduler response incompatibility: malformed count and ids are demonstrated, but a further critical downstream failure is not established."}
+      ], "optional_as_required": []
+    },
+    {
+      "observation_id": "O52e099a40181",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F2-Q2","reason":"Changed format documentation says commas while implementation still emits required tabs."},
+        {"finding_id":"f002","truth_id":"F2-Q1","reason":"x removes the local name's stock-total meaning without functional justification."},
+        {"finding_id":"f003","truth_id":"F2-Q3","reason":"Private retired header helper has no callers among the complete implementation and consumers."}
+      ], "extras": [], "duplicates": [],
+      "severity_overstatements": [{"finding_id":"f001","reason":"The P3 docstring mismatch has no current material export failure; hypothetical misuse does not justify P2."}], "optional_as_required": []
+    },
+    {
+      "observation_id": "Od25eaf3a9dd8",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F2-Q2","reason":"Comma documentation conflicts with actual tab output while the required runtime format remains intact."},
+        {"finding_id":"f002","truth_id":"F2-Q1","reason":"The local x obscures the stock totals passed to render_rows."},
+        {"finding_id":"f003","truth_id":"F2-Q3","reason":"New retired-renderer helper is unused in the complete source and adds maintenance ambiguity."}
+      ], "extras": [], "duplicates": [],
+      "severity_overstatements": [{"finding_id":"f001","reason":"P2 is unsupported for a P3 inaccurate docstring; claimed future code or consumer changes are hypothetical."}], "optional_as_required": []
+    },
+    {
+      "observation_id": "Od63bdbebbb46",
+      "matches": [],
+      "extras": [{"finding_id":"f001","classification":"valid_unseeded_defect","reason":"The one supplied synthetic F1 commit lists dispatch.py and describes batching and temporary retention, but the source comparison also changes dispatch return shape. The summary supports the claimed minor cohesion and incomplete-subject issue, distinct from the compatibility cause. No real ancestry or per-commit patch was verified; partial revert remains possible as the finding acknowledges."}],
+      "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "Od4c57aabb978",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F2-Q2","reason":"The comma-separated docstring contradicts both the required and actual tab-separated output."},
+        {"finding_id":"f002","truth_id":"F2-Q1","reason":"Renaming totals to x removes domain meaning and local terminology consistency."},
+        {"finding_id":"f003","truth_id":"F2-Q3","reason":"Unreferenced private legacy header belongs to the retired renderer and adds obsolete code."}
+      ], "extras": [], "duplicates": [],
+      "severity_overstatements": [{"finding_id":"f001","reason":"P2 overstates this P3 documentation defect; existing exports and consumers still use tabs, and future mistakes are speculative."}], "optional_as_required": []
+    },
+    {
+      "observation_id": "Oc80dde506904",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F3-Q1","reason":"zz conceals the report metadata role formerly expressed by metadata."},
+        {"finding_id":"f002","truth_id":"F3-M2","reason":"Although framed through docstring accuracy, it identifies the actual prefix-based boundary bypass and outside-root trigger."},
+        {"finding_id":"f003","truth_id":"F3-M3","reason":"Despite documentation framing, the operative defect is unchanged warm cache after repository rotation, returning old metadata."},
+        {"finding_id":"f004","truth_id":"F3-Q2","reason":"The added private helper has no supplied consumers and describes a retired adapter."}
+      ],
+      "extras": [{"finding_id":"f005","classification":"valid_unseeded_defect","reason":"The supplied sole F3 synthetic commit lists reports.py and claims cache and rotation support. Base already contains rotation methods, while the comparison also changes path containment, naming, and an unrelated retired helper. Summary plus source therefore support minor commit cohesion and subject-accuracy defects. Actual ancestry and individual commit patches remain unverified."}],
+      "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "Of1b98290365d",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F3-M1","reason":"Tenant omitted from cache identity permits a second tenant to obtain the first tenant's cached export without ownership validation."},
+        {"finding_id":"f002","truth_id":"F3-M3","reason":"Includes the precise rotation trigger: replace_repository leaves old entries active. General TTL and capacity observations do not establish a separate serious defect."},
+        {"finding_id":"f003","truth_id":"F3-M2","reason":"String prefix permits parent-relative access into a same-prefix sibling directory outside the storage root."},
+        {"finding_id":"f004","truth_id":"F3-Q1","reason":"Meaningless zz replaces the metadata domain name."},
+        {"finding_id":"f005","truth_id":"F3-Q2","reason":"Added uncalled helper explicitly serves a retired HTTP adapter and increases obsolete maintenance surface."}
+      ],
+      "extras": [{"finding_id":"f006","classification":"valid_unseeded_defect","reason":"The supplied single synthetic F3 commit summary groups reports.py under cache and repository rotation, although rotation support already exists and the source comparison adds unrelated containment, naming, and dead-helper edits. This supports minor cohesion and title-accuracy criticism separate from the matched code defects. Evidence is summary-level; actual ancestry and per-commit patch boundaries are unavailable."}],
+      "duplicates": [],
+      "severity_overstatements": [{"finding_id":"f002","reason":"P1 exceeds frozen P2 stale metadata after repository replacement. The trigger shows obsolete paths and possible download failure, not a further critical or irreversible consequence; unbounded growth lacks workload and exhaustion evidence."}], "optional_as_required": []
+    },
+    {
+      "observation_id": "Oea3e0e3c1072",
+      "matches": [
+        {"finding_id":"f001","truth_id":"F3-M1","reason":"Report-only cache bypasses tenant ownership checks and returns cross-tenant export data on ID reuse."},
+        {"finding_id":"f002","truth_id":"F3-M2","reason":"Resolved sibling path passes string-prefix containment and can read outside storage; the valid sibling example independently establishes the defect."},
+        {"finding_id":"f003","truth_id":"F3-M3","reason":"Repository rotation does not clear warm metadata, retaining old export paths and preventing refreshed metadata access."},
+        {"finding_id":"f004","truth_id":"F3-Q1","reason":"metadata-to-zz rename reduces readability without changing behavior."},
+        {"finding_id":"f005","truth_id":"F3-Q2","reason":"Private retired-adapter helper is uncalled; the finding qualifies header injection as contingent on future reuse, so no active security issue is inferred."}
+      ],
+      "extras": [{"finding_id":"f006","classification":"optional_suggestion","reason":"The source confirms no capacity bound or eviction, but the finding explicitly makes the proposal optional. Workload cardinality and resource budgets are unspecified, so it merits suggestion status rather than demonstrated defect credit."}],
+      "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "O0d54fcd5b1cb",
+      "matches": [],
+      "extras": [
+        {"finding_id":"f001","classification":"false_positive","reason":"The docstring remains accurate and satisfies the stated presence policy. Missing filter detail is optional documentation expansion, not a demonstrated correctness or policy defect."},
+        {"finding_id":"f002","classification":"optional_suggestion","reason":"Empty string is an explicit filter value, not omission. No requirement defines empty as unfiltered; the finding itself acknowledges no defect and offers only optional clarification."}
+      ], "duplicates": [], "severity_overstatements": [],
+      "optional_as_required": []
+    },
+    {
+      "observation_id": "Oa726b39740de",
+      "matches": [],
+      "extras": [{"finding_id":"f001","classification":"optional_suggestion","reason":"Explicitly optional docstring elaboration: no inaccurate statement, missing required docstring, or faulty filter/cursor behavior is demonstrated. This classification excludes it from defect credit, not from optional suggestions."}],
+      "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    },
+    {
+      "observation_id": "O752bebdb545c",
+      "matches": [],
+      "extras": [
+        {"finding_id":"f001","classification":"optional_suggestion","reason":"Existing truthful docstring satisfies the presence rule. Additional filter semantics would be an explicitly optional documentation improvement, not an established defect."},
+        {"finding_id":"f002","classification":"optional_suggestion","reason":"The requirements preserve omitted-filter behavior but specify no empty-value normalization. Explicit empty filtering is not shown incorrect, and this is acknowledged as optional specification clarification."}
+      ], "duplicates": [], "severity_overstatements": [], "optional_as_required": []
+    }
+  ]
+}

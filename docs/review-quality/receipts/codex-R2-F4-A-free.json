@@ -1,0 +1,36 @@
+{
+  "session_id": "01a13d98-942f-73b0-be01-20adc5919a0e",
+  "usage": {
+    "input_tokens": 22204,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 155,
+    "reasoning_output_tokens": 50
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.045958,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "coverage": [
+      "audit.py: inspected the complete base and candidate, including filtering before pagination, exclusive ID cursors, matching-event lookahead, omitted-filter behavior, endpoint forwarding, export behavior, and required function docstrings."
+    ],
+    "limitations": [
+      "Review was limited to the embedded frozen evidence; no tools or external sources were used.",
+      "Tests were not executed. Conclusions are based on static inspection."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F4-A-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034771.5352592,
+  "elapsed_seconds": 10.597333192825317,
+  "input_sha256": "70a938e00f5db34b3cbabd8211bb451e56e6aebbf2e181da036f51ae9be2f1ce",
+  "raw_output_sha256": "69def16da077baac96ea7ae844d7c8ab13b0a47560b8a9f970fc02c0c68c9fce",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

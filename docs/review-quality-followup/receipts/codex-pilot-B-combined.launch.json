@@ -1,0 +1,11 @@
+{
+  "label": "codex-pilot-B-combined",
+  "host": "codex",
+  "stage": "combined",
+  "state": "COMPLETED",
+  "started_unix": 1792054874.7700555,
+  "budget_reservation_usd": 0.75,
+  "input_sha256": "2acf55bb7b34f8fd2236194e7b19507742b48bdf3e511d77c1ffdeae079711f6",
+  "cli_exit": 0,
+  "estimated_usd": 0.0773776
+}

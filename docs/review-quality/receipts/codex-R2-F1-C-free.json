@@ -1,0 +1,77 @@
+{
+  "session_id": "01a13d9e-1541-7f80-b2ec-e97bc0f5ae59",
+  "usage": {
+    "input_tokens": 22085,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 827,
+    "reasoning_output_tokens": 145
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.05244,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:27, NoticeQueue.flush",
+        "cause": "The loop only runs when at least batch_size notices remain.",
+        "impact": "Explicit flushes leave partial batches undelivered, violating the delivery requirement.",
+        "trigger": "Flush a nonempty queue smaller than batch_size, or flush a queue whose size is not a multiple of batch_size.",
+        "evidence": "With batch_size=20 and 21 pending notices, one batch is sent and the remaining notice stays queued. With one pending notice, send is never called."
+      },
+      {
+        "id": "F2",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:31, NoticeQueue.flush",
+        "cause": "The exception handler catches every Exception instead of only ConnectionError.",
+        "impact": "Invalid payload ValueError exceptions are hidden from callers, violating the explicit error contract.",
+        "trigger": "Transport.send raises ValueError for a batch eligible for delivery.",
+        "evidence": "The except Exception branch breaks the loop and returns completed normally; ValueError inherits from Exception."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58, DeliveryService.dispatch",
+        "cause": "dispatch now returns a dictionary, while command_response still expects the delivered identifier list.",
+        "impact": "The scheduler response has an incorrect count and changes ids from a list to a nested dictionary, breaking the preserved command interface.",
+        "trigger": "Call command_response with a DeliveryService using the changed dispatch implementation.",
+        "evidence": "If flush returns [1, 2], the response becomes {\"count\": 1, \"ids\": {\"delivered\": [1, 2]}} instead of {\"count\": 2, \"ids\": [1, 2]}. Even an empty result produces count=1."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "quality",
+        "location": "dispatch.py:28, NoticeQueue.flush",
+        "cause": "Each batch copies the entire remaining deque into a list before slicing out batch_size entries.",
+        "impact": "Successful dispatch performs quadratic queue-copying work for a fixed batch size and allocates temporary lists proportional to the remaining queue depth.",
+        "trigger": "Flush a large queue through a transport that successfully accepts successive batches.",
+        "evidence": "For N notices and batch size B, the conversions copy N, N-B, N-2B, and subsequent remaining entries, totaling O(N²/B) references. A bounded iteration such as itertools.islice would copy only the next batch."
+      }
+    ],
+    "coverage": [
+      "dispatch.py — inspected the complete supplied base and candidate contents and all diff hunks."
+    ],
+    "limitations": [
+      "Static inspection used only the frozen evidence supplied in the request. No tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F1-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792035132.3101459,
+  "elapsed_seconds": 22.338144540786743,
+  "input_sha256": "9e673594171865719e8bbfddb680c525f9f9f7aa81588f17c07715183b2a0f4b",
+  "raw_output_sha256": "7a359546beb562e672266c6160145d6f6341de2d8c357e40e436fc1c63548126",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "admission_correction": "Known file followed by em dash and explicit complete-inspection statement; original answer retained without rerun"
+}

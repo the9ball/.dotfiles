@@ -1,0 +1,178 @@
+{
+  "session_id": "57163e95-934f-4d1b-9e06-149962d8eb51",
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 7330,
+    "cache_read_input_tokens": 1269,
+    "output_tokens": 4307,
+    "output_tokens_details": {
+      "thinking_tokens": 1649
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7330,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4307,
+        "cache_read_input_tokens": 1269,
+        "cache_creation_input_tokens": 7330,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7330
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 4307,
+      "cacheReadInputTokens": 1269,
+      "cacheCreationInputTokens": 7330,
+      "webSearchRequests": 0,
+      "costUSD": 0.1450418,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1649,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "effective_model": [
+    "claude-opus-5-5"
+  ],
+  "estimated_usd": 0.1450418,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "quality",
+        "location": "inventory.py:45 format_digest docstring",
+        "cause": "docstring が「comma-separated export」に変更されたが、実装は引き続きタブ区切りでヘッダーと行を出力している。",
+        "impact": "関数の出力契約が誤って記述されている。要件ではタブ区切りの維持が明示されており、この docstring を信じた保守者が実装を「修正」して export 形式を壊したり、利用者が誤った parser を書いたりする恐れがある。",
+        "trigger": "format_digest の docstring を根拠に出力形式を判断したり、docstring に合わせて実装を変更したりした場合。",
+        "evidence": "candidate inventory.py:45 \"Produce a deterministic comma-separated export.\" に対し、:46 lines = [\"warehouse\\tsku\\tquantity\"]、:49 f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}' はタブ区切り。base の同じ docstring は \"tab-separated\" だった。requirements: \"exports remain deterministic tab-separated text\"。candidate_identity 9e820b67…"
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:39-40 build_digest local variable x",
+        "cause": "意図を表すローカル変数名 totals が、意味を持たない x に改名された。",
+        "impact": "group_stock が返す (warehouse, sku) 別の集計値という役割が、名前から読み取れなくなる。同じ値を group_stock(:17,:21) では totals、render_rows(:24) では引数 totals と呼んでおり、既存の語彙とも食い違う。機能への影響はない。",
+        "trigger": "build_digest を読む、または保守する時点で常に発生する。",
+        "evidence": "diff: -    totals = group_stock(records) / +    x = group_stock(records); -    rows = render_rows(totals) / +    rows = render_rows(x)。candidate inventory.py:17,21 totals、:24 def render_rows(totals)。"
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:67-69 _legacy_header",
+        "cause": "自らの docstring で「retired export renderer」用と説明している private helper が新たに追加されたが、呼び出し元がない。",
+        "impact": "到達不能なコードが増える。さらにカンマ区切りの旧ヘッダー \"Warehouse,Item,On hand\" が現行の tab 形式ヘッダーと並んで存在するため、F1 の誤った docstring と組み合わさり、現行の export 形式について誤解を招く。保持する理由は示されていない。",
+        "trigger": "inventory.py を保守する時点で常に発生する。この helper はどこからも呼ばれない。",
+        "evidence": "candidate inventory.py:67-69。同ファイル内の呼び出し候補（build_digest :37-41、format_digest :44-51、DigestCommand.run :61-64）はいずれも _legacy_header を参照していない。requirements: \"All consumers and implementation are included in this changeset\"。名前が underscore で始まり module-private であるため、外部 API である根拠もない。"
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "変更された識別子のうち、build_digest のローカル変数 x は集計結果という役割を表していない。新規追加の _legacy_header は役割を表しており、問題はない。",
+        "evidence": "candidate 9e820b67… inventory.py:39-40 (x)、:67 (_legacy_header)",
+        "finding_ids": [
+          "F2"
+        ]
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "同じ集計値をファイル内の他の箇所では totals と呼んでおり、x はこの確立した語彙から外れている。逸脱する理由も示されていない。",
+        "evidence": "candidate inventory.py:17,21 (group_stock 内の totals)、:24 (render_rows(totals))、:39-40 (x)",
+        "finding_ids": [
+          "F2"
+        ]
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "repository policy は function docstring を要求している。新規関数 _legacy_header には役割を示す docstring があり、変更された build_digest と format_digest も docstring を保持している（正確性は CRQ-004 で扱う）。",
+        "evidence": "requirements \"Repository policy requires function docstrings\"。candidate inventory.py:38、:45、:68",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "format_digest の docstring は comma-separated と記述しているが、実装はタブ区切りのため不正確。build_digest の docstring は実装と一致している。",
+        "evidence": "candidate inventory.py:45 と :46,:49 の比較。:38 \"Return the inventory rows and total visible quantity.\" と :41 の戻り値は一致。",
+        "finding_ids": [
+          "F1"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "retired renderer 用の未使用 helper が追加されており、呼び出し元も保持する理由もない。全 consumer が changeset に含まれているため、外部から呼ばれる可能性も否定できる。",
+        "evidence": "candidate inventory.py:67-69。inventory.py 全体（:1-69）を参照箇所として確認した。requirements の \"All consumers and implementation are included\"。",
+        "finding_ids": [
+          "F3"
+        ]
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "新たな library、service、内部 module の導入や新規利用はない。import は base と candidate で同一である。",
+        "evidence": "base/candidate inventory.py:3 \"from collections import Counter\" のみ。diff に import の変更はない。",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "commit は 1 件のみで、変更ファイルも inventory.py だけである。含まれる変更（変数名の変更、docstring の変更、未使用 helper の追加）はいずれも実行時の挙動を変えず、互いに依存する companion change もない。そのため、この commit を一括で rollback しても挙動上のリスクはない。品質上の問題は個別の finding で扱う。",
+        "evidence": "commits: [{subject: \"Prepare inventory digest renderer for maintenance\", files: [\"inventory.py\"]}]。commit ID は evidence に含まれていないため、base df510e44… から candidate 9e820b67… への範囲として特定した。",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "inventory.py"
+    ],
+    "limitations": [
+      "自由レビューでは、checklist の finding（F1〜F3）と原因が異なる追加の欠陥は見つからなかった。原因ごとに重複を除いたため、free_findings は空としている。実行時の挙動（正規化、集計、ゼロ在庫行の除外、負の調整値の保持、タブ区切りでの決定的な出力）は base と candidate で同一であることを静的に確認した。",
+      "テストは実行していない。結論はすべて埋め込まれた frozen evidence の静的な読解に基づく。",
+      "commit の hash が提供されていないため、CRQ-007 では commit を subject と base/candidate identity で特定した。",
+      "plan mode が有効だったが、ユーザーからツールを使用せず JSON のみを返すよう明示的に指示されたため、plan file の作成と ExitPlanMode の呼び出しは行っていない。"
+    ]
+  },
+  "label": "claude-R1-F2-B-combined",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038245.8988254,
+  "elapsed_seconds": 44.64738845825195,
+  "input_sha256": "e25dee3b3bedeed2598238a13ef30662064f55ede6048c10385bca3a1d8a9dd2",
+  "raw_output_sha256": "25f6604a36bd7a269158a7a9537c09b5e286d510906b7105c3f67c486f5b3903",
+  "configured_model": "host default (no override)",
+  "configured_effort": "host default (no override)",
+  "effective_effort": null
+}

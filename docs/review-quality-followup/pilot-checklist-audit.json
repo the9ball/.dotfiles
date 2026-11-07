@@ -1,0 +1,221 @@
+{
+  "epoch": "checklistpilot-c18cbc5",
+  "target": "c18cbc5709a34c8092b25109287c95cbc7e5f094",
+  "role": "independent checklist auditor",
+  "identity": {
+    "verified": true,
+    "method": "git show <fixed-commit>:<path>, git rev-parse <fixed-commit>:<path>, git cat-file -t <blob>",
+    "blob_ids": {
+      "link-targets/agents/skills/code-review/checklist.md": "7908ad67781a0868008405d544dee726a442de1f",
+      "docs/review-quality-followup/artifacts/evidence.json": "ea199ac5f6b9d967f4eb865151d716f39853d2db",
+      "docs/review-quality-followup/artifacts/truth.json": "1c20c06a50ce3c346a04fe2c7c0074027543f23c",
+      "docs/review-quality-followup/receipts/codex-pilot-B-combined.json": "90ae16942f2a33ceaa713a43421edf2b2dbb5106",
+      "docs/review-quality-followup/receipts/codex-pilot-C-checklist.json": "da7d2dd810fe2e091c3c894cb1ddde85e485bc05",
+      "docs/review-quality-followup/manifest.json": "5604e026a8a132fc0486e97b9cbdb5eba30d79e6",
+      "docs/review-quality-followup/pilot-receipt-audit.json": "043e0b715b120bbbd6996bdb3daad531b9446640",
+      "docs/review-quality-followup/protocol.md": "85ca8796c7a3316fa52027504e10b76c860738cd"
+    }
+  },
+  "read_scopes": {
+    "mode": "全文",
+    "materialization": "reference",
+    "actual": "All eight declared artifacts; complete embedded candidate/base source, diff, commit patches, requirements and verification records.",
+    "additional_subject_paths": [],
+    "excluded_material_read": false,
+    "truncation_handling": "Initial large evidence display was truncated; complete candidate and base source and commit patches were subsequently retrieved through bounded structural selections."
+  },
+  "arms": {
+    "B": {
+      "rows": [
+        {
+          "id": "CRQ-001",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "At candidate 41c8c08a, allocation.py:19-27,35-43 and api.py:25-30 support the cited roles of available, identifiers, difference, resolved and position. No concrete naming defect established.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-002",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "Candidate api.py:12-30, allocation.py:9-43, catalog.py:9-11 and repository.py:33-55 consistently distinguish customer products, canonical SKUs and reservation identifiers.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-003",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "Public requirements explicitly require all named functions/methods, including tests, to have role/contract docstrings. Complete inspection of the six supplied Python files confirms their presence. Added declarations at api.py:25-26 and test_reservations.py:62-63,70-71 comply.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-004",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "FINDING",
+          "audit_result": "SUPPORTED",
+          "reason": "README.md:11 specifies reservations, whereas api.py:29-30 returns items and test_reservations.py:67-68 consumes items. Linked Q1 matches the seeded cause and impact.",
+          "finding_ids": ["Q1"]
+        },
+        {
+          "id": "CRQ-005",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "UNVERIFIED",
+          "audit_result": "CONTESTED",
+          "reason": "The row correctly observes removal of the base allocation.py:30 caller and retention of candidate repository.py:65-68, with no remaining references across the complete supplied service. That supports a bounded unused-maintenance-surface Q2 finding, including optional cleanup, without proving global external unreachability. Caution against mandatory removal is justified; treating unavailable hypothetical external consumers as preventing any bounded finding is overconservative.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-006",
+          "reported_applicability": "NOT_APPLICABLE",
+          "reported_result": "NOT_APPLICABLE",
+          "audit_result": "SUPPORTED",
+          "reason": "Complete four-file diff introduces no imports, packages, services or internal modules. api.py already uses the allocator and catalog; the new endpoint composes existing facilities. Exclusion is evidenced rather than based on missing evidence.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-007",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "Embedded actual range fcdc1ba6..41c8c08a contains one reservation-feature commit and its companion tests/docs. No unrelated cleanup or independent rollback requirement is demonstrated.",
+          "finding_ids": []
+        }
+      ],
+      "missing_ids": [],
+      "broken_links": [],
+      "known_quality_detected": {
+        "Q1": {
+          "supported_finding": true,
+          "linked_row": "CRQ-004"
+        },
+        "Q2": {
+          "supported_finding": false,
+          "cause_explicitly_observed": true,
+          "row": "CRQ-005",
+          "classification": "Explicitly deferred as UNVERIFIED; not omitted and not falsely passed."
+        }
+      },
+      "unsupported_claims": [
+        "Q1 is assigned P2 although the frozen severity semantics classify this demonstrated documentation/consumer-key issue as P3; no inventory corruption is shown.",
+        "Free finding F2 correctly matches M2 but assigns P1, whereas the frozen semantics assign adjustment-followed-by-expiry corruption P2."
+      ],
+      "material_routing": {
+        "M1": "Supported free finding F1: unchanged availability snapshot accepts cumulative shared-SKU oversubscription.",
+        "M2": "Supported free finding F2: replacement leaves release quantity stale and expiry restores the wrong amount.",
+        "additional_observation": "F3 separately identifies the before-expiry contract gap; not a frozen-denominator finding.",
+        "workflow_boundary": "Receipt explicitly denies Phase 1 acceptance or workflow advancement while material findings remain unresolved."
+      },
+      "coverage": {
+        "declared": ["allocation.py", "api.py", "README.md", "test_reservations.py"],
+        "matches_manifest": true,
+        "evidence_spans_all_changed_files": true,
+        "affected_reference_coverage": "repository.py, expiry.py and catalog.py are used for bounded cross-module checks."
+      }
+    },
+    "C2": {
+      "rows": [
+        {
+          "id": "CRQ-001",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "Candidate allocation.py:19-27,35-41 and api.py:25-30 support the stated naming roles. test_reservations.py ends at line 75; the receipt's range through 77 overshoots but does not change the supported judgment.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-002",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "api.py:12-30, allocation.py:9-29 and catalog.py:9-11 support consistent vocabulary and the API/internal-operation distinction. Test citation through line 77 slightly exceeds the supplied file.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-003",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "The explicit public all-function docstring rule is correctly resolved, and every declaration in all six supplied Python files has a role docstring. The actual new identity test declaration/docstring is test_reservations.py:70-71; the receipt's 71-72 citation is shifted but its complete-file declaration scope supplies the needed evidence.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-004",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "FINDING",
+          "audit_result": "SUPPORTED",
+          "reason": "README.md:11 and api.py:29-30 directly establish the reservations/items mismatch. test_reservations.py:68 also consumes items; line 69 is blank. Q1 is a valid existing finding link.",
+          "finding_ids": ["Q1"]
+        },
+        {
+          "id": "CRQ-005",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "UNVERIFIED",
+          "audit_result": "CONTESTED",
+          "reason": "As in B, the row establishes the precise Q2 observation within the complete supplied service: base allocation.py:30 caller removed, candidate repository.py:65-68 retained, no remaining supplied references or documented external contract. Global removal safety is unverified, but a bounded unused-helper finding is supported. This is conservative deferral, not omission or false PASS.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-006",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "A reasonable broader reading of newly used dependencies treats api.py:27-28's new customer batch path to reserve_many as a new dependency edge. The purpose is concretely justified and the absence of new imports/packages/services is correctly stated. Under a module-level reading NOT_APPLICABLE is preferable; this interpretive difference is not an unsupported pass.",
+          "finding_ids": []
+        },
+        {
+          "id": "CRQ-007",
+          "reported_applicability": "APPLICABLE",
+          "reported_result": "PASS",
+          "audit_result": "SUPPORTED",
+          "reason": "The actual fcdc1ba6..41c8c08a feature commit keeps implementation, tests and documentation together. The supplied changes do not establish unrelated behavior requiring separate rollback.",
+          "finding_ids": []
+        }
+      ],
+      "missing_ids": [],
+      "broken_links": [],
+      "known_quality_detected": {
+        "Q1": {
+          "supported_finding": true,
+          "linked_row": "CRQ-004"
+        },
+        "Q2": {
+          "supported_finding": false,
+          "cause_explicitly_observed": true,
+          "row": "CRQ-005",
+          "classification": "Explicitly deferred as UNVERIFIED; not omitted and not falsely passed."
+        }
+      },
+      "unsupported_claims": [
+        "Q1 is assigned P2 despite the frozen P3 documentation severity semantics.",
+        "Minor citation imprecision: test_reservations.py ranges extend beyond EOF and one declaration reference is shifted. The underlying sources remain sufficient."
+      ],
+      "material_routing": {
+        "M1": "Supported limitations entry identifies initial-stock validation, duplicate canonical-SKU demand and negative stock.",
+        "M2": "Supported limitations entry connects allocation.py:35-43, repository.py:40-43 and expiry.py:7-13 to incorrect restoration after adjustment.",
+        "additional_observation": "A separate limitation identifies the before-expiry contract gap.",
+        "assessment": "Valid routing under the checklist's explicit requirement to return substantive defects to Phase 1 through root. Placement in limitations rather than checklist_findings is appropriate and must not erase these discoveries.",
+        "phase_prerequisite": "C2 explicitly states that the supplied evidence lacks a Phase 1 completion record; no approval claim is made."
+      },
+      "coverage": {
+        "declared": ["allocation.py", "api.py", "README.md", "test_reservations.py"],
+        "matches_manifest": true,
+        "evidence_spans_all_changed_files": true,
+        "affected_reference_coverage": "All six supplied Python files and README inspected for CRQ-005; unchanged repository.py is valid affected-reference scope."
+      }
+    }
+  },
+  "sensitivity": {
+    "M2_checklist_relation": "Frozen truth labels M2 OUTSIDE. That is defensible because identifying stale release state requires behavioral reasoning across allocation, persistence and expiry. However, CRQ-004's broad side-effect/contract comparison and CRQ-005's affected-reference inspection can lead a reviewer to it. Preserve the frozen classification and report a broader-checklist sensitivity rather than claiming an exclusive boundary.",
+    "Q2_scoring": "Strict supported-finding count is one of two quality seeds in each arm. Cause-recognition count is two of two: both explicitly identify the unused helper and bounded absence of callers, but defer judgment. Do not conflate these metrics."
+  },
+  "limitations": [
+    "Static audit only; no tests rerun. Embedded records report six passing base tests and eight passing candidate tests.",
+    "Read-only audit did not inspect blind grades, mapping, prior reviews, controller source, original prompts or raw CLI logs.",
+    "Receipt coverage establishes declared coverage and visible evidence use, not internal attention.",
+    "No claim about effective model/effort, adoption, causal treatment superiority or overall review acceptance.",
+    "No files, Git state or external services were changed."
+  ]
+}
