@@ -25,13 +25,13 @@ registries:
   name: local
   path: aqua-registry.yaml
 - type: standard
-  ref: v4.582.0
+  ref: v4.583.0
 packages:
 - name: curl/curl-for-win@8.23.0_5
   registry: local
 - name: cloudflare/cloudflared@2026.10.7
 # Native tmux builds for Linux and macOS (not available on Windows).
-- name: tmux/tmux-builds@v3.7c
+- name: tmux/tmux-builds@v3.8
 # Windows-native tmux-compatible session manager.
 - name: psmux/psmux@v3.4.0
   registry: local
@@ -73,7 +73,7 @@ packages:
 - name: github/git-sizer@v1.5.0
 - name: helm/helm@v4.3.1
 - name: PowerShell/PowerShell@v7.6.9
-- name: ip7z/7zip@26.05
+- name: ip7z/7zip@26.06
 - name: koalaman/shellcheck@v0.11.0
   tags: [ci]
 - name: mikefarah/yq@v4.54.2
