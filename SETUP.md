@@ -205,6 +205,8 @@ Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツー�
 prek と gitleaks の実行ステップには渡しません。
 Aqua 本体と導入したツールは、`actions/cache` で `~/.local/share/aquaproj-aqua` ごとキャッシュします。
 キーには runner の OS・アーキテクチャ、Aqua 本体のバージョン、`aqua.yaml` と `aqua-registry.yaml` のハッシュを含めるため、どれかが変わると新しいキャッシュになります。
+PR の CI は master で保存されたキャッシュを読めますが、PR で保存したキャッシュはその PR からしか読めません。
+Aqua の自動更新ワークフローは、master の CI が保存した同じキャッシュを読み込むだけで、書き込み権限を持つため保存はしません。
 GitHub Releases が一時的に 5xx を返し続けた場合に備え、aqua-installer は失敗時に 1 回だけ再実行し、`aqua install --tags ci` も 1 回だけ再試行します。待機時間は入れません。
 構文・設定チェックと秘密情報の走査は、ツールの導入に成功していれば互いの結果にかかわらず両方実行します。どちらかが失敗すればジョブは失敗し、`ci-required` も失敗します。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
