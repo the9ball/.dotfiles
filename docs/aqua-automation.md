@@ -49,7 +49,7 @@ This automation cannot be exercised from a pull request branch:
 After merging a change to the workflow, run **Update aqua packages** manually
 once and check that:
 
-1. The run opens a `chore/aqua-update-*` PR, or reports no updates or an
+1. The run opens an `automate/aqua-update-*` PR, or reports no updates or an
    already-open update PR.
 2. The run log shows the PR's `pull_request` CI run being approved, and that
    run reports `ci-required` on the PR's head commit.
@@ -60,8 +60,14 @@ opens a PR.
 
 ## Safeguards
 
-- An already-open `chore/aqua-update-` PR opened by GitHub Actions blocks a
+- An already-open `automate/aqua-update-` PR opened by GitHub Actions blocks a
   duplicate run. A failed lookup of open PRs fails the run.
+- Auto-merge performed for `GITHUB_TOKEN` does not delete the head branch, so
+  each run first deletes `automate/aqua-update-*` branches whose PR opened by
+  GitHub Actions was merged. Branches with an open PR or a PR closed without
+  merging are kept, so the latest merged branch remains until the next run.
+  The `automate/` prefix keeps this cleanup away from manually created
+  `chore/` branches.
 - Changes outside `aqua.yaml` cause a failure rather than an automatic PR.
 - Changes to kubectx/kubens are blocked because their completion archive
   versions and checksums in `chezmoi/.chezmoiexternal.toml` must also change.

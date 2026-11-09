@@ -41,6 +41,25 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Auto-merge performed for GITHUB_TOKEN leaves the head branch behind,
+          # so remove branches of earlier update PRs once they are merged. Keep
+          # branches with an open PR or a PR closed without merging, which may
+          # still be needed to investigate a failed CI run.
+          remote_update_branches="$(git ls-remote --heads origin 'automate/aqua-update-*' |
+            awk '{ sub("^refs/heads/", "", $2); print $2 }')"
+          for update_branch in $remote_update_branches; do
+            update_branch_state="$(gh pr list --state all --head "$update_branch" \
+              --json state,author \
+              --jq 'map(select(.author.login == "app/github-actions")) |
+                if any(.state == "OPEN") then "open"
+                elif any(.state == "MERGED") then "merged"
+                else "other" end')"
+            if [[ "$update_branch_state" == merged ]]; then
+              git push origin --delete "$update_branch"
+              echo "Deleted merged update branch $update_branch"
+            fi
+          done
+
           # Avoid parallel pending updates; let CI/auto-merge settle first.
           # Query outside the condition so a failed lookup fails the job instead
           # of reading as "no open PR"; only PRs this workflow opened count.
@@ -49,7 +68,7 @@ jobs:
           open_update_branches="$(gh pr list --state open --limit 200 \
             --json headRefName,author \
             --jq '.[] | select(.author.login == "app/github-actions") | .headRefName')"
-          if grep -q '^chore/aqua-update-' <<< "$open_update_branches"; then
+          if grep -q '^automate/aqua-update-' <<< "$open_update_branches"; then
             echo 'An aqua update PR is already open; skipping.'
             exit 0
           fi
@@ -77,7 +96,7 @@ jobs:
             exit 1
           fi
 
-          branch="chore/aqua-update-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          branch="automate/aqua-update-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git switch -c "$branch"
