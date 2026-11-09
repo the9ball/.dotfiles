@@ -78,5 +78,5 @@ packages:
   tags: [ci]
 - name: mikefarah/yq@v4.54.2
   tags: [ci]
-- name: terraform-linters/tflint@v0.65.0
+- name: terraform-linters/tflint@v0.66.0
 - name: rclone/rclone@v1.76.0
