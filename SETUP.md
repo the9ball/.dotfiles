@@ -203,6 +203,10 @@ Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツー�
 `aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks、chezmoi の 7 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
+Aqua 本体と導入したツールは、`actions/cache` で `~/.local/share/aquaproj-aqua` ごとキャッシュします。
+キーには runner の OS・アーキテクチャ、Aqua 本体のバージョン、`aqua.yaml` と `aqua-registry.yaml` のハッシュを含めるため、どれかが変わると新しいキャッシュになります。
+GitHub Releases が一時的に 5xx を返し続けた場合に備え、aqua-installer は失敗時に 1 回だけ再実行し、`aqua install --tags ci` も 1 回だけ再試行します。待機時間は入れません。
+構文・設定チェックと秘密情報の走査は、ツールの導入に成功していれば互いの結果にかかわらず両方実行します。どちらかが失敗すればジョブは失敗し、`ci-required` も失敗します。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
 ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、`v8.30.1` に対応するコミット SHA `83d9cd684c87d95d656c1458ef04895a7f1cbd8e` に固定）を取得します。
 manual ステージでは gitleaks フックを実行しませんが、取得自体は発生し、この取得にトークンは使いません。

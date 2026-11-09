@@ -18,6 +18,8 @@ jobs:
   update:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      BOOTSTRAP_AQUA_VERSION: v2.65.2
     steps:
       - name: Check out master
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -26,11 +28,34 @@ jobs:
           fetch-depth: 0
           token: ${{ github.token }}
 
+      # Reuse aqua so a GitHub Releases outage does not fail the update. Keep a
+      # separate key from CI, whose cache also carries the installed CI tools.
+      - name: Restore aqua cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/aquaproj-aqua
+          key: aqua-update-${{ runner.os }}-${{ runner.arch }}-${{ env.BOOTSTRAP_AQUA_VERSION }}
+
+      # A restored aqua of the same version skips the download.
       - name: Install aqua
+        id: install-aqua
+        continue-on-error: true
         uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
         with:
-          aqua_version: v2.65.2
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
           enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      # GitHub Releases sometimes keeps returning 5xx through the installer's own
+      # curl retries; try the installer once more before failing the job.
+      - name: Retry installing aqua
+        if: ${{ steps.install-aqua.outcome == 'failure' }}
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
           github_token: ''
 
       - name: Update, validate and open PR

@@ -15,6 +15,8 @@ jobs:
     name: syntax-and-secrets
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    env:
+      BOOTSTRAP_AQUA_VERSION: v2.65.2
     steps:
       # Keep PR merge-tree validation, with complete history for the PR head scan.
       - name: Check out repository
@@ -23,12 +25,35 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Reuse aqua and the CI tools so a GitHub Releases outage does not fail
+      # CI. The key changes with the aqua version or any package definition.
+      - name: Restore aqua cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/aquaproj-aqua
+          key: aqua-ci-${{ runner.os }}-${{ runner.arch }}-${{ env.BOOTSTRAP_AQUA_VERSION }}-${{ hashFiles('aqua.yaml', 'aqua-registry.yaml') }}
+
       # Bootstrap aqua without installing the repository's entire tool collection.
+      # A restored aqua of the same version skips the download.
       - name: Install aqua
+        id: install-aqua
+        continue-on-error: true
         uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
         with:
-          aqua_version: v2.65.2
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
           enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      # GitHub Releases sometimes keeps returning 5xx through the installer's own
+      # curl retries; try the installer once more before failing the job.
+      - name: Retry installing aqua
+        if: ${{ steps.install-aqua.outcome == 'failure' }}
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
           github_token: ''
 
       # Match the reviewed digest in both run_before_00-aqua-policy templates.
@@ -40,23 +65,28 @@ jobs:
           aqua policy allow aqua-policy.yaml
 
       # Eagerly download all seven tools before entering steps without a token.
+      # Retry once because the downloads hit the same GitHub Releases outages.
       - name: Install CI tools
+        id: install-tools
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          aqua install --tags ci
+          aqua install --tags ci || aqua install --tags ci
           chezmoi_binary=$(aqua which chezmoi)
           test -f "$chezmoi_binary"
           printf 'CHEZMOI_TEST_BINARY=%s\n' "$chezmoi_binary" >> "$GITHUB_ENV"
 
       # Run the same definitions and manual stage used before a local push.
+      # Each check runs even when the other fails, but both need the tools.
       - name: Run syntax and configuration checks
+        if: ${{ !cancelled() && steps.install-tools.outcome == 'success' }}
         shell: bash
         run: prek run --all-files --stage manual
 
       # Use event SHAs as data; a missing base or history error must fail the job.
       - name: Scan commit range for secrets
+        if: ${{ !cancelled() && steps.install-tools.outcome == 'success' }}
         shell: bash
         env:
           COMPARISON_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || '' }}
