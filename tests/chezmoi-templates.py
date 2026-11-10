@@ -113,6 +113,10 @@ def check_templates(inputs, checkout, root, executable, environment):
         for path in targets:
             label = f"{path.relative_to(checkout)} [{operating_system}]"
             suffix = Path(path.name.removesuffix(".tmpl")).suffix
+            # The config template uses init-only prompt functions, which
+            # execute-template defines only in --init mode, where an
+            # unanswered prompt returns its zero value instead of asking.
+            init_arguments = ["--init"] if path.name == ".chezmoi.toml.tmpl" else []
             result = run_checked([
                 str(executable), "--source", str(source),
                 "--destination", environment["HOME"],
@@ -120,7 +124,7 @@ def check_templates(inputs, checkout, root, executable, environment):
                 "--persistent-state", str(root / "state.boltdb"),
                 "--cache", str(root / "cache"),
                 "--override-data-file", str(data_file), "--no-tty", "--no-pager",
-                "execute-template", "--with-stdin", "--file", str(path),
+                "execute-template", *init_arguments, "--with-stdin", "--file", str(path),
             ], checkout, environment, f"{label} expansion",
                 "{}" if suffix == ".json" else "")
             try:

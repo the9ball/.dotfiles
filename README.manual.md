@@ -160,6 +160,8 @@ aqua install --config "$HOME/.dotfiles/aqua.yaml"
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
+`init`は、そのマシンが仕事用かどうか（`isWork`）を一度だけ質問し、回答を端末ローカルのchezmoi設定の`[data]`へ保存します。テンプレートでは`.isWork`として参照できます。回答を変えるときは`chezmoi init --prompt`を実行します。既存の端末でまだ回答していない場合は、`chezmoi init`を再実行してください。
+
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。
 
 Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
