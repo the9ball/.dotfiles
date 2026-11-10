@@ -1,11 +1,7 @@
 #requires -Version 7.4
 
 [CmdletBinding()]
-param(
-    # Selects which agent's fixed message is sent; the default keeps Codex registrations unchanged.
-    [ValidateSet('Codex', 'Claude', IgnoreCase = $false)]
-    [string]$Source = 'Codex'
-)
+param()
 
 function New-NotificationHttpClient {
     <#
@@ -27,7 +23,8 @@ function Invoke-TurnNotification {
     .SYNOPSIS
     Publishes a fixed message once using only the process NTFY_TOPIC.
     .PARAMETER Source
-    The agent whose turn finished. Only the two fixed messages can be produced.
+    The agent whose turn finished. Only the two fixed messages can be produced;
+    the Claude Code entry point passes Claude, and everything else uses Codex.
     .OUTPUTS
     System.String. A generic result without input, topic, URL, or response data.
     .NOTES
@@ -82,19 +79,13 @@ function Invoke-CodexStopHook {
     Publishes independently of stdin completion and emits an inert Stop response.
     .PARAMETER InputStream
     Optional caller-owned input to discard concurrently. Omit for in-process calls.
-    .PARAMETER Source
-    The agent whose turn finished, passed through to the fixed message selection.
     .OUTPUTS
     System.String. An empty JSON object with no continuation decision.
     .NOTES
     After delivery, input draining gets at most one additional second. The entry
     process closes its standard input on exit, including a still-pending read.
     #>
-    param(
-        [AllowNull()][IO.Stream]$InputStream,
-        [ValidateSet('Codex', 'Claude', IgnoreCase = $false)]
-        [string]$Source = 'Codex'
-    )
+    param([AllowNull()][IO.Stream]$InputStream)
 
     $InputDrainTask = $null
     try {
@@ -108,7 +99,7 @@ function Invoke-CodexStopHook {
     }
 
     try {
-        $null = Invoke-TurnNotification -Source $Source
+        $null = Invoke-TurnNotification
     }
     catch {
         # A notification must never request continuation or change the turn result.
@@ -126,7 +117,7 @@ function Invoke-CodexStopHook {
 if ($MyInvocation.InvocationName -ne '.') {
     try {
         $InputStream = if ([Console]::IsInputRedirected) { [Console]::OpenStandardInput() } else { $null }
-        $Response = Invoke-CodexStopHook -InputStream $InputStream -Source $Source
+        $Response = Invoke-CodexStopHook -InputStream $InputStream
     }
     catch {
         $Response = '{}'

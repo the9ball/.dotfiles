@@ -1,12 +1,12 @@
 ---
 name: task-complete-notify
-description: Configure or troubleshoot fixed ntfy notifications for every Codex Stop event on Windows or WSL, and for every Claude Code Stop event through the same sender.
+description: Configure or troubleshoot fixed ntfy notifications for every Codex Stop event on Windows or WSL, and for Claude Code Stop events with no background work left.
 ---
 
-# Codex turn notifications
+# Agent turn notifications
 
 A trusted Codex Stop hook runs [the PowerShell script](scripts/codex-stop-hook.ps1) once per invocation, without any reservation.
-It sends only `Codex turn finished` to `https://ntfy.sh` using the process environment's `NTFY_TOPIC`.
+It sends only `Codex turn finished` to `https://ntfy.sh` using the process environment's `NTFY_TOPIC`. Claude Code uses a separate entry point described under [Claude Code](#claude-code).
 Do not run it against a real topic for testing without authorization for that publish.
 
 ## Setup
@@ -22,6 +22,8 @@ Do not overwrite their output wholesale. The modify templates for .codex, .codex
 
 ## Runtime contract
 
+These rules describe the Codex entry point. The Claude Code entry point differs only where its section says so.
+
 - Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The entry point drains stdin asynchronously without parsing or retaining it, and ignores `stop_hook_active` and all input fields. Delivery starts independently of EOF or drain failures.
 - Each invocation makes at most one application HTTP attempt. All 2xx responses succeed; redirects and non-2xx responses fail. There is no retry, watcher, state directory, TTL, UUID lookup, or cancellation API.
 - The HTTP client has a 10-second total request timeout. It stops at response headers without reading the body. After delivery, the script waits at most one additional second for input draining, then exits even if the producer keeps stdin open. The synchronous hook example has a 20-second outer timeout covering process startup too.
@@ -31,14 +33,19 @@ Do not overwrite their output wholesale. The modify templates for .codex, .codex
 
 ## Claude Code
 
-The same script also serves Claude Code with `-Source Claude`, which sends only `Claude turn finished`. `-Source` accepts exactly `Codex` (the default) or `Claude`, case-sensitively; never pass other text.
+Claude Code runs [its own entry point](scripts/claude-stop-hook.ps1), which reuses the shared sender and sends only `Claude turn finished`.
+Claude Code fires `Stop` whenever a response ends, including when background work such as a background subagent or shell will resume the session later. To notify only when the session waits for the user, this entry point differs from the Codex rules above as follows:
+
+- It reads the hook input to the end, within 16 MiB and 3 seconds, and inspects only `background_tasks` and `session_crons`. No input value is retained, logged, or sent.
+- It skips sending when either field is a non-empty array. Missing, malformed, oversized, or late input counts as idle and sends, so a change in the input format causes extra notifications rather than none.
+
 Setup is manual, as for Codex:
 
 1. Make PowerShell 7.4 or newer available as `pwsh.exe` on Windows or `pwsh` elsewhere, on the PATH of the shell that Claude Code uses to run hooks.
 2. Merge the `Stop` entry from [the Claude Code example](references/claude-settings.json) into `~/.claude/settings.json`. Preserve existing hooks and other keys. Replace the example script path with the quoted absolute path for that host, using forward slashes so it parses in both Git Bash and PowerShell. On non-Windows hosts use `pwsh`.
 3. Ensure `NTFY_TOPIC` is inherited by Claude Code from its launcher, under the same rules as for Codex. Start a new Claude Code session after changing the hook or its launch environment.
 
-Register only `Stop`, not `SubagentStop`, and keep a single Claude Code registration. The other runtime rules above apply unchanged.
+Register only `Stop`, not `SubagentStop`, and keep a single Claude Code registration. The `Notification` event with the `idle_prompt` matcher did not fire in the Claude desktop app, so it is not used.
 
 ## Windows, WSL, and permissions
 

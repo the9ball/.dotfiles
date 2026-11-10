@@ -1,4 +1,4 @@
-# Codex turn notifications: design record
+# Agent turn notifications: design record
 
 The runtime contract is in [SKILL.md](../SKILL.md).
 <!-- reference-kind: owner-precedence; target: link-targets/agents/skills/task-complete-notify/SKILL.md -->
@@ -43,6 +43,10 @@ The WSL hooks source uses the same modify template as both Windows homes, preser
 
 ## Claude Code
 
-Claude Code reuses the same script through `-Source Claude`, which changes only the fixed body to `Claude turn finished`. The parameter accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The default stays `Codex`, keeping the existing Codex command strings, and therefore their trust hashes, unchanged. The script path keeps its Codex name for the same reason.
+Claude Code has its own entry point, `claude-stop-hook.ps1`, which dot-sources the Codex script for the shared sender and calls it with `-Source Claude`. The sender's `-Source` accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The Codex script takes no parameters and still parses no input, so existing Codex command strings, and their trust hashes, are unchanged.
+
+Observed in the Claude desktop app: `Stop` fired when a response ended while a background subagent was still running, and fired again after that work resumed the session, so the user got a notification before the work was done. The official hooks documentation lists `background_tasks` (in-flight background work) and `session_crons` (scheduled wakeups) in the Stop input to distinguish a finished session from one paused for background work. The Claude entry point therefore parses the input, but only for those two fields, and stays silent when either is non-empty. Input that is missing, malformed, over 16 MiB, or not finished within 3 seconds counts as idle: an input-format change then produces extra notifications instead of silently losing every notification. The input is drained to the end even when oversized, so the producer is not cut off.
+The documented alternative, a `Notification` hook with the `idle_prompt` matcher, did not fire in the Claude desktop app in an existing session, a new session, or after restarting the app, so it is not used.
+
 Like Codex, the Claude Code registration is a manual merge of [the example](claude-settings.json) into `~/.claude/settings.json`; chezmoi does not register it. This keeps hook configuration opt-in, so applying dotfiles never silently begins external transmission.
-The example path uses forward slashes so that the command parses in both Git Bash and PowerShell, either of which Claude Code may use to run hooks on Windows. Offline tests check both fixed bodies, rejection of other values, a process run with `-Source Claude`, and the Stop-only example; they do not establish Claude Code lifecycle dispatch or real delivery.
+The example path uses forward slashes so that the command parses in both Git Bash and PowerShell, either of which Claude Code may use to run hooks on Windows. Offline tests check both fixed bodies, rejection of other `-Source` values, idle and busy decisions, unknown-input handling, bounded reading, process runs of the Claude entry point, and the Stop-only example. They do not establish Claude Code lifecycle dispatch or real delivery.

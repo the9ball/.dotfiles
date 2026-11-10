@@ -7,6 +7,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $SkillDirectory = Split-Path -Parent $PSScriptRoot
 $HookPath = Join-Path $SkillDirectory 'scripts/codex-stop-hook.ps1'
+$ClaudeHookPath = Join-Path $SkillDirectory 'scripts/claude-stop-hook.ps1'
 $OriginalTopic = [Environment]::GetEnvironmentVariable('NTFY_TOPIC', 'Process')
 $OriginalCodexHome = [Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')
 $FixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ("task-complete-notify-tests-" + [Guid]::NewGuid().ToString('N'))
@@ -32,8 +33,8 @@ function Invoke-HookProcess {
     An unset or invalid topic that cannot initiate HTTP.
     .PARAMETER InputCase
     Normal closes small input, open withholds EOF, and large sends one MiB.
-    .PARAMETER Source
-    Optional -Source argument, as a Claude Code registration passes it.
+    .PARAMETER ScriptPath
+    The entry point to run: the Codex hook by default, or the Claude Code hook.
     .OUTPUTS
     None. Asserts bounded writes and exit, empty errors, and inert JSON.
     #>
@@ -41,7 +42,7 @@ function Invoke-HookProcess {
         [AllowNull()][string]$Topic,
         [ValidateSet('normal', 'open', 'large')]
         [string]$InputCase = 'normal',
-        [AllowNull()][string]$Source
+        [string]$ScriptPath = $HookPath
     )
     $ProcessTimeoutMilliseconds = 30000
     $StartInfo = [Diagnostics.ProcessStartInfo]::new()
@@ -51,12 +52,8 @@ function Invoke-HookProcess {
     $StartInfo.RedirectStandardInput = $true
     $StartInfo.RedirectStandardOutput = $true
     $StartInfo.RedirectStandardError = $true
-    foreach ($Argument in @('-NoProfile', '-NonInteractive', '-File', $HookPath)) {
+    foreach ($Argument in @('-NoProfile', '-NonInteractive', '-File', $ScriptPath)) {
         $StartInfo.ArgumentList.Add($Argument)
-    }
-    if ($Source) {
-        $StartInfo.ArgumentList.Add('-Source')
-        $StartInfo.ArgumentList.Add($Source)
     }
     [void]$StartInfo.Environment.Remove('NTFY_TOPIC')
     if ($null -ne $Topic) { $StartInfo.Environment['NTFY_TOPIC'] = $Topic }
@@ -93,7 +90,9 @@ function Invoke-HookProcess {
 try {
     $env:NTFY_TOPIC = 'offline-fixture-topic'
     $env:CODEX_HOME = Join-Path $FixtureRoot 'initial-home'
-    . $HookPath
+    # The Claude entry point dot-sources the shared sender too, so load it before
+    # the fixture client below replaces the production one.
+    . $ClaudeHookPath
     $ProductionClientFactory = ${function:New-NotificationHttpClient}
     $Client = New-NotificationHttpClient
     Assert-Condition ($Client.Timeout.TotalSeconds -eq 10) 'production_total_deadline'
@@ -199,9 +198,60 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
             @{ Source = 'Codex'; Body = 'Codex turn finished' },
             @{ Source = 'Claude'; Body = 'Claude turn finished' })) {
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
-        Assert-Condition ((Invoke-CodexStopHook -Source $SourceCase.Source) -ceq '{}') 'source_inert_hook'
+        Assert-Condition ((Invoke-TurnNotification -Source $SourceCase.Source) -ceq 'success') 'source_success'
         Assert-Condition ($FixtureHandler.Calls -eq 1) 'source_one_attempt'
         Assert-Condition ($FixtureHandler.Body -ceq $SourceCase.Body) 'source_fixed_body'
+    }
+
+    $IdleInputs = @(
+        $null,
+        '',
+        'not json',
+        '[]',
+        '{"stop_hook_active":false}',
+        '{"background_tasks":[],"session_crons":[]}',
+        '{"background_tasks":[]}',
+        '{"background_tasks":null,"session_crons":"unexpected"}'
+    )
+    foreach ($IdleInput in $IdleInputs) {
+        Assert-Condition (Test-ClaudeTurnIdle -InputText $IdleInput) 'claude_idle_or_unknown_notifies'
+    }
+    $BusyInputs = @(
+        '{"background_tasks":[{"id":"fixture","type":"subagent","status":"running"}],"session_crons":[]}',
+        '{"background_tasks":[],"session_crons":[{"id":"fixture","recurring":false}]}',
+        '{"background_tasks":[{"id":"fixture","type":"shell"}]}'
+    )
+    foreach ($BusyInput in $BusyInputs) {
+        Assert-Condition (-not (Test-ClaudeTurnIdle -InputText $BusyInput)) 'claude_background_work_suppresses'
+    }
+
+    foreach ($ClaudeCase in @(
+            @{ Input = '{"last_assistant_message":"private-answer","background_tasks":[],"session_crons":[]}'; Calls = 1 },
+            @{ Input = '{"last_assistant_message":"private-answer","background_tasks":[{"id":"fixture"}],"session_crons":[]}'; Calls = 0 })) {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        $ClaudeInput = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($ClaudeCase.Input))
+        Assert-Condition ((Invoke-ClaudeStopHook -InputStream $ClaudeInput) -ceq '{}') 'claude_inert_hook'
+        Assert-Condition ($FixtureHandler.Calls -eq $ClaudeCase.Calls) 'claude_sends_only_when_idle'
+        if ($ClaudeCase.Calls -eq 1) {
+            Assert-Condition ($FixtureHandler.Body -ceq 'Claude turn finished') 'claude_fixed_body'
+        }
+    }
+
+    $OversizedInput = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes('{"background_tasks":[{"id":"fixture"}]}'))
+    Assert-Condition ($null -eq (Read-HookInput -InputStream $OversizedInput -MaximumBytes 8)) 'claude_oversized_input_unparsed'
+    Assert-Condition ($OversizedInput.Position -eq $OversizedInput.Length) 'claude_oversized_input_drained'
+    $OpenProducer = [IO.Pipes.AnonymousPipeServerStream]::new([IO.Pipes.PipeDirection]::Out)
+    $OpenConsumer = [IO.Pipes.AnonymousPipeClientStream]::new(
+        [IO.Pipes.PipeDirection]::In, $OpenProducer.ClientSafePipeHandle
+    )
+    try {
+        $Stopwatch = [Diagnostics.Stopwatch]::StartNew()
+        Assert-Condition ($null -eq (Read-HookInput -InputStream $OpenConsumer -TimeoutMilliseconds 200)) 'claude_open_input_unknown'
+        Assert-Condition ($Stopwatch.ElapsedMilliseconds -lt 3000) 'claude_input_wait_bounded'
+    }
+    finally {
+        $OpenProducer.Dispose()
+        $OpenConsumer.Dispose()
     }
 
     foreach ($RejectedSource in @('claude', 'CODEX', 'Other', '')) {
@@ -268,7 +318,8 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     Invoke-HookProcess -Topic $null -InputCase open
     Invoke-HookProcess -Topic $null -InputCase large
     Invoke-HookProcess -Topic 'invalid/topic'
-    Invoke-HookProcess -Topic $null -Source 'Claude'
+    Invoke-HookProcess -Topic $null -ScriptPath $ClaudeHookPath
+    Invoke-HookProcess -Topic $null -InputCase large -ScriptPath $ClaudeHookPath
 
     $Example = Get-Content (Join-Path $SkillDirectory 'references/codex-hooks.json') -Raw | ConvertFrom-Json
     Assert-Condition (@($Example.hooks.PSObject.Properties).Count -eq 1) 'stop_only_registration'
@@ -277,7 +328,7 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     Assert-Condition (@($ClaudeExample.hooks.PSObject.Properties).Count -eq 1) 'claude_stop_only_registration'
     Assert-Condition (@($ClaudeExample.hooks.Stop).Count -eq 1 -and @($ClaudeExample.hooks.Stop[0].hooks).Count -eq 1) 'claude_single_handler'
     Assert-Condition ($ClaudeExample.hooks.Stop[0].hooks[0].timeout -eq 20) 'claude_outer_deadline'
-    Assert-Condition ($ClaudeExample.hooks.Stop[0].hooks[0].command.EndsWith('codex-stop-hook.ps1" -Source Claude')) 'claude_fixed_source'
+    Assert-Condition ($ClaudeExample.hooks.Stop[0].hooks[0].command.EndsWith('scripts/claude-stop-hook.ps1"')) 'claude_entry_point'
     $HookSourceText = Get-Content $HookPath -Raw
     Assert-Condition ($HookSourceText.Contains('$Handler.AllowAutoRedirect = $false')) 'redirects_disabled'
     Assert-Condition ($HookSourceText.Contains('$Handler.UseCookies = $false')) 'cookies_disabled'
