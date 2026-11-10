@@ -113,6 +113,7 @@
 - The basic principle is that “edits may be made without prior approval if only the changes made by the agent can be safely undone and restored without loss of the state before the start of the session.”
 - Files tracked by Git in the project (the directory the agent is working with) may be edited without the user's prior approval, as long as you can ensure that there are no uncommitted differences from before this session.
 - New files created by the agent within the current session may be edited without prior user approval.
+- Creating a new implementation plan or runbook, its history file, and `.local/` with its `.local/.gitignore` under the implementation-planning skill's plan file location does not require prior user approval, provided the plan path is verified as ignored as that location rule requires.
 - Get user approval before editing if any of the following apply:
   - Files outside the project.
   - Files that are not tracked by Git that exist before the session starts.

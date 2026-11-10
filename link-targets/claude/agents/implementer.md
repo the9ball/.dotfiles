@@ -13,7 +13,7 @@ description: >
   Do not start this agent on your own.
   Examples:
   <example>
-  user: "Implement the contents of plans/xxx-plan.md with Implementer"
+  user: "Implement the contents of .local/xxx-plan.md with Implementer"
   assistant: "I'll implement this plan with the Implementer agent"
   <commentary>There is a plan file and the user has explicitly designated the Implementer, so use it in plan file mode. </commentary>
   </example>

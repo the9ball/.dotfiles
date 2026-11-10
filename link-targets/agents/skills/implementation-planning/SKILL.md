@@ -31,7 +31,7 @@ Applies to creating, updating, and reviewing implementation plans and runbooks; 
 ### Plan file location
 
 - Unless the user or the caller names another destination, create a new implementation plan or runbook as `.local/<short slug expressing the contents>-plan.md` directly under the work root, and keep its history file in the same directory. Do not ask the user to confirm this location.
-- If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`. Before writing the plan, confirm with `git check-ignore` that its path is ignored; if the work root is a Git repository and the path is not ignored, stop and ask instead of writing.
+- If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`. Before writing the plan, confirm with `git check-ignore` that its path is ignored (exit 0 means ignored); if the work root is a Git repository and the path is not ignored, stop and ask instead of writing.
 - Updating an existing plan keeps its current path.
 
 ### The boundary between planning review and post-implementation review

@@ -49,23 +49,23 @@ is Codex's job when the user passes it a plan file.
      - If verification commands may produce a large output, such as a full build or test suite, redirect the output to a temporary file (for example, under `$TEMP`/`%TEMP%`, created with `mktemp`) instead of reading it directly, and then use `grep` to extract and inspect only the terms you need, such as errors, failures, and warnings.
      - Specify that the log file itself is kept for follow-up investigation and that its path is recorded in the verification results.
      - Do not add this procedure for checks known to produce little output, such as simple Read/Grep checks.
-4. Only when creating a new plan file, use Bash to obtain the following metadata (do not use Bash for any other purpose; see "Restrictions on tool usage").
+4. Only when creating a new plan file, use Bash to obtain the following metadata (do not use Bash for any other purpose except the read-only `git check-ignore` required by step 5; see "Restrictions on tool usage").
    - Current date and time
    - If the repository is under Git management, obtain the current commit SHA with `git rev-parse HEAD` (commit messages and other incidental information are unnecessary). Omit this if the repository is not under Git management.
 5. When creating or updating a plan, write it as a Markdown file (Write) or update the existing plan file (Edit). If you are only checking the execution input, do not create or update a plan file.
-   - Follow the destination specified in the prompt. If none is specified, create `.local/<short slug expressing the contents>-plan.md` directly under the work root, following the implementation-planning skill's plan file location. If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`, and confirm with the read-only `git check-ignore` that the plan path is ignored before writing; if it is not ignored, stop and report instead of writing.
+   - Follow the destination specified in the prompt. If none is specified, create `.local/<short slug expressing the contents>-plan.md` directly under the work root, following the implementation-planning skill's plan file location. If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`, and confirm with the read-only `git check-ignore` that the plan path is ignored before writing (exit 0 means ignored); if the work root is a Git repository and the path is not ignored, stop and report instead of writing.
    - If asked to modify a plan, update the existing plan with Edit instead of creating a new file. Do not rewrite its opening tag (creation date and time/Created From Commit); leave its original record intact.
 
 # What not to do
 
-- Do not change files other than the plan file, such as source code, configuration files, products, test code, etc.
+- Do not change files other than the plan file, its history file, and the `.local/.gitignore` created under the plan file location in step 5, such as source code, configuration files, products, test code, etc.
 - Do not proceed by interpreting ambiguous requirements to your advantage. Clarify any unclear points in the plan, and list them as questions if necessary.
 - Avoid over-designing. Do not include future extensibility or refactoring beyond the scope of the request in your plans.
 - Even if you receive feedback, do not use it as an excuse to rewrite "## Implementation steps" at your own discretion (see "Handling Feedback" for details).
 
 # Restrictions on tool usage
 
-- Use Bash only for the following read-only commands: getting the current date and time, getting the commit SHA with `git rev-parse HEAD`, and other read-only commands needed to explore the repository (`git log`, `git status`, etc.).
+- Use Bash only for the following read-only commands: getting the current date and time, getting the commit SHA with `git rev-parse HEAD`, checking that the plan path is ignored with `git check-ignore`, and other read-only commands needed to explore the repository (`git log`, `git status`, etc.).
 - Do not perform any operations that have side effects, such as modifying or deleting files or running Git commit/push/checkout.
 - Use `Agent` only to call `Explore`. Do not call code-changing agents such as `implementer`; delegation must not bypass the rule against changing anything other than the plan file.
   If you need an agent other than `Explore`, tell the caller in your final report instead of calling it yourself.
