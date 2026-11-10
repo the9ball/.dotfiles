@@ -42,6 +42,7 @@ files. UAC is not a security boundary against such a process.
 [CmdletBinding(DefaultParameterSetName = 'Upgrade')]
 param(
     [Parameter(Mandatory, ParameterSetName = 'Upgrade')]
+    [AllowEmptyString()]
     [string[]] $PackageId,
 
     [Parameter(Mandatory, ParameterSetName = 'Worker')]
@@ -284,8 +285,16 @@ catch {
 $workDirectoryName = 'winget-upgrade-{0:yyyyMMdd-HHmmss}-{1}' -f (Get-Date), [IO.Path]::GetRandomFileName().Replace('.', '')
 $workDirectory = (New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) $workDirectoryName)).FullName
 
+$workerErrorPath = Join-Path $workDirectory $workerErrorFileName
 if (Test-IsAdministrator) {
-    Invoke-UpgradeBatch -Ids $ids -WorkDirectory $workDirectory | Out-Null
+    # Record an error the same way the elevated worker does, so the summary below
+    # still reports the packages that finished.
+    try {
+        Invoke-UpgradeBatch -Ids $ids -WorkDirectory $workDirectory | Out-Null
+    }
+    catch {
+        Set-Content -LiteralPath $workerErrorPath -Value ($_ | Out-String) -Encoding utf8
+    }
 }
 else {
     try {
@@ -297,7 +306,6 @@ else {
     }
 }
 
-$workerErrorPath = Join-Path $workDirectory $workerErrorFileName
 $resultPath = Join-Path $workDirectory $resultFileName
 $results = @()
 if (Test-Path -LiteralPath $resultPath -PathType Leaf) {
@@ -308,8 +316,15 @@ if ($results.Count -gt 0) {
 }
 Write-Output "Logs: $workDirectory"
 
+# A worker that was closed or killed leaves no error file, so the count of
+# results decides whether the run stopped partway.
+if ($results.Count -lt $ids.Count) {
+    $finishedIds = @($results | ForEach-Object PackageId)
+    $missingIds = @($ids | Where-Object { $finishedIds -notcontains $_ })
+    Write-Output "The upgrade stopped after $($results.Count) of $($ids.Count) packages. Not run: $($missingIds -join ', ')"
+}
 if (Test-Path -LiteralPath $workerErrorPath -PathType Leaf) {
-    Write-Output "The elevated worker stopped after $($results.Count) of $($ids.Count) packages:"
+    Write-Output 'Error:'
     Write-Output (Get-Content -LiteralPath $workerErrorPath -Raw -Encoding utf8).TrimEnd()
 }
 if ($results.Count -eq 0) {
