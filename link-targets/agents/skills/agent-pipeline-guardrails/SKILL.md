@@ -122,10 +122,10 @@ directly as well.
 - **Long-running**: Run it in the background and write its output to a new file under the OS temporary directory, not inside the repository.
 - **Reading the result**: The final review is the part of the log after the last line consisting of `codex`. Do not judge success by the exit
   code alone; the run can exit with 0 and still end with "Review blocked …". Treat that as a failed review and report it.
-- **Managed networking failure on Windows**: In a non-elevated Windows environment, Codex's managed networking defaults can make every shell call
-  fail with "managed networking requires the elevated Windows sandbox backend", so Codex cannot read the diff. Only when that error appears,
-  ask the user before retrying with `-c features.network_proxy=false -c permissions.default-permissions.network.enabled=false`, because these
-  overrides change how Codex's sandbox handles networking. A review only reads the diff and does not need network access.
+- **Network off on Windows**: In a non-elevated Windows environment, Codex's managed networking defaults can make every shell call
+  fail with "managed networking requires the elevated Windows sandbox backend", so Codex cannot read the diff. On Windows, always pass
+  `-c features.network_proxy=false -c permissions.default-permissions.network.enabled=false` to `codex review` from the start, without asking
+  the user: these overrides only narrow Codex's sandbox, and a review only reads the diff and does not need network access.
   `-c sandbox_workspace_write.network_access=false` does not resolve this error.
 - **Log handling**: The Codex output log includes the loaded instruction content such as `AGENTS.md`. Do not share the log outside this
   machine, and delete it when the review task ends.
