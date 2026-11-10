@@ -248,6 +248,33 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         }
     }
 
+    $UnknownInputCases = @(
+        @{ Name = 'absent'; Stream = $null },
+        @{ Name = 'malformed'; Stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes('{')) },
+        @{ Name = 'oversized_busy'; Stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes(
+                    '{"background_tasks":[{"id":"fixture"}],"padding":"' + ('x' * 16MB) + '"}')) }
+    )
+    foreach ($UnknownInputCase in $UnknownInputCases) {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        Assert-Condition ((Invoke-ClaudeStopHook -InputStream $UnknownInputCase.Stream) -ceq '{}') 'claude_unknown_input_inert'
+        Assert-Condition ($FixtureHandler.Calls -eq 1) 'claude_unknown_input_notifies'
+    }
+    $OpenHookProducer = [IO.Pipes.AnonymousPipeServerStream]::new([IO.Pipes.PipeDirection]::Out)
+    $OpenHookConsumer = [IO.Pipes.AnonymousPipeClientStream]::new(
+        [IO.Pipes.PipeDirection]::In, $OpenHookProducer.ClientSafePipeHandle
+    )
+    try {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        $Stopwatch = [Diagnostics.Stopwatch]::StartNew()
+        Assert-Condition ((Invoke-ClaudeStopHook -InputStream $OpenHookConsumer) -ceq '{}') 'claude_open_input_inert'
+        Assert-Condition ($FixtureHandler.Calls -eq 1) 'claude_open_input_notifies'
+        Assert-Condition ($Stopwatch.ElapsedMilliseconds -lt 8000) 'claude_open_input_bounded'
+    }
+    finally {
+        $OpenHookProducer.Dispose()
+        $OpenHookConsumer.Dispose()
+    }
+
     $OversizedInput = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes('{"background_tasks":[{"id":"fixture"}]}'))
     Assert-Condition ($null -eq (Read-HookInput -InputStream $OversizedInput -MaximumBytes 8)) 'claude_oversized_input_unparsed'
     Assert-Condition ($OversizedInput.Position -eq $OversizedInput.Length) 'claude_oversized_input_drained'
@@ -331,6 +358,7 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     Invoke-HookProcess -Topic 'invalid/topic'
     Invoke-HookProcess -Topic $null -ScriptPath $ClaudeHookPath
     Invoke-HookProcess -Topic $null -InputCase large -ScriptPath $ClaudeHookPath
+    Invoke-HookProcess -Topic $null -InputCase open -ScriptPath $ClaudeHookPath
 
     $Example = Get-Content (Join-Path $SkillDirectory 'references/codex-hooks.json') -Raw | ConvertFrom-Json
     Assert-Condition (@($Example.hooks.PSObject.Properties).Count -eq 1) 'stop_only_registration'

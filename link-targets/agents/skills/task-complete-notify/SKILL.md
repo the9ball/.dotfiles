@@ -38,6 +38,7 @@ Claude Code runs [its own entry point](scripts/claude-stop-hook.ps1), which reus
 Claude Code fires `Stop` whenever a response ends, including when background work such as a background subagent or shell will resume the session later. To notify only when the session waits for the user, this entry point differs from the Codex rules above as follows:
 
 - It reads the hook input to the end, within 16 MiB and 3 seconds, and inspects only `background_tasks` and `session_crons`. No input value is retained, logged, or sent.
+- Unlike the Codex entry point, delivery waits for that read instead of starting while input drains, and nothing is drained after delivery. The worst case is process startup plus 3 seconds of reading plus the 10-second HTTP deadline, within the 20-second example timeout.
 - It skips sending when either field is a non-empty array. Missing, malformed, oversized, or late input counts as idle and sends, so a change in the input format causes extra notifications rather than none.
 
 Setup is manual, as for Codex:
