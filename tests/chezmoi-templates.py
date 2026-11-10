@@ -73,16 +73,19 @@ def isolated_environment(root, executable):
     return environment
 
 
-def run_checked(arguments, checkout, environment, label, stdin=""):
-    """Capture a bounded subprocess and report failures without temporary paths."""
+def run_checked(arguments, checkout, environment, label, stdin="", binary=False):
+    """Capture bounded text or raw-byte output and sanitize failure paths."""
     result = subprocess.run(
-        arguments, cwd=checkout, env=environment, input=stdin,
-        text=True, encoding="utf-8", capture_output=True, timeout=120,
+        arguments, cwd=checkout, env=environment,
+        input=stdin.encode("utf-8") if binary and isinstance(stdin, str) else stdin,
+        text=not binary, encoding=None if binary else "utf-8",
+        capture_output=True, timeout=120,
     )
     if result.returncode:
-        diagnostic = (result.stderr or result.stdout).replace(
-            str(checkout.parent), "<temporary>"
-        )
+        diagnostic = result.stderr or result.stdout
+        if isinstance(diagnostic, bytes):
+            diagnostic = diagnostic.decode("utf-8", errors="replace")
+        diagnostic = diagnostic.replace(str(checkout.parent), "<temporary>")
         raise ValueError(f"{label}: exit {result.returncode}\n{diagnostic}")
     return result
 
@@ -140,6 +143,8 @@ def check_templates(inputs, checkout, root, executable, environment):
 def check_codex_hook_preservation(checkout, root, executable, environment):
     """Preserve unrelated hooks and make reapplication stable for every Codex home."""
     source = checkout / "chezmoi"
+    configuration = root / "hook-preservation.toml"
+    configuration.write_text("", encoding="utf-8")
     baseline = {
         "fixtureMetadata": {"keep": True},
         "hooks": {
@@ -163,7 +168,7 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
             arguments = [
                 str(executable), "--source", str(source),
                 "--destination", environment["HOME"],
-                "--config", str(root / "chezmoi.toml"),
+                "--config", str(configuration),
                 "--persistent-state", str(root / "state.boltdb"),
                 "--cache", str(root / "cache"),
                 "--override-data-file", str(data_file), "--no-tty", "--no-pager",
@@ -171,7 +176,7 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
             ]
             label = f"{home} hook preservation [{operating_system}]"
             first = run_checked(
-                arguments, checkout, environment, label, json.dumps(baseline),
+                arguments, checkout, environment, label, json.dumps(baseline), binary=True,
             )
             rendered = json.loads(first.stdout)
             if (rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]
@@ -188,7 +193,7 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
             if len(managed) != 1:
                 raise ValueError(f"{label}: expected one managed auth handler")
             second = run_checked(
-                arguments, checkout, environment, label + " reapply", first.stdout,
+                arguments, checkout, environment, label + " reapply", first.stdout, binary=True,
             )
             if second.stdout != first.stdout:
                 raise ValueError(f"{label}: reapply was not byte-stable")

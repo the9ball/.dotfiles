@@ -115,6 +115,9 @@ if ($MyInvocation.InvocationName -ne '.') {
     catch {
         $Response = '{}'
     }
-    [Console]::Out.WriteLine($Response)
+    try { [Console]::Out.WriteLine($Response) }
+    catch {
+        # A closed output pipe must not produce a secondary hook error.
+    }
     exit 0
 }

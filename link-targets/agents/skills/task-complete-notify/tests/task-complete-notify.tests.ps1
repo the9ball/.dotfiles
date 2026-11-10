@@ -85,7 +85,7 @@ function Invoke-HookProcess {
 
 try {
     $env:NTFY_TOPIC = 'offline-fixture-topic'
-    $env:CODEX_HOME = 'unused-codex-home'
+    $env:CODEX_HOME = Join-Path $FixtureRoot 'initial-home'
     . $HookPath
     $ProductionClientFactory = ${function:New-NotificationHttpClient}
     $Client = New-NotificationHttpClient
@@ -162,12 +162,18 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         $Stopwatch = [Diagnostics.Stopwatch]::StartNew()
         Assert-Condition ((Invoke-CodexStopHook -InputStream $InputConsumer) -ceq '{}') 'open_input_inert_hook'
         Assert-Condition ($FixtureHandler.Calls -eq 1) 'http_attempt_before_input_eof'
-        Assert-Condition ($Stopwatch.ElapsedMilliseconds -lt 5000) 'input_wait_bounded'
+        Assert-Condition ($Stopwatch.ElapsedMilliseconds -lt 3000) 'input_wait_bounded'
     }
     finally {
         $InputProducer.Dispose()
         $InputConsumer.Dispose()
     }
+
+    $script:FixtureHandler = [NotificationFixtureHandler]::new()
+    $DisposedInput = [IO.MemoryStream]::new()
+    $DisposedInput.Dispose()
+    Assert-Condition ((Invoke-CodexStopHook -InputStream $DisposedInput) -ceq '{}') 'input_start_failure_inert'
+    Assert-Condition ($FixtureHandler.Calls -eq 1) 'input_failure_does_not_skip_http'
 
     foreach ($StatusCode in 200..299) {
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
