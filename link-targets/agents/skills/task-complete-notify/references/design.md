@@ -1,4 +1,4 @@
-# Codex turn notifications: design record
+# Agent turn notifications: design record
 
 The runtime contract is in [SKILL.md](../SKILL.md).
 <!-- reference-kind: owner-precedence; target: link-targets/agents/skills/task-complete-notify/SKILL.md -->
@@ -11,6 +11,7 @@ Duplicates and notification volume are accepted. There is no deduplication or de
 
 The original sender's fixed HTTPS endpoint, environment topic, 2xx check, redirect prohibition, and sanitized failure handling remain useful.
 Its variable-message envelope and layered child processes are unnecessary.
+The body ends with the local send time as `HH:mm:ss`. A health band that relays phone notifications was observed to drop a notification whose text matched the previous one, so identical fixed bodies were lost. The time comes from the local clock, not from hook input, so no prompt, answer, or path reaches the message. Two sends in the same second can still be identical.
 HttpClient replaces Invoke-WebRequest to give the request a single total deadline without adding a watchdog child process.
 ResponseHeadersRead avoids fetching or logging a response body.
 The 20-second hook timeout also bounds runtime startup.
@@ -40,3 +41,17 @@ These tests do not establish real ntfy delivery, current Codex lifecycle dispatc
 Keep those limits explicit in the implementation/PR verification record.
 
 The WSL hooks source uses the same modify template as both Windows homes, preserving unrelated Stop handlers instead of replacing the whole file. Isolated chezmoi tests render Linux and Windows dummy environments and verify Stop preservation, a single managed auth handler, and byte-stable reapplication for all three homes. No production chezmoi apply is performed by these tests.
+
+## Codex Stop as a completion signal
+
+A Codex re-check on 2026-11-10, prompted by the Claude Code findings below, kept `Stop` for Codex but limited what it means. The Stop input schema embedded in Codex CLI 0.167.0 has nine required fields (`hook_event_name`, `cwd`, `session_id`, `turn_id`, `model`, `permission_mode`, `last_assistant_message`, `transcript_path`, `stop_hook_active`) and none that reports background work. The same binary contains background terminals, subagents, agent-message wakeups, and Stop continuation, so a Stop notification can precede the end of all work. The legacy `notify` event `agent-turn-complete`, `SubagentStop`, `SessionEnd`, and terminal notifications showed no evidence of a better completion signal. These findings come from static inspection of the CLI, not from runtime experiments; the desktop app and the WSL CLI were not inspected. A Codex notification is therefore documented as "Stop reached", not "all work finished".
+
+## Claude Code
+
+Claude Code has its own entry point, `claude-stop-hook.ps1`, which dot-sources the Codex script for the shared sender and calls it with `-Source Claude`. The sender's `-Source` accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The Codex script takes no parameters and still parses no input, so existing Codex command strings are unchanged. Whether Codex's hook trust also covers the script content was not verified; after this change the work Codex home still showed a trusted Stop entry.
+
+Observed in the Claude desktop app: `Stop` fired when a response ended while a background subagent was still running, and fired again after that work resumed the session, so the user got a notification before the work was done. The official hooks documentation lists `background_tasks` (in-flight background work) and `session_crons` (scheduled wakeups) in the Stop input to distinguish a finished session from one paused for background work. The Claude entry point therefore parses the input, but only for those two fields, and stays silent when either is non-empty. Input that is missing, malformed, over 16 MiB, or not finished within 3 seconds counts as idle: an input-format change then produces extra notifications instead of silently losing every notification. The input is drained to the end even when oversized, so the producer is not cut off.
+The documented alternative, a `Notification` hook with the `idle_prompt` matcher, did not fire in the Claude desktop app in an existing session, a new session, or after restarting the app, so it is not used.
+
+Like Codex, the Claude Code registration is a manual merge of [the example](claude-settings.json) into `~/.claude/settings.json`; chezmoi does not register it. This keeps hook configuration opt-in, so applying dotfiles never silently begins external transmission.
+The example path uses forward slashes so that the command parses in both Git Bash and PowerShell, either of which Claude Code may use to run hooks on Windows. Offline tests check both fixed bodies, rejection of other `-Source` values, idle and busy decisions, unknown-input handling, bounded reading, process runs of the Claude entry point, and the Stop-only example. They do not establish Claude Code lifecycle dispatch or real delivery.
