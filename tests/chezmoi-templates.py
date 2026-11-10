@@ -137,6 +137,64 @@ def check_templates(inputs, checkout, root, executable, environment):
         print(f"{operating_system}: {len(targets)} templates expanded; JSON/TOML parsed")
 
 
+def check_codex_hook_preservation(checkout, root, executable, environment):
+    """Preserve unrelated hooks and make reapplication stable for every Codex home."""
+    source = checkout / "chezmoi"
+    baseline = {
+        "fixtureMetadata": {"keep": True},
+        "hooks": {
+            "Stop": [{"hooks": [{"type": "command", "command": "fixture-stop"}]}],
+            "PreToolUse": [{
+                "matcher": "^fixture$",
+                "hooks": [{"type": "command", "command": "fixture-tool"}],
+            }],
+        },
+    }
+    for operating_system in ("linux", "windows"):
+        data_file = root / "hook-preservation-data.json"
+        data_file.write_text(json.dumps({
+            "chezmoi": {
+                "os": operating_system, "sourceDir": str(source),
+                "homeDir": environment["HOME"],
+            },
+        }), encoding="utf-8")
+        for home in ("dot_codex", "dot_codex-personal", "dot_codex-wsl"):
+            path = source / home / "modify_hooks.json"
+            arguments = [
+                str(executable), "--source", str(source),
+                "--destination", environment["HOME"],
+                "--config", str(root / "chezmoi.toml"),
+                "--persistent-state", str(root / "state.boltdb"),
+                "--cache", str(root / "cache"),
+                "--override-data-file", str(data_file), "--no-tty", "--no-pager",
+                "execute-template", "--with-stdin", "--file", str(path),
+            ]
+            label = f"{home} hook preservation [{operating_system}]"
+            first = run_checked(
+                arguments, checkout, environment, label, json.dumps(baseline),
+            )
+            rendered = json.loads(first.stdout)
+            if (rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]
+                    or rendered["hooks"].get("Stop") != baseline["hooks"]["Stop"]
+                    or baseline["hooks"]["PreToolUse"][0]
+                    not in rendered["hooks"].get("PreToolUse", [])):
+                raise ValueError(f"{label}: unrelated configuration changed")
+            managed = [
+                handler
+                for group in rendered["hooks"]["PreToolUse"]
+                for handler in group.get("hooks", [])
+                if "gh_auth_status_json_gate.py" in handler.get("command", "")
+            ]
+            if len(managed) != 1:
+                raise ValueError(f"{label}: expected one managed auth handler")
+            second = run_checked(
+                arguments, checkout, environment, label + " reapply", first.stdout,
+            )
+            if second.stdout != first.stdout:
+                raise ValueError(f"{label}: reapply was not byte-stable")
+    print("Codex homes: Stop preservation and stable reapplication passed")
+
+
 def main():
     """Run template expansion and settings syntax checks with temporary state only."""
     if sys.version_info < (3, 11):
@@ -150,6 +208,7 @@ def main():
         inputs = copy_inputs(repository, checkout)
         environment = isolated_environment(root, executable)
         check_templates(inputs, checkout, root, executable, environment)
+        check_codex_hook_preservation(checkout, root, executable, environment)
 
 
 if __name__ == "__main__":

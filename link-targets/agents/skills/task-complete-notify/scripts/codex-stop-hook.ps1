@@ -69,26 +69,52 @@ function Invoke-TurnNotification {
 function Invoke-CodexStopHook {
     <#
     .SYNOPSIS
-    Emits an inert Stop response even when notification delivery fails.
+    Publishes independently of stdin completion and emits an inert Stop response.
+    .PARAMETER InputStream
+    Optional caller-owned input to discard concurrently. Omit for in-process calls.
     .OUTPUTS
     System.String. An empty JSON object with no continuation decision.
+    .NOTES
+    After delivery, input draining gets at most one additional second. The entry
+    process closes its standard input on exit, including a still-pending read.
     #>
+    param([AllowNull()][IO.Stream]$InputStream)
+
+    $InputDrainTask = $null
     try {
-        if ([Console]::IsInputRedirected) {
-            # Drain without parsing or retaining data so the host's pipe writer can finish.
-            $InputStream = [Console]::OpenStandardInput()
-            try { $InputStream.CopyTo([IO.Stream]::Null) }
-            finally { $InputStream.Dispose() }
+        if ($null -ne $InputStream) {
+            # Keep the producer's pipe flowing without making delivery wait for EOF.
+            $InputDrainTask = $InputStream.CopyToAsync([IO.Stream]::Null)
         }
+    }
+    catch {
+        # Input failures must not prevent the independent delivery attempt.
+    }
+
+    try {
         $null = Invoke-TurnNotification
     }
     catch {
         # A notification must never request continuation or change the turn result.
     }
+
+    if ($null -ne $InputDrainTask) {
+        try { [void]$InputDrainTask.Wait(1000) }
+        catch {
+            # Drain faults are deliberately contained just like HTTP failures.
+        }
+    }
     return '{}'
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    [Console]::Out.WriteLine((Invoke-CodexStopHook))
+    try {
+        $InputStream = if ([Console]::IsInputRedirected) { [Console]::OpenStandardInput() } else { $null }
+        $Response = Invoke-CodexStopHook -InputStream $InputStream
+    }
+    catch {
+        $Response = '{}'
+    }
+    [Console]::Out.WriteLine($Response)
     exit 0
 }

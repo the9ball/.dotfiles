@@ -9,6 +9,7 @@ $SkillDirectory = Split-Path -Parent $PSScriptRoot
 $HookPath = Join-Path $SkillDirectory 'scripts/codex-stop-hook.ps1'
 $OriginalTopic = [Environment]::GetEnvironmentVariable('NTFY_TOPIC', 'Process')
 $OriginalCodexHome = [Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')
+$FixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ("task-complete-notify-tests-" + [Guid]::NewGuid().ToString('N'))
 $SandboxEnvironment = @{}
 Get-ChildItem Env: | Where-Object Name -Match 'SANDBOX|PROXY|PERMISSION' | ForEach-Object {
     $SandboxEnvironment[$_.Name] = $_.Value
@@ -26,13 +27,20 @@ function Assert-Condition {
 function Invoke-HookProcess {
     <#
     .SYNOPSIS
-    Runs the real entry point with a non-deliverable topic and hostile stdin.
+    Checks the real entry point with independent normal, open, and large inputs.
     .PARAMETER Topic
-    An unset or deliberately invalid topic that cannot initiate HTTP.
+    An unset or invalid topic that cannot initiate HTTP.
+    .PARAMETER InputCase
+    Normal closes small input, open withholds EOF, and large sends one MiB.
     .OUTPUTS
-    None. Asserts bounded execution, exit 0, empty errors, and inert JSON.
+    None. Asserts bounded writes and exit, empty errors, and inert JSON.
     #>
-    param([AllowNull()][string]$Topic)
+    param(
+        [AllowNull()][string]$Topic,
+        [ValidateSet('normal', 'open', 'large')]
+        [string]$InputCase = 'normal'
+    )
+    $ProcessTimeoutMilliseconds = 30000
     $StartInfo = [Diagnostics.ProcessStartInfo]::new()
     $StartInfo.FileName = (Get-Process -Id $PID).Path
     $StartInfo.UseShellExecute = $false
@@ -43,26 +51,36 @@ function Invoke-HookProcess {
     foreach ($Argument in @('-NoProfile', '-NonInteractive', '-File', $HookPath)) {
         $StartInfo.ArgumentList.Add($Argument)
     }
-    $StartInfo.Environment.Remove('NTFY_TOPIC') | Out-Null
+    [void]$StartInfo.Environment.Remove('NTFY_TOPIC')
     if ($null -ne $Topic) { $StartInfo.Environment['NTFY_TOPIC'] = $Topic }
-    $StartInfo.Environment['CODEX_HOME'] = Join-Path ([IO.Path]::GetTempPath()) 'ntfy-no-state-required'
+    $StartInfo.Environment['CODEX_HOME'] = Join-Path $FixtureRoot 'process-home'
     $Process = [Diagnostics.Process]::new()
+    $Started = $false
     try {
         $Process.StartInfo = $StartInfo
-        Assert-Condition ($Process.Start()) 'process_start'
+        $Started = $Process.Start()
+        Assert-Condition $Started 'process_start'
         $OutputTask = $Process.StandardOutput.ReadToEndAsync()
         $ErrorTask = $Process.StandardError.ReadToEndAsync()
-        $Process.StandardInput.Write('{"last_assistant_message":"' + ('x' * 1048576) + '","transcript_path":"private-path","stop_hook_active":true}')
-        $Process.StandardInput.Close()
-        if (-not $Process.WaitForExit(5000)) {
-            $Process.Kill($true)
-            throw 'process_timeout'
+        $InputText = if ($InputCase -eq 'large') {
+            '{"last_assistant_message":"' + ('x' * 1048576) + '","transcript_path":"private-path"}'
+        } else {
+            '{"last_assistant_message":"private-answer","stop_hook_active":true}'
         }
+        $WriteTask = $Process.StandardInput.WriteAsync($InputText)
+        Assert-Condition ($WriteTask.Wait($ProcessTimeoutMilliseconds)) 'process_write_bounded'
+        $FlushTask = $Process.StandardInput.FlushAsync()
+        Assert-Condition ($FlushTask.Wait($ProcessTimeoutMilliseconds)) 'process_flush_bounded'
+        if ($InputCase -ne 'open') { $Process.StandardInput.Close() }
+        Assert-Condition ($Process.WaitForExit($ProcessTimeoutMilliseconds)) 'process_exit_bounded'
         Assert-Condition ($Process.ExitCode -eq 0) 'process_exit_zero'
         Assert-Condition ($OutputTask.GetAwaiter().GetResult().Trim() -ceq '{}') 'process_inert_json'
         Assert-Condition ($ErrorTask.GetAwaiter().GetResult() -ceq '') 'process_no_errors'
     }
-    finally { $Process.Dispose() }
+    finally {
+        if ($Started -and -not $Process.HasExited) { $Process.Kill($true) }
+        $Process.Dispose()
+    }
 }
 
 try {
@@ -132,6 +150,25 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         return $Client
     }
 
+    $script:FixtureHandler = [NotificationFixtureHandler]::new()
+    $InputProducer = [IO.Pipes.AnonymousPipeServerStream]::new([IO.Pipes.PipeDirection]::Out)
+    $InputConsumer = [IO.Pipes.AnonymousPipeClientStream]::new(
+        [IO.Pipes.PipeDirection]::In, $InputProducer.ClientSafePipeHandle
+    )
+    try {
+        $InputBytes = [Text.Encoding]::UTF8.GetBytes('{}')
+        $InputProducer.Write($InputBytes)
+        $InputProducer.Flush()
+        $Stopwatch = [Diagnostics.Stopwatch]::StartNew()
+        Assert-Condition ((Invoke-CodexStopHook -InputStream $InputConsumer) -ceq '{}') 'open_input_inert_hook'
+        Assert-Condition ($FixtureHandler.Calls -eq 1) 'http_attempt_before_input_eof'
+        Assert-Condition ($Stopwatch.ElapsedMilliseconds -lt 5000) 'input_wait_bounded'
+    }
+    finally {
+        $InputProducer.Dispose()
+        $InputConsumer.Dispose()
+    }
+
     foreach ($StatusCode in 200..299) {
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
         $script:FixtureHandler.StatusCode = $StatusCode
@@ -178,7 +215,7 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     }
 
     $env:NTFY_TOPIC = 'offline-fixture-topic'
-    foreach ($UnusedHome in @('unused-codex-home', 'another-unused-home')) {
+    foreach ($UnusedHome in @((Join-Path $FixtureRoot 'home-one'), (Join-Path $FixtureRoot 'home-two'))) {
         $env:CODEX_HOME = $UnusedHome
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
         Assert-Condition ((Invoke-CodexStopHook) -ceq '{}') 'no_home_or_reservation_dependency'
@@ -196,7 +233,9 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     Assert-Condition ((Invoke-CodexStopHook) -ceq '{}') 'initialization_failure_silent'
     ${function:New-NotificationHttpClient} = $ProductionClientFactory
 
-    Invoke-HookProcess -Topic $null
+    Invoke-HookProcess -Topic $null -InputCase normal
+    Invoke-HookProcess -Topic $null -InputCase open
+    Invoke-HookProcess -Topic $null -InputCase large
     Invoke-HookProcess -Topic 'invalid/topic'
 
     $Example = Get-Content (Join-Path $SkillDirectory 'references/codex-hooks.json') -Raw | ConvertFrom-Json

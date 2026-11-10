@@ -18,13 +18,13 @@ Do not run it against a real topic for testing without authorization for that pu
 
 Setup is an explicit configuration change; this skill does not install, trust, or enable hooks automatically.
 The checked-in chezmoi templates manage the GitHub authentication hook, not this notification hook.
-Do not overwrite their output wholesale. Their Windows modify templates preserve separately installed Stop entries.
+Do not overwrite their output wholesale. The modify templates for .codex, .codex-personal, and .codex-wsl preserve separately installed Stop entries when chezmoi is reapplied.
 
 ## Runtime contract
 
-- Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The script drains stdin without parsing or retaining it, and ignores `stop_hook_active` and all input fields.
+- Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The entry point drains stdin asynchronously without parsing or retaining it, and ignores `stop_hook_active` and all input fields. Delivery starts independently of EOF or drain failures.
 - Each invocation makes at most one application HTTP attempt. All 2xx responses succeed; redirects and non-2xx responses fail. There is no retry, watcher, state directory, TTL, UUID lookup, or cancellation API.
-- The HTTP client has a 10-second total request timeout. It stops at response headers without reading the body. The synchronous hook example has a 20-second outer timeout covering process startup too.
+- The HTTP client has a 10-second total request timeout. It stops at response headers without reading the body. After delivery, the script waits at most one additional second for input draining, then exits even if the producer keeps stdin open. The synchronous hook example has a 20-second outer timeout covering process startup too.
 - The script emits only `{}` and exits 0 on delivery success or failure. It never asks Codex to continue or stop. Failure before PowerShell/script startup and the host's own timeout behavior remain outside the script's control.
 - No prompt, answer, thread name, transcript, path, credentials, topic, or response body is sent as message content or written to notification logs/state. The topic is necessarily part of the destination URL seen by ntfy and the network stack.
 - Missing or invalid topics quietly skip sending. DNS, TLS, timeout, and HTTP errors are suppressed. Absence of an error is not proof of delivery.
@@ -42,7 +42,9 @@ A shell test outside the sandbox does not prove a production hook can connect.
 
 ## Migration and verification
 
-Remove obsolete arm/cancel commands, watcher startup registrations, and duplicate Stop registrations after inspecting the actual configuration.
+Before updating an existing installation, inventory every Codex home (.codex, .codex-personal, and .codex-wsl where used), project hook layers, inline config.toml hooks, managed requirements, enabled plugin hooks, legacy notify senders, and watcher startup registrations.
+The stable script path changes old registered senders from reserved-only to every Stop; do not assume a script update causes renewed trust review. With the required configuration authorization, disable or replace obsolete senders and retain one intended Stop registration. Record only safe source labels and handler counts, never topic or raw environment/input data.
+Remove obsolete arm/cancel commands and duplicate registrations within that authorized migration.
 Old state is inert; do not read, migrate, or delete existing user state automatically.
 No script now reads `.task-complete-notify`.
 

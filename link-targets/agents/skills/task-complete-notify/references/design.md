@@ -19,7 +19,7 @@ Reservations, UUID extraction/ownership, TTL, locks, terminal state, JSONL scann
 No compatibility shim is retained: it would imply that the old reservation API still works.
 The skill directory and Stop script path remain stable for existing registrations.
 
-No hook-input parser remains. The script drains redirected stdin to Stream.Null without retaining its content: a local 1 MiB dummy-input check reproduced parent-side broken pipe when the hook exited without reading. This transport step lets the host complete its write; it is not identity validation or state management. Event selection belongs to the Stop registration, not an inferred transcript source.
+No hook-input parser remains. The entry point drains redirected stdin to Stream.Null asynchronously without retaining its content: a local 1 MiB dummy-input check reproduced parent-side broken pipe when the hook exited without reading. The drain starts concurrently with HTTP delivery, which does not depend on EOF or drain success. After delivery, draining gets at most one more second; a pipe still open at process exit is closed by the process. This keeps large input moving while bounding a producer that never closes its pipe. In-process callers omit input unless they deliberately supply a stream, so tests never consume their runner's stdin. This is transport handling, not identity validation or state management. Event selection belongs to the Stop registration, not an inferred transcript source.
 Other hooks may continue the turn, producing more Stop invocations and notifications; this sender emits no continuation decision.
 It must not also be registered as SubagentStop. Interrupted turns have no separate notification registration.
 
@@ -35,6 +35,8 @@ It must not also be registered as SubagentStop. Interrupted turns have no separa
 
 ## Validation boundary
 
-The offline suite checks all 2xx boundaries, redirects/non-2xx, missing/invalid topics, cancellation by a real HttpClient deadline against an in-memory delayed handler, transport exceptions, fixed request content, no extra headers, generic output, repeated calls without state, and process exit behavior with 1 MiB input.
+The offline suite checks all 2xx boundaries, redirects/non-2xx, missing/invalid topics, cancellation by a real HttpClient deadline against an in-memory delayed handler, transport exceptions, fixed request content, no extra headers, generic output, repeated calls without state, and independent process cases for normal input, a pipe held open without EOF, and 1 MiB input. Process tests allow 30 seconds for cold startup and bound asynchronous writes as well as exit. Home-isolation checks use unique absolute temporary paths.
 These tests do not establish real ntfy delivery, current Codex lifecycle dispatch, device display, every permission profile, or WSL operation when native PowerShell is unavailable.
 Keep those limits explicit in the implementation/PR verification record.
+
+The WSL hooks source uses the same modify template as both Windows homes, preserving unrelated Stop handlers instead of replacing the whole file. Isolated chezmoi tests render Linux and Windows dummy environments and verify Stop preservation, a single managed auth handler, and byte-stable reapplication for all three homes. No production chezmoi apply is performed by these tests.
