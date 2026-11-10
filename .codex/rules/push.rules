@@ -1,0 +1,5 @@
+prefix_rule(
+    pattern=["git", "push"],
+    decision="allow",
+    justification="このリポジトリでは git push を常時承認する（範囲は external-operation-authorization の Repository standing push approval に従う）",
+)
