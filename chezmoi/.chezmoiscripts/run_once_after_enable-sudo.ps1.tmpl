@@ -1,0 +1,43 @@
+{{ if eq .chezmoi.os "windows" -}}
+# Enables the built-in Windows sudo once per machine so later administrative
+# work can be started with `sudo <command>` from any terminal.
+$ErrorActionPreference = 'Stop'
+
+# Use the system binary explicitly so another `sudo` on PATH (for example one
+# provided by Git Bash or a package manager) is never the one being configured.
+$sudoExecutable = Join-Path $env:SystemRoot 'System32\sudo.exe'
+if (-not (Test-Path -LiteralPath $sudoExecutable -PathType Leaf)) {
+    Write-Host 'Windows sudo is not available on this Windows version; skipping.'
+    return
+}
+
+# `sudo config` only reports the current mode and exits non-zero while sudo is
+# disabled, which avoids depending on its localized message text. Windows
+# PowerShell 5.1 turns redirected native stderr into a terminating error under
+# 'Stop', so relax the preference just for this probe.
+$ErrorActionPreference = 'Continue'
+& $sudoExecutable config *> $null
+$sudoStatusExitCode = $LASTEXITCODE
+$ErrorActionPreference = 'Stop'
+if ($sudoStatusExitCode -eq 0) {
+    # Keep whatever mode the user has already chosen on this machine.
+    return
+}
+
+# Enabling sudo changes a machine-wide setting, so it needs one UAC approval.
+# A declined or failed request only warns: this script runs once, and failing
+# here would abort the remaining apply scripts such as the tool installation.
+$enableArguments = @('config', '--enable', 'normal')
+try {
+    $process = Start-Process -FilePath $sudoExecutable -ArgumentList $enableArguments `
+        -Verb RunAs -WindowStyle Hidden -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "sudo config exited with code $($process.ExitCode)"
+    }
+    Write-Host 'Enabled Windows sudo in inline (normal) mode.'
+}
+catch {
+    Write-Warning "Could not enable Windows sudo: $_"
+    Write-Warning "Enable it later from an administrator PowerShell: sudo config --enable normal"
+}
+{{- end }}
