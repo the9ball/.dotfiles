@@ -1031,6 +1031,12 @@ claude plugin validate link-targets/claude/mods/context
 claude plugin test link-targets/claude/mods/context
 `````
 
+### Claude Codeのターン終了通知
+
+Codexと共通の`task-complete-notify`スクリプトを`-Source Claude`付きで`Stop`フックに登録すると、Claude Codeの応答が終わるたびに固定文`Claude turn finished`をntfy.shへ送ります。サブエージェントの終了では送りません。送信先topicは、Claude Codeが起動元から引き継ぐ環境変数`NTFY_TOPIC`です。未設定または不正な値なら何も送りません。
+
+登録はCodexと同じく手動です。`chezmoi apply`では登録しません。[`references/claude-settings.json`](link-targets/agents/skills/task-complete-notify/references/claude-settings.json)の`Stop`エントリを、既存のフックや他のキーを残したまま`~/.claude/settings.json`へマージし、スクリプトのパスを実際の絶対パスに置き換えてから、新しいClaude Codeセッションを開始してください。手順の詳細は[`SKILL.md`](link-targets/agents/skills/task-complete-notify/SKILL.md)の「Claude Code」節を参照してください。
+
 ## Datadog MCPの設定
 
 MCPエンドポイントは次のとおりです。

@@ -32,13 +32,16 @@ function Invoke-HookProcess {
     An unset or invalid topic that cannot initiate HTTP.
     .PARAMETER InputCase
     Normal closes small input, open withholds EOF, and large sends one MiB.
+    .PARAMETER Source
+    Optional -Source argument, as a Claude Code registration passes it.
     .OUTPUTS
     None. Asserts bounded writes and exit, empty errors, and inert JSON.
     #>
     param(
         [AllowNull()][string]$Topic,
         [ValidateSet('normal', 'open', 'large')]
-        [string]$InputCase = 'normal'
+        [string]$InputCase = 'normal',
+        [AllowNull()][string]$Source
     )
     $ProcessTimeoutMilliseconds = 30000
     $StartInfo = [Diagnostics.ProcessStartInfo]::new()
@@ -50,6 +53,10 @@ function Invoke-HookProcess {
     $StartInfo.RedirectStandardError = $true
     foreach ($Argument in @('-NoProfile', '-NonInteractive', '-File', $HookPath)) {
         $StartInfo.ArgumentList.Add($Argument)
+    }
+    if ($Source) {
+        $StartInfo.ArgumentList.Add('-Source')
+        $StartInfo.ArgumentList.Add($Source)
     }
     [void]$StartInfo.Environment.Remove('NTFY_TOPIC')
     if ($null -ne $Topic) { $StartInfo.Environment['NTFY_TOPIC'] = $Topic }
@@ -188,6 +195,24 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         Assert-Condition ($FixtureHandler.HeaderCount -eq 0) 'no_title_or_credentials'
     }
 
+    foreach ($SourceCase in @(
+            @{ Source = 'Codex'; Body = 'Codex turn finished' },
+            @{ Source = 'Claude'; Body = 'Claude turn finished' })) {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        Assert-Condition ((Invoke-CodexStopHook -Source $SourceCase.Source) -ceq '{}') 'source_inert_hook'
+        Assert-Condition ($FixtureHandler.Calls -eq 1) 'source_one_attempt'
+        Assert-Condition ($FixtureHandler.Body -ceq $SourceCase.Body) 'source_fixed_body'
+    }
+
+    foreach ($RejectedSource in @('claude', 'CODEX', 'Other', '')) {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        $Rejected = $false
+        try { $null = Invoke-TurnNotification -Source $RejectedSource }
+        catch { $Rejected = $true }
+        Assert-Condition $Rejected 'source_limited_to_fixed_values'
+        Assert-Condition ($FixtureHandler.Calls -eq 0) 'rejected_source_no_http'
+    }
+
     foreach ($StatusCode in @(199, 300, 301, 302, 307, 308, 400, 401, 403, 429, 500, 599)) {
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
         $script:FixtureHandler.StatusCode = $StatusCode
@@ -243,14 +268,20 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     Invoke-HookProcess -Topic $null -InputCase open
     Invoke-HookProcess -Topic $null -InputCase large
     Invoke-HookProcess -Topic 'invalid/topic'
+    Invoke-HookProcess -Topic $null -Source 'Claude'
 
     $Example = Get-Content (Join-Path $SkillDirectory 'references/codex-hooks.json') -Raw | ConvertFrom-Json
     Assert-Condition (@($Example.hooks.PSObject.Properties).Count -eq 1) 'stop_only_registration'
     Assert-Condition ($Example.hooks.Stop[0].hooks[0].timeout -eq 20) 'outer_deadline'
-    $Source = Get-Content $HookPath -Raw
-    Assert-Condition ($Source.Contains('$Handler.AllowAutoRedirect = $false')) 'redirects_disabled'
-    Assert-Condition ($Source.Contains('$Handler.UseCookies = $false')) 'cookies_disabled'
-    Assert-Condition ($Source.Contains('ResponseHeadersRead')) 'no_response_body_read'
+    $ClaudeExample = Get-Content (Join-Path $SkillDirectory 'references/claude-settings.json') -Raw | ConvertFrom-Json
+    Assert-Condition (@($ClaudeExample.hooks.PSObject.Properties).Count -eq 1) 'claude_stop_only_registration'
+    Assert-Condition (@($ClaudeExample.hooks.Stop).Count -eq 1 -and @($ClaudeExample.hooks.Stop[0].hooks).Count -eq 1) 'claude_single_handler'
+    Assert-Condition ($ClaudeExample.hooks.Stop[0].hooks[0].timeout -eq 20) 'claude_outer_deadline'
+    Assert-Condition ($ClaudeExample.hooks.Stop[0].hooks[0].command.EndsWith('codex-stop-hook.ps1" -Source Claude')) 'claude_fixed_source'
+    $HookSourceText = Get-Content $HookPath -Raw
+    Assert-Condition ($HookSourceText.Contains('$Handler.AllowAutoRedirect = $false')) 'redirects_disabled'
+    Assert-Condition ($HookSourceText.Contains('$Handler.UseCookies = $false')) 'cookies_disabled'
+    Assert-Condition ($HookSourceText.Contains('ResponseHeadersRead')) 'no_response_body_read'
     foreach ($Name in $SandboxEnvironment.Keys) {
         Assert-Condition ([Environment]::GetEnvironmentVariable($Name, 'Process') -ceq $SandboxEnvironment[$Name]) 'sandbox_environment_preserved'
     }

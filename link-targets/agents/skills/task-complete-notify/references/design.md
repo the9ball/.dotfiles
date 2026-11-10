@@ -40,3 +40,9 @@ These tests do not establish real ntfy delivery, current Codex lifecycle dispatc
 Keep those limits explicit in the implementation/PR verification record.
 
 The WSL hooks source uses the same modify template as both Windows homes, preserving unrelated Stop handlers instead of replacing the whole file. Isolated chezmoi tests render Linux and Windows dummy environments and verify Stop preservation, a single managed auth handler, and byte-stable reapplication for all three homes. No production chezmoi apply is performed by these tests.
+
+## Claude Code
+
+Claude Code reuses the same script through `-Source Claude`, which changes only the fixed body to `Claude turn finished`. The parameter accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The default stays `Codex`, keeping the existing Codex command strings, and therefore their trust hashes, unchanged. The script path keeps its Codex name for the same reason.
+Like Codex, the Claude Code registration is a manual merge of [the example](claude-settings.json) into `~/.claude/settings.json`; chezmoi does not register it. This keeps hook configuration opt-in, so applying dotfiles never silently begins external transmission.
+The example path uses forward slashes so that the command parses in both Git Bash and PowerShell, either of which Claude Code may use to run hooks on Windows. Offline tests check both fixed bodies, rejection of other values, a process run with `-Source Claude`, and the Stop-only example; they do not establish Claude Code lifecycle dispatch or real delivery.

@@ -1,6 +1,6 @@
 ---
 name: task-complete-notify
-description: Configure or troubleshoot fixed ntfy notifications for every Codex Stop event on Windows or WSL.
+description: Configure or troubleshoot fixed ntfy notifications for every Codex Stop event on Windows or WSL, and for every Claude Code Stop event through the same sender.
 ---
 
 # Codex turn notifications
@@ -17,7 +17,7 @@ Do not run it against a real topic for testing without authorization for that pu
 4. Review and trust the hook through `/hooks` or the desktop hook settings. Verify hooks are enabled and not excluded by managed policy.
 
 Setup is an explicit configuration change; this skill does not install, trust, or enable hooks automatically.
-The checked-in chezmoi templates manage the GitHub authentication hook, not this notification hook.
+The checked-in chezmoi templates register this notification hook for neither Codex nor Claude Code; the Codex ones manage the GitHub authentication hook.
 Do not overwrite their output wholesale. The modify templates for .codex, .codex-personal, and .codex-wsl preserve separately installed Stop entries when chezmoi is reapplied.
 
 ## Runtime contract
@@ -28,6 +28,17 @@ Do not overwrite their output wholesale. The modify templates for .codex, .codex
 - The script emits only `{}` and exits 0 on delivery success or failure. It never asks Codex to continue or stop. Failure before PowerShell/script startup and the host's own timeout behavior remain outside the script's control.
 - No prompt, answer, thread name, transcript, path, credentials, topic, or response body is sent as message content or written to notification logs/state. The topic is necessarily part of the destination URL seen by ntfy and the network stack.
 - Missing or invalid topics quietly skip sending. DNS, TLS, timeout, and HTTP errors are suppressed. Absence of an error is not proof of delivery.
+
+## Claude Code
+
+The same script also serves Claude Code with `-Source Claude`, which sends only `Claude turn finished`. `-Source` accepts exactly `Codex` (the default) or `Claude`, case-sensitively; never pass other text.
+Setup is manual, as for Codex:
+
+1. Make PowerShell 7.4 or newer available as `pwsh.exe` on Windows or `pwsh` elsewhere, on the PATH of the shell that Claude Code uses to run hooks.
+2. Merge the `Stop` entry from [the Claude Code example](references/claude-settings.json) into `~/.claude/settings.json`. Preserve existing hooks and other keys. Replace the example script path with the quoted absolute path for that host, using forward slashes so it parses in both Git Bash and PowerShell. On non-Windows hosts use `pwsh`.
+3. Ensure `NTFY_TOPIC` is inherited by Claude Code from its launcher, under the same rules as for Codex. Start a new Claude Code session after changing the hook or its launch environment.
+
+Register only `Stop`, not `SubagentStop`, and keep a single Claude Code registration. The other runtime rules above apply unchanged.
 
 ## Windows, WSL, and permissions
 
