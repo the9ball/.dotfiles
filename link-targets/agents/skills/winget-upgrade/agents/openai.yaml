@@ -1,0 +1,7 @@
+interface:
+  display_name: "winget一括更新"
+  short_description: "wingetの更新対象を確認し、UAC 1回でまとめて更新"
+  default_prompt: "Use $winget-upgrade to list winget upgrades and apply the ones I approve with a single UAC prompt."
+
+policy:
+  allow_implicit_invocation: true
