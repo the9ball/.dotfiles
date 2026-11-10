@@ -28,6 +28,12 @@ Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or ap
 
 Applies to creating, updating, and reviewing implementation plans and runbooks; read it before creating, updating, or reviewing an implementation plan or runbook. It includes the details of implementation-scale estimation and of runbook/plan history management.
 
+### Plan file location
+
+- Unless the user or the caller names another destination, create a new implementation plan or runbook as `.local/<short slug expressing the contents>-plan.md` directly under the work root, and keep its history file in the same directory. Do not ask the user to confirm this location.
+- If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`. Before writing the plan, confirm with `git check-ignore` that its path is ignored (exit 0 means ignored); if the work root is a Git repository and the path is not ignored, stop and ask instead of writing.
+- Updating an existing plan keeps its current path.
+
 ### The boundary between planning review and post-implementation review
 
 The plan review does not include an exhaustive detailed review of details that do not affect the decisions that should be made before implementation.
