@@ -160,6 +160,8 @@ aqua install --config "$HOME/.dotfiles/aqua.yaml"
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
+`init`は、そのマシンが仕事用かどうか（`isWork`）を一度だけ質問し、回答を端末ローカルのchezmoi設定の`[data]`へ保存します。テンプレートでは`.isWork`として参照できます。回答を変えるときは`chezmoi init --prompt`を実行します。既存の端末でまだ回答していない場合は、`chezmoi init`を再実行してください。
+
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。
 
 Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
@@ -681,6 +683,7 @@ chezmoi verify --exclude=scripts
 
 - `aqua.yaml`に定義されたCLIのインストール
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
+- Windowsでは初回の適用時だけ、標準のsudoをインライン（`normal`）モードで有効化（UACの承認が1回必要。拒否した場合は警告だけ出して続行し、自動では再実行されないので、あとから管理者のPowerShellで`sudo config --enable normal`を実行する。すでに有効な場合はモードを変更しない）
 - Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
