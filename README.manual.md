@@ -684,7 +684,7 @@ chezmoi verify --exclude=scripts
 - `aqua.yaml`に定義されたCLIのインストール
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
 - Windowsでは初回の適用時だけ、標準のsudoをインライン（`normal`）モードで有効化（UACの承認が1回必要。拒否した場合は警告だけ出して続行し、自動では再実行されないので、あとから管理者のPowerShellで`sudo config --enable normal`を実行する。すでに有効な場合はモードを変更しない）
-- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zのインストール
+- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
 - Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）
