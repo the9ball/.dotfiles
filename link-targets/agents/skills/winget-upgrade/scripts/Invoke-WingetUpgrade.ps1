@@ -1,13 +1,12 @@
+#Requires -Version 7
 <#
 .SYNOPSIS
 Upgrades the given winget packages with a single UAC approval.
 
 .DESCRIPTION
 Upgrades each package ID one at a time in one elevated PowerShell process, so the
-user approves UAC once instead of once per installer. Packages that fail in the
-elevated pass are retried once without elevation, because some per-user
-installers do not install from an elevated process. When the caller is
-already elevated, the packages are upgraded in-process and no retry is possible.
+user approves UAC once instead of once per installer. When the caller is already
+elevated, the packages are upgraded in-process without another prompt.
 
 Each winget run is logged as UTF-8 in a new directory under the temporary
 directory. The script prints a per-package summary and the log directory path.
@@ -29,9 +28,16 @@ System.String
 .NOTES
 Exit Codes:
 0 - Every package was upgraded or had no applicable upgrade.
-1 - At least one package was not upgraded (failed, pinned, or not installed).
+1 - At least one package is BlockedByPin, NotInstalled, or Failed, or the
+    elevated worker stopped before finishing every package.
 2 - Invalid input, elevation was declined or failed, or the elevated worker did
-    not produce a result.
+    not produce any result.
+
+Trust assumption: the elevated worker runs this script, the current pwsh
+executable, and a request file from locations the current user can write to.
+Package IDs are validated again in the worker so a changed request cannot add
+winget options, but a process running as the same user could still replace these
+files. UAC is not a security boundary against such a process.
 #>
 [CmdletBinding(DefaultParameterSetName = 'Upgrade')]
 param(
@@ -45,13 +51,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-# winget writes UTF-8 when its output is redirected. A new elevated console starts
-# with the OEM code page, which garbles that output unless the decoder matches.
-[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
-
 $packageIdPattern = '^[A-Za-z0-9][A-Za-z0-9._+-]*$'
 $requestFileName = 'request.json'
 $resultFileName = 'result.json'
+$workerErrorFileName = 'worker-error.txt'
 
 # winget result codes that this script distinguishes from a generic failure. The
 # keys are hex text because PowerShell parses hex literals such as 0x8A15002B as
@@ -117,7 +120,7 @@ function Get-NormalizedPackageIds {
     Throws when an ID contains characters outside the winget ID pattern, so no
     value can be interpreted as an extra winget option.
     #>
-    param([Parameter(Mandatory)] [string[]] $RawPackageIds)
+    param([Parameter(Mandatory)] [AllowEmptyString()] [string[]] $RawPackageIds)
 
     $normalizedIds = [Collections.Generic.List[string]]::new()
     foreach ($rawValue in $RawPackageIds) {
@@ -173,60 +176,77 @@ function Invoke-PackageUpgrade {
 function Invoke-UpgradeBatch {
     <#
     .SYNOPSIS
-    Upgrades packages sequentially and returns one result per package.
+    Upgrades packages sequentially and records the results after each package.
     .PARAMETER Ids
     The validated package IDs to upgrade.
-    .PARAMETER LogDirectory
-    The directory that receives one log file per package.
-    .PARAMETER AttemptName
-    A label added to each log file name, such as 'elevated' or 'user'.
+    .PARAMETER WorkDirectory
+    The directory that receives one log file per package and the result file.
     .OUTPUTS
     PSCustomObject[] produced by Invoke-PackageUpgrade.
+    .NOTES
+    Rewriting the result file after every package keeps the finished results
+    available when a later package stops the batch.
     #>
     param(
         [Parameter(Mandatory)] [string[]] $Ids,
-        [Parameter(Mandatory)] [string] $LogDirectory,
-        [Parameter(Mandatory)] [string] $AttemptName
+        [Parameter(Mandatory)] [string] $WorkDirectory
     )
 
-    $results = foreach ($id in $Ids) {
-        Write-Host "[$AttemptName] upgrading $id"
-        $logPath = Join-Path $LogDirectory "$id.$AttemptName.log"
-        Invoke-PackageUpgrade -Id $id -LogPath $logPath
+    # winget writes UTF-8 when its output is redirected. A new elevated console
+    # starts with the OEM code page, which garbles that output unless the decoder
+    # matches. The console may be shared with the caller, so restore it afterwards.
+    $previousOutputEncoding = [Console]::OutputEncoding
+    [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+    try {
+        $results = [Collections.Generic.List[object]]::new()
+        foreach ($id in $Ids) {
+            Write-Host "upgrading $id"
+            $results.Add((Invoke-PackageUpgrade -Id $id -LogPath (Join-Path $WorkDirectory "$id.log")))
+            ConvertTo-Json -InputObject $results.ToArray() -Depth 3 |
+                Set-Content -LiteralPath (Join-Path $WorkDirectory $resultFileName) -Encoding utf8
+        }
+        return $results.ToArray()
     }
-    return @($results)
+    finally {
+        [Console]::OutputEncoding = $previousOutputEncoding
+    }
 }
 
 function Invoke-ElevatedWorker {
     <#
     .SYNOPSIS
-    Runs the elevated pass described by a request file and writes its results.
+    Runs the elevated pass described by a request file.
     .PARAMETER RequestPath
     The request.json file created by the non-elevated caller. Results and logs are
     written next to it, so the request never names arbitrary output paths.
+    .NOTES
+    The worker window closes when it exits, so any error is written to a file in
+    the work directory for the caller to report.
     #>
     param([Parameter(Mandatory)] [string] $RequestPath)
 
     $workDirectory = Split-Path -Parent $RequestPath
-    $request = Get-Content -LiteralPath $RequestPath -Raw -Encoding utf8 | ConvertFrom-Json
-    $ids = Get-NormalizedPackageIds -RawPackageIds @($request.packageIds)
-    $results = Invoke-UpgradeBatch -Ids $ids -LogDirectory $workDirectory -AttemptName 'elevated'
-    ConvertTo-Json -InputObject @($results) -Depth 3 |
-        Set-Content -LiteralPath (Join-Path $workDirectory $resultFileName) -Encoding utf8
+    try {
+        $request = Get-Content -LiteralPath $RequestPath -Raw -Encoding utf8 | ConvertFrom-Json
+        $ids = Get-NormalizedPackageIds -RawPackageIds @($request.packageIds)
+        Invoke-UpgradeBatch -Ids $ids -WorkDirectory $workDirectory | Out-Null
+    }
+    catch {
+        Set-Content -LiteralPath (Join-Path $workDirectory $workerErrorFileName) -Value ($_ | Out-String) -Encoding utf8
+        exit 1
+    }
 }
 
 function Start-ElevatedWorker {
     <#
     .SYNOPSIS
-    Starts this script elevated for the given IDs and waits for its results.
+    Starts this script elevated for the given IDs and waits for it to exit.
     .PARAMETER Ids
     The validated package IDs.
     .PARAMETER WorkDirectory
     The directory shared with the worker for the request, results, and logs.
-    .OUTPUTS
-    PSCustomObject[] read from the worker's result file.
     .NOTES
-    Shows one UAC prompt. Throws when elevation is declined or no result exists.
+    Shows one UAC prompt. Throws when elevation is declined or fails to start.
     #>
     param(
         [Parameter(Mandatory)] [string[]] $Ids,
@@ -246,12 +266,6 @@ function Start-ElevatedWorker {
     )
     Start-Process -FilePath $pwshPath -ArgumentList $workerArguments -Verb RunAs `
         -WindowStyle Minimized -Wait | Out-Null
-
-    $resultPath = Join-Path $WorkDirectory $resultFileName
-    if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
-        throw "The elevated worker did not write $resultPath"
-    }
-    return @(Get-Content -LiteralPath $resultPath -Raw -Encoding utf8 | ConvertFrom-Json)
 }
 
 if ($PSCmdlet.ParameterSetName -eq 'Worker') {
@@ -270,43 +284,40 @@ catch {
 $workDirectoryName = 'winget-upgrade-{0:yyyyMMdd-HHmmss}-{1}' -f (Get-Date), [IO.Path]::GetRandomFileName().Replace('.', '')
 $workDirectory = (New-Item -ItemType Directory -Path (Join-Path ([IO.Path]::GetTempPath()) $workDirectoryName)).FullName
 
-$isAlreadyElevated = Test-IsAdministrator
-if ($isAlreadyElevated) {
-    $firstPassResults = Invoke-UpgradeBatch -Ids $ids -LogDirectory $workDirectory -AttemptName 'elevated'
+if (Test-IsAdministrator) {
+    Invoke-UpgradeBatch -Ids $ids -WorkDirectory $workDirectory | Out-Null
 }
 else {
     try {
-        $firstPassResults = Start-ElevatedWorker -Ids $ids -WorkDirectory $workDirectory
+        Start-ElevatedWorker -Ids $ids -WorkDirectory $workDirectory
     }
     catch {
-        Write-Error -Message "Elevated upgrade did not complete: $($_.Exception.Message). Logs: $workDirectory" -ErrorAction Continue
+        Write-Error -Message "Elevated upgrade did not start: $($_.Exception.Message). Logs: $workDirectory" -ErrorAction Continue
         exit 2
     }
 }
 
-$summary = foreach ($firstPassResult in $firstPassResults) {
-    $retryResult = $null
-    # Only generic failures are retried: pinned, missing, or up-to-date packages
-    # would return the same code again without elevation.
-    if (-not $isAlreadyElevated -and $firstPassResult.Status -eq 'Failed') {
-        $retryResult = (Invoke-UpgradeBatch -Ids @($firstPassResult.PackageId) -LogDirectory $workDirectory -AttemptName 'user')[0]
-    }
-    [pscustomobject]@{
-        PackageId = $firstPassResult.PackageId
-        Status = if ($retryResult) { $retryResult.Status } else { $firstPassResult.Status }
-        ElevatedExitCode = $firstPassResult.ExitCode
-        RetryExitCode = if ($retryResult) { $retryResult.ExitCode } else { '' }
-    }
+$workerErrorPath = Join-Path $workDirectory $workerErrorFileName
+$resultPath = Join-Path $workDirectory $resultFileName
+$results = @()
+if (Test-Path -LiteralPath $resultPath -PathType Leaf) {
+    $results = @(Get-Content -LiteralPath $resultPath -Raw -Encoding utf8 | ConvertFrom-Json)
 }
-
-Write-Output ($summary | Format-Table -AutoSize | Out-String -Width 200).TrimEnd()
+if ($results.Count -gt 0) {
+    Write-Output ($results | Format-Table PackageId, Status, ExitCode -AutoSize | Out-String -Width 200).TrimEnd()
+}
 Write-Output "Logs: $workDirectory"
-if ($isAlreadyElevated -and @($summary | Where-Object Status -eq 'Failed').Count -gt 0) {
-    Write-Output 'Failed packages were not retried because this process is already elevated; rerun them from a non-elevated shell.'
+
+if (Test-Path -LiteralPath $workerErrorPath -PathType Leaf) {
+    Write-Output "The elevated worker stopped after $($results.Count) of $($ids.Count) packages:"
+    Write-Output (Get-Content -LiteralPath $workerErrorPath -Raw -Encoding utf8).TrimEnd()
+}
+if ($results.Count -eq 0) {
+    exit 2
 }
 
-$unsuccessfulCount = @($summary | Where-Object { $successStatuses -notcontains $_.Status }).Count
-if ($unsuccessfulCount -gt 0) {
+$unsuccessfulCount = @($results | Where-Object { $successStatuses -notcontains $_.Status }).Count
+if ($unsuccessfulCount -gt 0 -or $results.Count -lt $ids.Count) {
     exit 1
 }
 exit 0

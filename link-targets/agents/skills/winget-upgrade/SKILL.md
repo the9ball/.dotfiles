@@ -42,10 +42,12 @@ pwsh -NoProfile -File "$HOME/.agents/skills/winget-upgrade/scripts/Invoke-Winget
 The script:
 
 - starts one elevated PowerShell process for all packages (or runs in-process when the caller is already elevated) and upgrades them one at a time;
-- retries a package once without elevation when it failed in the elevated pass, because some per-user installers do not install from an elevated process;
-- writes one UTF-8 log per package and attempt to a new `winget-upgrade-*` directory under the temporary directory, and prints a summary with the status of each package: `Upgraded`, `NoUpgradeAvailable`, `BlockedByPin`, `NotInstalled`, or `Failed`.
+- writes one UTF-8 log per package to a new `winget-upgrade-*` directory under the temporary directory, and prints a summary with the status of each package: `Upgraded`, `NoUpgradeAvailable`, `BlockedByPin`, `NotInstalled`, or `Failed`;
+- reports the error and the packages already finished when the elevated process stops partway.
 
-Exit codes: `0` when every package was upgraded or had no applicable upgrade, `1` when at least one was not upgraded, and `2` for invalid input, declined elevation, or a missing worker result.
+Exit codes: `0` when every package was upgraded or had no applicable upgrade, `1` when at least one package is `BlockedByPin`, `NotInstalled`, or `Failed` or the run stopped partway, and `2` for invalid input, declined elevation, or no result at all. When `pwsh` comes from aqua, a following `aqua failed ... exit status 1` (or `2`) line only repeats the script's exit code.
+
+The script does not retry. For a `Failed` package, read its log first. If the log shows the installer refused to run elevated, rerun only that package from a non-elevated shell with `winget upgrade --id <id> --exact`, and tell the user it may show its own UAC prompt.
 
 Do not stop the script or winget while a package is installing. Stopping an installer midway can leave the package half-installed.
 
