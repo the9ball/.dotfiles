@@ -25,7 +25,7 @@ function Invoke-TurnNotification {
     .OUTPUTS
     System.String. A generic result without input, topic, URL, or response data.
     .NOTES
-    No hook input, Codex home, transcript, or reservation state is read.
+    No hook input is parsed; no Codex home, transcript, or reservation is read.
     All HTTP failures are contained; no retry is performed.
     #>
     $Client = $null
@@ -74,6 +74,12 @@ function Invoke-CodexStopHook {
     System.String. An empty JSON object with no continuation decision.
     #>
     try {
+        if ([Console]::IsInputRedirected) {
+            # Drain without parsing or retaining data so the host's pipe writer can finish.
+            $InputStream = [Console]::OpenStandardInput()
+            try { $InputStream.CopyTo([IO.Stream]::Null) }
+            finally { $InputStream.Dispose() }
+        }
         $null = Invoke-TurnNotification
     }
     catch {

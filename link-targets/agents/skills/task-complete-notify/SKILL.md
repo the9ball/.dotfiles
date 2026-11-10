@@ -22,7 +22,7 @@ Do not overwrite their output wholesale. Their Windows modify templates preserve
 
 ## Runtime contract
 
-- Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The script deliberately ignores `stop_hook_active` and all stdin fields.
+- Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The script drains stdin without parsing or retaining it, and ignores `stop_hook_active` and all input fields.
 - Each invocation makes at most one application HTTP attempt. All 2xx responses succeed; redirects and non-2xx responses fail. There is no retry, watcher, state directory, TTL, UUID lookup, or cancellation API.
 - The HTTP client has a 10-second total request timeout. It stops at response headers without reading the body. The synchronous hook example has a 20-second outer timeout covering process startup too.
 - The script emits only `{}` and exits 0 on delivery success or failure. It never asks Codex to continue or stop. Failure before PowerShell/script startup and the host's own timeout behavior remain outside the script's control.

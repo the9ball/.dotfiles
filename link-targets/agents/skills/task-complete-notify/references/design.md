@@ -19,7 +19,7 @@ Reservations, UUID extraction/ownership, TTL, locks, terminal state, JSONL scann
 No compatibility shim is retained: it would imply that the old reservation API still works.
 The skill directory and Stop script path remain stable for existing registrations.
 
-No hook-input parser remains. Event selection belongs to the Stop registration, not an inferred transcript source.
+No hook-input parser remains. The script drains redirected stdin to Stream.Null without retaining its content: a local 1 MiB dummy-input check reproduced parent-side broken pipe when the hook exited without reading. This transport step lets the host complete its write; it is not identity validation or state management. Event selection belongs to the Stop registration, not an inferred transcript source.
 Other hooks may continue the turn, producing more Stop invocations and notifications; this sender emits no continuation decision.
 It must not also be registered as SubagentStop. Interrupted turns have no separate notification registration.
 
@@ -35,6 +35,6 @@ It must not also be registered as SubagentStop. Interrupted turns have no separa
 
 ## Validation boundary
 
-The offline suite checks all 2xx boundaries, redirects/non-2xx, missing/invalid topics, cancellation by a real HttpClient deadline against an in-memory delayed handler, transport exceptions, fixed request content, no extra headers, generic output, repeated calls without state, and process exit behavior.
+The offline suite checks all 2xx boundaries, redirects/non-2xx, missing/invalid topics, cancellation by a real HttpClient deadline against an in-memory delayed handler, transport exceptions, fixed request content, no extra headers, generic output, repeated calls without state, and process exit behavior with 1 MiB input.
 These tests do not establish real ntfy delivery, current Codex lifecycle dispatch, device display, every permission profile, or WSL operation when native PowerShell is unavailable.
 Keep those limits explicit in the implementation/PR verification record.

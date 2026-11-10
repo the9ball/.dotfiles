@@ -52,7 +52,7 @@ function Invoke-HookProcess {
         Assert-Condition ($Process.Start()) 'process_start'
         $OutputTask = $Process.StandardOutput.ReadToEndAsync()
         $ErrorTask = $Process.StandardError.ReadToEndAsync()
-        $Process.StandardInput.Write('{"last_assistant_message":"private-answer","transcript_path":"private-path","stop_hook_active":true}')
+        $Process.StandardInput.Write('{"last_assistant_message":"' + ('x' * 1048576) + '","transcript_path":"private-path","stop_hook_active":true}')
         $Process.StandardInput.Close()
         if (-not $Process.WaitForExit(5000)) {
             $Process.Kill($true)
