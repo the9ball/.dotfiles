@@ -53,7 +53,7 @@ is Codex's job when the user passes it a plan file.
    - Current date and time
    - If the repository is under Git management, obtain the current commit SHA with `git rev-parse HEAD` (commit messages and other incidental information are unnecessary). Omit this if the repository is not under Git management.
 5. When creating or updating a plan, write it as a Markdown file (Write) or update the existing plan file (Edit). If you are only checking the execution input, do not create or update a plan file.
-   - Follow the destination specified in the prompt. If none is specified, create `~/plans/<short slug expressing the contents>-plan.md` in the user's personal plan directory. Use `plans/` in the repository only if explicitly instructed to keep the plan there.
+   - Follow the destination specified in the prompt. If none is specified, create `.local/<short slug expressing the contents>-plan.md` directly under the work root, following the implementation-planning skill's plan file location. If `.local/` does not exist, create it together with a `.local/.gitignore` whose only content is `*`, and confirm with the read-only `git check-ignore` that the plan path is ignored before writing; if it is not ignored, stop and report instead of writing.
    - If asked to modify a plan, update the existing plan with Edit instead of creating a new file. Do not rewrite its opening tag (creation date and time/Created From Commit); leave its original record intact.
 
 # What not to do
