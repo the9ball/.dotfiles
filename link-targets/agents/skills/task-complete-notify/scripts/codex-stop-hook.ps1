@@ -3,168 +3,121 @@
 [CmdletBinding()]
 param()
 
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-$ProgressPreference = 'SilentlyContinue'
-$ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-$HelperTimeoutMilliseconds = 55000
-
-function Get-JsonProperty {
+function New-NotificationHttpClient {
     <#
     .SYNOPSIS
-    Reads one optional property from a JSON-derived object.
-
-    .PARAMETER InputObject
-    The parsed hook object.
-
-    .PARAMETER Name
-    The exact property name to read.
-
+    Creates a client with a total request deadline and no redirects or cookies.
     .OUTPUTS
-    System.Object. Returns the property value or null when absent.
+    System.Net.Http.HttpClient. The caller must dispose the client.
     #>
-    param(
-        [AllowNull()]
-        [object]$InputObject,
-
-        [Parameter(Mandatory)]
-        [string]$Name
-    )
-
-    if ($null -eq $InputObject) {
-        return $null
-    }
-
-    $Property = $InputObject.PSObject.Properties[$Name]
-    if ($null -eq $Property) {
-        return $null
-    }
-
-    return $Property.Value
+    $Handler = [Net.Http.HttpClientHandler]::new()
+    $Handler.AllowAutoRedirect = $false
+    $Handler.UseCookies = $false
+    $Client = [Net.Http.HttpClient]::new($Handler)
+    $Client.Timeout = [TimeSpan]::FromSeconds(10)
+    return $Client
 }
 
-function Invoke-WindowsHelper {
+function Invoke-TurnNotification {
     <#
     .SYNOPSIS
-    Sends a minimal Stop envelope to the Windows state helper via stdin.
-
-    .PARAMETER RequestJson
-    The JSON envelope containing only safe hook identity fields.
-
+    Publishes a fixed message once using only the process NTFY_TOPIC.
     .OUTPUTS
-    None. Helper output and errors are intentionally discarded so the hook
-    cannot echo a message, topic, transcript content, or response body.
+    System.String. A generic result without input, topic, URL, or response data.
+    .NOTES
+    No hook input is parsed; no Codex home, transcript, or reservation is read.
+    All HTTP failures are contained; no retry is performed.
     #>
-    param(
-        [Parameter(Mandatory)]
-        [string]$RequestJson
-    )
-
-    $HelperPath = Join-Path $ScriptDirectory 'windows-helper.ps1'
-    $PowerShellExecutable = Join-Path $PSHOME 'pwsh.exe'
-
-    if (-not (Test-Path -LiteralPath $HelperPath -PathType Leaf) -or
-        -not (Test-Path -LiteralPath $PowerShellExecutable -PathType Leaf)) {
-        return
-    }
-
-    $Process = $null
+    $Client = $null
+    $Request = $null
+    $Response = $null
     try {
-        $StartInfo = [Diagnostics.ProcessStartInfo]::new()
-        $StartInfo.FileName = $PowerShellExecutable
-        $StartInfo.UseShellExecute = $false
-        $StartInfo.CreateNoWindow = $true
-        $StartInfo.RedirectStandardInput = $true
-        $StartInfo.RedirectStandardOutput = $true
-        $StartInfo.RedirectStandardError = $true
-        $StartInfo.StandardInputEncoding = [Text.UTF8Encoding]::new($false)
-        $StartInfo.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
-        $StartInfo.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
-        [void]$StartInfo.ArgumentList.Add('-NoProfile')
-        [void]$StartInfo.ArgumentList.Add('-NonInteractive')
-        [void]$StartInfo.ArgumentList.Add('-File')
-        [void]$StartInfo.ArgumentList.Add($HelperPath)
-
-        $Process = [Diagnostics.Process]::new()
-        $Process.StartInfo = $StartInfo
-        if (-not $Process.Start()) {
-            return
+        $Topic = [Environment]::GetEnvironmentVariable('NTFY_TOPIC', 'Process')
+        if ([string]::IsNullOrWhiteSpace($Topic)) {
+            return 'topic_missing'
+        }
+        if ($Topic -cnotmatch '\A[-_A-Za-z0-9]{1,64}\z') {
+            return 'topic_invalid'
         }
 
-        $OutputTask = $Process.StandardOutput.ReadToEndAsync()
-        $ErrorTask = $Process.StandardError.ReadToEndAsync()
-        $Process.StandardInput.Write($RequestJson)
-        $Process.StandardInput.Close()
-        if (-not $Process.WaitForExit($HelperTimeoutMilliseconds)) {
-            try {
-                $Process.Kill($true)
-            }
-            catch {
-                # The process is already terminating; keep the best-effort hook.
-            }
-            return
+        $Client = New-NotificationHttpClient
+        $Request = [Net.Http.HttpRequestMessage]::new(
+            [Net.Http.HttpMethod]::Post, "https://ntfy.sh/$Topic"
+        )
+        $Request.Content = [Net.Http.StringContent]::new(
+            'Codex turn finished', [Text.Encoding]::UTF8, 'text/plain'
+        )
+        # Stop after headers: response bodies are unnecessary and may contain secrets.
+        $Response = $Client.SendAsync(
+            $Request, [Net.Http.HttpCompletionOption]::ResponseHeadersRead
+        ).GetAwaiter().GetResult()
+        if ($Response.IsSuccessStatusCode) {
+            return 'success'
         }
-
-        [void]$OutputTask.GetAwaiter().GetResult()
-        [void]$ErrorTask.GetAwaiter().GetResult()
+        return 'http_failure'
     }
     catch {
-        # Stop hooks are best effort; a failed helper must not alter the turn.
+        return 'transport_failure'
     }
     finally {
-        if ($null -ne $Process) {
-            $Process.Dispose()
+        if ($null -ne $Response) { $Response.Dispose() }
+        if ($null -ne $Request) { $Request.Dispose() }
+        if ($null -ne $Client) { $Client.Dispose() }
+    }
+}
+
+function Invoke-CodexStopHook {
+    <#
+    .SYNOPSIS
+    Publishes independently of stdin completion and emits an inert Stop response.
+    .PARAMETER InputStream
+    Optional caller-owned input to discard concurrently. Omit for in-process calls.
+    .OUTPUTS
+    System.String. An empty JSON object with no continuation decision.
+    .NOTES
+    After delivery, input draining gets at most one additional second. The entry
+    process closes its standard input on exit, including a still-pending read.
+    #>
+    param([AllowNull()][IO.Stream]$InputStream)
+
+    $InputDrainTask = $null
+    try {
+        if ($null -ne $InputStream) {
+            # Keep the producer's pipe flowing without making delivery wait for EOF.
+            $InputDrainTask = $InputStream.CopyToAsync([IO.Stream]::Null)
         }
     }
-}
-
-$HookInput = $null
-$InputStream = $null
-$InputReader = $null
-try {
-    $InputStream = [Console]::OpenStandardInput()
-    $InputReader = [IO.StreamReader]::new(
-        $InputStream,
-        [Text.UTF8Encoding]::new($false),
-        $true
-    )
-    $HookText = $InputReader.ReadToEnd()
-    if ([string]::IsNullOrWhiteSpace($HookText)) {
-        exit 0
+    catch {
+        # Input failures must not prevent the independent delivery attempt.
     }
 
-    $HookInput = $HookText | ConvertFrom-Json
+    try {
+        $null = Invoke-TurnNotification
+    }
+    catch {
+        # A notification must never request continuation or change the turn result.
+    }
+
+    if ($null -ne $InputDrainTask) {
+        try { [void]$InputDrainTask.Wait(1000) }
+        catch {
+            # Drain faults are deliberately contained just like HTTP failures.
+        }
+    }
+    return '{}'
 }
-catch {
+
+if ($MyInvocation.InvocationName -ne '.') {
+    try {
+        $InputStream = if ([Console]::IsInputRedirected) { [Console]::OpenStandardInput() } else { $null }
+        $Response = Invoke-CodexStopHook -InputStream $InputStream
+    }
+    catch {
+        $Response = '{}'
+    }
+    try { [Console]::Out.WriteLine($Response) }
+    catch {
+        # A closed output pipe must not produce a secondary hook error.
+    }
     exit 0
 }
-finally {
-    if ($null -ne $InputReader) {
-        $InputReader.Dispose()
-    }
-    if ($null -ne $InputStream) {
-        $InputStream.Dispose()
-    }
-}
-
-$StopHookActive = Get-JsonProperty -InputObject $HookInput -Name 'stop_hook_active'
-$StopHookActiveIsBoolean = $StopHookActive -is [bool]
-if (-not $StopHookActiveIsBoolean) {
-    exit 0
-}
-
-$SafeHook = [ordered]@{
-    hook_event_name = Get-JsonProperty -InputObject $HookInput -Name 'hook_event_name'
-    session_id = Get-JsonProperty -InputObject $HookInput -Name 'session_id'
-    transcript_path = Get-JsonProperty -InputObject $HookInput -Name 'transcript_path'
-    turn_id = Get-JsonProperty -InputObject $HookInput -Name 'turn_id'
-    stop_hook_active = $StopHookActive
-}
-
-$Envelope = [ordered]@{
-    operation = 'stop'
-    hook = $SafeHook
-}
-
-Invoke-WindowsHelper -RequestJson ($Envelope | ConvertTo-Json -Compress)
-exit 0
