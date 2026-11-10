@@ -11,6 +11,7 @@ Duplicates and notification volume are accepted. There is no deduplication or de
 
 The original sender's fixed HTTPS endpoint, environment topic, 2xx check, redirect prohibition, and sanitized failure handling remain useful.
 Its variable-message envelope and layered child processes are unnecessary.
+The body ends with the local send time as `HH:mm:ss`. A health band that relays phone notifications was observed to drop a notification whose text matched the previous one, so identical fixed bodies were lost. The time comes from the local clock, not from hook input, so no prompt, answer, or path reaches the message. Two sends in the same second can still be identical.
 HttpClient replaces Invoke-WebRequest to give the request a single total deadline without adding a watchdog child process.
 ResponseHeadersRead avoids fetching or logging a response body.
 The 20-second hook timeout also bounds runtime startup.

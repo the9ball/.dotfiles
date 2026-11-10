@@ -21,7 +21,7 @@ function New-NotificationHttpClient {
 function Invoke-TurnNotification {
     <#
     .SYNOPSIS
-    Publishes a fixed message once using only the process NTFY_TOPIC.
+    Publishes a fixed message with the local send time once using only the process NTFY_TOPIC.
     .PARAMETER Source
     The agent whose turn finished. Only the two fixed messages can be produced;
     the Claude Code entry point passes Claude, and everything else uses Codex.
@@ -51,8 +51,11 @@ function Invoke-TurnNotification {
         $Request = [Net.Http.HttpRequestMessage]::new(
             [Net.Http.HttpMethod]::Post, "https://ntfy.sh/$Topic"
         )
+        # Some wearables drop a notification identical to the previous one, so the
+        # local send time keeps each body distinct without adding any input data.
+        $SentAt = [DateTime]::Now.ToString('HH:mm:ss', [Globalization.CultureInfo]::InvariantCulture)
         $Request.Content = [Net.Http.StringContent]::new(
-            "$Source turn finished", [Text.Encoding]::UTF8, 'text/plain'
+            "$Source turn finished $SentAt", [Text.Encoding]::UTF8, 'text/plain'
         )
         # Stop after headers: response bodies are unnecessary and may contain secrets.
         $Response = $Client.SendAsync(

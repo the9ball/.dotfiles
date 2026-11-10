@@ -6,7 +6,7 @@ description: Configure or troubleshoot fixed ntfy notifications for every Codex 
 # Agent turn notifications
 
 A trusted Codex Stop hook runs [the PowerShell script](scripts/codex-stop-hook.ps1) once per invocation, without any reservation.
-It sends only `Codex turn finished` to `https://ntfy.sh` using the process environment's `NTFY_TOPIC`. Claude Code uses a separate entry point described under [Claude Code](#claude-code).
+It sends only `Codex turn finished` followed by the local send time as `HH:mm:ss` to `https://ntfy.sh` using the process environment's `NTFY_TOPIC`. The time keeps consecutive bodies distinct, because some wearables drop a notification identical to the previous one. Claude Code uses a separate entry point described under [Claude Code](#claude-code).
 Do not run it against a real topic for testing without authorization for that publish.
 
 ## Setup
@@ -34,7 +34,7 @@ These rules describe the Codex entry point. The Claude Code entry point differs 
 
 ## Claude Code
 
-Claude Code runs [its own entry point](scripts/claude-stop-hook.ps1), which reuses the shared sender and sends only `Claude turn finished`.
+Claude Code runs [its own entry point](scripts/claude-stop-hook.ps1), which reuses the shared sender and sends only `Claude turn finished` followed by the local send time.
 Claude Code fires `Stop` whenever a response ends, including when background work such as a background subagent or shell will resume the session later. To notify only when the session waits for the user, this entry point differs from the Codex rules above as follows:
 
 - It reads the hook input to the end, within 16 MiB and 3 seconds, and inspects only `background_tasks` and `session_crons`. No input value is retained, logged, or sent.

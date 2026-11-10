@@ -187,7 +187,7 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         Assert-Condition ((Invoke-TurnNotification) -ceq 'success') 'every_2xx_succeeds'
         Assert-Condition ($FixtureHandler.Calls -eq 1) 'one_attempt'
         Assert-Condition ($FixtureHandler.Disposed) 'client_disposed'
-        Assert-Condition ($FixtureHandler.Body -ceq 'Codex turn finished') 'fixed_body'
+        Assert-Condition ($FixtureHandler.Body -cmatch '\ACodex turn finished \d{2}:\d{2}:\d{2}\z') 'fixed_body'
         Assert-Condition ($FixtureHandler.Uri -ceq 'https://ntfy.sh/offline-fixture-topic') 'fixed_destination'
         Assert-Condition ($FixtureHandler.Method -ceq 'POST') 'post_method'
         Assert-Condition ($FixtureHandler.MediaType -ceq 'text/plain') 'plain_text'
@@ -195,13 +195,24 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
     }
 
     foreach ($SourceCase in @(
-            @{ Source = 'Codex'; Body = 'Codex turn finished' },
-            @{ Source = 'Claude'; Body = 'Claude turn finished' })) {
+            @{ Source = 'Codex'; Pattern = '\ACodex turn finished \d{2}:\d{2}:\d{2}\z' },
+            @{ Source = 'Claude'; Pattern = '\AClaude turn finished \d{2}:\d{2}:\d{2}\z' })) {
         $script:FixtureHandler = [NotificationFixtureHandler]::new()
         Assert-Condition ((Invoke-TurnNotification -Source $SourceCase.Source) -ceq 'success') 'source_success'
         Assert-Condition ($FixtureHandler.Calls -eq 1) 'source_one_attempt'
-        Assert-Condition ($FixtureHandler.Body -ceq $SourceCase.Body) 'source_fixed_body'
+        Assert-Condition ($FixtureHandler.Body -cmatch $SourceCase.Pattern) 'source_fixed_body'
     }
+
+    $FirstBody = $null
+    $Attempts = 0
+    do {
+        $script:FixtureHandler = [NotificationFixtureHandler]::new()
+        $null = Invoke-TurnNotification
+        if ($null -eq $FirstBody) { $FirstBody = $FixtureHandler.Body }
+        $Attempts++
+        if ($FixtureHandler.Body -ceq $FirstBody) { Start-Sleep -Milliseconds 250 }
+    } while ($FixtureHandler.Body -ceq $FirstBody -and $Attempts -lt 12)
+    Assert-Condition ($FixtureHandler.Body -cne $FirstBody) 'body_changes_with_send_time'
 
     $IdleInputs = @(
         $null,
@@ -233,7 +244,7 @@ public sealed class NotificationFixtureHandler : HttpMessageHandler
         Assert-Condition ((Invoke-ClaudeStopHook -InputStream $ClaudeInput) -ceq '{}') 'claude_inert_hook'
         Assert-Condition ($FixtureHandler.Calls -eq $ClaudeCase.Calls) 'claude_sends_only_when_idle'
         if ($ClaudeCase.Calls -eq 1) {
-            Assert-Condition ($FixtureHandler.Body -ceq 'Claude turn finished') 'claude_fixed_body'
+            Assert-Condition ($FixtureHandler.Body -cmatch '\AClaude turn finished \d{2}:\d{2}:\d{2}\z') 'claude_fixed_body'
         }
     }
 
