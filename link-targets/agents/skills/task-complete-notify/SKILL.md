@@ -30,6 +30,7 @@ These rules describe the Codex entry point. The Claude Code entry point differs 
 - The script emits only `{}` and exits 0 on delivery success or failure. It never asks Codex to continue or stop. Failure before PowerShell/script startup and the host's own timeout behavior remain outside the script's control.
 - No prompt, answer, thread name, transcript, path, credentials, topic, or response body is sent as message content or written to notification logs/state. The topic is necessarily part of the destination URL seen by ntfy and the network stack.
 - Missing or invalid topics quietly skip sending. DNS, TLS, timeout, and HTTP errors are suppressed. Absence of an error is not proof of delivery.
+- A Codex notification means only that a Stop event was reached. It does not guarantee that all work has finished or that Codex waits for the user: another hook may continue the turn, and background terminals or subagents may still be running. The Codex Stop input has no field that tells these cases apart.
 
 ## Claude Code
 

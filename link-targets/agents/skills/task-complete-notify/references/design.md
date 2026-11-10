@@ -41,6 +41,10 @@ Keep those limits explicit in the implementation/PR verification record.
 
 The WSL hooks source uses the same modify template as both Windows homes, preserving unrelated Stop handlers instead of replacing the whole file. Isolated chezmoi tests render Linux and Windows dummy environments and verify Stop preservation, a single managed auth handler, and byte-stable reapplication for all three homes. No production chezmoi apply is performed by these tests.
 
+## Codex Stop as a completion signal
+
+A Codex re-check on 2026-11-10, prompted by the Claude Code findings below, kept `Stop` for Codex but limited what it means. The Stop input schema embedded in Codex CLI 0.167.0 has nine required fields (`hook_event_name`, `cwd`, `session_id`, `turn_id`, `model`, `permission_mode`, `last_assistant_message`, `transcript_path`, `stop_hook_active`) and none that reports background work. The same binary contains background terminals, subagents, agent-message wakeups, and Stop continuation, so a Stop notification can precede the end of all work. The legacy `notify` event `agent-turn-complete`, `SubagentStop`, `SessionEnd`, and terminal notifications showed no evidence of a better completion signal. These findings come from static inspection of the CLI, not from runtime experiments; the desktop app and the WSL CLI were not inspected. A Codex notification is therefore documented as "Stop reached", not "all work finished".
+
 ## Claude Code
 
 Claude Code has its own entry point, `claude-stop-hook.ps1`, which dot-sources the Codex script for the shared sender and calls it with `-Source Claude`. The sender's `-Source` accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The Codex script takes no parameters and still parses no input, so existing Codex command strings, and their trust hashes, are unchanged.
