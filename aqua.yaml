@@ -43,7 +43,7 @@ packages:
 - name: ahmetb/kubectx@v0.11.0
 # kubensも同様に、chezmoi/.chezmoiexternal.tomlの補完スクリプトのタグとsha256を揃える。
 - name: ahmetb/kubectx/kubens@v0.11.0
-- name: aws/aws-cli@2.39.6
+- name: aws/aws-cli@2.39.7
 - name: 99designs/aws-vault@v7.2.0
 - name: cli/cli@v2.103.3
 - name: jqlang/jq@jq-1.8.2
@@ -57,7 +57,7 @@ packages:
 - name: itaysk/kubectl-neat@v2.0.4
 - name: stern/stern@v1.35.0
 - name: astral-sh/uv@0.13.7
-- name: anthropics/claude-code@v2.1.319
+- name: anthropics/claude-code@v2.1.322
 - name: BurntSushi/ripgrep@15.2.0
 - name: bootandy/dust@v1.2.7
 - name: nektos/act@v0.2.97
@@ -76,7 +76,7 @@ packages:
 - name: ip7z/7zip@26.06
 - name: koalaman/shellcheck@v0.11.0
   tags: [ci]
-- name: mikefarah/yq@v4.54.2
+- name: mikefarah/yq@v4.54.3
   tags: [ci]
 - name: terraform-linters/tflint@v0.66.0
 - name: rclone/rclone@v1.76.0
