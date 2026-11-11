@@ -36,7 +36,7 @@ When the request contains everything to judge and needs no further reading, disa
 
 ```powershell
 $ClaudeProcess = Start-Process -FilePath (Get-Command claude).Source `
-  -ArgumentList '--safe-mode --no-session-persistence --permission-mode plan --permission-prompts none --disallowedTools * --output-format stream-json --verbose --print' `
+  -ArgumentList '--safe-mode --no-session-persistence --permission-mode plan --permission-prompts none --disallowedTools "*" --output-format stream-json --verbose --print' `
   -RedirectStandardInput $ClaudeRequestFile `
   -RedirectStandardOutput $ClaudeResponseFile `
   -RedirectStandardError $ClaudeErrorFile `
@@ -46,14 +46,14 @@ $ClaudeExitCode = $ClaudeProcess.ExitCode
 
 - `--safe-mode` loads no customizations such as `CLAUDE.md`, plugins, or hooks, and keeps the normal authentication route.
 - `--disallowedTools "*"` removes every built-in and MCP tool.
-- `--permission-mode plan` and `--permission-prompts none` make the call plan-only and read-only.
+- `--permission-mode plan` and `--permission-prompts none` keep Claude from changing files through its permission system and from waiting for approval prompts. They are not an OS-level sandbox.
 - `--no-session-persistence` does not save the session.
 - `--output-format stream-json --verbose` streams events as JSON Lines so the call can be observed while it runs. Do not use `--output-format json`, which prints everything only at the end.
 - `Start-Process -Wait` waits for the CLI without a timeout of its own.
 
 ### Autonomous read-only investigation
 
-When Claude needs to read more than the request contains, keep the form above but replace `--disallowedTools *` with `--tools "Read,Grep,Glob,Agent" --disallowedTools "mcp__*"`, which limits Claude to reading tools and child agents.
+When Claude needs to read more than the request contains, keep the form above but replace `--disallowedTools "*"` with `--tools "Read,Grep,Glob,Agent" --disallowedTools "mcp__*"`, which limits Claude to reading tools and child agents.
 
 - `--tools` sets which built-in tools exist; `--allowedTools` sets which operations run without approval. Do not treat them as the same.
 - When the investigation must run commands, such as getting a Git diff, add `Bash` to `--tools` and list only the needed read-only operations in `--allowedTools`. Do not allow broad patterns such as `Bash(git *)`, which include changing operations, and do not disable permission checks. `plan` mode is not an OS-level read-only sandbox, so state the no-change rule and the read scope to child agents as well.

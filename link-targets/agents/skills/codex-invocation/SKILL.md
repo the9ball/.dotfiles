@@ -30,13 +30,19 @@ The examples use Windows PowerShell and `Start-Process`. The rules apply on any 
 
 ### Common settings
 
-Always add these two settings:
+Always add two settings: one turns off the managed network proxy, and the other turns off network access in the permission profile that the child will actually use. Profiles are selected by name, and the `default_permissions` key of the Codex home's `config.toml` names the active one, so a fixed name such as `default-permissions` only works for a home whose active profile has that name. Resolve the name from the home the child inherits (`CODEX_HOME`, or `~/.codex` when it is unset):
 
-```text
--c features.network_proxy=false -c permissions.default-permissions.network.enabled=false
+```powershell
+$CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+$ProfileMatch = Select-String -LiteralPath (Join-Path $CodexHome 'config.toml') `
+  -Pattern '^\s*default_permissions\s*=\s*"([A-Za-z0-9_-]+)"\s*$' | Select-Object -First 1
+if ($null -eq $ProfileMatch) { throw 'No named default_permissions profile; ask the user before starting Codex.' }
+$ActiveProfile = $ProfileMatch.Matches[0].Groups[1].Value
+$NetworkOffSettings = "-c features.network_proxy=false -c permissions.$ActiveProfile.network.enabled=false"
 ```
 
-- They turn off network access and the managed network proxy for that call only. They only narrow the sandbox, so they need no separate confirmation.
+- If the home has no `default_permissions` line, names a built-in profile (one starting with `:`), or selects a profile in another way, such as `-p` or a project-level configuration, stop and ask the user instead of guessing. Never switch the profile or the sandbox mode to make the setting apply.
+- The two settings turn off network access and the managed network proxy for that call only. They only narrow the sandbox, so they need no separate confirmation.
 - Where Codex enables sandbox network access, it routes it through managed networking. On Windows that requires the elevated sandbox, which a non-administrator user cannot set up. There every shell command then fails, regardless of whether it uses the network, and `codex review` ends with `Review blocked …` and exit code 0. `-c sandbox_workspace_write.network_access=false` alone does not avoid this.
 - When a request needs the network, do not run it with these settings, and do not switch the sandbox mode on your own. Ask the user.
 - Never use `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, or `--approve-for-me`.
@@ -63,7 +69,7 @@ The hook still starts, finds no topic, sends nothing, and ends successfully.
 
 ```powershell
 $CodexProcess = Start-Process -FilePath (Get-Command codex).Source `
-  -ArgumentList 'review --base origin/master -c features.network_proxy=false -c permissions.default-permissions.network.enabled=false' `
+  -ArgumentList "review --base origin/master $NetworkOffSettings" `
   -RedirectStandardOutput $CodexResponseFile `
   -RedirectStandardError $CodexErrorFile `
   -NoNewWindow -Wait -PassThru
@@ -77,7 +83,7 @@ $CodexExitCode = $CodexProcess.ExitCode
 
 ```powershell
 $CodexProcess = Start-Process -FilePath (Get-Command codex).Source `
-  -ArgumentList "exec --sandbox read-only --ephemeral -c features.network_proxy=false -c permissions.default-permissions.network.enabled=false -o `"$CodexLastMessageFile`" -" `
+  -ArgumentList "exec --sandbox read-only --ephemeral $NetworkOffSettings -o `"$CodexLastMessageFile`" -" `
   -RedirectStandardInput $CodexRequestFile `
   -RedirectStandardOutput $CodexResponseFile `
   -RedirectStandardError $CodexErrorFile `
