@@ -34,14 +34,20 @@ Always add two settings: one turns off the managed network proxy, and the other 
 
 ```powershell
 $CodexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
-$ProfileMatch = Select-String -LiteralPath (Join-Path $CodexHome 'config.toml') `
-  -Pattern '^\s*default_permissions\s*=\s*"([A-Za-z0-9_-]+)"\s*$' | Select-Object -First 1
+# A top-level TOML key must come before the first table header, so stop scanning there.
+$TopLevelLines = foreach ($ConfigLine in Get-Content -LiteralPath (Join-Path $CodexHome 'config.toml')) {
+  if ($ConfigLine -match '^\s*\[') { break }
+  $ConfigLine
+}
+$ProfileMatch = $TopLevelLines |
+  Select-String -CaseSensitive -Pattern '^\s*default_permissions\s*=\s*"([A-Za-z0-9_-]+)"\s*$' |
+  Select-Object -First 1
 if ($null -eq $ProfileMatch) { throw 'No named default_permissions profile; ask the user before starting Codex.' }
 $ActiveProfile = $ProfileMatch.Matches[0].Groups[1].Value
 $NetworkOffSettings = "-c features.network_proxy=false -c permissions.$ActiveProfile.network.enabled=false"
 ```
 
-- If the home has no `default_permissions` line, names a built-in profile (one starting with `:`), or selects a profile in another way, such as `-p` or a project-level configuration, stop and ask the user instead of guessing. Never switch the profile or the sandbox mode to make the setting apply.
+- If the home has no top-level `default_permissions` line or names a built-in profile (one starting with `:`), stop and ask the user instead of guessing. Before the call, also check whether the target repository's `.codex/config.toml` or a managed configuration you can see sets `default_permissions`, and whether the call would pass `-p`; if so, stop and ask as well. Never switch the profile or the sandbox mode to make the setting apply.
 - The two settings turn off network access and the managed network proxy for that call only. They only narrow the sandbox, so they need no separate confirmation.
 - Where Codex enables sandbox network access, it routes it through managed networking. On Windows that requires the elevated sandbox, which a non-administrator user cannot set up. There every shell command then fails, regardless of whether it uses the network, and `codex review` ends with `Review blocked …` and exit code 0. `-c sandbox_workspace_write.network_access=false` alone does not avoid this.
 - When a request needs the network, do not run it with these settings, and do not switch the sandbox mode on your own. Ask the user.
@@ -63,7 +69,7 @@ finally {
 }
 ```
 
-The hook still starts, finds no topic, sends nothing, and ends successfully.
+With `codex exec`, the hook still starts, finds no topic, sends nothing, and ends successfully. Whether hooks run during `codex review` has not been observed; removing the variable keeps a notification hook from sending in either case.
 
 ### Review
 
