@@ -108,6 +108,7 @@
 - Use `review-consolidation` for an identifiable Issue/PR when explicitly requested by 「保守」, 「レビュー保守」 or `review-consolidation`, or when the requested outcome clearly consolidates review discussion points or updates the current plan/state from review conclusions. Do not trigger for mere reading, status checks, individual replies or unrelated edits. Skill discovery does not grant external-operation authorization; follow the Skill for details. The detailed contract will be left to the corresponding Skill.
 - When posting issues, pull requests, review comments, etc. where other users can see them, do not include local environment-specific information in the body of the post unless explicitly requested. Detailed posting contract will be left to `external-posting` Skill.
 - If a skill's runtime contract contains conditional dependencies that cannot be resolved, do not omit them; stop the work fail-safe instead of guessing.
+- Before starting the Codex CLI or the Claude Code CLI as a non-interactive child process from an agent or a script, read and apply `link-targets/agents/skills/codex-invocation/SKILL.md` or `link-targets/agents/skills/claude-invocation/SKILL.md`, respectively, using the shared instruction-root resolution rules. If the Skill cannot be resolved and read, stop the invocation and report the missing source.
 
 ## Scope confirmation before file changes
 
