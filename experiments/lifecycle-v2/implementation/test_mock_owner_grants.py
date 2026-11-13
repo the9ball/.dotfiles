@@ -1,6 +1,7 @@
 """Expected-outcome tests for the isolated cooperative owner-grant profile."""
 
 import copy
+import json
 import os
 import sqlite3
 import subprocess
@@ -534,6 +535,157 @@ class MockOwnerGrantTests(unittest.TestCase):
                 connection.close()
             with self.subTest(corruption=corruption), self.assertRaises(Denied):
                 fixture.start()
+
+    def test_caller_mutation_cannot_authorize_or_change_private_snapshot(self):
+        """Caller alias changes cannot authorize cap99 or change an authorized cap3 snapshot."""
+        fixture = GrantFixture(bootstrap=False)
+        self.addCleanup(fixture.close)
+        original = copy.deepcopy(fixture.approval_draft)
+        original["payload"]["cumulative_caps"]["repair_cap"] = 99
+        armed = [False]
+        def mutate_caller():
+            """Change only caller-owned nested data after the request snapshot is taken."""
+            if armed[0]:
+                original["payload"]["cumulative_caps"]["repair_cap"] = 3
+            return fixture.clock()
+        fixture.start(fixture.profile(clock=mutate_caller))
+        fixture.open()
+        armed[0] = True
+        with self.assertRaises(Denied):
+            fixture.approve(event=original)
+        self.assertEqual(original["payload"]["cumulative_caps"]["repair_cap"], 3)
+        self.assertEqual(fixture.uses(), 0)
+        self.assertEqual(fixture.store.connection.execute("SELECT COUNT(*) FROM events").fetchone()[0], 1)
+        self.assertTrue(fixture.store.healthy)
+        self.assertFalse(fixture.store.connection.in_transaction)
+
+        fixture = GrantFixture(bootstrap=False)
+        self.addCleanup(fixture.close)
+        original = copy.deepcopy(fixture.approval_draft)
+        armed = [False]
+        def mutate_caller():
+            """Mutate the caller's nested payload while leaving the private request untouched."""
+            if armed[0]:
+                original["payload"]["cumulative_caps"]["repair_cap"] = 99
+            return fixture.clock()
+        fixture.start(fixture.profile(clock=mutate_caller))
+        fixture.open()
+        armed[0] = True
+        result = fixture.approve(event=original)
+        self.assertEqual(result.status, "COMMITTED_ADMISSION")
+        self.assertEqual(original["payload"]["cumulative_caps"]["repair_cap"], 99)
+        event = parse_json(fixture.store.connection.execute("SELECT body FROM events ORDER BY sequence DESC LIMIT 1").fetchone()[0])
+        request = parse_json(fixture.store.connection.execute("SELECT body FROM owner_requests WHERE command_id=?", (event["command_id"],)).fetchone()[0])
+        self.assertEqual(event["payload"]["cumulative_caps"]["repair_cap"], 3)
+        self.assertEqual(request["request"]["drafts"][0]["payload"]["cumulative_caps"]["repair_cap"], 3)
+        self.assertEqual(fixture.uses(), 1)
+        self.assertEqual(fixture.store.replay(), fixture.store.state)
+
+    def test_validator_exceptions_close_before_cleanup_and_require_reopen(self):
+        """Parser/protocol exceptions at either schema phase cannot preserve readiness or mask cleanup failure."""
+        for phase in ("original", "normalized"):
+            for error_type in (json.JSONDecodeError, ValueError, Denied, TimeoutError):
+                for rollback_failure in (False, True):
+                    with self.subTest(phase=phase, error=error_type.__name__, rollback_failure=rollback_failure):
+                        fixture = GrantFixture()
+                        self.addCleanup(fixture.close)
+                        fixture.open()
+                        delegate = fixture.store.validator
+                        original_error = error_type("owned invalid reply", "?", 0) if error_type is json.JSONDecodeError else error_type("owned protocol exception")
+                        class ValidatorFault:
+                            """Keep real historical checks and fail only the fresh selected approval phase."""
+                            def validate(self, event):
+                                """Raise the original exception object at the original or normalized schema boundary."""
+                                if event["event_type"] == "ApprovalRecorded" and (event["sequence"] == 1) == (phase == "original"):
+                                    raise original_error
+                                return delegate.validate(event)
+                        real = fixture.store.connection
+                        cleanup_health = []
+                        class RollbackObservation(SQLFault):
+                            """Observe health at rollback before forwarding the optional injected storage failure."""
+                            def execute(self, sql, parameters=()):
+                                """Record cleanup entry health to prove closure precedes the cleanup attempt."""
+                                if sql == "ROLLBACK":
+                                    cleanup_health.append(fixture.store.healthy)
+                                return super().execute(sql, parameters)
+                        fixture.store.connection = RollbackObservation(real, "NEVER", rollback=rollback_failure)
+                        fixture.store.validator = ValidatorFault()
+                        with self.assertRaises((error_type, StorageFailure)) as caught:
+                            fixture.approve()
+                        if error_type is TimeoutError:
+                            self.assertIs(caught.exception.__cause__, original_error)
+                        else:
+                            self.assertIs(caught.exception, original_error)
+                        self.assertFalse(fixture.store.healthy)
+                        self.assertFalse(fixture.store.ready())
+                        self.assertTrue(cleanup_health)
+                        self.assertEqual(set(cleanup_health), {False})
+                        self.assertEqual(fixture.uses(), 0)
+                        self.assertEqual(real.execute("SELECT COUNT(*) FROM events").fetchone()[0], 1)
+                        if rollback_failure:
+                            self.assertTrue(fixture.store.cleanup_failures)
+                        else:
+                            self.assertFalse(real.in_transaction)
+                        with self.assertRaises(Denied):
+                            fixture.approve()
+                        with self.assertRaises(Denied):
+                            fixture.store.replay()
+                        fixture.store.connection = real
+                        fixture.store.validator = delegate
+                        fixture.restart()
+                        fixture.approval_draft["writer_generation"] = fixture.store.state["writer_generation"]
+                        self.assertTrue(fixture.store.ready())
+                        self.assertEqual(fixture.approve().status, "COMMITTED_ADMISSION")
+                        self.assertEqual(fixture.uses(), 1)
+                        fixture.close()
+
+        for error_type in (ValueError, Denied):
+            fixture = GrantFixture()
+            self.addCleanup(fixture.close)
+            fixture.open()
+            delegate = fixture.store.validator
+            original_error = error_type("owned historical protocol failure")
+            class HistoricalFault:
+                """Inject a protocol exception during replay of already committed evidence."""
+                def validate(self, event):
+                    """Raise the original exception instead of a schema verdict."""
+                    raise original_error
+            fixture.store.validator = HistoricalFault()
+            with self.subTest(error=error_type.__name__), self.assertRaises(error_type) as caught:
+                fixture.store.replay()
+            self.assertIs(caught.exception, original_error)
+            self.assertFalse(fixture.store.healthy)
+            self.assertFalse(fixture.store.ready())
+            with self.assertRaises(Denied):
+                fixture.approve()
+            fixture.store.validator = delegate
+            fixture.restart()
+            self.assertTrue(fixture.store.ready())
+            fixture.close()
+    def test_false_schema_verdict_remains_reusable_policy_rejection(self):
+        """A valid false worker verdict rolls back cleanly without being confused with protocol failure."""
+        for phase in ("original", "normalized"):
+            fixture = GrantFixture()
+            self.addCleanup(fixture.close)
+            fixture.open()
+            delegate = fixture.store.validator
+            class FalseVerdict:
+                """Return a structurally valid false verdict for the selected fresh validation phase."""
+                def validate(self, event):
+                    """Delegate all other events to the existing real schema worker."""
+                    if event["event_type"] == "ApprovalRecorded" and (event["sequence"] == 1) == (phase == "original"):
+                        return False
+                    return delegate.validate(event)
+            fixture.store.validator = FalseVerdict()
+            with self.subTest(phase=phase), self.assertRaises(Denied):
+                fixture.approve()
+            self.assertTrue(fixture.store.healthy)
+            self.assertTrue(fixture.store.ready())
+            self.assertFalse(fixture.store.connection.in_transaction)
+            self.assertEqual(fixture.uses(), 0)
+            fixture.store.validator = delegate
+            self.assertEqual(fixture.approve().status, "COMMITTED_ADMISSION")
+            fixture.close()
 
     def test_owned_child_crash_before_and_after_commit(self):
         """An owned process exit preserves the all-or-nothing transaction boundary on reopen."""

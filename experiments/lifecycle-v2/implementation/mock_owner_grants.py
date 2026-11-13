@@ -73,6 +73,9 @@ def guarded(function):
             cleanup(store)
             raise StorageFailure("Protected ledger uncertain; no ACK") from error
         except Denied:
+            if not store.healthy:
+                cleanup(store)
+                raise
             if function.__name__ in {"replay", "finish_recovery", "get_blob"}:
                 store.healthy = False
             try:
@@ -83,8 +86,20 @@ def guarded(function):
                 cleanup(store)
                 raise StorageFailure("Protected rejection rollback failed; no ACK") from error
             raise
+        except Exception:
+            store.healthy = False
+            cleanup(store)
+            raise
     return call
 
+
+def validate_schema(store, event):
+    """Distinguish validator protocol exceptions from an ordinary false schema verdict."""
+    try:
+        return store.validator.validate(event)
+    except Exception:
+        store.healthy = False
+        raise
 
 def cleanup(store):
     """Attempt rollback without masking the original error or restoring health."""
@@ -286,7 +301,7 @@ class MockOwnerProfile:
             require(type(drafts) is list and bool(drafts) and all(type(draft) is dict and set(draft) == DRAFT_FIELDS for draft in drafts), "Original drafts incomplete")
             for draft in drafts:
                 store.authenticate(draft)
-                require(store.validator.validate(draft), "Original draft schema invalid")
+                require(validate_schema(store, draft), "Original draft schema invalid")
             require(fingerprint == digest(encoded(request)), "Original fingerprint differs")
             require(integer(record["first_sequence"]) and record["first_sequence"] > 0, "Invalid recorded first sequence")
             require(encoded(self._normalize(drafts, command_id, record)) == encoded(batch), "Original request reconstruction differs")
@@ -323,8 +338,9 @@ class MockOwnerProfile:
 
     def append(self, store, drafts, command_id, blobs, fault, authorization):
         """Admit once in the existing connection transaction, or return ACK-only readback."""
+        drafts = parse_json(encoded(drafts))
         resolved = self.authorization(drafts, authorization)
-        request = {"drafts": parse_json(encoded(drafts)), "authorization": resolved}
+        request = {"drafts": drafts, "authorization": resolved}
         command_id = command_id or identity()
         text(command_id)
         connection = store.connection
@@ -346,7 +362,7 @@ class MockOwnerProfile:
         require(store.state["writer_generation"] == store.fence or (transfer and drafts[0]["payload"]["new_generation"] == store.fence), "Writer fence not reconciled")
         for draft in drafts:
             store.authenticate(draft)
-            require(store.validator.validate(draft), "Original draft schema invalid")
+            require(validate_schema(store, draft), "Original draft schema invalid")
         first_clock = clock_value(self._clock_reader())
         self._clock_order(first_clock, last_clock)
         self._clock_order(first_clock, store.state["last_clock"])
@@ -371,7 +387,7 @@ class MockOwnerProfile:
         candidate = copy.deepcopy(store.state)
         for event in normalized:
             store.authenticate(event)
-            require(store.validator.validate(event), "Full event schema rejection")
+            require(validate_schema(store, event), "Full event schema rejection")
             candidate = apply_event(candidate, event)
         store.check_effects(normalized, store.state)
         for raw in blobs:
