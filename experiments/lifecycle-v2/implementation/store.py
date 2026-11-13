@@ -8,13 +8,16 @@ from pathlib import Path
 
 from common import Denied, StorageFailure, artifact, canonical, digest, identity, parse_json, receipt_findings
 from reducer import apply_event, initial_state, require
+from mock_owner_grants import guarded
 
 
 class EventStore:
     """Single-host prototype; same-user malicious tampering is not authenticated."""
 
-    def __init__(self, directory, contract, validator, principals):
+    def __init__(self, directory, contract, validator, principals, mock_profile=None):
         """Acquire an OS lock before opening the private local database."""
+        self.mock_profile = mock_profile
+        self.cleanup_failures = []
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.contract, self.validator, self.principals = copy.deepcopy(contract), validator, copy.deepcopy(principals)
@@ -63,6 +66,12 @@ class EventStore:
                     BEGIN SELECT RAISE(ABORT, 'immutable blob'); END;
             ''')
             require(self.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok", "Database integrity failure")
+            if self.mock_profile is not None:
+                self.mock_profile.initialize(self)
+            else:
+                protected = self.connection.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='owner_policy'").fetchone()
+                marker = self.connection.execute("SELECT value FROM runtime WHERE key='mock_owner_profile'").fetchone()
+                require(protected is None and marker is None, "Protected database requires its exact mock profile")
             self.state = self.replay()
             marker = self.connection.execute("SELECT value FROM runtime WHERE key='run_open'").fetchone()
             self.prior_unclean = marker is not None and marker[0] != "false"
@@ -74,15 +83,23 @@ class EventStore:
             self.connection.execute("INSERT OR REPLACE INTO runtime VALUES ('run_open', 'true')")
             self.connection.execute("COMMIT")
         except Exception:
+            self.healthy = False
             if hasattr(self, "connection"):
-                self.connection.close()
-            self.lock_file.close()
+                try:
+                    self.connection.close()
+                except Exception as cleanup_error:
+                    self.cleanup_failures.append(type(cleanup_error).__name__)
+            try:
+                self.lock_file.close()
+            except Exception as cleanup_error:
+                self.cleanup_failures.append(type(cleanup_error).__name__)
             raise
 
     def ready(self):
         """Withhold operational rights until this locked writer has reconciled durable history."""
         return self.healthy and not self.closed and not self.recovery_pending and self.state["writer_generation"] == self.fence
 
+    @guarded
     def finish_recovery(self):
         """Reconcile local committed effects and latch uncertain jobs before releasing permissions."""
         require(self.healthy and not self.closed, "Recovery store unavailable")
@@ -103,21 +120,37 @@ class EventStore:
         """Release only this writer; unverified recovery and storage failures retain the marker."""
         if self.closed:
             return
+        failure = None
         try:
             if self.healthy and not self.recovery_pending:
                 self.connection.execute("INSERT OR REPLACE INTO runtime VALUES ('run_open', 'false')")
+        except (sqlite3.Error, OSError) as error:
+            self.healthy = False
+            failure = error
         finally:
             self.healthy = False
             self.closed = True
-            self.connection.close()
-            self.lock_file.close()
+            try:
+                self.connection.close()
+            except Exception as error:
+                self.cleanup_failures.append(type(error).__name__)
+                failure = failure or error
+            try:
+                self.lock_file.close()
+            except Exception as error:
+                self.cleanup_failures.append(type(error).__name__)
+                failure = failure or error
+        if failure is not None:
+            raise StorageFailure("Store close failed; no durable clean-close claim") from failure
 
+    @guarded
     def get_blob(self, reference):
         """Load exact bytes and require both byte length and content hash to match."""
         row = self.connection.execute("SELECT body FROM blobs WHERE sha256=?", (reference["sha256"],)).fetchone()
         require(row is not None and len(row[0]) == reference["bytes"] and digest(row[0]) == reference["sha256"], "Artifact unavailable or corrupt")
         return row[0]
 
+    @guarded
     def put_blob(self, raw, media_type="application/json"):
         """Persist a non-receipt artifact; receipt bytes use the T1 batch instead."""
         require(self.healthy and not self.closed, "Store is fail-closed")
@@ -203,9 +236,13 @@ class EventStore:
         require(cursor == len(events) - 1, "Unexpected T2 effects")
         require(payload["effect_event_ids"] == effect_ids, "Effect manifest mismatch")
 
-    def append(self, drafts, command_id=None, blobs=(), fault=None):
+    @guarded
+    def append(self, drafts, command_id=None, blobs=(), fault=None, authorization=None):
         """Atomically commit authenticated, schema-valid events and deduplicate commands."""
         require(self.healthy and not self.closed, "Store is fail-closed")
+        if self.mock_profile is not None:
+            return self.mock_profile.append(self, drafts, command_id, blobs, fault, authorization)
+        require(authorization is None, "Legacy mock profile has no grant authorization")
         durable_fence = self.connection.execute("SELECT value FROM runtime WHERE key='fence'").fetchone()
         require(durable_fence is not None and int(durable_fence[0]) == self.fence, "Stale writer fence")
         if self.recovery_pending:
@@ -262,8 +299,11 @@ class EventStore:
         self.state = candidate
         return event_ids
 
+    @guarded
     def replay(self):
         """Validate the complete immutable history before reconstructing any permissions."""
+        if self.mock_profile is not None:
+            self.mock_profile.validate_history(self)
         state, previous_hash, transactions = initial_state(self.contract), None, []
         rows = self.connection.execute("SELECT sequence,event_id,gate_id,command_id,body FROM events ORDER BY sequence").fetchall()
         for expected, row in enumerate(rows, 1):
