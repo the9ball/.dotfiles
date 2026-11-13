@@ -145,3 +145,64 @@ class AdvisorRegressionTests(unittest.TestCase):
             pinned_command([str(self.directory / "different.exe")], executable, image)
         with self.assertRaises(Denied):
             pinned_command(["pwsh.exe"], executable, "0" * 64)
+
+    def protocol_worker(self, phase, reply):
+        """Offer a normal reply after one violation in a uniquely owned worker fixture."""
+        directory = Path(tempfile.mkdtemp(prefix="protocol-case-", dir=self.directory))
+        readiness = b'{"ready":true,"metaschema":true,"format_assertion":true,"explicit_metaschema":true,"input_codepage":65001,"output_codepage":65001}\n'
+        script = '''import sys
+ready=bytes.fromhex(READY_HEX)
+bad=bytes.fromhex(BAD_HEX)
+valid=b'{"valid":true}\\n'
+def send(reply):
+    """Emit one synthetic reply without text newline translation."""
+    sys.stdout.buffer.write(reply)
+    sys.stdout.buffer.flush()
+if PHASE == 'start':
+    send(bad)
+    send(ready)
+    for line in sys.stdin.buffer:
+        send(valid)
+else:
+    send(ready)
+    for number,line in enumerate(sys.stdin.buffer):
+        send(bad if number == 0 else valid)
+'''.replace("READY_HEX", repr(readiness.hex())).replace("BAD_HEX", repr(reply.hex())).replace("PHASE", repr(phase))
+        session = SchemaSession([sys.executable, "-I", "-u", "-c", script], directory,
+                                response_timeout=5, shutdown_timeout=2)
+        self.addCleanup(session.close)
+        return session, directory
+
+    def assert_protocol_failure_latched(self, phase):
+        """Reject all further I/O and success persistence after each protocol violation."""
+        replies = [("invalid-json", b"{\n"), ("list", b"[]\n"), ("null", b"null\n"),
+                   ("duplicate-keys", b'{"ready":true,"ready":false,"valid":true,"valid":false}\n'),
+                   ("invalid-object", b"{}\n"), ("invalid-utf8", b"\xff\n")]
+        for label, reply in replies:
+            with self.subTest(phase=phase, reply=label):
+                session, directory = self.protocol_worker(phase, reply)
+                if phase == "validate":
+                    session.start()
+                with self.assertRaises((ValueError, Denied)):
+                    session.start() if phase == "start" else session.validate({})
+                self.assertTrue(session.failed)
+                previous_transfer = session.pending
+                for operation, arguments in ((session.start, ()), (session.validate, ({},)), (session.exchange, ())):
+                    with self.assertRaises(Denied):
+                        operation(*arguments)
+                    self.assertTrue(session.failed)
+                    self.assertIs(session.pending, previous_transfer)
+                persist_report(directory, {"success": True}, session)
+                saved = json.loads((directory / "regression-report.json").read_text(encoding="utf-8"))
+                self.assertFalse(saved["success"])
+                self.assertTrue(saved["schema_cleanup"]["transport_failed"])
+                self.assertEqual(saved["schema_exit_code"], 0)
+                self.assertFalse(saved["schema_cleanup"]["thread_alive"])
+
+    def test_10_startup_protocol_failure_is_permanent(self):
+        """Bad readiness cannot recover through another start, verdict or direct exchange."""
+        self.assert_protocol_failure_latched("start")
+
+    def test_11_validation_protocol_failure_is_permanent(self):
+        """Bad validation cannot recover even when the worker offers a later valid verdict."""
+        self.assert_protocol_failure_latched("validate")

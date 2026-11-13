@@ -79,23 +79,32 @@ class SchemaSession:
             raise
 
     def start(self):
-        """Require full metaschema and UTF-8 readiness from the same owned worker."""
-        self.metadata = parse_json(self.exchange())
-        if not all(self.metadata.get(key) is True for key in ("ready", "metaschema", "format_assertion", "explicit_metaschema")):
+        """Require complete readiness; latch every rejected protocol response."""
+        try:
+            metadata = parse_json(self.exchange())
+            if not isinstance(metadata, dict):
+                raise Denied("Invalid schema readiness object")
+            if not all(metadata.get(key) is True for key in ("ready", "metaschema", "format_assertion", "explicit_metaschema")):
+                raise Denied("Full schema initialization failed")
+            if metadata.get("input_codepage") != 65001 or metadata.get("output_codepage") != 65001:
+                raise Denied("Schema transport is not UTF-8")
+            self.metadata = metadata
+            return self.metadata
+        except BaseException:
             self.failed = True
-            raise Denied("Full schema initialization failed")
-        if self.metadata.get("input_codepage") != 65001 or self.metadata.get("output_codepage") != 65001:
-            self.failed = True
-            raise Denied("Schema transport is not UTF-8")
-        return self.metadata
+            raise
 
     def validate(self, event):
-        """Require a boolean schema verdict; malformed replies are harness failures."""
-        response = parse_json(self.exchange(canonical(event).encode("utf-8") + b"\n"))
-        if type(response.get("valid")) is not bool:
+        """Require a boolean verdict and permanently fail on rejected worker replies."""
+        raw = canonical(event).encode("utf-8") + b"\n"
+        try:
+            response = parse_json(self.exchange(raw))
+            if not isinstance(response, dict) or type(response.get("valid")) is not bool:
+                raise Denied("Invalid schema verdict")
+            return response["valid"]
+        except BaseException:
             self.failed = True
-            raise Denied("Invalid schema verdict")
-        return response["valid"]
+            raise
 
     def close(self):
         """Reap only this owned process with finite waits and explicit shutdown failures."""
