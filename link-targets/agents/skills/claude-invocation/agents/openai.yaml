@@ -1,0 +1,7 @@
+interface:
+  display_name: "Claude Code CLI呼び出し"
+  short_description: "Claude Code CLIを非対話で起動し、ファイル経由で結果を読む"
+  default_prompt: "Use $claude-invocation to start the Claude Code CLI non-interactively for this review, investigation, or verification and read its result."
+
+policy:
+  allow_implicit_invocation: true

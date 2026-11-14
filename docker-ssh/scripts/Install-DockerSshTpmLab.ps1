@@ -25,7 +25,10 @@ foreach ($name in $required) {
 $binding = Get-Content -LiteralPath $BindingPath -Raw | ConvertFrom-Json
 if ($binding.ProviderName -ne 'Microsoft Platform Crypto Provider' -or $binding.KeyName -notlike 'docker-ssh-issue142-poc-*' -or
     $binding.UserSid -ne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) { throw 'Only this user and an explicitly created PoC key are accepted.' }
-$docker = (Get-Command docker.exe -CommandType Application -ErrorAction Stop).Source
+# Resolve one native application through the engine, preserving PATH precedence.
+$dockerCommand = $ExecutionContext.InvokeCommand.GetCommand('docker.exe', [Management.Automation.CommandTypes]::Application)
+if ($null -eq $dockerCommand) { throw 'Native Docker executable required.' }
+$docker = $dockerCommand.Path
 $helper = Join-Path $PackageDirectory 'docker-credential-ssh-tpm.exe'
 $publicShell = Join-Path $PSScriptRoot '../chezmoi/AppData/Local/Dotfiles/DockerSsh'
 $dispatcherDirectory = Join-Path $PSScriptRoot '../src/DockerSshDispatcher/bin/Release/net10.0-windows'

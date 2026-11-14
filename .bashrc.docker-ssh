@@ -44,8 +44,8 @@ docker-ssh-restore-environment() {
         if [[ ${_dotfiles_docker_ssh_set[$name]} == x ]]; then
             printf -v "$name" '%s' "${_dotfiles_docker_ssh_values[$name]}"
             case "${_dotfiles_docker_ssh_exported[$name]}" in
-                "declare -x "*) export "$name" ;;
-                *) export -n "$name" ;;
+                "declare -x "*) export "${name?}" ;;
+                *) export -n "${name?}" ;;
             esac
         else
             unset "$name"

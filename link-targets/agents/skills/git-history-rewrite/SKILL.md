@@ -89,13 +89,10 @@ git -c core.editor=true cherry-pick --continue
 ```
 
 - `cherry-pick --continue` does not open an editor unless the original cherry-pick was started with `-e` / `--edit` (confirmed with Git 2.55; it does not hang even with `core.editor=vim`). The `git -c core.editor=true` prefix above is insurance in case `-e` was attached accidentally and exists only to prevent a hang. This editor override is different from mechanically rewriting the todo; it is harmless, so keep it.
-- **Do not use `git cherry-pick --skip` on your own judgment.** It discards the whole commit, so
-  always confirm with the user unless it is an intended drop.
+- Do not use `git cherry-pick --skip` unless the user has explicitly approved dropping that identified commit, either in the existing rewrite scope or by a subsequent instruction. A conflict or empty pick does not itself establish that approval.
 - Do not try to resolve a conflict when you cannot tell how to resolve it. Report it to the user and ask for instructions;
   `git cherry-pick --abort` returns the temporary branch to its previous state (the original branch is untouched).
-- If `git config --get rerere.enabled` is `true`, a recorded conflict resolution is applied automatically
-  when the same conflict is met again. If a replay is likely, enabling it in advance makes rework easier
-  (ask the user before changing global settings).
+- If `git config --get rerere.enabled` is `true`, a recorded conflict resolution is applied automatically when the same conflict is met again. If a replay is likely, enabling it in advance makes rework easier. Change repository-local or global `rerere` configuration only when the approved configuration scope explicitly covers the setting, repository, and local or global destination. Reuse approval already covering that change; otherwise obtain approval before changing configuration.
 - You can check the remaining picks at `.git/sequencer/todo`.
 
 ## 3. Verification (required)
@@ -130,15 +127,14 @@ Report the verification results to the user together with the lists of commits b
 
 ## 4. Reflection to the original branch
 
-**This operation must be performed with explicit user approval.** Leave the branch as a temporary branch before approval.
+For the temporary-branch replay workflow, reflecting the verified result to the original branch requires explicit user approval. Until approval, keep the original branch at `<orig>` and retain the temporary rewrite branch. If reflection is declined, retain both branches and report their names and tip SHAs. Do not move or delete either branch without authorization covering that operation.
 
 ```bash
 git branch -f <original branch> HEAD
 git switch <original branch>
 ```
 
-Push only when the user explicitly instructs it; do not push merely because verification passed.
-For pushed branches, always use `--force-with-lease` for push. Do not use plain `--force`.
+Push only on explicit user instruction covering the repository, remote, sending ref, actual sending range, and execution conditions. For rewritten history on an already-pushed branch, require explicit instruction naming `--force-with-lease` and the target ref. Never use plain `--force`. Apply the `external-operation-authorization` contract immediately before execution.
 
 ```bash
 git push --force-with-lease origin <original branch>
@@ -150,12 +146,14 @@ git push --force-with-lease origin <original branch>
 git branch -d rewrite/<original branch name>
 ```
 
-- Delete the temporary branch with `-d` (deletes only merged branches). Do not use `-D`.
-- Leave the original branch and saved `<orig>` visible until the user confirms the results.
+- After approved reflection, the original branch points to the verified rewritten tip. Delete the temporary branch only within the authorized cleanup scope, using `-d`, never `-D`. If deletion fails, retain the branch and report the reason.
+- Keep the original branch and the recorded `<orig>` SHA available until the user confirms the results. Recording `<orig>` does not create a backup ref or guarantee retention of the original history.
 
 ## What not to do
 
 - Use of `git rebase -i` and mechanical rewriting of todo with `GIT_SEQUENCE_EDITOR` / `sequence.editor`.
 - Skip verification (step 3) and reflect/push.
-- `git branch -f` / `git push --force*` / `git reset --hard` / `cherry-pick --skip` without user approval.
+- Run `git branch -f` or `git reset --hard` without the user's explicit approval.
+- Push without the user's explicit instruction, or use plain `--force`.
+- Do not use `git cherry-pick --skip` unless the user has explicitly approved dropping that identified commit, either in the existing rewrite scope or by a subsequent instruction. A conflict or empty pick does not itself establish that approval.
 - Start rewriting the history when the work tree is dirty.

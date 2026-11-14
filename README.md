@@ -24,12 +24,10 @@
 
 ## 新規環境の基本方針
 
-`git`、`chezmoi`、`aqua`を先に用意し、リポジトリを配置してから次を実行します。AquaでCodex CLIを導入した後、リポジトリ以外のディレクトリで初回だけプロジェクトや依頼を指定せず`codex`を起動して終了し、Windowsで必要なグローバル状態を作成してから`chezmoi`を適用します。
+`git`、`chezmoi`、`aqua`を先に用意し、リポジトリを配置してから次を実行します。
 
 ```sh
 aqua install --config "$HOME/.dotfiles/aqua.yaml"
-cd "$HOME"
-codex # プロジェクトや依頼を指定せず起動し、終了する
 # 初回だけ、リポジトリの設定テンプレートからchezmoiの設定を生成する
 cd "$HOME/.dotfiles"
 chezmoi --source "$HOME/.dotfiles" init

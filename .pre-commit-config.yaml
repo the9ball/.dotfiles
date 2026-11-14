@@ -1,6 +1,66 @@
 repos:
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.30.1
+    rev: 83d9cd684c87d95d656c1458ef04895a7f1cbd8e  # frozen: v8.30.1
     hooks:
       - id: gitleaks-system
         pass_filenames: false
+        stages: [pre-commit]
+  - repo: local
+    hooks:
+      - id: shellcheck-bash
+        name: ShellCheck (bash)
+        language: system
+        entry: sh scripts/check-files.sh shellcheck-bash
+        stages: [manual, pre-push]
+        files: '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
+        exclude: '(^scripts/check-files\.sh$|^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
+      - id: shellcheck-sh
+        name: ShellCheck (POSIX sh)
+        language: system
+        entry: sh scripts/check-files.sh shellcheck-sh
+        stages: [manual, pre-push]
+        files: &sh_files '^(bin/fs|scripts/check-files\.sh)$'
+        exclude: &template_excludes '(^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
+      - id: sh-syntax
+        name: POSIX sh syntax
+        language: system
+        entry: sh scripts/check-files.sh sh-syntax
+        stages: [manual, pre-push]
+        files: *sh_files
+        exclude: *template_excludes
+      - id: json-parse
+        name: JSON parse
+        language: system
+        entry: sh scripts/check-files.sh json
+        stages: [manual, pre-push]
+        files: '\.json$'
+        exclude: *template_excludes
+      - id: yaml-parse
+        name: YAML parse
+        language: system
+        entry: sh scripts/check-files.sh yaml
+        stages: [manual, pre-push]
+        files: '\.ya?ml$'
+        exclude: *template_excludes
+      - id: toml-parse
+        name: TOML parse
+        language: system
+        entry: sh scripts/check-files.sh toml
+        stages: [manual, pre-push]
+        files: '\.toml$'
+        exclude: '(^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$|^chezmoi/\.chezmoiexternal\.toml$)'
+      - id: chezmoi-templates
+        name: chezmoi expansion and settings syntax
+        language: system
+        entry: python3 -B tests/chezmoi-templates.py
+        stages: [manual, pre-push]
+        pass_filenames: false
+        require_serial: true
+        files: '^(chezmoi/|docker-ssh/chezmoi/|tests/chezmoi-templates\.py$|\.chezmoiroot$|aqua(-registry)?\.yaml$|winget\.json$|\.pre-commit-config\.yaml$)'
+      - id: actionlint
+        name: GitHub Actions lint
+        language: system
+        entry: actionlint
+        stages: [manual, pre-push]
+        files: '^\.github/workflows/[^/]+\.ya?ml$'
+        exclude: *template_excludes

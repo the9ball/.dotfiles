@@ -163,16 +163,9 @@ Decide the path once in PowerShell and reuse it from then on.
 #### Start-up procedure
 
 1. Receive the identifier and create the storage location (above).
-2. Get the basic information and the **head SHA** with `gh pr view` (B-2).
-3. If a report already exists, read it. It is the result of the previous pre-review, so you get the findings, evidence, confidence, and limitations as they were.
-   **If the head SHA recorded in the report differs from the current `headRefOid`, it is a different revision from the previous one.**
-   Judge again from the new diff whether the findings still hold.
-   **Treat a report without a head SHA the same way** (since you cannot determine which revision was read,
-   consider it a different revision and pre-review again). Reports issued before this became mandatory fall into this case.
-4. If a diff file already exists, read it. However, it dates from the previous run. If its head SHA does not match,
-   or cannot be determined, fetch it again. `gh pr diff` is cheap.
-   Comparing update times (is `updatedAt` later than the diff file's mtime?) is only a rough guide.
-   It is unreliable with a force-push, clock skew, or an update in progress, so when in doubt, fetch it again.
+2. Get the basic information and full **base/head SHAs** with `gh pr view` (B-2). Freeze the repository/PR identity and SHA pair for this pre-review.
+3. Read an existing report as a previous result, not proof of the saved diff's revision. A report without matching base/head/merge-base and payload SHA-256 is a different or unverified snapshot; judge its findings again.
+4. Validate an existing diff snapshot with the helper in B-3 against the frozen repository/PR/base/head. Its metadata, payload length, SHA-256, and parsed file inventory must match. A legacy raw diff, malformed snapshot, or identity/hash mismatch is unknown and requires a fresh fixed-SHA capture. Report timestamps and a head SHA recorded separately do not prove which bytes were retrieved. A known repository/PR filename collision requires the manual resolution described above; do not overwrite it.
 5. Look up the clone location in `repositories.log` (B-4).
 
 ### B-2. Always get the complete file list
@@ -191,41 +184,34 @@ Confirm that the number of retrieved entries matches the PR's `changedFiles`,
 and state it in the report if they do not match.
 
 ```bash
-gh pr view <PR URL> --json changedFiles,additions,deletions,author,baseRefName,headRefName,headRefOid,title
+gh pr view <PR URL> --json changedFiles,additions,deletions,author,baseRefName,baseRefOid,headRefName,headRefOid,title
 ```
 
 Use `headRefOid` when verifying files that are not in the diff against the contents of the head.
 
 ### B-3. Get the diff from the API and save it
 
-Get the diff contents with `gh pr diff`. No local clone or fetch is needed.
-Do not read standard output as it is; save it to the path decided in B-1 and then read it.
+Use [`scripts/capture-pr-diff.py`](scripts/capture-pr-diff.py) with an explicitly selected Python interpreter (3.10 or later), official `gh`, and Git. No local clone or fetch is needed. The helper freezes one PR response's full base/head SHAs, then obtains JSON and raw diff from `repos/<owner>/<repo>/compare/<base SHA>...<head SHA>` through `gh api --hostname github.com`. It verifies the base, independent fixed head commit, merge base, HTTP/media/length, and inventory using Git's read-only `apply --numstat` parser. The diff definition is merge-base-to-head, as for GitHub PRs. Neither moving `gh pr diff` nor hashes or head observations surrounding it prove fixed-SHA attribution.
 
-**Write to a temporary file, confirm success, and then move it to the real name.**
-`>` truncates the destination before running the command, so if `gh pr diff` fails midway,
-an empty or incomplete diff remains with a new update time and is later mistaken for "a new diff exists".
-
-```bash
-diff_path="<absolute path decided in B-1>/<owner><repo>-<PR number>.diff"
-if gh pr diff <PR URL> > "${diff_path}.partial"; then
-  mv -f "${diff_path}.partial" "${diff_path}"
-else
-  rm -f "${diff_path}.partial"
-  echo "Failed to fetch the diff; the previous diff was kept" >&2
-fi
+```powershell
+# Use the interpreter selected for the environment; supply concrete --gh/--git paths when needed.
+python -B "<skill-dir>/scripts/capture-pr-diff.py" capture `
+  --repo "<owner>/<repo>" --number <PR number> `
+  --output "<absolute B-1 directory>/<owner><repo>-<PR number>.diff"
+python -B "<skill-dir>/scripts/capture-pr-diff.py" verify `
+  --input "<absolute B-1 directory>/<owner><repo>-<PR number>.diff" `
+  --repo "<owner>/<repo>" --number <PR number> --base "<base SHA>" --head "<head SHA>"
 ```
 
-The reason for saving before reading is so that the same diff can be read again in another session or by a delegate.
-Putting thousands of lines of diff directly into the conversation uses up much of the context by itself.
+Compare the capture result with the frozen B-1 tuple before consuming it; a moved PR is a new target, not permission to relabel the captured bytes. Resolve the current tuple again before reusing a snapshot as the current PR. Do not mix B-2's moving file list with a different captured tuple.
 
-**Note down `headRefOid` at this point.** It records which revision you read,
-and is used both in the report (B-8) and in the restart decision (B-1).
+The flat `.diff` is a single versioned snapshot: a magic line, one JSON metadata line, a blank line, then the exact raw diff payload. Metadata records repository/PR, full base/head/merge-base, API endpoint/version, diff definition, file inventory, payload byte length and SHA-256. The digest covers only the payload; metadata retains verified acquisition evidence but does not authenticate arbitrary edited files. Raw-diff consumers must extract the payload after the header instead of treating the whole snapshot as raw diff.
 
-Do not use `git fetch` + `git diff origin/<base>...origin/<head>`.
-It writes refs and objects into the user's repository,
-and it can collide with other git operations running at the same time. If you only want to read, the API is enough.
+The helper validates a complete artifact, writes and flushes a uniquely owned same-directory `.partial`, and publishes with one `os.replace`. Fetch, validation, write, or replace failure before publication preserves the previous `.diff` and removes only that attempt's partial. Never silently use the old artifact as the newly requested revision. After replacement, failed read-back makes the artifact unusable; do not claim rollback or preservation of the old file. There is no multiwriter lock: verify the expected identity again when consuming a concurrently replaceable file.
 
-When `additions` / `deletions` is large, first look at the file list and narrow down the range to read.
+A missing/unresolvable SHA, HTTP failure, unsupported or incomplete inventory, or invalid diff stops capture without a moving-ref fallback. The compare JSON file inventory is capped at 300: reaching that cap is not accepted as proof of completeness. Binary file entries do not establish that their contents were reviewed; retrieve needed contents at the fixed SHA or record them as unreviewed. Cross-fork visibility and very large diffs are not assumed from a successful small same-repository capture.
+
+Save before reading so another session or delegate can use the same validated artifact. Record its base/head/merge-base and payload SHA-256 in the report (B-8). Do not use `git fetch` or `git checkout` to collect review material. Narrow a large review by the validated inventory and state any unreviewed scope.
 
 ### B-4. Handling local clones
 
@@ -284,24 +270,17 @@ you can answer immediately when asked "what is the basis for this finding?" or "
 Each subagent is single-use: **do not have one subagent read multiple PRs in a row.**
 The contexts get mixed, and the problem avoided in the monitoring session recurs at the delegate.
 
-A lower-cost model is enough for a pre-review. Mechanical matching and detecting uninitialized variables work even with a downgraded model.
-Use a two-tier setup: verify with a higher-tier model only the findings the delegate marked "確度: 低" (confidence: low)
-and findings that are assertive but have thin evidence.
+Follow applicable external model and effort selections; cost observations do not override them. Where those selections permit a two-tier review, use additional verification for findings marked "確度: 低" (confidence: low) or stated assertively with thin evidence.
 
 #### How to hand work to a delegate
 
 **Write the prompt to be self-contained, on the assumption that the delegate cannot see the caller's conversation.**
 
-**Observed with Claude Code**: an agent that inherits the parent session's context
-(`subagent_type: "fork"`) does not exist in this environment, and specifying it fails with
-`Agent type 'fork' not found` (tried twice, failed twice).
-The types that worked were `architect` / `claude` / `claude-code-guide` / `Explore` / `general-purpose` /
-`implementer` / `investigator` / `Plan` / `reviewer` / `statusline-setup`.
-For a general-purpose pre-review, choose `general-purpose`.
+The earlier Claude Code `subagent_type: "fork"` failure and successful agent-type list were observations of that runtime, not a current capability guarantee. Select only types supported by the current verified interface. A different runtime's `fork_turns` option does not establish support for an agent type named `fork`; do not silently switch backend to make it work.
 
 Limit what the delegate explores to "reading the diff and matching it against the surrounding code".
 The calling side gets the diff and finds the clone location beforehand,
-and **passes the path of the saved diff file so that the delegate does not rerun `gh pr diff`.**
+and **passes the validated snapshot path and fixed base/head/merge-base and payload SHA-256 so the delegate reads the same captured bytes rather than fetching a moving PR.**
 Items with a limited count that are used directly for checking missing entries, such as the file list,
 may go straight into the prompt (even about 60 files is fine).
 If you leave this to the delegate, tool calls and waiting time increase accordingly.
@@ -331,18 +310,21 @@ If the repository has an `AGENTS.md`, read it and prioritize project-specific re
 and are often not there yet right after a review request is detected. If you want to match against them,
 read them later with `gh pr view <URL> --comments`.
 
-**Codex**: Run it read-only and have it output only the conclusion. Its investigation log can run to thousands of lines,
+**Codex**: Start it with the `codex exec` investigation form of `link-targets/agents/skills/codex-invocation/SKILL.md`,
+which owns the command line, sandbox, network, notification, file, and result-reading rules. This section defines only the
+request. Have it output only the conclusion. Its investigation log can run to thousands of lines,
 and reading it becomes a cost on our side.
 
-**Pass the saved diff file and the head SHA, and do not let it fetch the diff again.**
+**Pass the validated snapshot, its fixed base/head/merge-base, and payload SHA-256; do not let it fetch the diff again.**
 If it runs `gh pr diff` itself, the result may differ from the revision you read
-(a force-push can happen in between). This is the same reason as for delegates (B-5).
+(a force-push can happen in between). Sharing the validated snapshot keeps reviewers on the same captured bytes; it also avoids the repeated acquisition and waiting cost described in B-5.
 
-```bash
-codex exec --sandbox read-only "Review PR <owner>/<repo>#<number> (head <SHA>). The diff is already saved at <absolute path of the diff file>; read it and do not re-fetch it with gh pr diff. Do not run git fetch or git checkout. Give the conclusion and its basis in Japanese; no intermediate investigation log is needed. Do not edit any files."
+Write a request like the following into the request file:
+
+```text
+Review PR <owner>/<repo>#<number> (head <SHA>). The diff is already saved at <absolute path of the diff file>; read it and do not re-fetch it with gh pr diff. Do not run git fetch or git checkout. Give the conclusion and its basis in Japanese; no intermediate investigation log is needed. Do not edit any files.
 ```
 
-`--sandbox read-only` is required. Without it, files may be rewritten.
 If the conclusions conflict, compare the evidence on both sides and find out which is correct.
 
 ### B-8. Submit the report
@@ -374,9 +356,7 @@ Do not break the template. In particular, observe the following.
 
 - **Do not reference external resources.** Keep it self-contained, including CSS (the template already is).
 - Keep both light and dark modes working.
-- **Always write the head SHA.** The template has no dedicated field, so write it
-  together with the branch name where the head is displayed (`head <branch> @ <SHA>`). Without it, you cannot later
-  determine which revision was reviewed, and cannot judge how fresh the diff is when resuming.
+- **Always write the fixed base/head/merge-base and payload SHA-256.** Keep `head <branch> @ <SHA>` in the existing head display and add the other snapshot identifiers in the report body. The report and saved snapshot must refer to the same validated bytes.
 - Choose the severity from `critical` (must fix) / `warn` (needs confirmation) / `info` (suggestion),
   and keep the card's class and badge consistent. Sort in descending order of severity.
 - For each finding, always fill in **根拠 (basis) / 確認方法 (how to verify) / 確度 (confidence)**. Do not write a finding that lacks why it holds ("why can you say that?") or how a person can verify it.
@@ -386,9 +366,7 @@ Do not break the template. In particular, observe the following.
   **However, keep the 「指摘」 (Findings) section itself.** When there are zero findings, remove the cards and
   write one sentence saying that "no problem could be detected by mechanical matching" (the template gives the same instruction).
 
-When you finish writing, hand the report to the user and have it rendered on the spot
-(in Claude Code, add `display: "render"` to `SendUserFile`).
-Even a temporary file is fine for viewing.
+When you finish writing, hand the report to the user and have it rendered on the spot using a currently supported, verified file-delivery/rendering interface. The historical Claude Code `SendUserFile` with `display: "render"` is not a guarantee of current availability. If the interface or its options cannot be verified, report the rendering requirement as unmet; do not claim successful rendering or silently switch backend. A temporary file is sufficient when a supported viewer can render it.
 
 ### B-9. After the report is submitted
 

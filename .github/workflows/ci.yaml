@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  # Share Phase 0's checks and scan the event's commit range on a disposable runner.
+  checks:
+    name: syntax-and-secrets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BOOTSTRAP_AQUA_VERSION: v2.65.2
+    steps:
+      # Keep PR merge-tree validation, with complete history for the PR head scan.
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Reuse aqua and the CI tools so a GitHub Releases outage does not fail
+      # CI. The key changes with the aqua version or any package definition.
+      - name: Restore aqua cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/aquaproj-aqua
+          key: aqua-ci-${{ runner.os }}-${{ runner.arch }}-${{ env.BOOTSTRAP_AQUA_VERSION }}-${{ hashFiles('aqua.yaml', 'aqua-registry.yaml') }}
+
+      # Bootstrap aqua without installing the repository's entire tool collection.
+      # A restored aqua of the same version skips the download.
+      - name: Install aqua
+        id: install-aqua
+        continue-on-error: true
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      # GitHub Releases sometimes keeps returning 5xx through the installer's own
+      # curl retries; try the installer once more before failing the job.
+      - name: Retry installing aqua
+        if: ${{ steps.install-aqua.outcome == 'failure' }}
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      # Match the reviewed digest in both run_before_00-aqua-policy templates.
+      - name: Verify and allow aqua policy
+        shell: bash
+        run: |
+          expected_policy_sha256='8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7'
+          printf '%s  aqua-policy.yaml\n' "$expected_policy_sha256" | sha256sum --check --strict
+          aqua policy allow aqua-policy.yaml
+
+      # Eagerly download all seven tools before entering steps without a token.
+      # Retry once because the downloads hit the same GitHub Releases outages.
+      - name: Install CI tools
+        id: install-tools
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          aqua install --tags ci || aqua install --tags ci
+          chezmoi_binary=$(aqua which chezmoi)
+          test -f "$chezmoi_binary"
+          printf 'CHEZMOI_TEST_BINARY=%s\n' "$chezmoi_binary" >> "$GITHUB_ENV"
+
+      # Run the same definitions and manual stage used before a local push.
+      # Each check runs even when the other fails, but both need the tools.
+      - name: Run syntax and configuration checks
+        if: ${{ !cancelled() && steps.install-tools.outcome == 'success' }}
+        shell: bash
+        run: prek run --all-files --stage manual
+
+      # Use event SHAs as data; a missing base or history error must fail the job.
+      - name: Scan commit range for secrets
+        if: ${{ !cancelled() && steps.install-tools.outcome == 'success' }}
+        shell: bash
+        env:
+          COMPARISON_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'push' && github.event.before || '' }}
+          SCAN_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'push' && github.sha || '' }}
+          PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
+        run: |
+          commit_range=$(bash scripts/ci-gitleaks-range.sh "$GITHUB_EVENT_NAME" "$COMPARISON_BASE_SHA" "$SCAN_HEAD_SHA" "$PR_MERGE_SHA")
+          gitleaks git --redact --log-opts="--diff-merges=first-parent $commit_range"
+          if [[ "$GITHUB_EVENT_NAME" == pull_request ]]; then
+            gitleaks git --redact --log-opts="--diff-merges=first-parent --max-count=1 $PR_MERGE_SHA"
+          fi
+
+  # Keep a stable required check; every dependency must explicitly succeed.
+  required:
+    name: ci-required
+    if: ${{ always() }}
+    needs: [checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      # Require at least one dependency; skipped and cancelled results must fail.
+      - name: Require successful checks
+        shell: bash
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$JOB_RESULTS" | jq --exit-status 'length > 0 and all(.[]; .result == "success")'

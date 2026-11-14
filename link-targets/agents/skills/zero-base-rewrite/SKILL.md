@@ -19,7 +19,7 @@ Do not activate for ordinary proofreading, light copyediting, summarization, tra
 
 Do not replace source code, configuration, raw data, or documents whose chronology, accountability, change history, audit trail, review response, or authoritative wording is itself required. This includes ADRs, minutes, changelogs, history files, postmortems, audit/legal/contract/regulatory records, authoritative policies, and instruction files. When a target is out of scope, do not rewrite it; offer structure-preserving copyediting, a separate current-state summary, or application limited to non-historical sections.
 
-Signals include paths under `decisions/`, `adr/`, or `history/`, filenames such as `*.history.md`, ADR-numbered stems, and headings covering timelines, rejected alternatives, or superseded decisions.
+Signals that chronology, accountability, or authoritative wording may be part of the artifact's purpose include paths under `decisions/`, `adr/`, or `history/`, filenames such as `*.history.md`, ADR-numbered stems, and headings covering timelines, rejected alternatives, or superseded decisions. Use these signals to inspect the artifact's purpose and apply the exclusions above; a path, filename, or heading alone does not decide eligibility.
 
 ## Fresh reconstruction context
 
@@ -60,14 +60,14 @@ Do not skip or discard the snapshot because the source or backup is covered by `
 
 - Do not add facts, decisions, causes, approvals, requirements, or references absent from the source or the user's explicit input.
 - Do not change the meaning or certainty of confirmed requirements, constraints, interfaces, invariants, exceptions, guarantees, or status labels.
-- Do not turn an unresolved contradiction or TODO into a decision. If the reader needs the uncertainty, state it in a self-contained section; report only delivery blockers separately.
+- Do not turn an unresolved contradiction or TODO into a decision. Preserve reader-relevant uncertainty in a self-contained section of the artifact. Report delivery blockers separately from the artifact, without replacing that in-artifact uncertainty with a separate report. Also provide the delivery information required by the workflow; duplicate reporting is not categorically prohibited.
 - Replace phrases such as `今回` ("this time"), `先ほど` ("earlier"), `前案` ("the previous draft"), `修正後` ("after revision"), and `議論のとおり` ("as discussed") with wording that stands alone, or remove them when the source provides no supported replacement.
 - Preserve necessary rationale as durable constraints and facts, not as inaccessible conversation history.
 - Do not claim review, approval, validation, or external verification unless explicitly established by the source or user.
 
 ## Stop and ask
 
-Stop instead of guessing when the document's history is evidence, required context isolation is unavailable or unverifiable, safe source/output/ledger paths cannot be secured, HTML references cannot be traced for a required structural change, comparison leaves a material omission or unsupported addition, certainty changes cannot be resolved, or the source contradiction must be arbitrarily decided to make the artifact coherent.
+Stop instead of guessing when the document's history is evidence, (required context isolation is unavailable or unverifiable) and no valid target-specific explicit user override under "Fresh reconstruction context" applies, safe source/output/ledger paths cannot be secured, HTML references cannot be traced for a required structural change, comparison leaves a material omission or unsupported addition, certainty changes cannot be resolved, or the source contradiction must be arbitrarily decided to make the artifact coherent.
 
 ## Quality gate
 

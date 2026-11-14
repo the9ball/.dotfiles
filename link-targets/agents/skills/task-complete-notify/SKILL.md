@@ -1,112 +1,76 @@
 ---
 name: task-complete-notify
-description: Use when the user explicitly asks to arm or cancel a one-shot ntfy notification for a selected Codex thread.
+description: Configure or troubleshoot fixed ntfy notifications for every Codex Stop event on Windows or WSL, and for Claude Code Stop events with no background work left.
 ---
 
-# Task-complete notification
+# Agent turn notifications
 
-Use this skill only when the user explicitly asks to arm or cancel a task-completion notification. It is a best-effort notification for one explicitly selected Codex thread; it does not infer the current thread and it does not inspect prompts or logs to compose notification text.
+A trusted Codex Stop hook runs [the PowerShell script](scripts/codex-stop-hook.ps1) once per invocation, without any reservation.
+It sends only `Codex turn finished` followed by the local send time as `HH:mm:ss` to `https://ntfy.sh` using the process environment's `NTFY_TOPIC`. The time keeps consecutive bodies distinct, because some wearables drop a notification identical to the previous one. Claude Code uses a separate entry point described under [Claude Code](#claude-code).
+Do not run it against a real topic for testing without authorization for that publish.
 
-## Scope
+## Setup
 
-The first adapter is Codex on Windows. Runtime state is isolated under the resolved Codex home as `$CODEX_HOME\.task-complete-notify` (or the user's `.codex` home when `CODEX_HOME` is unset), so separate homes such as `.codex` and `.codex-personal` never share requests or locks. WSL callers must use the Windows PowerShell helper for all state and lock operations and must inherit the active session's `CODEX_HOME`.
+1. Make PowerShell 7.4 or newer available as `pwsh.exe` on Windows or native Linux `pwsh` on WSL.
+2. Merge the `Stop` entry from [the hook example](references/codex-hooks.json) into `hooks.json` in the active Codex home (`CODEX_HOME`, or the default home when unset). Preserve existing hooks. Replace the example script paths with quoted absolute paths for that execution host.
+3. Ensure `NTFY_TOPIC` is inherited by Codex from its launcher. The topic must be 1–64 ASCII letters, digits, underscores, or hyphens. Never print or persist its value. Restart Codex after changing its launch environment.
+4. Review and trust the hook through `/hooks` or the desktop hook settings. Verify hooks are enabled and not excluded by managed policy.
 
-The Codex `Stop` hook is the primary completion detector. Register it manually in the user's Codex hook configuration after reviewing the generated command and running the canary described below. The JSONL watcher is a fallback only when the Stop-hook canary is not viable; do not enable both as independent senders.
+Setup is an explicit configuration change; this skill does not install, trust, or enable hooks automatically.
+The checked-in chezmoi templates register this notification hook for neither Codex nor Claude Code; the Codex ones manage the GitHub authentication hook.
+Do not overwrite their output wholesale. The modify templates for .codex, .codex-personal, and .codex-wsl preserve separately installed Stop entries when chezmoi is reapplied.
 
-## Permission prerequisites
+## Runtime contract
 
-The skill does not edit Codex configuration or select a permission profile. Before enabling the hook or fallback watcher, verify the exact profile and sandbox used by the target session. The minimum required access is read-only access to the same home's `session_index.jsonl` and rollout files, write access only to that home's `$CODEX_HOME\.task-complete-notify`, and HTTPS access to `ntfy.sh`. Do not broaden access to an entire user profile or filesystem. A canary run through the exact production hook path must establish whether profile and legacy sandbox enforcement apply to the child process.
+These rules describe the Codex entry point. The Claude Code entry point differs only where its section says so.
 
-## Arm a notification
+- Register only for `Stop`; do not add `SubagentStop`, `Interrupt`, or a second sender through `notify`. All Stop invocations, including repeated invocations after another hook requests continuation, are eligible. The entry point drains stdin asynchronously without parsing or retaining it, and ignores `stop_hook_active` and all input fields. Delivery starts independently of EOF or drain failures.
+- Each invocation makes at most one application HTTP attempt. All 2xx responses succeed; redirects and non-2xx responses fail. There is no retry, watcher, state directory, TTL, UUID lookup, or cancellation API.
+- The HTTP client has a 10-second total request timeout. It stops at response headers without reading the body. After delivery, the script waits at most one additional second for input draining, then exits even if the producer keeps stdin open. The synchronous hook example has a 20-second outer timeout covering process startup too.
+- The script emits only `{}` and exits 0 on delivery success or failure. It never asks Codex to continue or stop. Failure before PowerShell/script startup and the host's own timeout behavior remain outside the script's control.
+- No prompt, answer, thread name, transcript, path, credentials, topic, or response body is sent as message content or written to notification logs/state. The topic is necessarily part of the destination URL seen by ntfy and the network stack.
+- Missing or invalid topics quietly skip sending. DNS, TLS, timeout, and HTTP errors are suppressed. Absence of an error is not proof of delivery.
+- A Codex notification means only that a Stop event was reached. It does not guarantee that all work has finished or that Codex waits for the user: another hook may continue the turn, and background terminals or subagents may still be running. The Codex Stop input has no field that tells these cases apart.
 
-For a Windows PowerShell caller, run:
+## Claude Code
 
-```powershell
-pwsh.exe -NoProfile -NonInteractive -File "<skill-dir>\scripts\arm-notification.ps1" `
-  -Thread "codex://threads/<UUID>" `
-  -Message "Build finished"
-```
+Claude Code runs [its own entry point](scripts/claude-stop-hook.ps1), which reuses the shared sender and sends only `Claude turn finished` followed by the local send time.
+Claude Code fires `Stop` whenever a response ends, including when background work such as a background subagent or shell will resume the session later. To notify only when the session waits for the user, this entry point differs from the Codex rules above as follows:
 
-The canonical target is `codex://threads/<UUID>`. An arm input may contain a raw UUID or canonical URI inside ordinary labels, quotes, Markdown, or other surrounding text. UUID candidates use ASCII hexadecimal D-form (`8-4-4-4-12`) with standalone ASCII boundaries; repeated occurrences of the same UUID are allowed, but two different candidates are rejected as `thread_ambiguous`. Inputs over 4 KiB UTF-8, zero candidates, invalid UUIDs, the legacy `codex://<UUID>` form, and URI path/query/fragment decorations are rejected. Only the arm boundary uses this relaxed extraction. Hook input, transcript metadata, state, and watcher values continue to require the strict complete canonical/raw form.
+- It reads the hook input to the end, within 16 MiB and 3 seconds, and inspects only `background_tasks` and `session_crons`. No input value is retained, logged, or sent.
+- Unlike the Codex entry point, delivery waits for that read instead of starting while input drains, and nothing is drained after delivery. The worst case is process startup plus 3 seconds of reading plus the 10-second HTTP deadline, within the 20-second example timeout.
+- It skips sending when either field is a non-empty array. Missing, malformed, oversized, or late input counts as idle and sends, so a change in the input format causes extra notifications rather than none.
 
-Before an arm request creates state, the helper verifies that the target is managed by the current Codex home: an exact `session_index.jsonl` ID match and an active rollout whose first `session_meta` has matching `id` and `session_id`, `thread_source: "user"`, and no parent fields. Unknown, archived, or other-home IDs fail closed as `thread_not_managed` and do not create `.task-complete-notify`.
+Setup is manual, as for Codex:
 
-`-Message` is optional. When omitted, the exact body is `Task completed`. An explicit message is a literal, single-line string of at most 256 UTF-8 bytes. Empty or whitespace-only values, leading/trailing whitespace, CR/LF/NUL, Unicode control characters, U+2028/U+2029, and unpaired surrogates are rejected. The literal is stored in the active request and becomes an external-send authorization when arm succeeds; do not put secrets or sensitive business data in it.
+1. Make PowerShell 7.4 or newer available as `pwsh.exe` on Windows or `pwsh` elsewhere, on the PATH of the shell that Claude Code uses to run hooks.
+2. Merge the `Stop` entry from [the Claude Code example](references/claude-settings.json) into `~/.claude/settings.json`. Preserve existing hooks and other keys. Replace the example script path with the quoted absolute path for that host, using forward slashes so it parses in both Git Bash and PowerShell. On non-Windows hosts use `pwsh`.
+3. Ensure `NTFY_TOPIC` is inherited by Claude Code from its launcher, under the same rules as for Codex. Start a new Claude Code session after changing the hook or its launch environment.
 
-Re-arming an existing `armed` request is idempotent and does not replace its generation or message. An orphaned `attempting` request can be consumed by a later explicit arm and replaced by a new generation.
+Register only `Stop`, not `SubagentStop`, and keep a single Claude Code registration. The `Notification` event with the `idle_prompt` matcher did not fire in the Claude desktop app, so it is not used.
 
-For a WSL caller, do not pass the message as a Windows process argument. Send an operation envelope through stdin:
+## Windows, WSL, and permissions
 
-```bash
-printf '%s\n' '{"operation":"arm","thread":"codex://threads/<UUID>","message":"Build finished"}' \
-  | pwsh.exe -NoProfile -NonInteractive -File '<windows-skill-path>\\scripts\\windows-helper.ps1'
-```
+Use the same script in each environment; no Windows helper or interop state sharing is needed.
+WSL support means native Linux PowerShell. Windows `pwsh.exe` launched from WSL is not a tested delivery path and requires separate environment/path verification.
+`CODEX_HOME` affects where Codex loads and trusts hooks, not the script: it never reads Codex data or writes home state.
 
-The helper's result is sanitized and never echoes the message or topic. The skill path must be resolved to the Windows checkout; WSL must not write `.task-complete-notify` directly. If a WSL process does not inherit the active session's `CODEX_HOME`, registration fails rather than selecting another home.
+Keep inherited sandbox, permission, and proxy environment variables unchanged.
+Do not strip restrictions or add permissions to make a failed send succeed.
+The host must permit the script/runtime to start and HTTPS to ntfy; verify this in the exact target hook environment.
+A shell test outside the sandbox does not prove a production hook can connect.
 
-## Cancel a notification
+## Migration and verification
 
-When the user explicitly asks to cancel a reservation, the skill uses the dedicated internal cancel wrapper while keeping the public skill entry and arm command unchanged. From Windows PowerShell, run:
+Before updating an existing installation, inventory every Codex home (.codex, .codex-personal, and .codex-wsl where used), project hook layers, inline config.toml hooks, managed requirements, enabled plugin hooks, legacy notify senders, and watcher startup registrations.
+The stable script path changes old registered senders from reserved-only to every Stop; do not assume a script update causes renewed trust review. With the required configuration authorization, disable or replace obsolete senders and retain one intended Stop registration. Record only safe source labels and handler counts, never topic or raw environment/input data.
+Remove obsolete arm/cancel commands and duplicate registrations within that authorized migration.
+Old state is inert; do not read, migrate, or delete existing user state automatically.
+No script now reads `.task-complete-notify`.
 
-```powershell
-pwsh.exe -NoProfile -NonInteractive -File "<skill-dir>\scripts\cancel-notification.ps1" `
-  -Thread "codex://threads/<UUID>"
-```
+Run `pwsh -NoProfile -NonInteractive -File tests/task-complete-notify.tests.ps1` from this skill directory.
+Tests use an in-memory HTTP handler and fake topic; they never publish to ntfy.
+For an actual lifecycle canary, keep the topic unset and record only a boolean hook-start marker in an approved temporary directory. Do not record hook input or environment values.
+Real delivery requires separate publish authorization.
 
-For WSL cancellation, send the cancel envelope through the same Windows helper boundary:
-
-```bash
-printf '%s\n' '{"operation":"cancel","thread":"codex://threads/<UUID>"}' \
-  | pwsh.exe -NoProfile -NonInteractive -File '<windows-skill-path>\\scripts\\windows-helper.ps1'
-```
-
-Cancel requires the same explicit thread target but does not re-check active session ownership or create the runtime state directory when no request exists. Under the existing coordination-then-thread locks, an `armed` request is deleted first and its checkpoint is removed best-effort. It writes no terminal record, tombstone, message, topic, or cancellation history. An observed `attempting` claim returns `too_late` and is never deleted; lock contention or an indeterminate state returns `busy`. Absent, expired, or already-consumed state returns the idempotent result `Ok=true, Status=not_armed`. The operation is current-generation-relative: a later re-arm can be cancelled by a later explicit cancel. A running fallback watcher exits naturally on its next scan after the active request disappears.
-
-## Completion and delivery semantics
-
-Each `armed` request carries an `armedAtUtc` timestamp assigned at arm time and has a fixed 24-hour absolute lifetime. Expiry is defined as `UtcNow >= armedAtUtc + 24h`; only `armed` state is subject to this TTL. Missing, malformed, or overflowing timestamps fail closed and are treated as expired. The request's timestamp is authoritative; a checkpoint timestamp cannot extend the lifetime. Arm, Stop, and watcher paths perform lazy cleanup by deleting the request first and the checkpoint best-effort. `attempting`, terminal, and already-consumed states are not expired by this rule.
-
-The hook claims an `armed` generation atomically as `attempting` before making the HTTP request. It holds the same Windows OS-lifetime per-thread lock used by arm until the request reaches a terminal result. The active generation then becomes `success`, `failure`, or `abandoned` and is no longer eligible for a later completion.
-
-Delivery is one-shot best effort: one application-level send attempt per generation, with no retry, no detached worker, and no automatic resend on the next hook. A final HTTP 200-299 is success; non-2xx, timeout, connection/TLS/DNS error, missing topic, and unknown result are terminal failure. A failure may be silent and the hook never changes the Codex turn result. Unarmed or rejected events return without a notification attempt. Optional diagnostics must use fixed text and must never include message, topic, URI, prompt, response, repository, or log data.
-
-The Stop hook is synchronous by design: an armed event may wait up to 55 seconds for the helper. The helper allows up to 10 seconds for the per-thread lock and 35 seconds for the notifier child; the notifier requests a 10-second connection timeout and a 20-second operation inactivity timeout, so the wrapper retains a small cleanup margin. The hook configuration keeps a 90-second ceiling.
-
-The ntfy server is fixed at `https://ntfy.sh`. `NTFY_TOPIC` is read from the process environment only at send time; this skill neither sets nor persists it. The production sender puts the notification text in the ntfy message body and omits the title header, because the message body is the only display contract.
-
-The JSONL fallback treats a line-feed (`LF`) as the record commit boundary. A newline-terminated line that fails strict UTF-8 decoding or JSON parsing is classified as permanent corruption and the persistent cursor advances past it; the raw line is neither retained nor emitted. Only an unterminated final line is retried on a later scan. This policy relies on the rollout writer's append-only contract: an already LF-terminated byte range must not be rewritten. If that producer contract is disproved, the retry/discard policy must be revisited before changing the checkpoint schema.
-
-## Hook canary
-
-Before enabling the hook, verify with a captured non-production hook input that:
-
-1. `session_id` and `turn_id` are available, the active session's `CODEX_HOME` is inherited, and the transcript's first `session_meta` record matches the session, has `thread_source: "user"`, and has no parent thread.
-2. `SubagentStop` is not used and `stop_hook_active` does not cause an early or duplicate send.
-3. The hook process can read/write `$CODEX_HOME\.task-complete-notify`, acquire the Windows lock, and inherit `NTFY_TOPIC`.
-4. Existing Stop hooks do not request continuation that would make this hook an early-stop detector.
-5. A mocked or controlled ntfy result exercises 2xx, non-2xx, timeout, connection error, and result-unknown paths; every path consumes the generation and later Stop input does not resend.
-6. Expired or invalid-time requests are cleaned without a send, and an explicit cancel removes only `armed` request/checkpoint state while preserving an observed `attempting` claim.
-
-If the Stop hook cannot satisfy these checks, use the JSONL watcher fallback with persistent cursors, periodic rescan, complete-line parsing, and the same pre-send claim and one-shot state semantics. The watcher validates `session_meta` before scanning a rollout, treats `FileSystemWatcher`-style wakeups as optional (the shipped fallback uses periodic rescan), and closes its lifetime lock while holding the coordination lock before exit so a concurrent arm can start a replacement watcher without a lost wake-up.
-
-When the Stop-hook canary is not viable, set `TASK_COMPLETE_NOTIFY_WATCHER=1` in the Windows environment before arming. The Windows helper starts the hidden `codex-watcher.ps1` fallback and the watcher owns an OS-lifetime lock, persistent per-thread rollout offsets, and the same Stop/claim path. If the environment variable is not set, the watcher can be started explicitly with:
-
-```powershell
-pwsh.exe -NoProfile -NonInteractive -File "<skill-dir>\scripts\codex-watcher.ps1"
-```
-
-The fallback is detector-only, not a retry worker: it exits after all active requests are consumed and never resends an `attempting` generation.
-
-## Diagnostic scripts
-
-The display-comparison scripts under `scripts/diagnostics/` are manual diagnostics only. They send intentionally random test values to the configured topic and are never invoked by the arm, Stop-hook, notifier, or watcher paths. Run them only when an explicit device-display check is wanted; they require the process `NTFY_TOPIC` and perform a real ntfy publish.
-
-## Privacy and state
-
-State files are under the resolved `$CODEX_HOME\.task-complete-notify`, outside the skill checkout. Active requests may contain the explicit message and the authoritative `armedAtUtc`; lock, attempting, and terminal records must not. Do not put `NTFY_TOPIC`, server credentials, prompt/response text, thread titles, repository paths, raw arm input, or ntfy response bodies in state, stdout, stderr, or hook output. The public Windows arm command accepts `-Message`, so its caller's command line may contain that value; use the WSL stdin envelope when it must not appear in a command line. WSL requests and all internal helper/notifier/watcher child invocations carry the message through stdin and never through child-process arguments.
-
-All stdin boundaries use an explicit UTF-8 `StreamReader` over the standard input stream. The scripts do not mutate global console encoding and do not require an attached console.
-
-The design rationale, rejected alternatives, evidence links, and maintenance invariants are recorded in [`references/design.md`](references/design.md).
-
-See `references/codex-hooks.json` for a minimal Stop-hook configuration example. The example is documentation only; this skill does not edit the user's Codex configuration automatically.
+Read [the design record](references/design.md) when changing this contract or investigating delivery failures.

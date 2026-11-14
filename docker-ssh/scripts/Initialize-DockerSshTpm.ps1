@@ -85,7 +85,10 @@ foreach ($name in $required) {
     Assert-SetupPath -Path $file
     if ($manifest.Files.$name -notmatch '^[A-F0-9]{64}$' -or (Get-FileHash -LiteralPath $file).Hash -cne $manifest.Files.$name) { throw 'Package hash mismatch.' }
 }
-$docker=(Get-Command docker.exe -CommandType Application -ErrorAction Stop).Source
+# Resolve one native application through the engine, preserving PATH precedence.
+$dockerCommand=$ExecutionContext.InvokeCommand.GetCommand('docker.exe',[Management.Automation.CommandTypes]::Application)
+if ($null -eq $dockerCommand) { throw 'Native Docker executable required.' }
+$docker=$dockerCommand.Path
 $runtimes=& dotnet.exe --list-runtimes
 if ($LASTEXITCODE -ne 0 -or -not ($runtimes -match '^Microsoft.NETCore.App 10\.')) { throw '.NET 10 runtime required.' }
 if (Test-Path -LiteralPath $destination) {

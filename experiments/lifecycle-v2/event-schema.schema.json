@@ -1,0 +1,1609 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lifecycle-v2:proposed-event-schema",
+  "title": "Lifecycle v2 event proposal",
+  "$comment": "Design only. No runtime implementation. See persistence-contract.md for authentication, transactions, FK, canonical hash, counters and role guards not expressible here. Parse duplicate keys and invalid Unicode before schema validation. ReceiptRejected retains malformed originals as BLOB; strict review_result does not erase unclassified debt. Format assertion must be enabled. A schema-valid PassAssessed grants no authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "gate_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "command_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9007199254740991
+    },
+    "transaction_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "transaction_ordinal": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "writer_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "previous_event_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "event_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "revision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/revision"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "clock": {
+      "$ref": "#/$defs/clock"
+    },
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "OWNER",
+            "BROKER",
+            "COLLECTOR",
+            "EXECUTOR",
+            "REVIEWER"
+          ]
+        },
+        "principal_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proof": {
+          "$ref": "#/$defs/artifact"
+        }
+      },
+      "required": [
+        "role",
+        "principal_ref",
+        "proof"
+      ]
+    },
+    "event_type": {
+      "enum": [
+        "GateOpened",
+        "ApprovalRecorded",
+        "OwnershipTransferred",
+        "InitialAttemptAdmitted",
+        "RepairAdmitted",
+        "CandidateRecorded",
+        "VerificationIntentRecorded",
+        "ReviewRoundAdmitted",
+        "ReviewIntentRecorded",
+        "LaunchStarted",
+        "LaunchOutcomeRecorded",
+        "JobExitObserved",
+        "ReceiptStored",
+        "ReceiptApplied",
+        "ReceiptRejected",
+        "FindingClassified",
+        "FixProposed",
+        "ClosureAccepted",
+        "RepairFailureCharged",
+        "StopLatched",
+        "StopResolved",
+        "ClockExpired",
+        "JobRetirementAccepted",
+        "PassAssessed"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "gate_id",
+    "command_id",
+    "sequence",
+    "transaction_id",
+    "transaction_ordinal",
+    "writer_generation",
+    "previous_event_sha256",
+    "event_sha256",
+    "revision",
+    "clock",
+    "actor",
+    "event_type",
+    "payload"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "GateOpened"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "owner_proof": {
+                "$ref": "#/$defs/artifact"
+              },
+              "scope_manifest": {
+                "$ref": "#/$defs/artifact"
+              },
+              "review_contract": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "owner_proof",
+              "scope_manifest",
+              "review_contract"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ApprovalRecorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "interval_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "owner_proof": {
+                "$ref": "#/$defs/artifact"
+              },
+              "boot_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "deadline_uptime_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "cumulative_caps": {
+                "$ref": "#/$defs/budget"
+              },
+              "external_grants": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "interval_id",
+              "owner_proof",
+              "boot_id",
+              "deadline_uptime_ms",
+              "cumulative_caps",
+              "external_grants"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "OwnershipTransferred"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "previous_generation": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "new_generation": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "termination_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "previous_generation",
+              "new_generation",
+              "termination_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "InitialAttemptAdmitted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "interval_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "scope": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "interval_id",
+              "scope"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "RepairAdmitted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "interval_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "issue_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              },
+              "scope": {
+                "$ref": "#/$defs/artifact"
+              },
+              "repair_spent_after": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "attempt_id",
+              "interval_id",
+              "issue_ids",
+              "scope",
+              "repair_spent_after"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "CandidateRecorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "snapshot": {
+                "$ref": "#/$defs/artifact"
+              },
+              "phase": {
+                "const": "SEALED"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "snapshot",
+              "phase"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "VerificationIntentRecorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "request_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "oracle_manifest": {
+                "$ref": "#/$defs/artifact"
+              },
+              "invocation_manifest": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "attempt_id",
+              "request_id",
+              "job_id",
+              "oracle_manifest",
+              "invocation_manifest"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ReviewRoundAdmitted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "round_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "review_spent_after": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "slots": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "role_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "request_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "job_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                    },
+                    "independence_proof": {
+                      "$ref": "#/$defs/artifact"
+                    }
+                  },
+                  "required": [
+                    "role_id",
+                    "request_id",
+                    "job_id",
+                    "independence_proof"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "round_id",
+              "attempt_id",
+              "review_spent_after",
+              "slots"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ReviewIntentRecorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "round_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "request_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "role_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input": {
+                "$ref": "#/$defs/artifact"
+              },
+              "external_grant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              }
+            },
+            "required": [
+              "round_id",
+              "request_id",
+              "job_id",
+              "role_id",
+              "input",
+              "external_grant_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "LaunchStarted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "request_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "nonce": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "admission_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "request_id",
+              "job_id",
+              "nonce",
+              "admission_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "LaunchOutcomeRecorded"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "outcome": {
+                "enum": [
+                  "STARTED",
+                  "PROVED_NOT_STARTED",
+                  "UNKNOWN"
+                ]
+              },
+              "process_evidence": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "job_id",
+              "outcome",
+              "process_evidence"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "JobExitObserved"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "exit_code": {
+                "type": "integer",
+                "minimum": -2147483648,
+                "maximum": 4294967295
+              },
+              "identity_and_group_exit_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "job_id",
+              "exit_code",
+              "identity_and_group_exit_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ReceiptStored"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "receipt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "request_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "final_artifact": {
+                "$ref": "#/$defs/artifact"
+              },
+              "spool_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "receipt_id",
+              "request_id",
+              "final_artifact",
+              "spool_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ReceiptApplied"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "receipt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "result": {
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/review_result"
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "kind": {
+                        "const": "VERIFICATION"
+                      },
+                      "request_id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+                      },
+                      "revision": {
+                        "$ref": "#/$defs/revision"
+                      },
+                      "outcome": {
+                        "enum": [
+                          "PASS",
+                          "FAIL"
+                        ]
+                      },
+                      "check_ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "items": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "uniqueItems": true
+                      },
+                      "evidence": {
+                        "$ref": "#/$defs/artifact"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "request_id",
+                      "revision",
+                      "outcome",
+                      "check_ids",
+                      "evidence"
+                    ]
+                  }
+                ]
+              },
+              "effect_event_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "receipt_id",
+              "result",
+              "effect_event_ids"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ReceiptRejected"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "receipt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "reason": {
+                "$ref": "#/$defs/stop_reason"
+              },
+              "unclassified_debt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "evidence": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "receipt_id",
+              "reason",
+              "unclassified_debt_id",
+              "evidence"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "FindingClassified"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "issue_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "episode": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "alias": {
+                "$ref": "#/$defs/alias"
+              },
+              "anchor": {
+                "$ref": "#/$defs/anchor"
+              },
+              "source_receipt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "classification_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "issue_id",
+              "episode",
+              "alias",
+              "anchor",
+              "source_receipt_id",
+              "classification_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "FixProposed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "issue_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "correction_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "issue_id",
+              "attempt_id",
+              "correction_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ClosureAccepted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "issue_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "verification_receipt_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              },
+              "clear_receipt_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              },
+              "correction_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "issue_id",
+              "attempt_id",
+              "verification_receipt_ids",
+              "clear_receipt_ids",
+              "correction_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "RepairFailureCharged"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "issue_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "attempt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "source_receipt_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "issue_failed_after": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "issue_id",
+              "attempt_id",
+              "source_receipt_id",
+              "issue_failed_after"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "StopLatched"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "stop_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "reason": {
+                "$ref": "#/$defs/stop_reason"
+              },
+              "evidence": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "stop_id",
+              "reason",
+              "evidence"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "StopResolved"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "stop_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "owner_proof": {
+                "$ref": "#/$defs/artifact"
+              },
+              "resolution_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "stop_id",
+              "owner_proof",
+              "resolution_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "ClockExpired"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "interval_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "deadline_uptime_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "interval_id",
+              "deadline_uptime_ms"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "JobRetirementAccepted"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "job_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "owner_certificate": {
+                "$ref": "#/$defs/artifact"
+              },
+              "immutable_input_and_effect_proof": {
+                "$ref": "#/$defs/artifact"
+              }
+            },
+            "required": [
+              "job_id",
+              "owner_certificate",
+              "immutable_input_and_effect_proof"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "PassAssessed"
+          }
+        },
+        "required": [
+          "event_type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "interval_id": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "eligible": {
+                "const": true
+              },
+              "verification_receipt_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              },
+              "clear_receipt_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/uuid"
+                },
+                "uniqueItems": true
+              },
+              "user_review_proof": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/artifact"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "projection_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "required": [
+              "interval_id",
+              "eligible",
+              "verification_receipt_ids",
+              "clear_receipt_ids",
+              "user_review_proof",
+              "projection_sha256"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "uint": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sha256",
+        "bytes",
+        "media_type"
+      ]
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "boot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uptime_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "observed_utc": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "boot_id",
+        "uptime_ms",
+        "observed_utc"
+      ]
+    },
+    "revision": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revision_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "content_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "dependencies_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "oracle_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "protected_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_contract_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "review_contract_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "assessment_generation": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "revision_id",
+        "content_sha256",
+        "dependencies_sha256",
+        "oracle_sha256",
+        "protected_sha256",
+        "source_contract_sha256",
+        "review_contract_sha256",
+        "assessment_generation"
+      ]
+    },
+    "alias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "issuer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "external_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "issuer",
+        "external_id"
+      ]
+    },
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertion_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_scope_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "security_invariant_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "check_id",
+        "assertion_id",
+        "resource_scope_id",
+        "security_invariant_id"
+      ]
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "$ref": "#/$defs/alias"
+        },
+        "anchor": {
+          "$ref": "#/$defs/anchor"
+        },
+        "severity": {
+          "enum": [
+            "ORDINARY",
+            "SAFETY",
+            "UNCLASSIFIED"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "$ref": "#/$defs/artifact"
+        }
+      },
+      "required": [
+        "alias",
+        "anchor",
+        "severity",
+        "description",
+        "evidence"
+      ]
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repair_cap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "same_issue_failure_cap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "review_round_cap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "repair_cap",
+        "same_issue_failure_cap",
+        "review_round_cap"
+      ]
+    },
+    "stop_reason": {
+      "enum": [
+        "AUTHENTICATION",
+        "SECRETS",
+        "AUTHORIZATION",
+        "DESTRUCTIVE_OPERATION",
+        "SCOPE_ESCAPE",
+        "EVIDENCE_CONFLICT",
+        "EVIDENCE_MISMATCH",
+        "UNCLASSIFIABLE",
+        "STORAGE_FAILURE",
+        "UNKNOWN_JOB",
+        "CLOCK_DISCONTINUITY",
+        "DEADLINE",
+        "BUDGET",
+        "OWNER_ORACLE_CHANGE",
+        "POST_COMPLETION_REOPEN"
+      ]
+    },
+    "review_result": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "verdict": {
+              "const": "CLEAR"
+            },
+            "request_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "revision": {
+              "$ref": "#/$defs/revision"
+            },
+            "covered_issue_ids": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/uuid"
+              },
+              "uniqueItems": true
+            },
+            "report": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "required": [
+            "verdict",
+            "request_id",
+            "revision",
+            "covered_issue_ids",
+            "report"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "verdict": {
+              "const": "NEEDS_CHANGES"
+            },
+            "request_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "revision": {
+              "$ref": "#/$defs/revision"
+            },
+            "findings": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/finding"
+              }
+            },
+            "report": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "required": [
+            "verdict",
+            "request_id",
+            "revision",
+            "findings",
+            "report"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "verdict": {
+              "enum": [
+                "NEEDS_EVIDENCE",
+                "REQUIRES_USER_DECISION"
+              ]
+            },
+            "request_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "revision": {
+              "$ref": "#/$defs/revision"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "report": {
+              "$ref": "#/$defs/artifact"
+            }
+          },
+          "required": [
+            "verdict",
+            "request_id",
+            "revision",
+            "reason",
+            "report"
+          ]
+        }
+      ]
+    }
+  }
+}

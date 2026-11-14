@@ -23,8 +23,10 @@ const powershell = process.env.ISSUE185_PWSH;
 const dispatcher = path.join(binary, 'docker.exe');
 const marker = path.join(scratch, 'calls.jsonl');
 const results = [];
+// Model an unconfigured parent explicitly; inherited routing and psmux flags are not fixture state.
 const environment = { ...process.env, TEMP: scratch, TMP: scratch, HOME: home.replaceAll('\\', '/'), USERPROFILE: home, LOCALAPPDATA: local,
     DOCKER_CONFIG: '', DOCKER_HOST: '', DOCKER_CONTEXT: '', DOCKER_AUTH_CONFIG: '', DOCKER_TLS_VERIFY: '', DOCKER_CERT_PATH: '', DOCKER_SSH_HELPER_ROOT: '',
+    DOCKER_SSH_DEPLOYMENT: '', DOCKER_SSH_MANAGED: '', PSMUX_SSH_AUTOATTACH: '',
     DOTFILES_DOCKER_SSH: '', SSH_CONNECTION: '', ROUTING_PROBE_MARKER: marker };
 
 /** Execute only isolated shell/compiler/probe processes with a bounded timeout. */

@@ -1,1 +1,3 @@
+# The checkout location is resolved from the user's home at shell startup.
+# shellcheck disable=SC1090
 source ~/.dotfiles/.bashrc.ssh

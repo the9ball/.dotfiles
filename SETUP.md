@@ -23,9 +23,6 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 ~~~sh
 # 初回はAqua管理のCLI（Codexを含む）を先に導入する
 aqua install --config "$HOME/.dotfiles/aqua.yaml"
-# リポジトリ以外のディレクトリで、プロジェクトや依頼を指定せずCodexを1回起動する
-cd "$HOME"
-codex
 # 初回だけ、リポジトリを明示してchezmoiの設定を生成する
 cd "$HOME/.dotfiles"
 chezmoi --source "$HOME/.dotfiles" init
@@ -34,14 +31,17 @@ chezmoi apply
 chezmoi verify --exclude=scripts
 ~~~
 
-初回の`init`以後は、リポジトリのルートを明示せず`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を実行できます。Windowsで初回の空起動を省略してグローバル状態がないまま適用すると、状態変更用テンプレートは失敗します。状態を自動作成・黙ってスキップはせず、空起動してから再試行してください。
+初回の`init`以後は、リポジトリのルートを明示せず`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を実行できます。
+
+Codex Desktopのプロジェクトと関連フォルダーの設定は、アプリで行います。
+`~/.codex/.codex-global-state.json`はchezmoiの管理対象から除外しています。
 
 `chezmoi apply`は、次の処理を実行します。
 
 - 設定ファイルの変更前に`aqua-policy.yaml`のSHA-256を検証し、固定した確認済みの値と一致する場合だけ`aqua policy allow`を実行する。
 - `aqua install`：`aqua.yaml`に定義されたCLIを導入する。
 - `uv python install`と`uv pip install`：Python 3.13とPyYAML 6.0.3を導入する。
-- Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zを導入する。
+- Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
@@ -81,6 +81,157 @@ Aqua管理の`codex`に対して`codex update`は使用しません。
 `codex update`はstandalone版など導入方式を認識できる実体向けの更新経路であり、Aquaの宣言とGit管理を経由しないためです。
 
 WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)の「通常CLIを更新する」を参照してください。
+
+## ローカルでの構文・設定チェック
+
+リポジトリのルートで、push 前に次を手動実行します。
+Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
+チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck（Bash / POSIX sh）、POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
+GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と次のコマンドを実行します。
+ワークフロー自体も actionlint の検査対象です。
+
+```sh
+prek run --all-files --stage manual
+```
+
+POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI では runner の `/bin/sh` を使います。
+`System32/bash.exe`（WSL ランチャー）の PATH 順序には依存しません。
+Git Bash の `sh` が PATH にある環境で実行してください。
+
+Bash の対象は ShellCheck の `-s bash` で構文と lint を検査し、同じ対象への `bash -n` フックは重複分として外しています。
+POSIX sh の `-s sh` は移植性の検査で、実際のシステムシェルの受理判定とは異なるため、`sh -n` は残します。
+ShellCheck と native parser は完全に同等ではなく、構文診断をコメントで抑止すると ShellCheck が通る場合もあります。
+通常の構文破損を ShellCheck が検出することは確認していますが、Bash 診断を抑止する変更は修正担当とレビュー担当が確認してください。
+native Bash の構文判定も必要な場合は、対象を指定して手動実行できます。
+
+```sh
+sh scripts/check-files.sh bash-syntax path/to/script.sh
+```
+
+push 時にも実行したい人だけ、次で pre-push フックを導入します。
+通常の `prek install` が導入する pre-commit ステージでは、追加した構文・設定チェックは実行せず、既存の gitleaks フックだけを実行します。
+
+```sh
+prek install -t pre-push
+```
+
+pre-push フックが検査するのは、push するコミットで変更されたファイルだけです。
+全ファイルを検査したい場合は、上の manual ステージの手動実行を使います。
+
+`prek`、`shellcheck`、`jq`、`yq`、`actionlint`、`gitleaks` が PATH にない場合は、リポジトリのルートで `aqua install` を実行し、Aqua の bin を PATH に追加してから再実行します。
+ローカルレジストリの承認が必要な場合は、上の Aqua 導入手順を参照してください。
+WSL でも WSL 側の Aqua とツールを用意します。
+一部のツールが動かない実行環境もあるため、pre-push の導入は任意です。
+利用できないツールのチェックは、その環境で検証済みとは扱いません。
+
+通常の構文チェックではテンプレート（`*.tmpl`、chezmoi の `.chezmoitemplates/`、`modify_*`、`create_*`）と外部取り込みの `git-completion/` を除外します。
+テンプレートは `chezmoi-templates` フックで Linux / Windows のダミーデータを使って展開し、展開エラーと JSON / TOML のパースエラーを検出します。
+named helper は実際の wrapper から読み込み、静的な `create_AGENTS.md` の配置は検査しません。
+`.chezmoiexternal.toml` も展開後に TOML として検査しますが、外部ファイルは取得しません。
+
+このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、事前導入済み chezmoi の実体パスを指定する `CHEZMOI_TEST_BINARY`、Git が必要です。
+Python は CI の Ubuntu 24.04 runner に標準搭載されたものを使い、追加の Python package や setup Action は導入しません。
+ローカルでは Python 3.11 以上を用意し、ツール導入時に以下を実行してください。
+`aqua which` は registry の取得・更新を伴うことがあるため、導入工程でだけ呼び出します。
+
+```sh
+aqua install --tags ci
+export CHEZMOI_TEST_BINARY="$(aqua which chezmoi)"
+```
+
+PowerShell では、導入後に `$env:CHEZMOI_TEST_BINARY = (aqua which chezmoi).Trim()` と設定します。
+この値は信頼できる事前導入済みの実体を指定する契約で、PATH 上の Aqua shim や別の実行ファイルは指定しません。
+CI もツール導入ステップ内で解決した実体パスだけを後続へ渡します。
+チェッカーは Aqua を呼ばず、変数が未指定または実体が存在しない場合はダウンロードせずに失敗します。
+子プロセスには `AQUA_DISABLE_LAZY_INSTALL=true` も渡しますが、これは package の遅延取得に対する補助で、shim による registry 取得までを防ぐものではありません。
+単体で実行する場合も共通の入口を使います。
+
+```sh
+prek run chezmoi-templates --all-files --stage manual
+```
+
+追跡済みの作業ツリー入力だけを一時 source にコピーし、HOME 系の環境変数・config・state・cache を一時領域に向けます。
+認証変数を子プロセスへ渡さず、実 HOME の設定、未追跡のホスト用 `.local`、外部ファイル取得に依存しません。
+setup script や hook、`apply` は実行しません。
+生成結果の設定値・動作の正しさは修正担当とレビュー担当が確認し、新しい意味的回帰テストは追加していません。
+Windows の OS 値を渡す試験はネイティブ実行・配置の保証ではなく、それらは Phase 3 の対象です。
+一時 HOME は悪意あるテンプレート関数の sandbox ではなく、OS レベルの通信遮断も行いません。
+
+### Codex 設定の回帰テストを手動実行する
+
+`tests/codex-config.py` の既存 6 テストは、モデル名・権限・既存値保持・ローカル上書き・冪等性などを検査します。
+必須 CI と `chezmoi-templates` フックからは実行せず、Codex 設定を修正・レビューするときに手動で実行します。
+上記のツール導入手順で `CHEZMOI_TEST_BINARY` を設定してから、リポジトリのルートで次を実行してください。
+
+```sh
+python3 -B tests/codex-config.py -v
+```
+
+テスト自体が source・destination・config・state・cache を一時領域に作り、実設定の代わりに synthetic な既存値と `.local` を使います。
+6 テストの内容は維持し、失敗またはスキップが発生した場合は非0で終了します。
+
+### gitleaks と必須 CI
+
+既存の gitleaks フックはステージ済みの差分を対象とします。
+push 前にコミット範囲を走査する場合は、別途次を手動実行します。
+比較先の `origin/master` が意図した基準か確認し、必要に応じて範囲を変更してください。
+
+```sh
+gitleaks git --redact --log-opts="--diff-merges=first-parent origin/master..HEAD"
+```
+
+CI では、上の構文・設定チェックとは別に `gitleaks git --redact` でイベントのコミット範囲を走査します。
+ローカルのステージ済み差分の検査と異なり、PR は base と PR head の merge-base（起点を含まない）から PR head まで、master への push は `github.event.before`（起点を含まない）から `github.sha` までが対象です。
+PR の構文・設定チェックは checkout が用意するマージ結果を検査します。
+gitleaks は PR head までの履歴に加え、GitHub Actions の synthetic merge commit を1件だけ追加走査します。
+両方の走査で `--diff-merges=first-parent` を指定し、マージ時に追加された変更も親1との差分で検査します。
+履歴の辿り方を制限する `--first-parent` は使わず、通常コミットや side branch で追加後に削除された秘密も走査対象に残します。
+checkout は `fetch-depth: 0` とし、範囲は Bash スクリプト [`scripts/ci-gitleaks-range.sh`](scripts/ci-gitleaks-range.sh) で計算します。
+引数はイベント名（`pull_request` / `push`）、比較元の完全なコミット SHA、走査先の完全なコミット SHA です。PR では第4引数にイベントの merge SHA（`github.sha`）も必須です。
+PR の merge SHA は checkout HEAD と一致し、実在するコミットで、親がちょうど2件、親1がイベントの base SHA、親2が head SHA であることを範囲の出力前に検証します。
+SHA の欠落・全桁ゼロ・存在しないコミット、浅い履歴、merge-base の欠落・複数候補、push の比較元が head の祖先でない場合、履歴の取得・比較・走査の失敗は CI を失敗させます。
+merge SHA・親・checkout HEAD の不一致も失敗です。別の ref や全履歴を代わりに走査したり、検査をスキップして成功にしたりしません。
+CI で秘密情報を検出した時点で内容は remote に到達しているため、漏えいとして該当の認証情報を無効化・差し替えます。
+
+CI の検査ジョブは GitHub-hosted の `ubuntu-24.04` で動き、集約ジョブのチェック名は `ci-required` です。
+集約ジョブは `always()` で実行し、`needs` に依存ジョブが 1 つ以上あり、すべての結果が `success` の場合だけ成功します。
+`failure` / `cancelled` / `skipped` は失敗として扱います。
+このチェックを ruleset に登録する作業は別途行います。
+
+Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツール導入は無効にします。
+既存の chezmoi スクリプトと同じ固定 SHA-256 を照合してから `aqua policy allow aqua-policy.yaml` を実行します。
+`aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks、chezmoi の 7 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
+読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
+prek と gitleaks の実行ステップには渡しません。
+Aqua 本体と導入したツールは、`actions/cache` で `~/.local/share/aquaproj-aqua` ごとキャッシュします。
+キーには runner の OS・アーキテクチャ、Aqua 本体のバージョン、`aqua.yaml` と `aqua-registry.yaml` のハッシュを含めるため、どれかが変わると新しいキャッシュになります。
+PR の CI は master で保存されたキャッシュを読めますが、PR で保存したキャッシュはその PR からしか読めません。
+Aqua の自動更新ワークフローは、master の CI が保存した同じキャッシュを読み込むだけで、書き込み権限を持つため保存はしません。
+GitHub Releases が一時的に 5xx を返し続けた場合に備え、aqua-installer は失敗時に 1 回だけ再実行し、`aqua install --tags ci` も 1 回だけ再試行します。待機時間は入れません。
+構文・設定チェックと秘密情報の走査は、ツールの導入に成功していれば互いの結果にかかわらず両方実行します。どちらかが失敗すればジョブは失敗し、`ci-required` も失敗します。
+必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
+ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、`v8.30.1` に対応するコミット SHA `83d9cd684c87d95d656c1458ef04895a7f1cbd8e` に固定）を取得します。
+manual ステージでは gitleaks フックを実行しませんが、取得自体は発生し、この取得にトークンは使いません。
+
+gitleaks を更新するときは、`gitleaks-system` フックが使う実行ファイルのバージョン（`aqua.yaml` の `gitleaks/gitleaks@v8.30.1`）と、フック定義の取得元（`.pre-commit-config.yaml` の `rev` と `# frozen:` コメント）を同じバージョンに揃えて更新します。
+対象タグが指すコミットは、次のコマンドで確認します。更新時は `v8.30.1` を対象のタグに置き換えます。
+
+```sh
+gh api repos/gitleaks/gitleaks/git/ref/tags/v8.30.1 --jq '.object | {type, sha}'
+```
+
+`type` が `commit` なら、表示された `sha` を `rev: <SHA>  # frozen: <タグ名>` の形式で設定します。
+`type` が `tag`（注釈付きタグ）なら、`gh api repos/gitleaks/gitleaks/git/tags/<表示されたSHA> --jq '.object | {type, sha}'` で参照先をたどり、`type` が `commit` になった時点の `sha` を使います。
+
+CI には次の残留リスクがあります。
+
+- gitleaks は Git の差分を走査します。マージ差分を有効にしても、未変更行を含む複数行の合成パターンなど、最終ファイル全体で初めて成立する秘密を完全には検出できません。リポジトリ全体の snapshot 走査は行いません。
+- PR の走査対象はその実行時の synthetic merge です。後の base 更新や実マージ時の追加修正まで保証しないため、master への push の履歴・マージ差分走査も維持します。
+- PR で `.github/workflows/*`、`.pre-commit-config.yaml`、`scripts/`、`aqua.yaml`、`aqua-registry.yaml`、`aqua-policy.yaml` などを書き換えると、runner 上で任意のコマンド実行や外部通信が起こりえます。policy の照合処理も書き換えられるため、信頼境界にはなりません。
+- PR で `.gitleaks.toml` や `.gitleaksignore` を追加または変更すると、gitleaks の検出を抑止できます。
+- `pull_request` を使い、`permissions` は `contents: read` のみ、checkout は `persist-credentials: false` とし、ワークフローは secrets を参照しません。fork PR は GitHub 側の権限制約と実行承認の設定を境界にします。同一リポジトリからの PR と push では、ワークフローの書き換えにより書き込み権限や設定済みの secrets に届くリスクが残ります。Actions の既定トークン権限を read にしても上限にはなりません。このリスクは当面受容し、[Issue #208](https://github.com/the9ball/.dotfiles/issues/208) で見直します。
+- `aqua.yaml` の checksum 検証は無効のままです。今回の CI 追加では有効化していません。
+- policy の固定 SHA-256 は、既存の `run_before_00-aqua-policy.ps1.tmpl` / `run_before_00-aqua-policy.sh.tmpl` と CI ワークフローで二重管理します。policy を変更するときは、内容を確認したうえで双方の固定値を更新します。
 
 ## Windows
 
@@ -126,6 +277,9 @@ Windows OpenSSH Serverはaqua管理外です。新規端末ではWindows標準�
 [Windows OpenSSHの運用記録](docs/windows-openssh.md)に、標準版と、明示的に承認した端末限定のZIP版運用の分岐、検証範囲、復旧参照をまとめています。
 ZIP版10.0.0.0p2-Previewの結果は検証した端末・経路に限定し、別端末への展開や任意のSSH機能の保証には使いません。
 
+cloudflaredのWindowsサービスを使う端末では、初回に管理者権限でのセットアップが必要です。以降は`chezmoi apply`がaquaのバージョン更新にサービスを追従させます。
+手順と経緯は[Windows cloudflaredサービスの更新](docs/windows-cloudflared.md)を参照してください。
+
 既定シェルの変更は管理者による手動設定です。
 `chezmoi apply` は SSHサーバーの導入・更新・サービス操作や、OpenSSH のレジストリ、`sshd_config`、鍵、認証方式の変更を行いません。
 [README.manual.md の Windows SSH 手順](README.manual.md#windows-ssh-の既定シェルと-psmux)に従い、別接続での確認と復旧手段を確保してから切り替えます。
@@ -157,7 +311,8 @@ Add-Type -AssemblyName System.Security
 根本原因は未確定のため、Hello だけのサインインに戻す場合は、再起動して PIN でサインインした後も上記コマンドが成功することを確認してください。
 
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
-AquaにないGUIアプリのWinMergeとCPU-Zも、Windowsではwingetで導入します。
+AquaにないGUIアプリのWinMerge、CPU-Z、Cryptomatorも、Windowsではwingetで導入します。
+WinFspは、CryptomatorがWindowsで保管庫をドライブとしてマウントするために使うため、あわせて導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
 WSL版Codex Remote Controlを使う場合は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。

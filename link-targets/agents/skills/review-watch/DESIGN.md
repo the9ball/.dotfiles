@@ -91,9 +91,7 @@ OS cleanup is effectively ineffective for directories directly under `%TEMP%` (t
 so cleanup cannot be left to the OS. The layout is flat so that the cleanup target is limited
 to just these three types directly under `claude-pr-review`, which prevents accidental deletion.
 
-`*.partial` is the write destination while a diff is being retrieved. `>` truncates the destination before the command runs, so
-if retrieval fails, an empty or incomplete diff remains with a new update time and is later mistaken
-for "a new diff exists". So the diff is written to a temporary name, and `mv` is run after success is confirmed.
+A uniquely owned `*.partial` holds the completed, validated snapshot before one same-directory `os.replace` publishes it. Metadata and raw payload live in one `.diff`, avoiding the inconsistent pair that a sidecar could leave. Pre-publication failure preserves the prior artifact; post-publication read-back failure makes the new artifact unusable, without claiming rollback.
 
 **`.partial` is placed in the same directory too.** If it were put in another location or a subdirectory,
 `mv` could turn into a copy across volumes. Then the safeguard of "move only after confirming success"
@@ -115,20 +113,15 @@ so the option that does not add a delimiter was chosen.
 Diffs are **placed here rather than in a session-specific scratchpad** for the same handover reason.
 A scratchpad path contains the session ID and disappears when the session ends.
 
-A diff becomes stale as the head advances. **The revision that was read is kept by writing the head SHA in the report body.**
-Putting the SHA in the file name would show freshness from the name alone, but a file would be added for every head update,
-and the advantage of the path being determined by the identifier would be lost.
-Comparing update times (`gh pr view --json updatedAt` against the diff file's mtime) is used as a rough guide,
-but it is unreliable with a force-push, clock skew, or an update in progress, so it is not used alone for the decision.
-`gh pr diff` is cheap, so when in doubt, fetch it again.
+A diff becomes stale as either base or head changes. The snapshot's in-band metadata binds repository/PR, fixed base/head/merge-base, API provenance, inventory, and payload length/SHA-256 to the raw payload. The same identities are written in the report. A separate report SHA or timestamp cannot prove the saved diff's revision.
 
-The report template (`report-template.html`) has no dedicated field for the head SHA.
-To avoid changing the template, the procedure (`SKILL.md` B-8) makes it mandatory to write the SHA together with the branch name
-where the head is displayed.
+The acquisition uses the official fixed-SHA compare endpoint, not a moving PR diff observed near a head read. A single file preserves the established flat name and `.html`/`.diff`/`.partial` cleanup boundary. Unlike a sidecar it needs one publication step, while raw-diff consumers must explicitly extract the payload. Legacy or mismatched snapshots are unverified and must be reacquired; metadata and hash alone do not authenticate an arbitrary replacement.
+
+The report template has no dedicated identity fields. Record the tuple and payload hash in its existing body and keep the head branch/SHA display, without changing the template.
 
 ## How far to read local clones
 
-Diffs are fetched with `gh pr diff`, and local clones are read only as reference material for grep.
+Diffs are captured through official `gh api` with full immutable base/head SHAs, and local clones are read only as reference material for grep.
 Neither `git fetch` nor `git checkout` is run.
 
 There are two reasons: we do not want to write refs and objects into the user's repository,

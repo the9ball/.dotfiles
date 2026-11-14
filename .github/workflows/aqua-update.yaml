@@ -1,0 +1,178 @@
+name: Update aqua packages
+
+on:
+  schedule:
+    - cron: '20 20 * * *' # 05:20 JST (next calendar day)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: aqua-package-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      BOOTSTRAP_AQUA_VERSION: v2.65.2
+    steps:
+      - name: Check out master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      # Reuse the cache saved by CI on master so a GitHub Releases outage does
+      # not fail the update. The key matches CI's because master's aqua.yaml is
+      # checked out here. Restore only: this job holds a write token, so it
+      # never saves a cache that other runs would execute.
+      - name: Restore aqua cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.local/share/aquaproj-aqua
+          key: aqua-ci-${{ runner.os }}-${{ runner.arch }}-${{ env.BOOTSTRAP_AQUA_VERSION }}-${{ hashFiles('aqua.yaml', 'aqua-registry.yaml') }}
+          restore-keys: |
+            aqua-ci-${{ runner.os }}-${{ runner.arch }}-${{ env.BOOTSTRAP_AQUA_VERSION }}-
+
+      # A restored aqua of the same version skips the download.
+      - name: Install aqua
+        id: install-aqua
+        continue-on-error: true
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      # GitHub Releases sometimes keeps returning 5xx through the installer's own
+      # curl retries; try the installer once more before failing the job.
+      - name: Retry installing aqua
+        if: ${{ steps.install-aqua.outcome == 'failure' }}
+        uses: aquaproj/aqua-installer@611554c6f0137ba41c8dd15aca8bee82504ea461 # v4.1.1
+        with:
+          aqua_version: ${{ env.BOOTSTRAP_AQUA_VERSION }}
+          enable_aqua_install: 'false'
+          skip_install_aqua: 'true'
+          github_token: ''
+
+      - name: Update, validate and open PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # Auto-merge performed for GITHUB_TOKEN leaves the head branch behind,
+          # so remove branches of earlier update PRs once they are merged. Keep
+          # branches with an open PR or a PR closed without merging, which may
+          # still be needed to investigate a failed CI run.
+          remote_update_branches="$(git ls-remote --heads origin 'automate/aqua-update-*' |
+            awk '{ sub("^refs/heads/", "", $2); print $2 }')"
+          for update_branch in $remote_update_branches; do
+            update_branch_state="$(gh pr list --state all --head "$update_branch" \
+              --json state,author \
+              --jq 'map(select(.author.login == "app/github-actions")) |
+                if any(.state == "OPEN") then "open"
+                elif any(.state == "MERGED") then "merged"
+                else "other" end')"
+            if [[ "$update_branch_state" == merged ]]; then
+              git push origin --delete "$update_branch"
+              echo "Deleted merged update branch $update_branch"
+            fi
+          done
+
+          # Avoid parallel pending updates; let CI/auto-merge settle first.
+          # Query outside the condition so a failed lookup fails the job instead
+          # of reading as "no open PR"; only PRs this workflow opened count.
+          # Filter authors in jq: `--author` switches gh to the search API,
+          # whose index lag could miss a PR opened moments ago.
+          open_update_branches="$(gh pr list --state open --limit 200 \
+            --json headRefName,author \
+            --jq '.[] | select(.author.login == "app/github-actions") | .headRefName')"
+          if grep -q '^automate/aqua-update-' <<< "$open_update_branches"; then
+            echo 'An aqua update PR is already open; skipping.'
+            exit 0
+          fi
+
+          # Aqua uses GITHUB_TOKEN for API rate limits.
+          aqua update
+
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo 'No aqua package updates.'
+            exit 0
+          fi
+
+          git diff --check
+          # Only the package manifest may change automatically.
+          if [[ "$(git status --porcelain | awk '{print $NF}')" != 'aqua.yaml' ]]; then
+            echo '::error::Unexpected changed files; manual review required.'
+            git status --short
+            exit 1
+          fi
+
+          # kubectx/kubens completion archives are pinned separately in chezmoi.
+          # Never change these packages without updating their companion hashes.
+          if ! diff -u <(git show HEAD:aqua.yaml | grep 'ahmetb/kubectx') <(grep 'ahmetb/kubectx' aqua.yaml); then
+            echo '::error::kubectx/kubens updates need companion completion hash updates.'
+            exit 1
+          fi
+
+          branch="automate/aqua-update-$(date -u +%Y%m%d)-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git add -- aqua.yaml
+          git commit -m 'chore(aqua): update package versions'
+          git push --set-upstream origin "$branch"
+
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          cat > "$body_file" <<'EOF'
+          Automated aqua package version updates.
+
+          - Trigger: daily schedule or manual workflow dispatch
+          - Validation: existing `ci-required` check on the pull request
+          - Merge: GitHub native auto-merge after required checks pass
+
+          Note: kubectx/kubens upgrades require synchronized completion archive hashes and are intentionally blocked.
+          EOF
+          pr_url="$(gh pr create --base master --head "$branch" --title 'chore(aqua): update package versions' --body-file "$body_file")"
+          echo "Created $pr_url"
+
+          # The fork-PR approval policy treats github-actions[bot] as an external
+          # contributor, so GitHub holds this PR's CI run until it is approved.
+          # This workflow authored the aqua.yaml-only change validated above,
+          # so approve that run; ci-required still has to pass before merging.
+          head_sha="$(git rev-parse HEAD)"
+          ci_run_state=''
+          for attempt in $(seq 1 30); do
+            ci_run_state="$(gh run list --workflow ci.yaml --event pull_request \
+              --branch "$branch" --json databaseId,headSha,status,conclusion \
+              --jq "map(select(.headSha == \"$head_sha\")) | .[0] // empty |
+                \"\(.databaseId) \(.status) \(.conclusion)\"")"
+            [[ -n "$ci_run_state" ]] && break
+            echo "Waiting for the pull_request CI run (attempt $attempt)..."
+            sleep 10
+          done
+          if [[ -z "$ci_run_state" ]]; then
+            echo "::error::No pull_request CI run appeared for $pr_url."
+            exit 1
+          fi
+          read -r ci_run_id ci_run_status ci_run_conclusion <<< "$ci_run_state"
+          if [[ "$ci_run_status" == completed && "$ci_run_conclusion" == action_required ]]; then
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${ci_run_id}/approve"
+            echo "Approved CI run $ci_run_id"
+          else
+            echo "CI run $ci_run_id needs no approval ($ci_run_status $ci_run_conclusion)."
+          fi
+
+          gh pr merge "$pr_url" --auto --squash --delete-branch
+          echo "Enabled auto-merge for $pr_url"

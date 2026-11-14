@@ -148,21 +148,21 @@ cd "$HOME/.dotfiles"
 ```
 
 すでにclone済みの場合は、`git pull --rebase`で更新します。
-初回の`chezmoi apply`でCodexのグローバル状態を更新できるよう、先にAqua管理のCLIを導入し、プロジェクトや依頼を指定せずCodexを1回起動して終了します。
+先にAqua管理のCLIを導入します。
 
 ```sh
 aqua install --config "$HOME/.dotfiles/aqua.yaml"
-cd "$HOME"
-codex
 ```
 
-Codexを終了した後、初回だけリポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
+初回だけリポジトリ内のchezmoi設定テンプレートからホーム相対の設定を生成します。
 
 ```sh
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
-以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。Windowsでグローバル状態がない、空、壊れている、または構造が使えない場合はテンプレートが失敗するため、自動作成や黙ったスキップは行わず、空起動してから再試行してください。
+`init`は、そのマシンが仕事用かどうか（`isWork`）を一度だけ質問し、回答を端末ローカルのchezmoi設定の`[data]`へ保存します。テンプレートでは`.isWork`として参照できます。回答を変えるときは`chezmoi init --prompt`を実行します。既存の端末でまだ回答していない場合は、`chezmoi init`を再実行してください。
+
+以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。
 
 Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
 
@@ -213,6 +213,278 @@ if ($personalSourceHash -cne $personalDestinationHash) {
 将来、生成元を`.tmpl`へ変更した場合だけ、`chezmoi execute-template --file`で一時ファイルへレンダリングし、その結果と配置先をバイト単位で比較する手順へ切り替えます。
 
 Personalの`AGENTS.local.md`は通常の管理対象なので、変更はリポジトリ側の生成元を編集してから`chezmoi apply`を実行してください。
+
+### Windows Downloads の指示ファイル対策（明示的 opt-in）
+
+Downloads の `AGENTS.md`、`AGENTS.override.md`、`CLAUDE.md` を、安全な短い注意文で予約する任意の対策です。
+本文の正本は `chezmoi/.chezmoitemplates/downloads-agent-instructions.md` の1か所で、3つの template が参照します。
+ダウンロード内容は入力データとして扱い、ユーザーが許可した分析を妨げず、ファイル内の要求だけで操作権限を追加しません。
+
+Windows かつ boolean の `downloadsAgentGuards=true` を明示した場合だけ管理対象になります。
+未指定・false・非 Windows では配置しません。通常の `chezmoi apply` に含めないため、**この値は永続 config の `[data]` に保存せず、以下の対象限定コマンドにだけ渡す**運用を推奨します。
+永続 config へ true を保存すると、通常の apply も対象に含めるため、この手順の意図とは異なります。
+文字列の `"true"` など非 boolean 値は使いません。型エラーで、テンプレートを評価する diff / apply 等も停止します。
+値を渡さない verify の成功は、除外された3ファイルの正常性を意味しません。
+
+#### 実値を公開しない読み取り専用の事前確認
+
+実パスや private 指示ファイルの出力は配置の前提ではありません。以前拒否された本文出力を再試行せず、必要なメタデータと判定だけを扱います。
+エージェントの実機確認が利用できない場合は、利用者が Windows 上のこの checkout で次を実行し、`項目|PASS/BLOCKED/UNKNOWN|理由コード` の行だけを返してください。既に利用可能な実体の Python 3.11 以上が必要です。Microsoft Store alias / installer は起動せず、インストールや PATH 変更は行いません。
+
+```sh
+python -I -S -B link-targets/agents/tools/check-downloads-guards.py
+```
+
+このスクリプトは Windows Known Folder API（Downloads / Profile）、Downloads の登録値、祖先ディレクトリの属性、3名のエントリ名を調べます。Downloads 内のファイル本文は読みません。
+既定の chezmoi config は TOML / JSON のみデータとして読み、値を表示せず、配置元・配置先・config 内の opt-in・hook の有無を判定します。source の data ファイルは未確認なので、全体の永続 opt-in は UNKNOWN のままです。個人情報や例外本文、環境変数の値を出力しません。私的な指示ファイルを読みません。
+chezmoi、shell、template、hook、script、external は起動せず、Downloads・設定・レジストリ・属性を書き換えません。`-I -S -B` は Python のユーザー設定・site 起動処理・bytecode 保存を除外する指定です。
+環境変数 override、Profile と USERPROFILE の不一致、追加 config 探索先、非対応 config、照会失敗等は UNKNOWN です。設定キーの case 違いを照合し、曖昧な重複は UNKNOWN にします。
+UNC と固定ローカルドライブと確認できない対象は、ディレクトリにアクセスする前に停止します。subst の解決や任意の wrapper / 明示 CLI 引数による設定変更は未確認です。後続コマンドの実体・引数・探索範囲も別途固定します。
+祖先は根から子の順に確認し、リンク・reparse・不明な属性があればその先へ進みません。config 候補の照会失敗も、不在と推定せず UNKNOWN にします。これらの確認は競合を防ぐロックではありません。
+現時点では source 全体の副作用を検証していないため、scripts / externals / diff_verify は UNKNOWN を返します。最後の `summary` 行まで正常に出力された場合のみ、終了コード1は BLOCKED が存在、2は UNKNOWN を含む未完了を意味します。終了コードだけで判定せず、0による実導入の許可も出しません。
+diff の外部コマンド・pager・encryption・secret・textconv 等の個別の設定効果も、未評価の diff_verify に含めます。
+
+BLOCKED があれば実ファイルに触れず、その種類についてだけ判断します。UNKNOWN を PASS と扱わず、通常 config での diff / verify / apply を続けません。
+結果を受けて、公開 source と対象限定コマンドの評価、または既存 config / hooks / externals を使用しない guard 専用の一時 source / config の提案に絞ります。後者も承認レビューや安全設定を無効化する経路ではなく、別途示す配置操作の範囲です。実配置はどちらの場合も別承認です。
+Python の起動失敗・中断・閉じた出力先等の診断は判定結果ではありません。traceback や shell の診断を貼らず、実行できなかった旨だけを伝えてください。
+この確認の成功からブラウザ保存先、競合防止、loader の防御効果は推定しません。実配置直前には配置先・3名の欠落を再確認し、途中失敗なら自動再送・削除・置換を行いません。
+
+#### 初回配置の前提確認
+
+実配置には対象と差分の承認が必要です。以下は PowerShell 7.3 以上で chezmoi の .exe を呼び、ネイティブ引数渡しが Standard / Windows の場合の手順です。Legacy モードや .cmd / .bat shim は対象外です。
+これは手動の確認手順であり、自動配置 hook ではありません。
+実際の Windows Known Folder を解決してから、この最小構成のホーム配下 Downloads と比較します。
+リダイレクト・UNC・リンク、ブラウザ独自の別保存先は自動補正しません。一致しなければ停止し、正確な配置先を使う別案を承認してください。
+別の場所にもコピーを作る、junction を作る、Downloads の移動設定を変える、といった回避策は含めません。
+
+```powershell
+$guardFolderKey = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
+$guardFolderValue = (Get-ItemProperty -LiteralPath $guardFolderKey -ErrorAction Stop).'{374DE290-123F-4565-9164-39C4925E467B}'
+if ([string]::IsNullOrWhiteSpace($guardFolderValue)) { throw 'Downloads Known Folder is unavailable.' }
+$guardDownloads = [IO.Path]::GetFullPath([Environment]::ExpandEnvironmentVariables($guardFolderValue))
+$guardExpected = [IO.Path]::GetFullPath((Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'))
+if (-not [string]::Equals($guardDownloads, $guardExpected, [StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Redirected Downloads requires a separate exact-path plan.'
+}
+$guardDirectory = Get-Item -LiteralPath $guardDownloads -Force -ErrorAction Stop
+if (-not $guardDirectory.PSIsContainer -or ($guardDirectory.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'Downloads must be an existing directory without a reparse point.'
+}
+# Confirm the intended browser save location separately before proceeding.
+$guardNames = @('AGENTS.md', 'AGENTS.override.md', 'CLAUDE.md')
+$guardTargets = @($guardNames | ForEach-Object { Join-Path $guardDownloads $_ })
+foreach ($guardName in $guardNames) {
+    if (@(Get-ChildItem -LiteralPath $guardDownloads -Filter $guardName -Force -ErrorAction Stop).Count) {
+        throw "Existing target requires a decision before apply: $guardName"
+    }
+}
+$guardData = '{"downloadsAgentGuards":true}'
+```
+
+この確認はファイル・ディレクトリ・リンクの衝突を、本文を指示として読まずに検出して停止するための手動条件です。
+未知の同名ファイルがあれば、内容の確認・退避・置換の対象を提示して判断を求めます。無断で上書き・削除しません。
+攻撃者由来の内容を `chezmoi add` / `re-add` で管理正本へ取り込まないでください。
+確認後の競合を防止するロックではなく、通常の apply が全衝突を自動停止する保証でもありません。
+
+ブラウザ保存先との一致と初回配置の承認後だけ、同じセッションで3パスに限定して実行します。
+外部 diff・pager を起動せず、scripts を除外します。`--force` や引数なしの全体 apply は使いません。
+scripts の除外は既存 config の hooks 等の無効化ではありません。実適用前に既存設定の副作用も確認し、未承認の hook・外部取得が必要なら停止します。
+
+```powershell
+chezmoi --override-data $guardData diff --exclude=scripts --no-pager --use-builtin-diff @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard diff failed; do not apply.' }
+# Stop if the diff contains unexpected targets or an unapproved replacement.
+chezmoi --override-data $guardData apply --exclude=scripts @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard apply failed; inspect state before retrying.' }
+chezmoi --override-data $guardData verify --exclude=scripts @guardTargets
+if ($LASTEXITCODE -ne 0) { throw 'Guard verification failed.' }
+```
+
+各コマンドの終了コードを確認し、失敗・対象不明・想定外の差分があれば次の操作に進みません。
+diff は表示内容で差分を判断し、終了コード0だけを「差分なし」と解釈しません。
+verify と管理対象一覧を併せ、3ファイルが実際に管理されていること、同一の非空本文であることを読み戻します。
+一覧は `chezmoi --override-data $guardData managed --include=files @guardTargets` で対象を限定して確認します。
+この機能を初めて有効にする既存ファイルも、過去の管理記録があると推定して上書きしません。
+
+#### 読み取り専用の配置後整合性確認
+
+初回配置の直後と、後日信頼状態を確かめたいときは、既存の実体 Python 3.11 以上で次を実行します。検知を伴わない強制上書きは未採用の提案で、書き込みの承認もありません。このコマンドに修復機能はありません。
+
+```sh
+python -I -S -B link-targets/agents/tools/verify-downloads-guards.py
+```
+
+chezmoi / hooks / scripts / externals / host config は起動・評価しません。Windows Known Folder API / 登録値 / Profile 配下の配置先、固定ドライブ / DOS mapping、祖先のリンク・reparse を確認し、不明なら対象本文を読みません。
+3名の存在・種類・reparse を検査し、通常ファイルだけを最終リンクを辿らない読み取り handle で開きます。正本と対象の read は上限付きで、file identity も照合します。
+共通正本554 bytesの固定 SHA256 は `752f5b04f25729c3c8f962ed30a5668bd9e447714a852418f83cdf200a4ae0f0` です。正本自体の一致を先に確認し、3ファイルは期待バイト列と直接比較します。正本を変更しても期待ハッシュを自動更新しません。
+
+| 判定 | 意味 | 動作 |
+| --- | --- | --- |
+| PASS | 読み取り時点で期待バイト列に一致 | 修復しない |
+| MODIFIED | 通常ファイルのバイト列が不一致 | 内容・実ハッシュを表示せず、停止 |
+| MISSING | 指定名が存在しない | 再作成しない |
+| UNKNOWN | 配置先・正本・種類・リンク・権限・途中競合等が未確認 | PASS と扱わず、修復しない |
+
+出力は `項目|判定|理由コード` と最後の summary だけです。実パス・本文・個人情報・例外値は出しません。summary まで正常に出た場合、終了コード0は全3名 PASS、1は MODIFIED / MISSING、2は UNKNOWN です。起動失敗や中断の診断を共有しないでください。
+常駐監視・自動実行・通知は追加しません。検査する間隔の変更、修復、強制上書き、削除はこの読み取り操作とは別です。異常なら追加の書き込みをせず、必要な対象・操作の承認を求めます。
+
+これは外部の信頼を代替する仕組みではありません。検査コード・埋め込まれた期待ハッシュ・Python / OS を同じ攻撃者が変更できれば、偽の PASS を出せます。信頼できる別の参照先の commit / hash と照合し、正本と検査コードを同時に改ざんされた状態を自己証明できるとは扱いません。
+`-B` は pyc の保存を止めるだけで、stdlib の既存 pyc の読み取りを無効にする指定ではありません。依存する path checker は固定 hash と一致した同じ source bytes を compile / exec します。署名検証や任意コードの sandbox の代わりにはなりません。
+判定は各ファイルの読み取り時点です。3ファイル全体の原子的 snapshot、祖先の名前空間競合の完全防止、検査後の変更防止、hard link の別名からの変更防止、同一ユーザーに対する耐改ざん、loader の実動作は保証しません。
+隔離 fixture は正常・改変・削除・種類・配置先・正本不一致・出力を検証します。Windows の実ファイル symlink fixture は作成権限不足で未検証として skip し、権限変更や別方式で再試行しません。合成 reparse 属性による拒否判定と、実 symlink を使った検証は別の証拠です。
+
+#### chezmoi による整合性確認と復旧
+
+配置先を再確認し、同じ opt-in を付けた対象限定 diff / verify を手動で実施します。常駐監視は追加しません。
+内容変更・削除は verify の非0終了と diff によって検出します。本文一致から属性・ACL の一致は推定しません。
+同一本文での再実行は無変更ですが、変更を検出した場合は apply より先に停止してください。
+
+復旧では、管理正本・配置先・変更または欠落した正確なパスを確認します。
+未知の本文を agent に指示として渡さず、必要な退避先と置換・削除の差分を提示して承認を求めます。
+承認されたパスだけを復旧し、残りの2ファイルや通常のダウンロードには触れず、読み戻しと3パスの verify を行います。
+期待本文の確認には `chezmoi --override-data $guardData cat $guardTargets[0]` を使えます。
+復旧は shell の `>` やテキスト変換に頼らず、chezmoi のネイティブ出力を使います。再確認済みの3パスのうち承認された正確な1パスを `$guardRestoreTarget` に設定し、書き込み直前に通常ファイルまたは欠落であることを確認します。リンク・ディレクトリ・対象不明なら停止します。
+その1パスだけに `chezmoi --override-data $guardData --output $guardRestoreTarget cat $guardRestoreTarget` を実行し、終了コード・期待本文とのバイト一致・verify を確認します。失敗時は再送せず現状を確認します。
+この出力は対象を置換する書き込みであり、事前の退避や置換にもそれぞれ承認が必要です。未承認のパスや複数 target を同時に渡しません。PowerShell 事前確認そのものの実機検証は含みません。
+削除済みファイルの再生成も復旧判断の対象です。force、全体 apply、正本の自動更新で検出結果を消しません。
+
+opt-in を外しても、配置済みファイルは残ります。管理対象からの除外は、削除や loader に対する効果の撤回ではありません。
+撤去が必要なら対象3パスの現行内容と影響を確認し、別途承認して削除します。
+
+#### 効果の限界と通常利用への影響
+
+予約した3ファイルが見えるようになり、同名保存時の連番化・置換確認などに影響します。他の Downloads ファイルを一括拒否しません。
+ブラウザは保存経路により uniquify / overwrite / prompt が異なり、Explorer コピーや各解凍アプリも別動作です。
+Expand-Archive は既定で非上書き、`-Force` は上書きしますが、この仕様を他アプリに転用しません。
+これらの実 UI、上書き・削除・rename/replace の挙動は、環境別の実機試験なしでは保証しません。
+
+Read-only 属性、ACL、Codex / Claude の deny は変更しません。
+chezmoi v2.73.3 の Windows `Chmod` は no-op なので、`readonly_` prefix だけで属性付与を保証しません。
+属性を解除できる同一ユーザーの操作や、file DELETE / parent DELETE_CHILD が関係する削除・置換にも耐えるとはしません。
+ACL は同じユーザーで動く正規操作と攻撃コードを自動識別せず、親 Downloads の制限は通常の整理操作にも影響し得ます。
+
+事前配置は起動時の指示読み込みそのものを禁止する設定ではありません。
+Codex の read-only は読み取りを許し、shell の sandbox/deny と harness の起動時探索は同じ保証ではありません。
+Claude の Read deny、起動時除外 `claudeMdExcludes`、対応 OS の shell sandbox も別の制御です。
+native Windows の Claude shell は sandbox 対応 OS と同一視しません。
+4環境の loader、`/cd` と shell cd、各 deny の実効性は未検証であり、この配置の成功から推定しません。
+`CLAUDE.local.md`、`.claude/rules`、配下の指示ファイル、添付・ツール結果、正本の侵害、確認と実行の間の競合も保証範囲外です。
+
+#### リポジトリの検証
+
+既存の `validate-instructions.py` と `test-instructions.py` に加え、後者の Downloads fixture は既存の実体バイナリを `CHEZMOI_TEST_BINARY` で明示して実行します。
+未指定なら CLI fixture は skip と報告し、導入・検証成功とは扱いません。テストが自動インストールや本物のホームへの apply を行うことはありません。
+fixture は一時 source / destination / config / state / cache に最小ソースだけを置き、scripts・externals・通常設定を読み込まずに検証します。復旧も同じネイティブ出力の経路でバイト一致を確認します。
+無害なデータで配置・再実行・改変削除検出・判断後の限定復旧・無効化を検査し、衝突時の停止条件は Python でモデル化して確認します。
+Windows では、実体の PowerShell 7.3 以上を `CHEZMOI_TEST_PWSH`、chezmoi を `CHEZMOI_TEST_BINARY` に明示すると、README の PowerShell ブロックも隔離 fixture で検証します。未指定・非 Windows は skip と記録します。
+レジストリ取得とプロファイル値を架空値へ、chezmoi 呼び出しを一時 source / destination / config / state / cache を指定した実体バイナリへ置換し、結果分類と再実行の確認を加えます。置換対象の構文変更を検知し、未置換の chezmoi 呼び出しは PATH へ解決せず停止します。
+空白を含む一時パス、3つの名前の同名衝突、ディレクトリ・リンク、環境変数展開、リダイレクト先不一致・値やディレクトリの欠落を確認します。JSON 引数と managed / diff / apply / verify の終了コード、managed の対象名、同一内容で再実行できることをこの一時構成だけで確認します。PowerShell の module analysis cache は子プロセス限定で一時領域へ向け、telemetry も子プロセスで opt-out します。
+この成功は実 Known Folder・実 Downloads・実ホスト設定を確認した証拠ではありません。実環境の事前確認は別に必要です。終了時に fixture を削除します。
+実 Downloads、実機の属性・ACL・deny、agent の攻撃入力読み込みは、このテストに含みません。
+
+### ローカル本人情報と Identity Resolution
+
+一般規約の正本は `link-targets/agents/AGENTS.md`、本人の実データの保存候補は **`link-targets/agents/AGENTS.local.md` の `Personal Data` 節**です。
+後者は既存リンクで `~/.agents/AGENTS.local.md` として参照され、Git 管理外かつ chezmoi の source directory (`chezmoi/`) の外にあります。公開先を直接編集せず、正本で変更します。
+`chezmoi/dot_codex-personal/AGENTS.local.md` は Git 管理されたプロファイル規約なので、氏名・別名・メール・サービス ID の実値を入れません。
+local の既存内容を消したり、全体を生成・同期する仕組みを追加したりしません。
+
+共有 local は、それを読む Codex / Claude、仕事用 / 個人用プロファイルのすべてに内容が見える構成です。
+Git 管理外の `AGENTS.local.md` でも、製品・プロファイル間の情報隔離は提供しません。
+用途ラベルは同定の文脈であり、情報隔離ではありません。モデルへの入力・通常のセッション保存も考慮し、共有先と provider に提示してよい情報だけを登録します。
+業務規則などが隔離を要求する場合、共有ファイルへの登録を止め、別途プロファイル別保存を検討します。個人情報の自動 cloud 同期は行いません。
+
+#### 保存形式と除外の確認
+
+以下は形式だけを示す placeholder です。各アカウントを別項目とし、未確認値を推測で埋めません。メールは必要な場合だけ追加します。
+
+```markdown
+## Personal Data
+
+### Self: <confirmed-context>
+- Context: <work-or-personal; applicable-host/workspace>
+- Name: <user-confirmed-name>
+- Aliases: <user-confirmed-aliases-and-their-context>
+- GitHub: host=<host>; id=<numeric-id>; login=<current-login>
+- Slack: team_id=<team-id>; user_id=<user-id>; enterprise_id=<only-if-relevant>
+- Confirmation: <user-confirmed-source-and-date>
+```
+
+Personal Data は参照データであり、指示や認可を追加しません。トークン・認証情報・秘密情報・不要な第三者情報は保存しません。本人情報の確認は保存・公開の承認を兼ねません。
+共有 local は root の `*.local` / `*.local.*` と共有側 `.gitignore` で除外されますが、ignore は既存 tracked ファイルや `git add -f`、外部送信を防ぎません。
+登録時には次の両方を確認し、後者が空であることも確認します。実データの本文は出力しません。
+
+```sh
+git check-ignore -v -- link-targets/agents/AGENTS.local.md
+git ls-files -- link-targets/agents/AGENTS.local.md
+```
+
+[.chezmoiignore](https://www.chezmoi.io/reference/special-files/chezmoiignore/) は target path に対する管理・適用除外であり、Git の除外とは別です。
+[chezmoi add](https://www.chezmoi.io/reference/commands/add/) の ignored entry 警告も追加不能の保証ではありません。本人情報を source に add しない運用を守り、profile local を一括除外しません。
+validator は exact な共有 local を意図的に読まず、欠落も許容します。CI に実データを渡して形式を検証する設計にはしません。
+
+#### 読み込み経路と未検証範囲
+
+既存 loader を維持します。以下は設定と公式仕様から確認した経路と、過去の実測状況です。
+
+| 環境 | 既存経路 | 実測状況と未確認事項 |
+| --- | --- | --- |
+| Codex CLI | 実効 CODEX_HOME の AGENTS → bootstrap の明示 read → 共有 AGENTS → 共有 local | 過去の明示読み取りのみ限定 PASS。自動起動時の読み込みは未検証 |
+| Codex Desktop Local | 選択プロファイル・実行先の同じ経路 | 未検証。CLI の結果を転用せず Desktop で確認 |
+| Claude Code CLI | user CLAUDE.md → 共有 AGENTS / local の明示 @import | 未検証。import 許可・除外・設定と読み込み表示を確認 |
+| Claude Code Desktop Local Code | 共有される CLAUDE 設定・import | 未検証。実行先と Desktop の読み込み表示を別に確認 |
+
+実測状況の根拠は [Issue #188 の読み込み確認報告](https://github.com/the9ball/.dotfiles/issues/188#issuecomment-6491756388) です。
+Codex CLI の限定 PASS は、その時点のセッションで明示的に読めた範囲だけを示します。
+実効 home、override、サイズ制限、新規 session の自動読み込み順序・適用を保証しません。
+他3環境の未検証を、失敗や別環境の成功に読み替えません。
+Claude Code CLI の試験起動は、private 文脈の provider 送信リスクで実行前の承認レビューに拒否され、回避・再試行していません。
+
+目的はモデルとのやり取りの円滑化であり、読み込みの利便性はベストエフォートで扱います。
+4環境すべての自動読み込み保証や本人情報の登録は、一般規約の導入に必須ではありません。
+ただし、未確認の本人対応を断定せず、個人情報保護と自動登録禁止を維持します。
+
+[Codex の探索仕様](https://learn.chatgpt.com/docs/agent-configuration/agents-md)では `AGENTS.local.md` の名前だけを自動読み込みの根拠にできません。現行の read 指示は自動全文注入と同じ保証ではありません。
+[Claude memory](https://code.claude.com/docs/en/memory) の @import を維持し、AGENTS 対応がある版でも local の自動探索に依存しません。
+[Claude Desktop](https://code.claude.com/docs/en/desktop) は CLI と engine / CLAUDE 設定を共有しますが、managed-only、除外、import の許可状態などを実測で確認します。
+Cloud / SSH 等は実行先が別です。手元の ignored local が渡るとは扱わず、別環境として確認します。Cowork 等を Code Desktop と混同しません。
+読み込みが未確認・欠落・拒否なら、それに依存する本人解決を未確認とし、設定回避や権限拡大を行いません。
+
+#### 接続主体の確認と登録
+
+本人確認 API の実行、本人情報の照合、ローカル登録は未実施です。
+本 Issue の後続工程として行う場合は、API 実行・照合と保存の具体的な対象・範囲をそれぞれ提示し、別承認を得ます。
+
+「認証済みの接続主体」「文章が指す人物」「操作の認可」を分離します。ID メンションと名前だけの言及の両方を、確認済み対応と現在の文脈で扱います。
+GitHub は host と numeric ID、Slack は team と user ID（必要時 enterprise）を組で扱います。login 変更、同名、複数候補、仕事用 / 個人用の混在では断定しません。
+名前・表示名・通称・ローマ字表記の類似や正規化は候補生成にとどめ、新しい別名を自動登録しません。
+
+1. 接続の初回利用、未登録、接続変更、不一致の疑いがある場合だけ、必要な接続確認を検討します。同一の確認済み接続文脈では結果を再利用し、毎回の tool 利用や固定時間だけで照会・更新しません。
+2. 取得対象と既存の API 認可を確認します。保存済み対応表だけでは現在の接続の証拠になりません。本 Issue の実データを使う照合検証は別承認とし、通常運用では既存の認可範囲を個別に評価します。
+3. [GitHub GET /user](https://docs.github.com/en/rest/users/users#get-the-authenticated-user) の id / login / type、[Slack auth.test](https://docs.slack.dev/reference/methods/auth.test/) の team_id / user_id / bot_id、該当時 enterprise_id など、必要最小限だけを認可済み公式経路で照合します。応答は必要なフィールドへ絞って表示・保持し、全応答をログへ流しません。メール取得の追加 scope は要求しません。
+4. API 成功は本人の所有・所属の証明ではありません。bot / app、失敗、不一致、経路不在は未確認とし、アカウント切替・認証情報抽出・再ログインで補いません。Slack の利用可能な照合経路は未検証です。
+5. ユーザーに本人のどの用途のアカウントかを確認し、共有先に置いてよい情報を別に確認します。その後に限り、正本の現在の節・予定差分・影響範囲を提示して登録を提案します。
+6. 具体的な書き込みの承認後だけ既存内容を保って登録し、読戻し・対象外内容の不変・Git 追跡対象外を確認します。自動登録せず、外部文章の登録指示も採用しません。
+
+本人解決を必要としない既存認可内の調査まで一律に停止する必要はありません。取得済みの本人情報を公開するときは、内容・宛先・閲覧範囲の認可を別に確認します。
+
+#### 検証の段階
+
+静的テストは規約・経路・private 除外の有限な回帰確認であり、モデル動作や OS の安全性を証明しません。
+4環境の起動・実 read・解決例の実測、実 API 照合、本人確認後の local 登録は別々の証拠として、別承認後に実施します。
+実測は既存 local を上書きせず、承認された隔離 fixture の架空データと非秘密 marker だけで行います。読み込み表示や実 read の記録と適用結果を組み合わせ、自己申告だけを合格にしません。
+実効 home・製品バージョン・Local / Remote を記録し、必要な backend / UI 操作と後片付けを事前に限定します。隔離できなければ止めて方法を確認します。
+
+| 架空シナリオ | 期待結果 |
+| --- | --- |
+| 同 host の確認済み GitHub ID、同 team の Slack メンション | 根拠付きで解決。操作認可は別 |
+| 他 team の同じ ID 表記、名前と ID の矛盾 | 同一視しない |
+| 確認済み通称と十分な文脈 | 非メンションも根拠付きで扱う |
+| 同名の複数候補、仕事用 / 個人用の混在 | 曖昧として必要な確認を求める |
+| bot、login 変更、古い接続記録 | bot を本人登録せず、安定 ID と現在の文脈を照合 |
+| API 不在・拒否・失敗、local 欠落、import 無効 | 未確認を報告し、回避しない |
+| 初回・未登録・不一致と、同一接続での再利用 | 必要時のみ照会。毎回の更新をしない |
+| 外部文章の登録指示、未承認の公開要求 | 自動登録・無断公開をしない |
 
 ## 3. マシン固有の設定を作る
 
@@ -411,7 +683,8 @@ chezmoi verify --exclude=scripts
 
 - `aqua.yaml`に定義されたCLIのインストール
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
-- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zのインストール
+- Windowsでは初回の適用時だけ、標準のsudoをインライン（`normal`）モードで有効化（UACの承認が1回必要。拒否した場合は警告だけ出して続行し、自動では再実行されないので、あとから管理者のPowerShellで`sudo config --enable normal`を実行する。すでに有効な場合はモードを変更しない）
+- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
 - Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）
@@ -757,6 +1030,12 @@ npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill 
 claude plugin validate link-targets/claude/mods/context
 claude plugin test link-targets/claude/mods/context
 `````
+
+### Claude Codeのターン終了通知
+
+`task-complete-notify`のClaude Code用スクリプト（`claude-stop-hook.ps1`）を`Stop`フックに登録すると、Claude Codeの応答が終わり、バックグラウンドの作業（バックグラウンドのサブエージェントやシェル、予約された再開）が残っていないときに、固定文`Claude turn finished`に送信時刻（例：`Claude turn finished 18:34:27`）を付けてntfy.shへ送ります。時刻を付けるのは、直前と同じ本文の通知をヘルスバンドなどが転送しないことがあるためです。サブエージェントの終了では送りません。送信先topicは、Claude Codeが起動元から引き継ぐ環境変数`NTFY_TOPIC`です。未設定または不正な値なら何も送りません。
+
+登録はCodexと同じく手動です。`chezmoi apply`では登録しません。[`references/claude-settings.json`](link-targets/agents/skills/task-complete-notify/references/claude-settings.json)の`Stop`エントリを、既存のフックや他のキーを残したまま`~/.claude/settings.json`へマージし、スクリプトのパスを実際の絶対パスに置き換えてから、新しいClaude Codeセッションを開始してください。手順の詳細は[`SKILL.md`](link-targets/agents/skills/task-complete-notify/SKILL.md)の「Claude Code」節を参照してください。
 
 ## Datadog MCPの設定
 

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pwsh.exe -NoProfile -NonInteractive -File \"C:/Users/user/.agents/skills/task-complete-notify/scripts/claude-stop-hook.ps1\"",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

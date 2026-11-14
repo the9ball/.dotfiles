@@ -1,8 +1,15 @@
 {{- if ne .chezmoi.os "windows" }}
 .psmux.conf
-.codex/.codex-global-state.json
 AppData/
 {{- end }}
+
+# Downloads guards require boolean opt-in; the target check is manual (README).
+{{- if or (ne .chezmoi.os "windows") (not (eq (get . "downloadsAgentGuards" | default false) true)) }}
+Downloads/
+{{- end }}
+
+# Keep Codex Desktop projects and runtime state managed by the app.
+.codex/.codex-global-state.json
 
 # Keep repository instructions out of the destination home directory.
 AGENTS.md

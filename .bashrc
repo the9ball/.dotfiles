@@ -67,7 +67,11 @@ export SVN_EDITOR="vim"
 
 # cdgitroot は現在の Git worktree のルートディレクトリへ移動します。
 cdgitroot() {
+	# Preserve the existing test and word-splitting behavior of this interactive helper.
+	# shellcheck disable=SC2046,SC2006
 	if [ `git rev-parse --is-inside-work-tree` ]; then
+		# Preserve path splitting and the existing failure status; do not exit the caller's shell.
+		# shellcheck disable=SC2164,SC2046,SC2006
 		cd `git rev-parse --show-toplevel`
 	fi
 }
@@ -76,6 +80,8 @@ cdgitroot() {
 case $- in
 	*i*)
 		if [ -r "$HOME/.bashrc.interactive" ]; then
+			# The home launcher is installed by chezmoi and is checked separately.
+			# shellcheck disable=SC1091
 			. "$HOME/.bashrc.interactive"
 		fi
 		;;
@@ -83,6 +89,8 @@ esac
 
 # Machine-local overrides. Keep credentials and host-specific paths there.
 if [ -r "$HOME/.bashrc.local" ]; then
+	# Machine-local overrides are deliberately outside the repository.
+	# shellcheck disable=SC1091
 	. "$HOME/.bashrc.local"
 fi
 
@@ -97,6 +105,8 @@ case "${OSTYPE-}:${SSH_CONNECTION-}" in
 esac
 case "${OSTYPE-}:${SSH_CONNECTION-}:${DOTFILES_DOCKER_SSH-}" in
     msys*:?*:required|cygwin*:?*:required)
+        # Runtime requires the canonical checkout; the managed bootstrap is checked separately.
+        # shellcheck disable=SC1091
         if [ ! -r "$HOME/.dotfiles/.bashrc.docker-ssh" ] || ! . "$HOME/.dotfiles/.bashrc.docker-ssh"; then
             printf '%s\n' 'Required managed SSH Docker bootstrap failed; ending this shell.' >&2
             exit 1
@@ -106,5 +116,7 @@ esac
 
 # Select the SSH overlay after ordinary settings, before attaching to psmux.
 if [ -r "$HOME/.dotfiles/.bashrc.ssh-psmux" ]; then
+	# The checkout path is chosen at runtime; the overlay is checked separately.
+	# shellcheck disable=SC1091
 	. "$HOME/.dotfiles/.bashrc.ssh-psmux"
 fi

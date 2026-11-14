@@ -8,8 +8,9 @@
 # for general setup; an explicitly approved, host-specific ZIP deployment is
 # documented in docs/windows-openssh.md. Do not add sshd or service automation.
 #
-# バージョンは自動更新されない。このリポジトリでRenovateなどのbotは動いておらず、
-# GitHub上のリモートも受け皿にすぎないため、折を見て手動で更新する。
+# バージョンは .github/workflows/aqua-update.yaml が毎日 `aqua update` で確認し、
+# 変更があれば更新PRを作成して ci-required 通過後に自動マージする。
+# 詳細と安全策は docs/aqua-automation.md を参照する。手動で更新してもよい。
 # openai/codexもAquaで管理する。更新時は`aqua update codex`で宣言を更新し、
 # 差分を確認してコミットした後に`aqua install`を実行する。
 # Aqua管理のcodexには`codex update`を使用しない。
@@ -24,39 +25,44 @@ registries:
   name: local
   path: aqua-registry.yaml
 - type: standard
-  ref: v4.576.0
+  ref: v4.585.0
 packages:
 - name: curl/curl-for-win@8.23.0_5
   registry: local
-- name: cloudflare/cloudflared@2026.10.3
+- name: cloudflare/cloudflared@2026.11.0
 # Native tmux builds for Linux and macOS (not available on Windows).
-- name: tmux/tmux-builds@v3.7c
+- name: tmux/tmux-builds@v3.8
 # Windows-native tmux-compatible session manager.
 - name: psmux/psmux@v3.4.0
   registry: local
-- name: twpayne/chezmoi@v2.73.3
-- name: nodejs/node@v26.12.1
-- name: openai/codex@rust-v0.164.0
+- name: twpayne/chezmoi@v2.74.1
+  tags: [ci]
+- name: nodejs/node@v26.13.1
+- name: openai/codex@rust-v0.169.0
 # kubectxを更新したら、補完スクリプトの取得元(chezmoi/.chezmoiexternal.toml)のタグとsha256も同じバージョンに揃える。
 - name: ahmetb/kubectx@v0.11.0
 # kubensも同様に、chezmoi/.chezmoiexternal.tomlの補完スクリプトのタグとsha256を揃える。
 - name: ahmetb/kubectx/kubens@v0.11.0
-- name: aws/aws-cli@2.37.0
+- name: aws/aws-cli@2.40.3
 - name: 99designs/aws-vault@v7.2.0
-- name: cli/cli@v2.103.2
+- name: cli/cli@v2.104.0
 - name: jqlang/jq@jq-1.8.2
+  tags: [ci]
 - name: gitleaks/gitleaks@v8.30.1
-- name: j178/prek@v0.5.7
-- name: suzuki-shunsuke/pinact@v5.0.1
+  tags: [ci]
+- name: j178/prek@v0.5.10
+  tags: [ci]
+- name: suzuki-shunsuke/pinact@v5.0.2
 - name: ynqa/jnv@v0.7.1
 - name: itaysk/kubectl-neat@v2.0.4
 - name: stern/stern@v1.35.0
-- name: astral-sh/uv@0.13.5
-- name: anthropics/claude-code@v2.1.310
+- name: astral-sh/uv@0.13.8
+- name: anthropics/claude-code@v2.1.325
 - name: BurntSushi/ripgrep@15.2.0
-- name: bootandy/dust@v1.2.6
-- name: nektos/act@v0.2.89
+- name: bootandy/dust@v1.2.7
+- name: nektos/act@v0.2.97
 - name: rhysd/actionlint@v1.7.12
+  tags: [ci]
 - name: open-policy-agent/conftest@v0.71.1
 - name: editorconfig/editorconfig-core-go@v2.6.5
   tags:
@@ -64,10 +70,13 @@ packages:
 - name: editorconfig-checker/editorconfig-checker@v4.0.2
   tags:
   - code-formatting
-- name: github/git-sizer@v1.5.0
-- name: helm/helm@v4.3.1
-- name: PowerShell/PowerShell@v7.6.8
-- name: ip7z/7zip@26.05
+- name: github/git-sizer@v1.6.0
+- name: helm/helm@v4.3.2
+- name: PowerShell/PowerShell@v7.7.0
+- name: ip7z/7zip@26.06
 - name: koalaman/shellcheck@v0.11.0
-- name: mikefarah/yq@v4.54.1
-- name: terraform-linters/tflint@v0.65.0
+  tags: [ci]
+- name: mikefarah/yq@v4.54.3
+  tags: [ci]
+- name: terraform-linters/tflint@v0.66.0
+- name: rclone/rclone@v1.76.0

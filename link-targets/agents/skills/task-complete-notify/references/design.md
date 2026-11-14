@@ -1,93 +1,57 @@
-# Task-complete notification: design record
+# Agent turn notifications: design record
 
-This document is a design record for mapping the current contract of `task-complete-notify` to the reason for its adoption.
-The usage procedure and safety boundaries at runtime are based on the parent document [`SKILL.md`](../SKILL.md).
+The runtime contract is in [SKILL.md](../SKILL.md).
 <!-- reference-kind: owner-precedence; target: link-targets/agents/skills/task-complete-notify/SKILL.md -->
 
-## Current invariants
+## Decision
 
-- From the arm input, normalize the standalone UUID candidates and determine the target only when there is only one different candidate. Repetition of the same UUID is allowed.
-- The canonical URI is `codex://threads/<UUID>`. Legacy formats and any extra path, query, or fragment are rejected.
-- Relaxed UUID extraction is applied only to external arm input, and internal values of hooks, transcript metadata, state, and watchers are verified as exact matches using strict parser.
-- Before arming, check `session_index.jsonl` of the Codex home selected by the current process and `session_meta` at the beginning of the active rollout of the same home. State is not created unless `id == session_id == target`, `thread_source == user`, and parentlessness are satisfied.
-- Place the runtime state in `$CODEX_HOME\.task-complete-notify` which is resolved at runtime. Use `.codex` in the user profile only when `CODEX_HOME` is not set.
-- `armedAtUtc` is the only expiration date standard recorded in the request when arming, and applies a fixed 24-hour TTL only to `armed`. Missing, invalid, and overflow cases are expired with fail closed, and related routes of arm, stop, and watcher lazily delete requests first, and checkpoints are post-processed with best-effort. Do not extend TTL at checkpoint side time.
-- `attempting` is not subject to TTL cleaning and does not prevent Stop transmission/terminalization. Expired requests are not passed to the notification process, and if there is a lock conflict, the next scan will be retried.
-- Cancel rereads the state of the specified thread in the order of coordination lock → per-thread lock, and deletes only `armed`, removing the request first and then the checkpoint. `attempting` does not delete it, returns `too_late`, returns `busy` if it is locked or the status is uncertain, returns `Ok=true, Status=not_armed` if it is absent, expired, or consumed, and does not create a terminal/tombstone. Cancel does not re-verify active ownership and is an operation for the generation at the time of execution.
-- Make Stop hook the primary detector, JSONL watcher as an explicit fallback, and do not enable both as independent senders.
-- JSONL watcher treats LF as a record commit boundary. An LF-terminated line that fails strict UTF-8/JSON parsing is permanently malformed under the append-only writer contract. Advance the cursor to `NextOffset` without retaining or outputting the malformed content. Leave only a trailing partial line without LF for the next scan. If evidence shows that the writer rewrites the same byte range after LF, reevaluate this policy and change the checkpoint schema.
-- Stop hook is a synchronous call, but it is fixed to the hierarchy of thread lock 10 seconds + notifier child 35 seconds + post-processing margin 5 seconds < helper wrapper 55 seconds < hook setting upper limit 90 seconds. The HTTP settings for notifier are connect timeout 10 seconds and operation inactivity timeout 20 seconds, which are not treated as upper limits for the entire HTTP. Even if it fails, the turn result will not be changed and no asynchronous workers will be introduced.
-- stdin reads the standard input stream as an explicit UTF-8 `StreamReader` at each boundary, and does not assume a change in `Console.InputEncoding` or a console connection.
-- Attempt the send API only once per generation and consume the result to the terminal state. No retry or automatic retransmission is performed.
-- Do not save or output topic, secret, raw arm input, prompt/response, thread title, and repository path in state, stdout/stderr, and hook output.
-- Before enabling a hook or watcher, check the combination of permission profile and sandbox that is actually selected in the target session using the canary. The required permissions are limited to reading the session index/transcript of the same home, limited writing to the root of the same home state, and HTTPS communication to `ntfy.sh`, and the skill does not automatically change the Codex settings.
+[Issue #251](https://github.com/the9ball/.dotfiles/issues/251) replaces the thread reservation workflow from [Issue #3](https://github.com/the9ball/.dotfiles/issues/3) with:
+Codex Stop → PowerShell → ntfy.sh.
+Duplicates and notification volume are accepted. There is no deduplication or delivery guarantee.
 
-## Reason for judgment
+The original sender's fixed HTTPS endpoint, environment topic, 2xx check, redirect prohibition, and sanitized failure handling remain useful.
+Its variable-message envelope and layered child processes are unnecessary.
+The body ends with the local send time as `HH:mm:ss`. A health band that relays phone notifications was observed to drop a notification whose text matched the previous one, so identical fixed bodies were lost. The time comes from the local clock, not from hook input, so no prompt, answer, or path reaches the message. Two sends in the same second can still be identical.
+HttpClient replaces Invoke-WebRequest to give the request a single total deadline without adding a watchdog child process.
+ResponseHeadersRead avoids fetching or logging a response body.
+The 20-second hook timeout also bounds runtime startup.
 
-### Don't take UUID on first match
+Reservations, UUID extraction/ownership, TTL, locks, terminal state, JSONL scanning, checkpoints, arm/cancel commands, and random-message/title diagnostics are removed.
+No compatibility shim is retained: it would imply that the old reservation API still works.
+The skill directory and Stop script path remain stable for existing registrations.
 
-Codex logs, Markdown, and quotes can contain multiple UUIDs. If you prioritize first match or canonical URI, you run the risk of silently selecting another thread. Therefore, we only deduplicate repeats of the same UUID, and if there are multiple different UUIDs, we stop as `thread_ambiguous`.
+No hook-input parser remains. The entry point drains redirected stdin to Stream.Null asynchronously without retaining its content: a local 1 MiB dummy-input check reproduced parent-side broken pipe when the hook exited without reading. The drain starts concurrently with HTTP delivery, which does not depend on EOF or drain success. After delivery, draining gets at most one more second; a pipe still open at process exit is closed by the process. This keeps large input moving while bounding a producer that never closes its pipe. Dot-sourced function callers omit input unless they deliberately supply a stream, so tests never consume their runner's stdin. This is transport handling, not identity validation or state management. Event selection belongs to the Stop registration, not an inferred transcript source.
+Other hooks may continue the turn, producing more Stop invocations and notifications; this sender emits no continuation decision.
+It must not also be registered as SubagentStop. Interrupted turns have no separate notification registration.
 
-Partial matches in which ASCII alphanumeric characters, underscore, and hyphen are directly connected to UUID will not be considered as candidates. The arm input is limited to UTF-8 4 KiB to prevent the entire input from becoming too large, and the full text of the extracted source is not retained.
+## Evidence and uncertainty
 
-### Separate strict parser and arm extractor
+- [Official hook documentation](https://learn.chatgpt.com/docs/hooks) describes concurrent matching hooks, additive sources, hook trust, Stop continuation, and Windows command overrides. The example uses only Stop and an empty JSON response.
+- [Issue #3's 2026-09-11 canary](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5633214614) observed a real CLI Stop, inherited CODEX_HOME/NTFY_TOPIC, and a successful non-publishing HEAD request. It did not establish delivery in every current permission profile.
+- At the start of this change, the inspected Windows user-home hooks.json files contained PreToolUse but no Stop entry. This establishes missing registration in those files, not absence of hooks in every other source or the cause of all historical failures.
+- The old hook required valid identity fields and a helper process, then depended on same-home session metadata, reservation state, locks, and another notifier process. Those are possible failure points; no trace establishes which caused past lost notifications.
+- The tracked permission profiles restrict networking. Actual hook enforcement and inherited sandbox/proxy settings must be checked in the target environment; the sender never removes those variables.
+- Native WSL PowerShell avoids cross-OS topic and path translation. It requires an installed Linux PowerShell 7.4+. This is a deployment prerequisite, not an automatic dependency installation.
+- Hook configuration remains opt-in to avoid silently beginning external transmission. Merge and trust the example in each actual Codex home. Do not apply production settings as part of offline tests.
 
-If you use partial matching for hook and state values, there is a possibility of picking up a different UUID from corrupted metadata or altered state. Therefore, use `Extract-ArmThreadId` for external inputs and a strict `Normalize-CodexThreadId` for internal boundaries.
+## Validation boundary
 
-### Divide state into Codex home units
+The offline suite checks all 2xx boundaries, redirects/non-2xx, missing/invalid topics, cancellation by a real HttpClient deadline against an in-memory delayed handler, transport exceptions, fixed request content, no extra headers, generic output, repeated calls without state, and independent process cases for normal input, a pipe held open without EOF, and 1 MiB input. Process tests allow 30 seconds for cold startup and bound asynchronous writes as well as exit. Home-isolation checks use unique absolute temporary paths.
+These tests do not establish real ntfy delivery, current Codex lifecycle dispatch, device display, every permission profile, or WSL operation when native PowerShell is unavailable.
+Keep those limits explicit in the implementation/PR verification record.
 
-In the shared state in skill checkout, request, watcher lock, and checkpoint conflict when `.codex` and `.codex-personal` are used at the same time. By simultaneously deriving the state and sessions root from the home that Codex actually uses, you can make the resident watcher for each home independent.
+The WSL hooks source uses the same modify template as both Windows homes, preserving unrelated Stop handlers instead of replacing the whole file. Isolated chezmoi tests render Linux and Windows dummy environments and verify Stop preservation, a single managed auth handler, and byte-stable reapplication for all three homes. No production chezmoi apply is performed by these tests.
 
-The state directory is not created during installation, but only after arming after confirming that the target is managed by the current home. This is to avoid creating a new runtime directory just by trying an unknown home or an unknown UUID.
+## Codex Stop as a completion signal
 
-`CODEX_HOME` is selected only from the process environment. It does not infer an alternate home from the input value or overwrite an arbitrary home in the WSL envelope. If the WSL side cannot inherit the current session environment, it will fail to avoid registering the wrong home.
+A Codex re-check on 2026-11-10, prompted by the Claude Code findings below, kept `Stop` for Codex but limited what it means. The Stop input schema embedded in Codex CLI 0.167.0 has nine required fields (`hook_event_name`, `cwd`, `session_id`, `turn_id`, `model`, `permission_mode`, `last_assistant_message`, `transcript_path`, `stop_hook_active`) and none that reports background work. The same binary contains background terminals, subagents, agent-message wakeups, and Stop continuation, so a Stop notification can precede the end of all work. The legacy `notify` event `agent-turn-complete`, `SubagentStop`, `SessionEnd`, and terminal notifications showed no evidence of a better completion signal. These findings come from static inspection of the CLI, not from runtime experiments; the desktop app and the WSL CLI were not inspected. A Codex notification is therefore documented as "Stop reached", not "all work finished".
 
-### Request-owned TTL and lazy cleanup
+## Claude Code
 
-We use an absolute TTL of 24 hours from the arm time to set an upper limit without adding resident workers or retransmission mechanisms while reservations wait for a future turn. If you use only the `armedAtUtc` of the request for judgment and treat the checkpoint copy or missing time as an auxiliary value, you can prevent old checkpoints from extending their lifespan or sending from unknown times. Deadline determination is limited to existing execution points of arm, stop, and watcher, and expired requests are logically invalidated and then physically deleted. Since the request is deleted first, the watcher cannot reconstruct the notification target using only the remains of the checkpoint.
+Claude Code has its own entry point, `claude-stop-hook.ps1`, which dot-sources the Codex script for the shared sender and calls it with `-Source Claude`. The sender's `-Source` accepts exactly `Codex` or `Claude`, case-sensitively, so no caller-supplied text reaches the message. The Codex script takes no parameters and still parses no input, so existing Codex command strings are unchanged. Whether Codex's hook trust also covers the script content was not verified; after this change the work Codex home still showed a trusted Stop entry.
 
-### Handling LFed malformed lines
+Observed in the Claude desktop app: `Stop` fired when a response ended while a background subagent was still running, and fired again after that work resumed the session, so the user got a notification before the work was done. The official hooks documentation lists `background_tasks` (in-flight background work) and `session_crons` (scheduled wakeups) in the Stop input to distinguish a finished session from one paused for background work. The Claude entry point therefore parses the input, but only for those two fields, and stays silent when either is non-empty. Input that is missing, malformed, over 16 MiB, or not finished within 3 seconds counts as idle: an input-format change then produces extra notifications instead of silently losing every notification. The input is drained to the end even when oversized, so the producer is not cut off.
+The documented alternative, a `Notification` hook with the `idle_prompt` matcher, did not fire in the Claude desktop app in an existing session, a new session, or after restarting the app, so it is not used.
 
-The JSONL fallback scans each rollout with one monotonically advancing cursor. For an append-only writer that defines LF as the record commit boundary, a line ending in LF that fails strict UTF-8 decoding or JSON parsing is permanently malformed. Discard it immediately so it does not block detection of later records. Retrying forever at that offset would starve a valid `task_complete` record behind it. Do not store raw bytes or decoded text in state; keep only the existing path and offset in the checkpoint.
-
-This judgment assumes that the rollout writer does not update the LF-completed range. If the writer implementation or trace disproves that assumption, redesign for bounded retry/discard that preserves the same range and failure count across restarts. Even then, do not save or output the malformed content, and define the failure count as the number of observations.
-
-### Linearization of cancel
-
-cancel does not create a new state machine and acquires coordination and thread locks already shared by arm/stop/watcher in the same order. We recheck `armed` under lock before deleting the request, so Stop's `attempting` claim does not intersect with unconditional file deletion. If the lock cannot be acquired in time, the request body is read twice to check stability, but except for stable `attempting`, set `busy` to be safe. Since it is an explicit cancel on a per-thread basis, re-arming between calls is not constrained by a generation token, and the contract leaves a constraint that subsequent cancels target the generation at that point.
-
-### Double check index and transcript
-
-`session_index.jsonl` is used to quickly narrow down candidates for the same home, but the validity of the rollout cannot be confirmed with the index alone. The final judgment is `session_meta` at the beginning of active rollout and confirms that it is the root user session. It does not judge only filename matches or accept archived rollouts.
-
-### Use `references/design.md` instead of README
-
-`SKILL.md` concentrates on how to call and the current contract, and the reason for adoption, rejection proposal, evidence, and maintenance conditions are separated into this design record. This is because if you copy the README separately, the usage instructions and contract will likely become obsolete.
-
-This file does not record the local absolute path, username, real UUID, thread name, prompt/transcript content, topic, credential, or private config values. Issues are referred to as provenance links, but the summary is self-contained so that even if you can't read the issue, you can understand the current decision.
-
-### Separate diagnostic scripts from production routes
-
-The terminal display comparison script is separated from the production adapter, hook, and watcher because it performs an actual ntfy publish, and is placed in `scripts/diagnostics/`. These scripts do not launch automatically through the acceptance path; they run only for an explicitly requested display check. Messages, topics, prompts, and responses other than random values are not handled.
-
-## Verification and maintenance
-
-When changing specifications, treat the following as the same change:
-
-1. Current contract of `SKILL.md`
-2. Adapter/detector/sender in `scripts/` and diagnostic materials in `scripts/diagnostics/`
-3. Acceptance conditions for `tests/task-complete-notify.tests.ps1`
-4. Invariant conditions and reasons for this design record decision
-5. GitHub Issue #3 body and judgment history comments
-
-At a minimum, we will re-verify the ambiguity of input extraction, wrong-home rejection and state not created, lock separation for each home, one-time stop/watcher, fail-closed cleaning of 24-hour TTL and incorrect time, conflict between cancel and stop, natural termination of watcher, and non-leakage of secret values.
-Acceptance tests for a fully malformed JSONL line verify detection of a valid `task_complete` after invalid JSON/UTF-8, checkpoint persistence across restart, no output of malformed content, and retrying a partial line that does not yet end in LF.
-
-## Evidence link
-
-- [GitHub Issue #3: notification-skill](https://github.com/the9ball/.dotfiles/issues/3)
-- [Issue #3 initial process-reuse draft](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5628328226)
-- [Issue #3 final contract discussion](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5629234932)
-- [Issue #3 implementation and verification record](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5630098951)
-- [Issue #3 review-response policy](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5632941893)
-- [Issue #3 live-canary result](https://github.com/the9ball/.dotfiles/issues/3#issuecomment-5633214614)
+Like Codex, the Claude Code registration is a manual merge of [the example](claude-settings.json) into `~/.claude/settings.json`; chezmoi does not register it. This keeps hook configuration opt-in, so applying dotfiles never silently begins external transmission.
+The example path uses forward slashes so that the command parses in both Git Bash and PowerShell, either of which Claude Code may use to run hooks on Windows. Offline tests check both fixed bodies, rejection of other `-Source` values, idle and busy decisions, unknown-input handling, bounded reading, process runs of the Claude entry point, and the Stop-only example. They do not establish Claude Code lifecycle dispatch or real delivery.

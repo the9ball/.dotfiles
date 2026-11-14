@@ -1,48 +1,7 @@
-# Stable Codex settings for the default work account.
-#
-# Keep runtime-owned state out of this file. The modify_ template preserves
-# projects, hooks.state, model availability, and other keys written by Codex.
-# Host-specific paths or integrations belong in codex-defaults.toml.local.
-# Model and reasoning effort defaults fill only missing target settings.
-# Existing selections are preserved; explicit .local overrides take precedence.
+# Regular Codex permission defaults, layered over codex-common-defaults.toml.
+# Host-specific overrides belong in codex-defaults.toml.local.
 
-approval_policy = "on-request"
-approvals_reviewer = "auto_review"
-service_tier = "default"
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
-personality = "pragmatic"
-model_verbosity = "low"
-model_reasoning_summary = "concise"
 default_permissions = "default-permissions"
-suppress_unstable_features_warning = true
-
-[notice]
-fast_default_opt_out = true
-
-[agents]
-enabled = true
-default_subagent_model = "gpt-6.1-sol"
-default_subagent_reasoning_effort = "low"
-max_concurrent_threads_per_session = 10
-max_depth = 5
-
-[features]
-daemon_auto_start = false
-js_repl = false
-multi_agent = true
-default_mode_request_user_input = true
-network_proxy = true
-
-[features.multi_agent_v2]
-enabled = true
-# Default each v2 wait call to 20 minutes when no timeout is specified.
-# Cap any single v2 wait call at one hour.
-default_wait_timeout_ms = 1_200_000
-max_wait_timeout_ms = 3_600_000
-
-[features.context_management]
-experimental_mode = true
 
 [permissions.default-permissions]
 extends = ":workspace"

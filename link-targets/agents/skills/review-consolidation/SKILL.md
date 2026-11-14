@@ -26,10 +26,10 @@ Discovery or invocation does not authorize external changes. Apply existing oper
 
 ### Trigger and scope
 
-- If the target issue/PR can be uniquely determined from the conversation, it may be estimated, but the target should be visualized at the beginning. Check if it is not unique.
+- If the target Issue or PR is uniquely identifiable from the conversation, state it at the beginning and proceed. If it is not uniquely identifiable, ask the user to identify the target before starting target-dependent work.
 - The work-plan source is the artifact that owns the current work scope. At the issue stage, the Issue body owns the Issue-wide plan; during implementation, each PR carries the current plan for its own scope.
 - Treat multiple PRs from one issue as a normal case. 1 PR from multiple issues will not be automatically determined using the standard workflow, but will follow explicit instructions.
-- In principle, the impact on the overall plan determined by PR is fed back into the original Issue through post-merge maintenance (保守) of that Issue, and pre-merge synchronization is performed only if there is an explicit instruction.
+- In principle, effects on the Issue-wide plan that are determined during a PR are fed back to the original Issue through post-merge maintenance (保守) of that Issue. Synchronize before merge only when explicitly instructed.
 - merge, issue close, HANDOFF, individual review reply, inline comment hide, review thread Resolve, and approval/authorization are not independent responsibilities of this skill.
 - For GitHub service/API operations, authorization, approval request, external posting, and retry / ambiguous outcome, apply the existing common contract as necessary and do not redefine it with this skill.
 

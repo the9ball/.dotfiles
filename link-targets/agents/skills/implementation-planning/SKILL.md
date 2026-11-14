@@ -28,6 +28,12 @@ Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or ap
 
 Applies to creating, updating, and reviewing implementation plans and runbooks; read it before creating, updating, or reviewing an implementation plan or runbook. It includes the details of implementation-scale estimation and of runbook/plan history management.
 
+### Plan file location
+
+- Unless the user or the caller names another destination, create a new implementation plan or runbook as `<short slug expressing the contents>-plan.md` in the agent-artifact directory that the always-applied `.local/` rule defines (`.local/` directly under the work root, or the alternative directory a repository names), and keep its history file in the same directory. Do not ask the user to confirm this location.
+- Create and check the directory as that rule orders before writing the plan; its `.local/.gitignore` contains only `*`.
+- Updating an existing plan keeps its current path.
+
 ### The boundary between planning review and post-implementation review
 
 The plan review does not include an exhaustive detailed review of details that do not affect the decisions that should be made before implementation.
@@ -74,12 +80,12 @@ For each candidate, write at least **target/operation/cause**. Conditional candi
 ### Counted and excluded
 
 - Exclude: test code, automatic artifacts, migration generation, configuration files, comments, and empty lines.
-- Write a rough estimate of the test code in a separate box. When included in the main body estimate, tests are removed to maintain line count.
+- Estimate test code separately from implementation code. Including test code in the implementation estimate can create pressure to remove tests merely to meet the line-count target.
 - Deleted lines of existing code are not counted.
 
 ### If the estimate is exceeded
 
-1. When the number of lines exceeds 1.5 times and +30 lines, stop implementing that step.
+1. Let E be the step's estimated counted lines, using the upper bound for a range, and A the actual counted lines. Stop implementing the step when both `A > 1.5 × E` and `A > E + 30`. At `A = E + 30`, the second condition is not met.
 2. Categorize and report the reason for the excess. (a) The estimate was lax (b) The requirements were more complex than planned (c) Elements not included in the plan were added.
 3. Show countermeasures. In case (c), explicitly check whether the element is really within the scope of the request.
 4. Get approval before proceeding.

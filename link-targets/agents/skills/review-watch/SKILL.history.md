@@ -3,6 +3,14 @@
 `SKILL.md` describes the procedures that are valid now. This file keeps only policy changes whose reasons are worth
 referring to on their own later. Wording fixes and minor additions are not recorded.
 
+## 2026-11-02 Bound saved diffs to fixed revisions
+
+Issue: [#173](https://github.com/the9ball/.dotfiles/issues/173)
+
+A moving PR diff and a separately recorded head did not prove which revision supplied the saved bytes. Capture now uses full base/head SHAs in the official compare endpoint, validates the merge-base-to-head payload, and stores identities and payload digest together in one atomically replaced `.diff`. Reports retain the same identifiers.
+
+A sidecar was not selected because it would require two-file publication and an expanded cleanup contract. The single artifact keeps the flat filenames and existing cleanup extensions. Its header must be removed for raw-diff consumers. Failed capture does not silently promote an older snapshot; failed verification after publication stops reuse.
+
 ## 2026-08-24 Moved pre-review from the monitoring session to a separate session
 
 HEAD: `0cdae10cb6ef5ad57cef65120d0f15c6abb7307e`
