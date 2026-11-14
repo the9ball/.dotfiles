@@ -13,10 +13,20 @@ import tempfile
 
 
 def installed_chezmoi():
-    """Require the trusted native path resolved during tool installation."""
+    """Return the native chezmoi from CHEZMOI_TEST_BINARY, else from `aqua which`.
+
+    Raises ValueError when neither source yields a native chezmoi.
+    """
     executable = os.environ.get("CHEZMOI_TEST_BINARY")
     if not executable:
-        raise ValueError("set CHEZMOI_TEST_BINARY to a preinstalled native chezmoi")
+        # Local runs default to the aqua-managed binary; CI always sets the
+        # variable during tool installation, so this lookup never runs there.
+        aqua = shutil.which("aqua")
+        if not aqua:
+            raise ValueError("set CHEZMOI_TEST_BINARY or install aqua to locate chezmoi")
+        executable = subprocess.check_output(
+            [aqua, "which", "chezmoi"], text=True, timeout=30
+        ).strip()
     executable = Path(executable).resolve(strict=True)
     if not executable.is_file() or executable.name.lower() in (
         "aqua-proxy", "aqua-proxy.exe",
