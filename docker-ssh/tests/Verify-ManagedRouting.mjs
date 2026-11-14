@@ -104,6 +104,14 @@ return int.TryParse(Environment.GetEnvironmentVariable("ROUTING_PROBE_EXIT"), ou
             manifest[name] = digest(path.join(binary, name));
         }
     }
+    // Any post-failure Docker lookup reaches only this compiled inert probe, never the host client.
+    const fallbackDirectory = path.join(scratch, 'old-docker');
+    fs.mkdirSync(fallbackDirectory);
+    for (const extension of ['.exe', '.dll', '.deps.json', '.runtimeconfig.json']) {
+        const name = 'docker-credential-ssh-tpm' + extension;
+        fs.copyFileSync(path.join(binary, name), path.join(fallbackDirectory, name));
+    }
+    fs.copyFileSync(path.join(fallbackDirectory, 'docker-credential-ssh-tpm.exe'), path.join(fallbackDirectory, 'docker.exe'));
     for (const name of ['Get-TpmDockerEnvironment.ps1', 'Invoke-DockerSshTpm.ps1']) manifest['shell/' + name] = digest(path.join(installedShell, name));
     const manifestPath = path.join(deployment, 'installed-manifest.json');
     fs.writeFileSync(manifestPath, JSON.stringify(manifest));
@@ -131,6 +139,28 @@ return int.TryParse(Environment.GetEnvironmentVariable("ROUTING_PROBE_EXIT"), ou
     }
     const restored = startup('docker-ssh-restore-environment; [[ ! ${DOCKER_CONFIG+x} && ${PSMUX_SSH_AUTOATTACH+x} && -z $PSMUX_SSH_AUTOATTACH ]]', { DOCKER_CONFIG: undefined, PSMUX_SSH_AUTOATTACH: '' });
     check('restore-unset-versus-empty', restored.status === 0);
+    const assignmentOverride = path.join(home, '.bashrc.local');
+    const oldDockerEnvironment = { PATH: fallbackDirectory + path.delimiter + environment.PATH };
+    for (const name of ['PATH', 'DOCKER_CONFIG', 'DOCKER_SSH_HELPER_ROOT', 'DOCKER_SSH_DEPLOYMENT', 'DOCKER_SSH_MANAGED', 'PSMUX_SSH_AUTOATTACH', 'MSYS2_ENV_CONV_EXCL', '_dotfiles_docker_ssh_saved', '_dotfiles_docker_ssh_values', '_dotfiles_docker_ssh_set', '_dotfiles_docker_ssh_exported']) {
+        fs.writeFileSync(assignmentOverride, 'readonly ' + name + '\n');
+        const before = calls();
+        const rejected = startup('docker version; printf MUST_NOT_RUN', oldDockerEnvironment);
+        check('readonly-' + name + '/nonzero', rejected.status !== 0);
+        check('readonly-' + name + '/no-continuation-or-child', !rejected.stdout.includes('MUST_NOT_RUN') && calls() === before);
+    }
+    for (const [name, override] of [
+        ['state-allocation', '# Reject fixture state allocation while preserving other declaration semantics.\ndeclare() { [[ ${1-} != -gA ]] || return 1; builtin declare "$@"; }\n'],
+        ['routing-export', '# Reject only the managed routing export in this fixture.\nexport() { [[ ${1-} != DOCKER_SSH_MANAGED=* ]] || return 1; builtin export "$@"; }\n'],
+    ]) {
+        fs.writeFileSync(assignmentOverride, override);
+        const before = calls();
+        const rejected = startup('docker version; printf MUST_NOT_RUN', oldDockerEnvironment);
+        check('failed-' + name + '/nonzero', rejected.status !== 0);
+        check('failed-' + name + '/no-continuation-or-child', !rejected.stdout.includes('MUST_NOT_RUN') && calls() === before);
+    }
+    fs.unlinkSync(assignmentOverride);
+    const repeated = startup('source "$HOME/.dotfiles/.bashrc"; docker-ssh-restore-environment; [[ ! ${DOCKER_CONFIG+x} && ${PSMUX_SSH_AUTOATTACH+x} && -z $PSMUX_SSH_AUTOATTACH ]]', { DOCKER_CONFIG: undefined, PSMUX_SSH_AUTOATTACH: '' });
+    check('repeat-initialization-preserves-original-restore', repeated.status === 0);
     check('gui-unmanaged-preserved', startup('printf READY', { SSH_CONNECTION: '', DOTFILES_DOCKER_SSH: 'invalid' }).stdout.includes('ATTACHED'));
     check('ssh-unmanaged-preserved', startup('printf READY', { DOTFILES_DOCKER_SSH: '' }).stdout.includes('ATTACHED'));
     check('ssh-invalid-mode-exits-parent', !startup('printf MUST_NOT_RUN', { DOTFILES_DOCKER_SSH: 'invalid' }).stdout.includes('MUST_NOT_RUN'));

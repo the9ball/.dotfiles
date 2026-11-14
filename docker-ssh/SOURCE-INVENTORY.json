@@ -145,7 +145,7 @@
     },
     {
       "Path": "tests/Verify-ManagedRouting.mjs",
-      "SHA256": "36A73894EF4AFED572D8374910CBAB05EF5F3E961EC749366525C89CE32BAFD2"
+      "SHA256": "9A1FB317C1FD317E138882028E621E589C74D24911B7EC56900D6C6821234BC4"
     },
     {
       "Path": "tests/OAuthKeys/OAuthKeys.csproj",

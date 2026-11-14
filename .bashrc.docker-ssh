@@ -2,16 +2,29 @@
 case "${OSTYPE-}" in msys*|cygwin*) ;; *) return 0 ;; esac
 [[ -n ${SSH_CONNECTION-} && ${DOTFILES_DOCKER_SSH-} == required ]] || return 0
 
-# Validate before exporting parent state; metadata is data, never evaluated as shell code.
+# Install validated process routing; required .bashrc discards partial state by exiting on failure.
 _dotfiles_docker_ssh_initialize() {
-    local hook powershell metadata binary name repository_directory
-    local -a fields
+    local hook powershell metadata binary name repository_directory attributes resolved || return 1
+    local -a fields || return 1
+    # Environment exports require mutable scalars; saved maps must remain mutable associative arrays.
+    for name in PATH DOCKER_CONFIG DOCKER_SSH_HELPER_ROOT DOCKER_SSH_DEPLOYMENT DOCKER_SSH_MANAGED PSMUX_SSH_AUTOATTACH MSYS2_ENV_CONV_EXCL _dotfiles_docker_ssh_saved; do
+        if attributes=$(declare -p "$name" 2>/dev/null); then
+            [[ $attributes =~ ^declare\ -[-x]+\  ]] || return 1
+        fi
+    done
+    for name in _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported; do
+        if attributes=$(declare -p "$name" 2>/dev/null); then
+            [[ $attributes =~ ^declare\ -[Ax]*A[Ax]*\  ]] || return 1
+        elif [[ ${_dotfiles_docker_ssh_saved-} == 1 ]]; then
+            return 1
+        fi
+    done
     repository_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P) || return 1
-    hook="$repository_directory/docker-ssh/chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1"
+    hook="$repository_directory/docker-ssh/chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1" || return 1
     powershell=$(command -v pwsh.exe) || return 1
     [[ -f $hook && ! -L $hook && -x $powershell ]] || return 1
     metadata=$("$powershell" -NoProfile -File "$(cygpath -am -- "$hook")") || return 1
-    mapfile -t fields <<< "$metadata"
+    mapfile -t fields <<< "$metadata" || return 1
     [[ ${#fields[@]} == 6 && $metadata != *$'\r'* ]] || return 1
     binary=$(cygpath -u -- "${fields[2]}") || return 1
     [[ -f $binary/docker.exe && ! -L $binary/docker.exe ]] || return 1
@@ -21,19 +34,30 @@ _dotfiles_docker_ssh_initialize() {
     fi
     if [[ ${_dotfiles_docker_ssh_saved-} != 1 ]]; then
         # Preserve both the value and the distinction between unset and set-to-empty.
-        declare -gA _dotfiles_docker_ssh_values=() _dotfiles_docker_ssh_set=() _dotfiles_docker_ssh_exported=()
+        declare -gA _dotfiles_docker_ssh_values=() _dotfiles_docker_ssh_set=() _dotfiles_docker_ssh_exported=() || return 1
         for name in PATH DOCKER_CONFIG DOCKER_SSH_HELPER_ROOT DOCKER_SSH_DEPLOYMENT DOCKER_SSH_MANAGED PSMUX_SSH_AUTOATTACH MSYS2_ENV_CONV_EXCL; do
-            _dotfiles_docker_ssh_set[$name]=${!name+x}
-            _dotfiles_docker_ssh_exported[$name]=$(declare -p "$name" 2>/dev/null)
-            _dotfiles_docker_ssh_values[$name]=${!name-}
+            _dotfiles_docker_ssh_set[$name]=${!name+x} || return 1
+            if [[ ${!name+x} == x ]]; then
+                _dotfiles_docker_ssh_exported[$name]=$(declare -p "$name") || return 1
+            else
+                _dotfiles_docker_ssh_exported[$name]='' || return 1
+            fi
+            _dotfiles_docker_ssh_values[$name]=${!name-} || return 1
         done
-        _dotfiles_docker_ssh_saved=1
+        _dotfiles_docker_ssh_saved=1 || return 1
     fi
-    export DOCKER_SSH_DEPLOYMENT="${fields[0]}" DOCKER_CONFIG="${fields[3]}" DOCKER_SSH_HELPER_ROOT="${fields[4]}"
-    export DOCKER_SSH_MANAGED=1 PSMUX_SSH_AUTOATTACH=0
-    export PATH="$binary:$PATH"
-    export MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}DOCKER_CONFIG;DOCKER_SSH_HELPER_ROOT;DOCKER_SSH_DEPLOYMENT"
-    hash -r
+    # Never roll partial failure back into an old Docker route; the required caller must terminate.
+    export DOCKER_SSH_DEPLOYMENT="${fields[0]}" DOCKER_CONFIG="${fields[3]}" DOCKER_SSH_HELPER_ROOT="${fields[4]}" || return 1
+    export DOCKER_SSH_MANAGED=1 PSMUX_SSH_AUTOATTACH=0 || return 1
+    export PATH="$binary:$PATH" || return 1
+    export MSYS2_ENV_CONV_EXCL="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}DOCKER_CONFIG;DOCKER_SSH_HELPER_ROOT;DOCKER_SSH_DEPLOYMENT" || return 1
+    hash -r || return 1
+    for name in docker docker.exe; do
+        [[ $(type -t "$name") == file ]] || return 1
+        resolved=$(command -v "$name") || return 1
+        [[ $resolved -ef "$binary/docker.exe" ]] || return 1
+    done
+    return 0
 }
 
 # Restore the exact original parent values; already running child processes retain their own environment.
