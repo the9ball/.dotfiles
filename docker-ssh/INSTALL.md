@@ -1,5 +1,10 @@
 # Windows 11への導入・更新・撤去
 
+## 0.5系とSSH自動選択
+
+管理モードの有効化、selector、子プロセス継承、psmux方針、承認と切戻しは [ISSUE-185.md](ISSUE-185.md) を参照する。
+以下の初期化・認証・適用例は、本番承認後の手順であり、ソース実装や隔離試験の承認には含まれない。
+
 対象はWindows 11 x64、Docker DesktopのLinux Engine、Windows OpenSSH server、Git for Windows Bash、TPM 2.0 / Microsoft Platform Crypto Provider。
 Docker DesktopとOpenSSHの初期導入・SSH公開鍵登録は端末管理者が公式手順に従って行う。このモジュールはサービスやWindows認証設定を変更しない。
 
@@ -13,7 +18,7 @@ Docker DesktopとOpenSSHの初期導入・SSH公開鍵登録は端末管理者�
 
 PowerShell 7.4以上、.NET 10 SDK/runtime、Git for Windows、Docker CLIが必要。
 検証harnessにはNode.js 22以上とchezmoiが必要。依存を自動インストールしない。
-`global.json`は安定版10.0.100以上・latestFeature、preview不可。配布物はframework-dependent 0.4.0で.NET 10 runtimeが必要。
+`global.json`は安定版10.0.100以上・latestFeature、preview不可。配布物はframework-dependent 0.5.0で.NET 10 runtimeが必要。
 管理ツールを含め、この移植のプロジェクトに外部NuGet package参照はない。
 
 Git Bashから信頼した.dotfilesチェックアウトのルートで実行する。
@@ -26,7 +31,7 @@ pwsh.exe -NoProfile -File docker-ssh/scripts/Test-TpmPrerequisites.ps1 -Purpose 
 Ready=falseなら停止する。TPM状態UNKNOWNは管理情報の読取り権限不足の可能性があり、鍵利用可能の証明ではない。
 PCP provider open成功も鍵作成・無人利用の証明ではない。実機初期化の用途・ACL・UI検査が最終ゲートになる。
 
-chezmoiの通常適用は公開ファイル4個だけを追加する。この機能だけ適用する場合も既存設定に従いdiffを確認する。
+chezmoiの通常適用は公開ファイル5個だけを追加する。この機能だけ適用する場合も既存設定に従いdiffを確認する。
 全体applyには他機能のインストールhookがあるため、この機能だけを選ぶ例ではhookを除外する。
 
 `````bash
@@ -61,7 +66,7 @@ endpoint='npipe:////./pipe/dockerDesktopLinuxEngine'
 MSYS2_ARG_CONV_EXCL='npipe:' pwsh.exe -NoProfile -File docker-ssh/scripts/Initialize-DockerSshTpm.ps1 -PackageRoot "$(cygpath -m "$package")" -DestinationRoot "$(cygpath -m "$deployment")" -InstallationId "$id" -Mode permanent -EngineEndpoint "$endpoint" -CheckOnly
 `````
 
-CheckOnlyは配置先、鍵、資格情報を作成しない。既存配置ではREADY状態・選択したsettingsの識別情報と配布10ファイルのhash/ACLを照合し、検出した差異で停止する。
+CheckOnlyは配置先、鍵、資格情報を作成しない。既存配置ではREADY状態・選択したsettingsの識別情報と配布16ファイルのhash/ACLを照合し、検出した差異で停止する。
 ただし既存READY配置のvault、store/settings、config、binding、installed-manifestや未知ファイル全件の完全性検査ではない。これらが欠落・変更していてもCheckOnlyが成功する場合がある。
 既存Desktop configやcontext、Credential Managerをコピー・変更しない。
 

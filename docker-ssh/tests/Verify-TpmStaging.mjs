@@ -10,6 +10,7 @@ fs.mkdirSync(lab);
 const results = [];
 const originalConfig = path.join(process.env.USERPROFILE, '.docker/config.json');
 const originalHash = fs.existsSync(originalConfig) ? digest(originalConfig) : null;
+const callerPath = process.env.PATH;
 const packageDirectory = path.join(root, 'src/DockerCredentialTpm/bin/Release/net10.0-windows');
 const names = ['docker-credential-ssh-tpm.exe', 'docker-credential-ssh-tpm.dll', 'docker-credential-ssh-tpm.deps.json', 'docker-credential-ssh-tpm.runtimeconfig.json'];
 const manifest = path.join(lab, 'package.json');
@@ -48,6 +49,13 @@ try {
     const binding = path.join(lab, 'public-fixture.json');
     // This intentionally nonexistent key tests staging only; no key or credential is initialized.
     fs.writeFileSync(binding, JSON.stringify({ ProviderName: 'Microsoft Platform Crypto Provider', KeyName: 'docker-ssh-issue142-poc-nonexistent-' + randomUUID(), UserSid: sid.output.trim(), UniqueNameSHA256: '0'.repeat(64), PublicSpkiSHA256: '1'.repeat(64) }));
+    // Metadata-only application fixtures test PATH precedence without starting a Docker client.
+    const dockerDirectories = [path.join(lab, 'first-application'), path.join(lab, 'second-application')];
+    for (const directory of dockerDirectories) {
+        fs.mkdirSync(directory);
+        fs.writeFileSync(path.join(directory, 'docker.exe'), 'inert path-resolution fixture; never execute\n');
+    }
+    process.env.PATH = [...dockerDirectories, callerPath].join(path.delimiter);
     for (const number of [1, 2]) {
         const home = path.join(lab, `home-${number}`);
         fs.mkdirSync(home);
@@ -72,7 +80,14 @@ try {
         const activation = await run(bash, ['--noprofile', '--norc', '-c', 'source "$1"; docker-ssh-activate "$2" || exit; [[ $(type -t docker) == function ]] || exit 9; docker-ssh-deactivate; [[ $(type -t docker) != function ]]', 'staging-check', ...bashPaths]);
         check(`home-${number}/bash-activation-deactivation-without-key`, activation.code === 0 && !fs.existsSync(path.join(destination, 'store')));
         const settings = fs.readFileSync(path.join(destination, 'settings.json'), 'utf8');
+        check(`home-${number}/native-application-follows-path`,
+            JSON.parse(settings).DockerExecutable === path.join(dockerDirectories[0], 'docker.exe'));
         check(`home-${number}/repeat-no-changes`, (await script('scripts/Install-DockerSshTpmLab.ps1', args)).code === 0 && fs.readFileSync(path.join(destination, 'settings.json'), 'utf8') === settings);
+        process.env.PATH = [dockerDirectories[1], dockerDirectories[0], callerPath].join(path.delimiter);
+        check(`home-${number}/changed-native-path-rejected`, (await script('scripts/Install-DockerSshTpmLab.ps1', args)).code !== 0 && fs.readFileSync(path.join(destination, 'settings.json'), 'utf8') === settings);
+        process.env.PATH = [...dockerDirectories, callerPath].join(path.delimiter);
+        const nativeCompetition = '<# .SYNOPSIS Fails if staging executes a competing non-native command. #>\nfunction docker.exe { throw "Non-native Docker must not execute" }; Set-Alias -Name docker.exe -Value Write-Output; & $args[0] -DestinationRoot $args[1] -PackageDirectory $args[2] -ManifestPath $args[3] -BindingPath $args[4] -EngineEndpoint $args[5] -CheckOnly';
+        check(`home-${number}/non-native-competition-preserved`, (await run('pwsh.exe', ['-NoProfile', '-CommandWithArgs', nativeCompetition, path.join(root, 'scripts/Install-DockerSshTpmLab.ps1'), destination, packageDirectory, manifest, binding, 'npipe:////./pipe/dockerSshValidationOnly'])).code === 0 && fs.readFileSync(path.join(destination, 'settings.json'), 'utf8') === settings);
         const installationId = JSON.parse(settings).InstallationId;
         check(`home-${number}/wrong-remove-id-rejected`, (await script('scripts/Remove-DockerSshTpmLab.ps1', ['-DestinationRoot', destination, '-InstallationId', '0'.repeat(32), '-Execute'])).code !== 0 && fs.existsSync(destination));
         check(`home-${number}/remove-check-only`, (await script('scripts/Remove-DockerSshTpmLab.ps1', ['-DestinationRoot', destination, '-InstallationId', installationId])).code === 0 && fs.existsSync(destination));
@@ -88,5 +103,6 @@ try {
     console.log('tpm-staging : FAIL; no native key operation requested; inspect retained public test evidence');
     process.exitCode = 1;
 } finally {
+    process.env.PATH = callerPath;
     fs.writeFileSync(path.join(lab, 'results.json'), JSON.stringify({ results, nativeKeyOperations: 0, coldBoot: 'UNTESTED', otherMachine: 'UNTESTED' }, null, 2));
 }

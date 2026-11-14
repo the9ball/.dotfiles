@@ -10,7 +10,7 @@ const repository = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const moduleRoot = path.join(repository, 'docker-ssh');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'docker-ssh-dotfiles-integration-'));
 const results = [];
-const publicFiles = ['docker-ssh.bash', 'Get-TpmDockerEnvironment.ps1', 'Invoke-DockerSshTpm.ps1', 'Manage-TpmCredential.ps1'];
+const publicFiles = ['docker-ssh.bash', 'Get-TpmDockerEnvironment.ps1', 'Invoke-DockerSshTpm.ps1', 'Manage-TpmCredential.ps1', 'Enter-DockerSshEnvironment.ps1'];
 const originalDocker = path.join(os.homedir(), '.docker/config.json');
 const originalHash = fs.existsSync(originalDocker) ? digest(fs.readFileSync(originalDocker)) : null;
 
@@ -89,7 +89,7 @@ try {
             const response = run('chezmoi', [...common, command, '--exclude=scripts', destination]);
             check('home-' + number + '/' + command + '/' + results.length, response.status === 0);
         }
-        check('home-' + number + '/exact-four-public-files', JSON.stringify(fs.readdirSync(destination).sort()) === JSON.stringify([...publicFiles].sort()));
+        check('home-' + number + '/exact-five-public-files', JSON.stringify(fs.readdirSync(destination).sort()) === JSON.stringify([...publicFiles].sort()));
         for (const name of publicFiles) {
             check('home-' + number + '/render/' + name,
                 fs.readFileSync(path.join(destination, name), 'utf8').replaceAll('\r\n', '\n').trimEnd() ===
