@@ -1,0 +1,27 @@
+{
+  "label": "codex-pilot-C-free",
+  "host": "codex",
+  "stage": "free",
+  "cli_exit": 0,
+  "started_unix": 1792054943.2365472,
+  "finished_unix": 1792054973.4266398,
+  "elapsed_seconds": 30.19009304046631,
+  "input_sha256": "389b6f95eab84506389e70799d8fbdb39a345f4215da07bc3dcb19857ef71f06",
+  "stdin_sha256": "389b6f95eab84506389e70799d8fbdb39a345f4215da07bc3dcb19857ef71f06",
+  "raw_output_sha256": "30a5363db2727c9e4fc2f84fa0344eb223e3f8fa5d0fd1dc4f3545d3d132fa9f",
+  "arguments": [
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--approve-for-me",
+    "--skip-git-repo-check",
+    "--ignore-user-config",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=medium",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-"
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "session_id": "01a13ecc-d5f8-7ae2-a7d5-d32af3b1068f",
+  "usage": {
+    "input_tokens": 32993,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2324,
+    "reasoning_output_tokens": 273
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.089226,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [
+      {
+        "id": "Q1",
+        "severity": "P2",
+        "category": "quality",
+        "location": "README.md:11",
+        "cause": "The batch response documentation names a top-level reservations array, while the implementation returns items with a line position on each reservation.",
+        "impact": "Customers following the documented response contract will access a nonexistent key and miss the line-position contract.",
+        "trigger": "A customer consumes reserve_batch using the documented reservations key.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, README.md:11 contradicts api.py:29-30 and test_reservations.py:68-69. The supplied requirements also specify items."
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Changed names communicate batch resolution, reservation identifiers, input positions, and the quantity delta. Their declarations and uses make their domain roles clear.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:19-27,35-41; api.py:25-30; test_reservations.py:62-77.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The additions retain established product-versus-sku vocabulary, expires_at timestamps, identifiers, and snake_case operation and test names. reserve_batch distinguishes the customer API from the existing resolved-line reserve_many operation.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: api.py:12-30 compared with allocation.py:9-29 and catalog.py:9-11; test_reservations.py:19-77.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The supplied mandatory rule requires docstrings for every named Python function and method, including tests. All declarations in the supplied Python files have docstrings; changed and added declarations describe their operation and relevant response, transaction, or identity contract.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:16-17,29-30; api.py:25-26; test_reservations.py:62-63,71-72. Bounded declaration inspection also covered the complete supplied allocation.py, api.py, catalog.py, repository.py, expiry.py, and test_reservations.py.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The added README response description contradicts the implemented and tested batch response key.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: README.md:11 describes reservations; api.py:29-30 returns items with line positions; test_reservations.py:68-69 consumes items.",
+        "finding_ids": [
+          "Q1"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The replacement rewrite removes the only supplied caller of replacement_capacity. No remaining caller exists in the supplied Python files, but external callers and a retention policy are not supplied, so removal cannot be required from this evidence alone.",
+        "evidence": "At base fcdc1ba6ef2ab53821d7a691e7c3b5b6e152d086, allocation.py:30 calls replacement_capacity. At candidate 41c8c08a85e184017f6d0ea275abf2ad1622d776, allocation.py:29-43 replaces that path while repository.py:65-68 retains the helper. Reference inspection covered all six supplied Python files and README.md.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The customer batch API newly uses the existing allocator batch operation and catalog resolver for their established purposes. No package or service dependency is added in the supplied change; persistence continues using the existing standard-library SQLite connection.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: api.py:27-28; allocation.py:18-27,39-42; repository.py:2,8. The complete supplied diff covers allocation.py, api.py, README.md, and test_reservations.py and adds no imports or dependency configuration.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The reviewed range contains one feature commit implementing the two requested capabilities with their documentation and regression tests. No unrelated cleanup is mixed into it, and reverting it restores the supplied base without leaving companion commits behind.",
+        "evidence": "Reviewed range fcdc1ba6ef2ab53821d7a691e7c3b5b6e152d086..41c8c08a85e184017f6d0ea275abf2ad1622d776. The supplied patch for commit 41c8c08a85e184017f6d0ea275abf2ad1622d776 changes only allocation.py, api.py, README.md, and test_reservations.py for batch requests and retained reservation identity.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "allocation.py",
+      "api.py",
+      "README.md",
+      "test_reservations.py"
+    ],
+    "limitations": [
+      {
+        "cause": "The frozen evidence does not include a Phase 1 completion record under the current review contract.",
+        "trigger": "These checklist results are used to establish overall review completion.",
+        "impact": "The Phase 2 prerequisite remains unverified. These results cannot establish approval or override substantive defects; the root must resolve Phase 1 status."
+      },
+      {
+        "cause": "Batch validation compares every line against the same initial per-SKU availability without accumulating quantities.",
+        "trigger": "With A stock of 10, a batch contains two lines resolving to A with quantities 6 and 6.",
+        "impact": "Both lines pass validation and commit, leaving available inventory at -2. This material correctness observation requires Phase 1 routing through the root.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:19-26; api.py:27-28; catalog.py:9-11. The alias contract permits different product references to resolve to the same SKU."
+      },
+      {
+        "cause": "In-place replacement changes reservation quantity and stock but leaves the scheduled release quantity unchanged.",
+        "trigger": "Reserve 4 units, replace with 5, then expire the reservation at its deadline.",
+        "impact": "Expiry returns only the original 4 units, leaving available inventory at 9 instead of 10. Decreases can instead over-credit inventory. This material data-integrity observation requires Phase 1 routing through the root.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:35-43 updates only stock and reservations; repository.py:40-43 stores the original release quantity; expiry.py:7-13 reads and returns that stored quantity."
+      },
+      {
+        "cause": "Replacement checks the active flag without checking the reservation deadline or receiving the current timestamp.",
+        "trigger": "A replacement request is dispatched at or after expires_at before the expiry worker processes that reservation.",
+        "impact": "An expired reservation can still have its quantity adjusted, contrary to the supplied before-expiry requirement. Single-thread dispatch alone does not establish expiry-first ordering. Route this material observation to Phase 1 through the root.",
+        "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:29-43; api.py:20-23; expiry.py:4-14. No expiry-first dispatch guarantee is included in the supplied requirements or README.md:3-4."
+      },
+      {
+        "cause": "Inspection was restricted to embedded frozen evidence; no tools, file access, external services, or test execution were performed.",
+        "trigger": "Interpreting verification evidence as independently reproduced validation.",
+        "impact": "The supplied logs report six passing base tests and eight passing candidate tests, but those runs were not independently verified. They do not exercise duplicate-SKU batches, expiry after quantity adjustment, or adjustment after the deadline."
+      }
+    ]
+  },
+  "label": "codex-pilot-C-checklist",
+  "host": "codex",
+  "stage": "checklist",
+  "cli_exit": 0,
+  "started_unix": 1792054973.46685,
+  "finished_unix": 1792055033.0793545,
+  "elapsed_seconds": 59.6125054359436,
+  "input_sha256": "7332584b73f4f4d0eda93cec82a6d3bae1ddb43769dfa326a945adfc2fbc9042",
+  "stdin_sha256": "7332584b73f4f4d0eda93cec82a6d3bae1ddb43769dfa326a945adfc2fbc9042",
+  "raw_output_sha256": "b6a32b6460e66025c52bbac580f5e6b0b1104b6d79e28eece1728c3237556fd0",
+  "arguments": [
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--approve-for-me",
+    "--skip-git-repo-check",
+    "--ignore-user-config",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=medium",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-"
+  ],
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "measurement": "pilot"
+}

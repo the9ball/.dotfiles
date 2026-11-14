@@ -1,0 +1,50 @@
+# Additional review-quality experiment
+
+Execution contract `issue138-followup-20261015`, source checkout `6f40592f1945dc47805af7055355a84c1321cb79`.
+User requested the complete additional evaluation, publication to PR #139, commits and non-force push to its existing branch. No Skill behavior, checklist, merge, or Issue closure changes are authorized. Existing `aqua.yaml` and `link-targets/agents/skills/.trash/` changes are excluded. All new work is confined to this directory and the companion report `docs/code-review-quality-followup.md`; temporary neutral fixture/CLI directories are invocation outputs, never worktrees.
+
+The user explicitly approved the built-in subagent route after the investigation-task API required by delegate-readonly-investigation was found unavailable. This exception changes the route only. Requested Adviser settings are `gpt-6-astra` / `low`; native runtime does not independently attest effective model/effort. The primary chat's settings remain unchanged.
+
+## Design decisions before case construction
+
+The Astra-low design consultation is retained in `design-consultation.md`. D1, D2, D3, D5 and D6 are accepted: compare operational methods, use one stock-allocation feature, retain C1 separately, freeze cause-based truth and blind grades, distinguish difficulty from anchoring. The broader queue/snapshot/import proposal is withdrawn because multiple novel mechanisms would confound difficulty with treatment.
+
+D4 is modified: use the same fixture for a four-launch Codex A/B/C pilot, including C's two fresh contexts, to exercise the actual isolation and receipt path without authoring a second fixture. Any later measurements of it are explicitly exploratory. The pilot remains outside the main-study denominator. D7 is accepted with counterbalancing across hosts as well as trials. No method is admitted or excluded because it wins or loses.
+
+## Case and frozen truth
+
+One Python/SQLite service adds grouped reservations and quantity adjustments to an existing single-reservation service. Actual Git ancestry, complete base/candidate source, full patches and ordinary requirements are supplied to every reviewer. Public documentation policy is explicit; actual commit topology supports rollback assessment. Neither requirements nor source comments enumerate expected failures. The builder retains a Git bundle, public evidence, private reproductions and an evaluator-only answer table.
+
+An independent fresh evaluator audits truth and normal-path evidence before the first reviewer. Defect causes, triggers, impact, severity, expected evidence and checklist relationship are fixed before execution. Unknown valid findings are adjudicated separately and cannot silently expand the primary denominator. Defect injection is intentional stimulus behavior; it is never a deployable service or a proposed Skill change.
+
+## Isolation and methods
+
+The outer author/coordinator has read the checklist at the user's explicit preflight request and knows truth. It is **not** the review Root. A deterministic CLI controller is the review Root: it reads only public evidence and mechanically transfers pinned checklist bytes for B/C2. It never reads evaluator truth, author consultation, reproductions or other findings to construct reviewer prompts. No model-backed review Root is used. An independent fresh audit verifies the controller boundary. Reviewers have embedded complete evidence, explicit no-tool/read-only instructions, neutral invocation directories and fresh ephemeral processes. No OS-level isolation guarantee is claimed for Codex. Any observed tool use, failed completion, reused session, changed input or incomplete declared file coverage invalidates admission and stops execution.
+
+A and C1 receive byte-identical free-review prompts. B sees the checklist from the start and performs both tasks in one context. C2 receives only the checklist task, full public evidence and the checklist; no C1 findings. C1 completes before C2 starts. Code, requirements and full diff are identical across methods. No repairs or post-Clean reviews occur. This tests frozen-change discovery, not production convergence or the value of the mandatory post-Clean review.
+
+Codex inherits the existing configured `gpt-6.1-sol` / `medium` explicitly into isolated CLI calls. Claude inherits unchanged host defaults using safe mode, without overriding model or effort. Runtime model/effort observations are reported separately from requested/configured settings; missing effective effort prevents a verified-effort claim. Model changes within a host stop execution. No cross-host model-quality inference is made.
+
+## Pilot and launch budget
+
+Pilot: one Codex A, B, C1, C2, four reviewer launches. Admit only with complete evidence/receipts, deterministic reproduction, at least one correct material discovery, and disagreement attributable to code rather than missing requirements. If every method finds every material cause, or every method misses every material cause, stop before main measurement and reassess sensitivity; do not increase trials to repair saturation. Results favoring B are admissible. Any fixture edits after observing results begin a separate series with new identities; never pool favorable old/new trials.
+
+Main exploratory measurement, only if pilot admits: one fixture, two hosts, two independent trials each, 16 reviewer launches. Order: Codex R1 A/B/C; Claude R1 C/B/A; Claude R2 A/B/C; Codex R2 C/B/A. C phases are always sequential. Pilot prompts/receipts are retained separately. Intermediate grades are withheld from the execution controller. No additional fixtures, reviewer trials or paid recovery launches without a reason and revised estimate first.
+
+Estimated reviewer expense: pilot 1–2 USD, main 4–8 USD; aggregate management ceiling 12 USD, checked before each next call against a conservative 0.75 USD reservation. This is an estimate boundary, not a guarantee of actual charges. Claude additionally receives a per-process 0.75 USD CLI limit; Codex CLI has no equivalent provider-enforced cap here. Approximate process time: 20–45 minutes, not a stop deadline. Scoring, truth/checklist audits, independent final Adviser and outer Root are a separate cost category; native runtime counters are unavailable and never represented as zero. Adviser/author/evaluator contexts do not count toward the 20 reviewer launches. Actual list-price or CLI estimate costs, token/cache counters and times remain separate from subscription credits/billing.
+
+## Scoring and inference
+
+Each response is independently scored against cause, impact and reachable trigger before C phases are unioned. Anonymous shuffled response identifiers replace host/method/trial/stage; output structure can still suggest focus, so blinding is partial. Preserve individual finding matches, misses, duplicates, unsupported claims, severity overstatements and optional suggestions made mandatory. A second independent checklist auditor checks every active ID, applicability, omissions, evidence sufficiency and links. Major misses are not offset by minor detections.
+
+Primary: outside-checklist material recall and P1 miss vectors; report A-found/B-missed, B-missed/C-found and C-missed/B-found per host/trial/cause. Sensitivity analysis reports disputed checklist relationships separately. Checklist metrics include per-ID results and correctly supported known quality detections. Costs are reviewer-only B versus C, with input/output/cache and process seconds; outer control remains separate.
+
+H1 and H2 require repeated directional differences and cross-host consistency before even tentative support. A single B failure or C success is not causal evidence. The extra inference opportunity in C confounds an isolation-only interpretation. H3 observations cannot prove population noninferiority from this sample. Each hypothesis is reported as supported, unsupported or indeterminate with its evidence boundary; ceiling/floor effects trigger sensitivity reassessment. No forced adoption/rejection decision is required.
+
+## Execution and publication checks
+
+Planless execution contract: requested/effective user_review=AUTO/NONE (no separate regular approval requested), requested/effective review_level=AUTO/ADVISOR (user requests final independent advice; experimental validity also requires it). The initial commit fixes stimulus, truth, protocol and controller before paid reviews. Subsequent evidence/report commits are dependent outputs of this single evaluation. No amend, history rewrite or autosquash is needed. A fresh final Adviser covers all new-source and report slices, their boundary, scoring and publication claims at fixed commits. Parent verifies actual diff, reproduction, controller receipts/session/order/usage and selected files before push.
+
+Estimated source steps: builder/controller 350–600 noncomment lines; stimulus 250–450; scoring/audit aggregation 100–200; tests/private repro 80–150 separately. New Python control files up to five, no new installed packages or persistent settings. Generated evidence is excluded from source estimates. Review slices: stimulus/truth and reproductions; controller/isolation/receipts; grades/aggregation/report, including cross-slice identity links. No optional spot checkpoint beyond the requested design consultation and final evaluation is planned.
+
+External authorization: one normal push of task-owned commits to `origin` / `refs/heads/feat/issue-138-code-review`, plus one new result comment on `the9ball/.dotfiles` PR #139. Actor is the existing active GitHub CLI account; no account/credential/permission change. Success consumes each operation; ambiguous outcomes require read-back, never blind retransmission. At most one retry after confirmed no effect. Issue #138 impact is described in the report/comment; no Issue body/state update is implied. Publication requires fixed evidence and final Adviser resolution. Approval candidates: none beyond the already explicit requested operations; extra fixture/trials or changed scope require a new estimate and boundary check.

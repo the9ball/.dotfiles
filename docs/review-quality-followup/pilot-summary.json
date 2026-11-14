@@ -1,0 +1,114 @@
+{
+  "cells": [
+    {
+      "host": "codex",
+      "trial": "pilot",
+      "arm": "A",
+      "detected": [
+        "M1",
+        "M2",
+        "Q1"
+      ],
+      "recognized_unverified": [],
+      "stages": {
+        "free": [
+          "M1",
+          "M2",
+          "Q1"
+        ]
+      },
+      "usd": 0.072976,
+      "seconds": 25.588266372680664,
+      "usage": {
+        "input_tokens": 31933,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 911,
+        "reasoning_output_tokens": 96
+      },
+      "false_positives": 0,
+      "severity_overstatements": 1,
+      "optional_mandatory": 0
+    },
+    {
+      "host": "codex",
+      "trial": "pilot",
+      "arm": "B",
+      "detected": [
+        "M1",
+        "M2",
+        "Q1"
+      ],
+      "recognized_unverified": [
+        "Q2"
+      ],
+      "stages": {
+        "combined": [
+          "M1",
+          "M2",
+          "Q1"
+        ]
+      },
+      "usd": 0.0773776,
+      "seconds": 68.42103958129883,
+      "usage": {
+        "input_tokens": 32990,
+        "cached_input_tokens": 7296,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 2526,
+        "reasoning_output_tokens": 311
+      },
+      "false_positives": 0,
+      "severity_overstatements": 2,
+      "optional_mandatory": 0
+    },
+    {
+      "host": "codex",
+      "trial": "pilot",
+      "arm": "C",
+      "detected": [
+        "M1",
+        "M2",
+        "Q1"
+      ],
+      "recognized_unverified": [
+        "Q2"
+      ],
+      "stages": {
+        "checklist": [
+          "M1",
+          "M2",
+          "Q1"
+        ],
+        "free": [
+          "M1",
+          "M2",
+          "Q1"
+        ]
+      },
+      "usd": 0.1487876,
+      "seconds": 89.80259847640991,
+      "usage": {
+        "input_tokens": 64930,
+        "cached_input_tokens": 7296,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 3279,
+        "reasoning_output_tokens": 423
+      },
+      "false_positives": 0,
+      "severity_overstatements": 2,
+      "optional_mandatory": 0
+    }
+  ],
+  "hosts": [
+    {
+      "host": "codex",
+      "costs_usd": {
+        "A": 0.072976,
+        "B": 0.0773776,
+        "C": 0.1487876
+      },
+      "c_over_b": 1.9228769049440664
+    }
+  ]
+}

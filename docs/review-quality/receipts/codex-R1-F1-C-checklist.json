@@ -1,0 +1,96 @@
+{
+  "session_id": "01a13d8a-049d-7741-a3a3-323d8e74e111",
+  "usage": {
+    "input_tokens": 23132,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1916,
+    "reasoning_output_tokens": 293
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.065424,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "checklist_findings": [],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The affected names communicate queue state, batch limits, and delivery outcomes. No new ambiguous identifier was introduced.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-36 and 54-64: flush, batch_size, batch, completed, and delivered describe their roles at declarations and callers.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Affected names retain the surrounding vocabulary for notices, queues, batches, and delivered identifiers. The new delivered mapping key uses the existing delivery vocabulary.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:14-21, 26-36, 39-43, and 54-64; compared with the same declarations and callers in supplied base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "UNVERIFIED",
+        "result": "UNVERIFIED",
+        "reason": "Changed methods retain role-oriented docstrings, but applicable repository documentation rules cannot be resolved from the frozen evidence. Missing rules prevent verification of required coverage.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-25 and 54-55. The referenced ~/.agents/AGENTS.md and any applicable AGENTS.local.md contents were not embedded; file access was prohibited.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The supplied docstrings still identify the operations' broad responsibilities. They do not specify return shapes, partial-batch handling, or exception propagation. Functional contract discrepancies are recorded separately as routing limitations.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-37 pairs the delivery-attempt description with transport invocation; dispatch.py:54-58 pairs queue-and-deliver documentation with enqueue and flush calls. Affected caller descriptions and implementations were inspected at dispatch.py:61-69. Documentation inspection was bounded to the complete supplied dispatch.py.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The replaced delivery loop and return expression were updated in place. No superseded helper, abandoned branch, or comment describing removed behavior appears in the supplied file. No externally callable declaration is classified as dead.",
+        "evidence": "Complete supplied base-to-candidate diff, f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 to 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-37 and 54-64. Reference inspection was bounded to the complete supplied dispatch.py:1-69.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "The complete change adds no library, service, or internal-module dependency. It continues using the existing injected transport.",
+        "evidence": "Complete supplied diff from f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 to 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86; dispatch.py:3 retains the deque import and dispatch.py:29-30 retains the existing transport.send integration.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied sequence describes one commit with a coherent batching-and-retention purpose, but provides neither its commit ID nor its individual patch. The fixed identities identify the comparison endpoints without establishing the actual commit sequence required for rollback assessment.",
+        "evidence": "Supplied commits entry: subject 'Batch notice dispatch and retain temporarily unavailable deliveries', files ['dispatch.py']. Comparison endpoints are f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 and 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86; relevant commit IDs and per-commit diffs are absent.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Phase 1 completion under the current review contract was not evidenced. This checklist-only inspection does not establish that prerequisite or authorize workflow advancement.",
+      "Routing limitation: candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27, leaves pending entries undelivered when their count is below batch_size, including an explicit flush. This conflicts with the supplied requirement and requires Phase 1 handling through the root.",
+      "Routing limitation: candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32, catches ValueError through except Exception when transport.send rejects a full batch. This conflicts with required caller visibility and requires Phase 1 handling through the root.",
+      "Routing limitation: candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 and 61-64, changes dispatch's result to a mapping while command_response still treats it as an identifier list. Consequently count becomes 1 and ids becomes a mapping. This conflicts with scheduler interface preservation and requires Phase 1 handling through the root.",
+      "Only embedded evidence was inspected. No tools were used, no tests were executed, and no files or external state were modified."
+    ]
+  },
+  "label": "codex-R1-F1-C-checklist",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792033817.3352463,
+  "elapsed_seconds": 48.04943084716797,
+  "input_sha256": "58a13a790242ed010d71b8789bfbc76dc8ac59784c4fc97ebcf2df05a7bf79e3",
+  "raw_output_sha256": "a6935863a5811f55f55fa22f2f9e68eb8608762ca54103ad8c9683f487f03d9b",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

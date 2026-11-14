@@ -1,0 +1,85 @@
+{
+  "base_sha": "fcdc1ba6ef2ab53821d7a691e7c3b5b6e152d086",
+  "candidate_sha": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+  "fixed_denominator": {
+    "material": [
+      "M1",
+      "M2"
+    ],
+    "quality": [
+      "Q1",
+      "Q2"
+    ]
+  },
+  "severity_semantics": {
+    "P1": "Valid ordinary inputs can immediately oversell stock",
+    "P2": "Supported adjustment followed by expiry corrupts inventory",
+    "P3": "Documentation or maintainability issue without demonstrated inventory corruption"
+  },
+  "deduplication": "Deduplicate by causal mechanism; alias spellings and increase/decrease expiry cases are variants, not new findings. Record verified novel findings separately without changing the frozen denominator.",
+  "entries": [
+    {
+      "id": "M1",
+      "severity": "P1",
+      "category": "correctness",
+      "cause": "Independent line validation against initial stock ignores shared canonical SKU demand",
+      "trigger": "Two distinct aliases resolve to A, stock 5, quantities 3 and 3",
+      "impact": "Request succeeds and available inventory becomes -1",
+      "reproduction": "test_alias_inventory",
+      "affected_code": "allocation.py",
+      "commit": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+      "checklist_relation": "OUTSIDE",
+      "checklist_rationale": "The checklist covers naming, structure, dependencies, documentation, and unused code; this inventory invariant requires behavioral reasoning across modules and is outside those quality rows.",
+      "expected_finding": "Independent line validation against initial stock ignores shared canonical SKU demand; Request succeeds and available inventory becomes -1",
+      "matching_rules_and_near_misses": "Must identify independent validation of repeated canonical SKU demand against unchanged availability and accepted aggregate oversubscription. Different aliases, repeated identical products, or repeated canonical SKU lines are equivalent triggers; alias terminology is not required. Generic validation complaints do not match"
+    },
+    {
+      "id": "M2",
+      "severity": "P2",
+      "category": "correctness",
+      "cause": "In-place quantity update leaves releases.quantity at its creation snapshot",
+      "trigger": "Reserve 4, adjust to 2, expire at the retained deadline",
+      "impact": "Expiry restores 4 instead of 2, leaving available stock 12 from initial 10",
+      "reproduction": "test_adjusted_expiry",
+      "affected_code": "allocation.py",
+      "commit": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+      "checklist_relation": "OUTSIDE",
+      "checklist_rationale": "The checklist covers naming, structure, dependencies, documentation, and unused code; this inventory invariant requires behavioral reasoning across modules and is outside those quality rows.",
+      "expected_finding": "In-place quantity update leaves releases.quantity at its creation snapshot; Expiry restores 4 instead of 2, leaving available stock 12 from initial 10",
+      "matching_rules_and_near_misses": "Must connect quantity update with expiry snapshot and incorrect inventory restoration; unsupported concurrency concerns do not match"
+    },
+    {
+      "id": "Q1",
+      "severity": "P3",
+      "category": "documentation",
+      "cause": "Batch response documentation specifies reservations key while API returns items",
+      "trigger": "Consumer follows documented batch response key",
+      "impact": "Consumer cannot locate returned reservations",
+      "reproduction": "Static full-repository inspection",
+      "affected_code": "README.md",
+      "commit": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+      "checklist_relation": "CRQ-004",
+      "checklist_rationale": "The finding directly concerns the documentation row.",
+      "expected_finding": "Batch response documentation specifies reservations key while API returns items; Consumer cannot locate returned reservations",
+      "matching_rules_and_near_misses": "Must identify concrete reservations/items mismatch; general documentation requests do not match"
+    },
+    {
+      "id": "Q2",
+      "severity": "P3",
+      "category": "dead-code",
+      "cause": "replacement_capacity has no references or documented external contract within the complete supplied service",
+      "trigger": "Inspect all modules for replacement_capacity references",
+      "impact": "Unused maintenance surface after replacement flow moved to quantity deltas",
+      "reproduction": "Static full-repository inspection",
+      "affected_code": "repository.py",
+      "commit": "41c8c08a85e184017f6d0ea275abf2ad1622d776",
+      "checklist_relation": "CRQ-005",
+      "checklist_rationale": "The finding directly concerns the unused-code row.",
+      "expected_finding": "replacement_capacity has no references or documented external contract within the complete supplied service; Unused maintenance surface after replacement flow moved to quantity deltas",
+      "matching_rules_and_near_misses": "Must name the unused helper and bounded absence of references. Optional cleanup can validly identify this cause without claiming runtime harm; speculative dead-code claims do not match"
+    }
+  ],
+  "private_reproduction_source": "\"\"\"Evaluator-only invariant checks, never included in the review repository.\"\"\"\nimport unittest\nfrom api import ReservationAPI\nfrom catalog import Catalog\nfrom expiry import expire\nfrom repository import Repository\n\n\nclass InvariantTests(unittest.TestCase):\n    def test_alias_inventory(self):\n        \"\"\"Aggregate alias demand cannot exceed inventory.\"\"\"\n        repository = Repository({\"A\": 5})\n        api = ReservationAPI(repository, Catalog({\"red\": \"A\", \"scarlet\": \"A\"}))\n        with self.assertRaises(ValueError):\n            if hasattr(api, \"reserve_batch\"):\n                api.reserve_batch([{\"product\": \"red\", \"quantity\": 3},\n                                   {\"product\": \"scarlet\", \"quantity\": 3}], 100)\n            else:\n                api.allocator.reserve_many([(\"A\", 3), (\"A\", 3)], 100)\n        self.assertEqual(repository.available(\"A\"), 5)\n\n    def test_adjusted_expiry(self):\n        \"\"\"Expiry restores the current reservation quantity.\"\"\"\n        repository = Repository({\"A\": 10})\n        api = ReservationAPI(repository, Catalog({\"red\": \"A\"}))\n        original = api.reserve(\"red\", 4, 100)\n        api.replace(original[\"id\"], 2)\n        expire(repository, 100)\n        self.assertEqual(repository.available(\"A\"), 10)\n",
+  "bundle_sha256": "f1491dbdf0a32146ee5e368bd0d93d7d6e52ff7e88b8a4161fadcdbd82330111",
+  "source_sha256": "f1725b38a2e76b0ab530989812514e9990c25a034c97bc6de4d93a442dafe2c3"
+}

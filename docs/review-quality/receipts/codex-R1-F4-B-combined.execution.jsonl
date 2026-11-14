@@ -1,0 +1,9 @@
+{
+  "label": "codex-R1-F4-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034454.472468,
+  "elapsed_seconds": 26.825822830200195,
+  "input_sha256": "27825e8b131f59a52fad9afae28b0f42a11ee79599ddcfed872c33302adefea4",
+  "raw_output_sha256": "92b30781a834b1022d6a86f53369759564164a8765cad729cf7f7d33e6f105a1"
+}

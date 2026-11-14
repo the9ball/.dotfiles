@@ -1,0 +1,100 @@
+{
+  "session_id": "01a13eca-f06f-7bd3-967e-2cff7522d97f",
+  "usage": {
+    "input_tokens": 31933,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 911,
+    "reasoning_output_tokens": 96
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.072976,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "allocation.py: Allocator.reserve_many",
+        "cause": "Each line is validated against the same initial SKU availability without subtracting quantities from earlier lines.",
+        "impact": "A batch can oversell inventory and commit negative available stock. This requires a fix to preserve inventory limits and the catalog alias contract.",
+        "trigger": "With A holding 10 units, submit two lines requesting 6 units each for the same product, or for two aliases resolving to A.",
+        "evidence": "The available dictionary holds 10 for A, so both quantities pass validation. The subsequent movements subtract 12 and commit availability of -2. Repository.move_stock has no constraint preventing this. Existing batch tests use distinct SKUs and do not cover cumulative demand."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "allocation.py: Allocator.replace",
+        "cause": "The quantity adjustment updates reservations.quantity but leaves releases.quantity at the original value.",
+        "impact": "Scheduled expiry returns the wrong inventory quantity, permanently corrupting available stock. The scheduled release must track the adjusted quantity while retaining its deadline.",
+        "trigger": "Starting with 10 units, reserve 4, replace its quantity with 5, then call expire(repository, 100) at its deadline.",
+        "evidence": "Replacement leaves availability at 5 and the release quantity at 4. expiry.expire reads quantity from releases, so expiry restores availability to 9 instead of 10. Reducing the reservation to 2 instead restores availability to 12. The replacement tests inspect availability only before expiry."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "allocation.py: Allocator.replace",
+        "cause": "Eligibility checks only the active flag and never checks whether the reservation deadline has passed.",
+        "impact": "Quantity changes can succeed at or after expiry, contrary to the requirement that adjustments apply before expiry.",
+        "trigger": "A reservation expires at timestamp 100, and a replacement request is dispatched at timestamp 100 or later before the expiry worker processes that reservation.",
+        "evidence": "Repository.create leaves active set to 1 until Repository.close is called. Allocator.replace checks that flag but has no current-time input or deadline comparison. A single dispatch thread prevents concurrent execution but does not establish that expiry runs before every request."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "quality",
+        "location": "README.md:11",
+        "cause": "The documented batch response key contradicts both the required contract and the implementation.",
+        "impact": "Customers following the documentation will read a nonexistent reservations field. The documentation requires correction to describe items and its line positions.",
+        "trigger": "A caller follows the README and accesses response[\"reservations\"] after a successful reserve_batch request.",
+        "evidence": "README.md states that batch responses contain a top-level reservations array. ReservationAPI.reserve_batch returns {\"items\": ...}, and test_batch_response accesses response[\"items\"]."
+      }
+    ],
+    "coverage": [
+      "allocation.py",
+      "api.py",
+      "README.md",
+      "test_reservations.py"
+    ],
+    "limitations": [
+      "Review used only the embedded frozen evidence; no tools, external services, or file access were used.",
+      "No tests were executed during this review. Failure examples are derived from the supplied code.",
+      "The deadline finding concerns requests dispatched before overdue reservations are processed; the supplied evidence specifies no expiry-before-request ordering guarantee."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-pilot-A-free",
+  "host": "codex",
+  "stage": "free",
+  "cli_exit": 0,
+  "started_unix": 1792054849.1453307,
+  "finished_unix": 1792054874.7335963,
+  "elapsed_seconds": 25.588266372680664,
+  "input_sha256": "389b6f95eab84506389e70799d8fbdb39a345f4215da07bc3dcb19857ef71f06",
+  "stdin_sha256": "389b6f95eab84506389e70799d8fbdb39a345f4215da07bc3dcb19857ef71f06",
+  "raw_output_sha256": "dc83e86bcabb12b5fbda21c95a16cbef951d776dfd20425f159d478f79d3cdcf",
+  "arguments": [
+    "exec",
+    "--json",
+    "--ephemeral",
+    "--approve-for-me",
+    "--skip-git-repo-check",
+    "--ignore-user-config",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=medium",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-"
+  ],
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null,
+  "measurement": "pilot"
+}

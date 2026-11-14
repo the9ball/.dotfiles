@@ -1,0 +1,9 @@
+{
+  "label": "claude-R2-F4-C-free",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038940.6566844,
+  "elapsed_seconds": 18.494887828826904,
+  "input_sha256": "70a938e00f5db34b3cbabd8211bb451e56e6aebbf2e181da036f51ae9be2f1ce",
+  "raw_output_sha256": "07f4bd258cbd321140f38c09233771870dbb82ce2a985f2304fee456b2acb8ae"
+}
