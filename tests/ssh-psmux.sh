@@ -14,10 +14,12 @@ original_path=$PATH
 export PSMUX_TEST_LOG="$test_directory/calls"
 export PSMUX_TEST_OVERLAY_LOG="$test_directory/overlay-calls"
 export PSMUX_TEST_ENVIRONMENT_LOG="$test_directory/environment"
+export PSMUX_TEST_CLIENT_LOG="$test_directory/client-environment"
 export PSMUX_TEST_REPOSITORY_DIRECTORY="$repository_directory"
 cat > "$test_directory/psmux" <<'STUB'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$PSMUX_TEST_LOG"
+printf '%s\n' "${PSMUX_DATA_DIR-}" "${PSMUX_NO_WARM-}" >> "$PSMUX_TEST_CLIENT_LOG"
 exit "${PSMUX_TEST_EXIT:-0}"
 STUB
 chmod +x "$test_directory/psmux"
@@ -26,6 +28,7 @@ chmod +x "$test_directory/psmux"
 cleanup() {
 	rm -f "$test_directory/psmux" "$test_directory/calls" "$test_directory/.psmux-no-autoattach" "$test_directory/output" "$test_directory/.bashrc.ssh"
 	rm -f "$test_directory/overlay-calls" "$test_directory/environment"
+	rm -f "$test_directory/client-environment"
 	rmdir "$test_directory"
 }
 trap cleanup EXIT
@@ -40,7 +43,10 @@ run_case() (
 	local __dotfiles_psmux_autoattach_attempted=
 	local CODEX_HOME=existing
 	local GH_CONFIG_DIR=existing-gh
+	local LOCALAPPDATA="$test_directory/localappdata"
+	local PSMUX_DATA_DIR=inherited-registry PSMUX_NO_WARM=inherited-warm
 	export PATH HOME SSH_CONNECTION TMUX PSMUX_SESSION CODEX_HOME GH_CONFIG_DIR
+	export LOCALAPPDATA PSMUX_DATA_DIR PSMUX_NO_WARM
 	cat > "$HOME/.bashrc.ssh" <<'OVERLAY'
 printf 'loaded\n' >> "$PSMUX_TEST_OVERLAY_LOG"
 source "$PSMUX_TEST_REPOSITORY_DIRECTORY/.bashrc.ssh"
@@ -49,6 +55,7 @@ OVERLAY
 	: > "$PSMUX_TEST_LOG"
 	: > "$PSMUX_TEST_OVERLAY_LOG"
 	: > "$PSMUX_TEST_ENVIRONMENT_LOG"
+	: > "$PSMUX_TEST_CLIENT_LOG"
 	case "$scenario" in
 		local) SSH_CONNECTION= ;;
 		linux) OSTYPE=linux-gnu ;;
@@ -82,6 +89,7 @@ OVERLAY
 			# shellcheck disable=SC2123
 			PATH=/nonexistent ;;
 		failure) export PSMUX_TEST_EXIT=42 ;;
+		missing-localappdata) LOCALAPPDATA= ;;
 	esac
 	if [[ $scenario == psmux-command ]]; then BASH_EXECUTION_STRING='printf command'; fi
 	case "$scenario" in
@@ -117,9 +125,21 @@ OVERLAY
 		printf 'FAIL %s: expected %s calls, got %s\n' "$scenario" "$expected_calls" "$actual_calls" >&2
 		exit 1
 	fi
-	if [[ $expected_calls == 1 ]] && [[ $(cat "$PSMUX_TEST_LOG") != '-L dotfiles-ssh new-session -A -s ssh' ]]; then
+	if [[ $expected_calls == 1 ]] && [[ $(cat "$PSMUX_TEST_LOG") != '-L dotfiles-session1 attach -t main' ]]; then
 		printf 'FAIL %s: unexpected psmux arguments\n' "$scenario" >&2
 		exit 1
+	fi
+	if [[ $PSMUX_DATA_DIR != inherited-registry || $PSMUX_NO_WARM != inherited-warm ]]; then
+		printf 'FAIL %s: client routing leaked into the parent shell\n' "$scenario" >&2
+		exit 1
+	fi
+	if [[ $expected_calls == 1 ]]; then
+		local -a client_environment
+		mapfile -t client_environment < "$PSMUX_TEST_CLIENT_LOG"
+		if [[ ${client_environment[0]-} != "$(cygpath -w "$LOCALAPPDATA/Dotfiles/PsmuxDaily/registry")" || ${client_environment[1]-} != 1 ]]; then
+			printf 'FAIL %s: unexpected daily registry or warm-server policy\n' "$scenario" >&2
+			exit 1
+		fi
 	fi
 	local actual_overlay
 	local -a selected_environment
@@ -143,6 +163,7 @@ run_case attach 1 1
 run_case repeat 1 2
 run_case psmux-reload 0 2
 run_case failure 1 1
+run_case missing-localappdata 0 1
 for scenario in bypass-env bypass-file missing ssh-pane warm-pane warm-nested-pane stale-pane nested-pane psmux psmux-local psmux-custom psmux-command psmux-socket psmux-noninteractive psmux-interactive-command psmux-input-pipe psmux-output-pipe named-other-socket main-ssh-socket warm-other-socket warm-no-socket; do
 	run_case "$scenario" 0 1
 done
