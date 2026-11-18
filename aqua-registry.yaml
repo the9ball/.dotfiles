@@ -35,3 +35,18 @@ packages:
   replacements:
     amd64: x64
     386: x86
+- type: github_release
+  repo_owner: chawyehsu
+  repo_name: nano-for-windows
+  version_prefix: v
+  asset: nano-{{.SemVer}}-win-{{.Arch}}.zip
+  format: zip
+  files:
+  - name: nano
+    src: bin/nano.exe
+  supported_envs:
+  - windows/amd64
+  - windows/arm64
+  replacements:
+    amd64: "64"
+    arm64: arm64

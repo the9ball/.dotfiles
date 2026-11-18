@@ -6,7 +6,7 @@ $repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
 $aquaPolicy = Join-Path $repoRoot 'aqua-policy.yaml'
 # Keep this reviewed digest literal: deriving it from the template input would
 # automatically approve policy changes instead of requiring a new review.
-$expectedPolicySha256 = '8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7'
+$expectedPolicySha256 = '1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
 $actualPolicySha256 = (Get-FileHash -LiteralPath $aquaPolicy -Algorithm SHA256).Hash
 if ($actualPolicySha256 -ne $expectedPolicySha256) {
     throw 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in both aqua-policy scripts.'
