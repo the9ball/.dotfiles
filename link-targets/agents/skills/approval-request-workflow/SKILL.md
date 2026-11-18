@@ -38,7 +38,7 @@ From the available work context, reasonably identify the approvals currently nee
 
 If an approval candidate exists in a plan, check it as a required input. However, it is not an authoritative or exhaustive list; reevaluate the need based on the current state. This workflow does not specify how candidates are generated, their heading or format, or their identifiers.
 
-Do not scan the entire future autonomous execution interval merely to collect approvals. Even if a future approval need is recognized early, do not interrupt the current interval or collect that approval in advance solely for that reason.
+Do not scan the entire future autonomous execution interval merely to collect approvals. Even if a future approval need is recognized early, do not interrupt the current interval or collect that approval in advance solely for that reason. This restriction covers approval items of this workflow. Premise decisions for a plan, owned by the implementation-planning Skill, are clarification questions rather than approval items, and this restriction does not defer them.
 
 If the identification itself requires user judgment or other approval, present the known range and stop.
 

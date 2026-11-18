@@ -14,17 +14,20 @@ if ($destination -ine $expected) { throw 'Installation target mismatch.' }
 . (Join-Path $PSScriptRoot '../chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1') -DeploymentRoot $destination -AllowDisabled -NoOutput
 $settingsPath=Join-Path $destination 'settings.json'
 $settings=Get-Content -LiteralPath $settingsPath -Raw|ConvertFrom-Json
-if ($settings.InstallationId -cne $InstallationId -or $settings.Mode -cne $Mode -or $settings.HelperVersion -ne '0.4.0') { throw 'Installation identity mismatch.' }
+if ($settings.InstallationId -cne $InstallationId -or $settings.Mode -cne $Mode -or $settings.HelperVersion -notin @('0.4.0','0.5.0')) { throw 'Installation identity mismatch.' }
 $manifest=Get-Content -LiteralPath (Join-Path $destination 'package.json') -Raw|ConvertFrom-Json
 $expectedPackage=@('helper/docker-credential-ssh-tpm.exe','helper/docker-credential-ssh-tpm.dll','helper/docker-credential-ssh-tpm.deps.json','helper/docker-credential-ssh-tpm.runtimeconfig.json',
     'key-tool/docker-ssh-tpm-key.exe','key-tool/docker-ssh-tpm-key.dll','key-tool/docker-ssh-tpm-key.deps.json','key-tool/docker-ssh-tpm-key.runtimeconfig.json','shell/docker-ssh.bash','shell/Get-TpmDockerEnvironment.ps1')
-if ($manifest.Version -ne '0.4.0' -or @($manifest.Files.PSObject.Properties).Count -ne 10 -or @(Compare-Object $expectedPackage @($manifest.Files.PSObject.Properties.Name)).Count) { throw 'Unexpected package manifest.' }
+if ($settings.HelperVersion -eq '0.5.0') {
+    $expectedPackage += @('shell/Invoke-DockerSshTpm.ps1','shell/Enter-DockerSshEnvironment.ps1','dispatcher/docker.exe','dispatcher/docker.dll','dispatcher/docker.deps.json','dispatcher/docker.runtimeconfig.json')
+}
+if ($manifest.Version -ne $settings.HelperVersion -or @($manifest.Files.PSObject.Properties).Count -ne $expectedPackage.Count -or @(Compare-Object $expectedPackage @($manifest.Files.PSObject.Properties.Name)).Count) { throw 'Unexpected package manifest.' }
 $allowed=@('settings.json','setup-state.json','package.json','installed-manifest.json','key-binding.json','docker-config/config.json',
     'key/operation.lock','key/create-intent.json','key/created-public.json','key/receipt.json','key/key-binding.json','key/delete-intent.json','key/delete-api.json','key/delete-existence.json',
     'store/settings.json','store/initialization.claim','store/store.lock','store/vault.tpm')
 foreach ($entry in $manifest.Files.PSObject.Properties) {
-    $relative=if ($entry.Name.StartsWith('helper/')) { 'bin/0.4.0/' + [IO.Path]::GetFileName($entry.Name) } else { $entry.Name }
-    if ($relative -notmatch '^(bin/0\.4\.0/|key-tool/|shell/)[A-Za-z0-9.-]+$') { throw 'Unexpected manifest path.' }
+    $relative=if ($entry.Name.StartsWith('helper/') -or $entry.Name.StartsWith('dispatcher/')) { 'bin/' + $settings.HelperVersion + '/' + [IO.Path]::GetFileName($entry.Name) } else { $entry.Name }
+    if ($relative -notmatch '^(bin/0\.[45]\.0/|key-tool/|shell/)[A-Za-z0-9.-]+$') { throw 'Unexpected manifest path.' }
     $allowed+=$relative
     $file=Join-Path $destination $relative
     Assert-TpmDeploymentPath -Path $file
@@ -32,7 +35,7 @@ foreach ($entry in $manifest.Files.PSObject.Properties) {
 }
 $pending=[Collections.Generic.Stack[string]]::new()
 $pending.Push($destination)
-$allowedDirectories=@('.','bin','bin/0.4.0','key','key-tool','shell','store','docker-config')
+$allowedDirectories=@('.','bin',('bin/' + $settings.HelperVersion),'key','key-tool','shell','store','docker-config')
 while ($pending.Count) {
     $path=$pending.Pop()
     Assert-TpmDeploymentPath -Path $path
