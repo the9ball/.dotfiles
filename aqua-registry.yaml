@@ -35,3 +35,26 @@ packages:
   replacements:
     amd64: x64
     386: x86
+- type: github_release
+  repo_owner: chawyehsu
+  repo_name: nano-for-windows
+  version_prefix: v
+  asset: nano-{{.Version}}-win-{{.Arch}}.zip
+  format: zip
+  files:
+  - name: nano
+    src: bin/nano.exe
+  supported_envs:
+  - windows/amd64
+  - windows/arm64
+  replacements:
+    amd64: "64"
+    arm64: arm64
+  # GitHub release assets expose SHA-256 digests through the releases API.
+  checksum:
+    type: http
+    url: https://api.github.com/repos/chawyehsu/nano-for-windows/releases/tags/v{{.Version}}
+    algorithm: sha256
+    file_format: regexp
+    pattern:
+      checksum: '(?s)"name": "nano-{{.Version}}-win-{{.Arch}}\.zip".*?"digest": "sha256:([a-f0-9]{64})"'

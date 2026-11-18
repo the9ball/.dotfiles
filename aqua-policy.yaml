@@ -11,3 +11,5 @@ packages:
   registry: local
 - name: psmux/psmux
   registry: local
+- name: chawyehsu/nano-for-windows
+  registry: local

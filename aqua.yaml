@@ -35,6 +35,9 @@ packages:
 # Windows-native tmux-compatible session manager.
 - name: psmux/psmux@v3.4.0
   registry: local
+# Windows-native nano for terminal editing (SSH / psmux / Codex).
+- name: chawyehsu/nano-for-windows@9.3
+  registry: local
 - name: twpayne/chezmoi@v2.74.1
   tags: [ci]
 - name: nodejs/node@v26.13.1
