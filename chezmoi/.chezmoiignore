@@ -1,6 +1,8 @@
 {{- if ne .chezmoi.os "windows" }}
 .psmux.conf
 AppData/
+Documents/PowerShell/
+Documents/WindowsPowerShell/
 {{- end }}
 
 # Downloads guards require boolean opt-in; the target check is manual (README).
