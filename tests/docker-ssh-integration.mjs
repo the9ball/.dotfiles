@@ -10,7 +10,7 @@ const repository = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const moduleRoot = path.join(repository, 'docker-ssh');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'docker-ssh-dotfiles-integration-'));
 const results = [];
-const publicFiles = ['docker-ssh.bash', 'Get-TpmDockerEnvironment.ps1', 'Invoke-DockerSshTpm.ps1', 'Manage-TpmCredential.ps1', 'Enter-DockerSshEnvironment.ps1'];
+const publicFiles = ['Enter-DockerSshEnvironment.ps1', 'docker-ssh.bash', 'Get-TpmDockerEnvironment.ps1', 'Invoke-DockerSshTpm.ps1', 'Manage-TpmCredential.ps1'];
 const originalDocker = path.join(os.homedir(), '.docker/config.json');
 const originalHash = fs.existsSync(originalDocker) ? digest(fs.readFileSync(originalDocker)) : null;
 

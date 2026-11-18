@@ -105,8 +105,8 @@ case "${OSTYPE-}:${SSH_CONNECTION-}" in
 esac
 case "${OSTYPE-}:${SSH_CONNECTION-}:${DOTFILES_DOCKER_SSH-}" in
     msys*:?*:required|cygwin*:?*:required)
-        # Runtime requires the canonical checkout; the managed bootstrap is checked separately.
-        # shellcheck disable=SC1091
+        # Runtime uses the active checkout under HOME; the readable-file guard above sourcing is mandatory.
+        # shellcheck source=.bashrc.docker-ssh
         if [ ! -r "$HOME/.dotfiles/.bashrc.docker-ssh" ] || ! . "$HOME/.dotfiles/.bashrc.docker-ssh"; then
             printf '%s\n' 'Required managed SSH Docker bootstrap failed; ending this shell.' >&2
             exit 1

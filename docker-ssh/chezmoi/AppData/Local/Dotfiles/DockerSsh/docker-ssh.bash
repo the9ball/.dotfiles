@@ -4,10 +4,11 @@ _docker_ssh_script_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd 
 # Run a standard Docker command against the validated dedicated deployment in a child-only environment.
 docker-ssh() (
     [[ -n ${DOCKER_SSH_DEPLOYMENT:-} && $# -gt 0 ]] || { printf '%s\n' 'Activate an explicit TPM Docker deployment first.' >&2; return 1; }
-    local metadata reader deployment argument
+    local metadata reader launcher deployment argument
     reader=$(cygpath -am -- "$_docker_ssh_script_directory/Get-TpmDockerEnvironment.ps1") || return
+    launcher=$(cygpath -am -- "$_docker_ssh_script_directory/Invoke-DockerSshTpm.ps1") || return
     deployment=$(cygpath -am -- "$DOCKER_SSH_DEPLOYMENT") || return
-    metadata=$(pwsh.exe -NoProfile -File "$reader" -DeploymentRoot "$deployment") || return
+    metadata=$(pwsh.exe -NoProfile -File "$launcher" -DeploymentRoot "$deployment" -MetadataOnly) || return
     local -a fields
     mapfile -t fields <<< "$metadata"
     [[ ${#fields[@]} == 5 && $metadata != *$'\r'* ]] || return 1
@@ -29,6 +30,8 @@ docker-ssh() (
         printf '%s\n' 'Dedicated Docker configuration is missing or redirected.' >&2; return 1
     }
     config_windows=$(cygpath -am -- "$config_directory") || return
+    # Legacy metadata has validated child-only routing normalization; keep those variables out of revalidation.
+    unset DOCKER_HOST DOCKER_CONTEXT DOCKER_AUTH_CONFIG
     # Revalidate the path actually resolved by Bash before Docker can create or use a different config.
     pwsh.exe -NoProfile -File "$reader" -DeploymentRoot "$deployment" -ExpectedDockerConfig "$config_windows" -NoOutput || return
     unset DOCKER_HOST DOCKER_CONTEXT DOCKER_AUTH_CONFIG
@@ -49,10 +52,19 @@ docker-ssh-activate() {
     if alias docker >/dev/null 2>&1 || declare -F docker >/dev/null; then
         printf '%s\n' 'Existing docker alias/function preserved; activation refused.' >&2; return 1
     fi
-    local reader deployment
-    reader=$(cygpath -am -- "$_docker_ssh_script_directory/Get-TpmDockerEnvironment.ps1") || return
+    local reader deployment state_name state_declaration
+    # Refuse immutable selection fields before assignments, so activation cannot leave partial state.
+    for state_name in DOCKER_SSH_DEPLOYMENT _docker_ssh_active _docker_ssh_function_definition; do
+        state_declaration=$(declare -p "$state_name" 2>/dev/null) || continue
+        if [[ $state_declaration =~ ^declare[[:space:]]+-[^[:space:]]*r ]]; then
+            printf '%s\n' 'Readonly Docker selection preserved; activation refused.' >&2
+            return 1
+        fi
+    done
+    reader=$(cygpath -am -- "$_docker_ssh_script_directory/Invoke-DockerSshTpm.ps1") || return
     deployment=$(cygpath -am -- "$1") || return
-    pwsh.exe -NoProfile -File "$reader" -DeploymentRoot "$deployment" >/dev/null || return
+    # Metadata validation normalizes only legacy routing in a child, before any parent selection is changed.
+    pwsh.exe -NoProfile -File "$reader" -DeploymentRoot "$deployment" -MetadataOnly >/dev/null || return
     DOCKER_SSH_DEPLOYMENT=$1
     _docker_ssh_active=1
     # Delegate ordinary Docker syntax while leaving all environment overrides in the subshell above.
