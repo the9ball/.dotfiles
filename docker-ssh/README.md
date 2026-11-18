@@ -1,6 +1,6 @@
 # Windows SSH専用Docker認証（TPM）
 
-Windows 11 + Docker Desktop Linux Engine + OpenSSH + Git Bash用のCredential Helper 0.4.0。
+Windows 11 + Docker Desktop Linux Engine + OpenSSH + Git Bash用のCredential Helper 0.5.0。
 検証済み実装をこのリポジトリに取り込んだ。CurrentUser DPAPIや既存Credential Managerは使用しない。
 
 - [導入・更新・撤去・復旧](INSTALL.md)
@@ -8,7 +8,7 @@ Windows 11 + Docker Desktop Linux Engine + OpenSSH + Git Bash用のCredential He
 - [今回の完了判定と未実施範囲](ACCEPTANCE.md)
 - [取り込み範囲と検証記録](INTEGRATION.md)
 
-通常のchezmoi適用は公開ランチャー4個だけを配置する。鍵作成、ストア初期化、認証情報登録、profile変更は行わない。
+通常のchezmoi適用は公開ランチャー5個だけを配置する。鍵作成、ストア初期化、認証情報登録、profile変更は行わない。
 バイナリ、暗号化ストア、端末別settings・receipt・binding・秘密はGit管理しない。
 同じユーザーSIDの任意コード、管理者/SYSTEM、侵害済みOSから秘密を守る方式ではない。
 

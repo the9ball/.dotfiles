@@ -45,6 +45,18 @@ docker-ssh() (
 # Validate first, then opt this shell into ordinary docker syntax without replacing an existing alias or function.
 docker-ssh-activate() {
     [[ $# == 1 ]] || return 1
+    local reader deployment state_name state_declaration
+    # Attribute conversions and references can redirect or corrupt a partially installed selection.
+    for state_name in DOCKER_SSH_DEPLOYMENT _docker_ssh_active _docker_ssh_function_definition; do
+        state_declaration=$(declare -p "$state_name" 2>/dev/null) || continue
+        case "$state_declaration" in
+            'declare -- '*|'declare -x '*) ;;
+            *)
+                printf '%s\n' 'Non-scalar or attributed Docker selection preserved; activation refused.' >&2
+                return 1
+                ;;
+        esac
+    done
     if [[ ${_docker_ssh_active:-} == 1 ]]; then
         [[ $DOCKER_SSH_DEPLOYMENT == "$1" && $(declare -f docker) == "$_docker_ssh_function_definition" ]] && return 0
         printf '%s\n' 'Deactivate before selecting another deployment.' >&2; return 1
@@ -52,15 +64,6 @@ docker-ssh-activate() {
     if alias docker >/dev/null 2>&1 || declare -F docker >/dev/null; then
         printf '%s\n' 'Existing docker alias/function preserved; activation refused.' >&2; return 1
     fi
-    local reader deployment state_name state_declaration
-    # Refuse immutable selection fields before assignments, so activation cannot leave partial state.
-    for state_name in DOCKER_SSH_DEPLOYMENT _docker_ssh_active _docker_ssh_function_definition; do
-        state_declaration=$(declare -p "$state_name" 2>/dev/null) || continue
-        if [[ $state_declaration =~ ^declare[[:space:]]+-[^[:space:]]*r ]]; then
-            printf '%s\n' 'Readonly Docker selection preserved; activation refused.' >&2
-            return 1
-        fi
-    done
     reader=$(cygpath -am -- "$_docker_ssh_script_directory/Invoke-DockerSshTpm.ps1") || return
     deployment=$(cygpath -am -- "$1") || return
     # Metadata validation normalizes only legacy routing in a child, before any parent selection is changed.

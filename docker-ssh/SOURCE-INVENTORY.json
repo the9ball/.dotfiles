@@ -101,9 +101,9 @@
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/docker-ssh.bash",
-      "SHA256": "2F696371704D44DACC46EC8F667FD193A8BF035CBEDDBEE0FA4B2D0533770B04",
+      "SHA256": "E0E2102187BD5DA92F039774EC6C4F2C475224104153EC17A4BE700B6A6573FF",
       "OriginalSHA256": "DD3642B74FB0E4CFE8FF69E8653CB757797E7C8AFF45A1C40852C3AB969DF2B0",
-      "Adaptation": "PR #143 Opus review corrections; original imported hash retained; e829cd1 comment and ShellCheck annotations reflected in current hash; epoch2 legacy 0.4.0 child-routing normalization before strict validation; epoch3 activation uses the same child-only validated normalization; epoch4 throwing validation precedes metadata and activation"
+      "Adaptation": "PR #143 Opus review corrections; original imported hash retained; e829cd1 comment and ShellCheck annotations reflected in current hash; epoch2 legacy 0.4.0 child-routing normalization before strict validation; epoch3 activation uses the same child-only validated normalization; epoch4 throwing validation precedes metadata and activation; reject attributed selection variables before activation"
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1",
