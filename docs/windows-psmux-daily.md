@@ -68,11 +68,25 @@ Windowsの.psmux.confの管理元はchezmoi/dot_psmux.conf.tmplで、Git Bashを
 
 ## attach-onlyの隔離回帰検査
 
+### 固定版の保証範囲と互換性
+
+対象はpsmux 3.4.0、上流commit `20aa1d7254ee93f64dafa059ef89341d9767470a`。将来版の同じ挙動までは保証しない。
+
+ソース確認では、main.rs L1206–1248の `-f NUL` が継承PSMUX_CONFIG_FILEを上書きし、config.rs L45–92は指定ファイルからホーム候補へfallbackしない。NULが空でも読取り失敗でも設定起点のnew-session分岐（main.rs L1861–1872）は成立しない。不在時はL1890–1910でexit 1、既存対象はremote attachとなり、L5686以降のcold spawnへ進まない。SSH hookは非0終了を受けて通常シェルへ戻る。既存serverの存在確認だけや.tmux.confの整理による保証ではない。
+
+空設定はclient自身のpriority設定読取りも無効にする（config.rs L120–151）。client環境のPSMUX_CONFIG_FILE=NULはserverへ送られるが、既定update-environmentはDISPLAY等8項目だけで同変数を含まない（types.rs L2820–2829）。管理templateもdefault-shellだけである。独自にPSMUX_CONFIG_FILEや一致するwildcardをupdate-environmentへ追加した場合は、serverのsession／process環境にNULが取り込まれ、将来の設定読取りや新規paneへ影響し得る（server/mod.rs L3566–3574、environ.rs L337–380）。これは条件付き互換性であり、その場で既存default-shellが失われると実測したものではない。
+
+### 実測と未検証の区別
+
 PowerShell 7.4以上で `tests/windows-psmux-attach-only.ps1 -PsmuxExecutable <インストール済みpsmuxの絶対パス>` を実行する。SSH Session 0の検証では `-RequiredSessionId 0` を付ける。異なるSession IDでは検査を開始しない。
 
 検査は専用TEMP内の仮ホーム・registryと一意のnamespaceを使う。PSMUX_CONFIG_FILEと4つのホーム設定候補それぞれにnew-sessionを置き、空設定付きattachがmain不在のexit 1になること、serverの登録情報や新しいpsmuxプロセスが残らないことを確認する。psmuxが作る空の.registry_sweepは許容する。通常のホーム、既存registry、Startupや既存sessionへ接続・終了要求は送らない。期限超過時は自分が起動した検査clientだけを終了する。失敗時のfixtureは調査用に残す。
 
 2026-11-17、psmux 3.4.0の実体でローカルSession 1と既存SSH経路のSession 0から各5ケースが成功した。設定削除による抑止ではなく、設定が残っていてもクライアントが生成しないことを確認した。既存serverへのattachや次回ログオンのStartup発火は、この陰性検査の成功から推定しない。
+
+2026-11-18のユーザー手動SSH確認は、PSMUX_SESSION=main、Windows Session ID=1、接続前後anchor一致=True、SSH切断後も同じSession 1 serverが生存した。既存未コミット層を含む環境の結果で、attach引数は修正commitと同一。commit単独のクリーン環境再測定とは区別する。修正引数で新規起動した監視helperの継続attach、次回ログオンのStartup実発火、独自update-environment設定の影響は未実測である。
+
+修正後の `tests/ssh-psmux.sh` のTTY実行は未検証。実行前に隔離した固定対象、保持handleで識別できるPID・開始時刻、stdinの接続先、通常終了方法とタイムアウトを記録する。これらを確認できない環境では実行せず、追加SSH接続を代替手段にしない。既存psmux・SSHや試験用接続を対象とした終了処理は使わない。既存の各5件と手動確認の成功は保持し、TTY未実行をその成功で置き換えない。
 
 ## 通常の協調再作成
 
@@ -83,7 +97,11 @@ sessionを作り直すと作業中のpaneも終了するため、常用 `main` �
 ```
 
 制御側は世代cookie入りファイルを提出するだけ。監視が照合し、自身のkill CLIと旧serverの実終了を両方確認してから次を作成する。
-提出exit 0は完了ではない。ログの `coordinated-recreation-ready` と新しいSession 1 server/attachで完了を確認する。
+提出exit 0は要求ファイルの公開成功であり、再作成の完了ではない。公開後に要求ログの出力だけが失敗してもexit 0を維持し、stderrに提出済み・再送しない旨を表示する。要求を再送せず、監視ログを確認する。
+公開前の所有確認・一時ファイル書込み・公開Moveの失敗はexit 1となる。公開済みの要求を取り消すために削除しない。
+ログの `coordinated-recreation-ready` と新しいSession 1 server/attachで完了を確認する。
+
+`pwsh -NoLogo -NoProfile -NonInteractive -File tests/windows-psmux-recreation-request.ps1` は、専用TEMPとowner queryのプロセスfacadeで公開前後の結果を検査する。ログ失敗はログ先にディレクトリを置いて再現し、ACLを変更しない。実psmux、既存registry、監視やSSHへ接続しない。
 
 ## 停止・再起動・撤去
 
@@ -132,7 +150,7 @@ PoCでは協調再作成2回、重なった起動から監視1本維持、SSH接
 - 常用server / helper / 監視attachはいずれもSession 1。PIDとserver作成時刻anchorを照合し、attachは10分以上維持。
 - 新しいSSH接続が手動操作無しで `main` へ自動attach。list-clientsは監視とSSHの2件、終了コード0。SSH clientはSession 0、serverは同じSession 1のまま。
 - Session一覧は `main` attached、終了コード0。常用stop.request / recreate.requestは無し。
-- ホストWindows Terminalで `tests/ssh-psmux.sh` は全PASS、終了コード0。異常系の警告は期待された出力であり、テスト失敗は無し（ユーザー実測）。
+- ホストWindows Terminalで `tests/ssh-psmux.sh` は全PASS、終了コード0。これはattach-only修正前の導入時のユーザー実測であり、修正後のTTY stub検査結果ではない。異常系の警告は期待された出力であり、テスト失敗は無し。
 - 既存Codex serverとPoC serverは、同じPID・起動時刻・Session 1を維持。停止・置換しなかった。
 - PowerShell構文検査と変更ファイルの形式検査は成功。sandboxでのGit Bash/aqua起動は拒否されたため、ホストの実機結果と区別した。
 

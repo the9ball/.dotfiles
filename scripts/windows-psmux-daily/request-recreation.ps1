@@ -39,7 +39,13 @@ try {
     # Atomic publication prevents the helper from reading a partially written request.
     [IO.File]::WriteAllText($stagingPath, $ownerMatch.Groups[1].Value, [Text.UTF8Encoding]::new($false))
     [IO.File]::Move($stagingPath, $requestPath)
-    Add-Content -LiteralPath (Join-Path $runtimeDirectory 'recreation.requests.log') -Value ('{0:o} submitted owner-query-exit={1} caller-session={2}' -f [DateTimeOffset]::Now, $control.ExitCode, [Diagnostics.Process]::GetCurrentProcess().SessionId)
+    # Publication is committed; a diagnostic failure must not invite another request.
+    try {
+        Add-Content -LiteralPath (Join-Path $runtimeDirectory 'recreation.requests.log') -Value ('{0:o} submitted owner-query-exit={1} caller-session={2}' -f [DateTimeOffset]::Now, $control.ExitCode, [Diagnostics.Process]::GetCurrentProcess().SessionId)
+    }
+    catch {
+        [Console]::Error.WriteLine('Recreation request was submitted, but request logging failed. Do not resubmit; confirm completion in the monitor logs. ' + $_.Exception.Message)
+    }
     Write-Output 'Recreation requested. Confirm completion in the monitor logs; this script does not kill a session.'
 }
 catch {
