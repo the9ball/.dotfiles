@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Removes only an identity-matched disposable package; never opens or deletes a TPM key. #>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string] $DestinationRoot, [Parameter(Mandatory)][string] $InstallationId, [switch] $Execute)

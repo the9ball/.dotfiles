@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Validates an explicit host selector and emits nonsecret deployment metadata for the parent shell. #>
 param([string] $SelectorPath = (Join-Path $env:LOCALAPPDATA 'Dotfiles/DockerSsh/ssh-environment.json'), [string] $PublicBootstrapRoot = (Join-Path $env:LOCALAPPDATA 'Dotfiles/DockerSsh'))
 $ErrorActionPreference = 'Stop'

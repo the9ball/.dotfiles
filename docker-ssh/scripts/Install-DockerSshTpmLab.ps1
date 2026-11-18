@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Stages or verifies one explicitly selected private PoC deployment; never creates a TPM key. #>
 [CmdletBinding()]
 param(
@@ -9,7 +10,7 @@ param(
     [switch] $CheckOnly
 )
 $ErrorActionPreference = 'Stop'
-if (-not $IsWindows -or $PSVersionTable.PSVersion -lt [version]'7.4') { throw 'Windows and PowerShell 7.4 or newer are required.' }
+if (-not $IsWindows -or $PSVersionTable.PSVersion -lt [version]'7.5') { throw 'Windows and PowerShell 7.5 or newer are required.' }
 if ($EngineEndpoint -notmatch '^npipe:/{4}\./pipe/[A-Za-z0-9_.-]+$' -or $env:DOCKER_TLS_VERIFY -or $env:DOCKER_CERT_PATH) { throw 'Explicit named-pipe endpoint and separately reviewed TLS settings required.' }
 if (-not [IO.Path]::IsPathFullyQualified($DestinationRoot)) { throw 'Absolute destination required.' }
 $destination = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($DestinationRoot))

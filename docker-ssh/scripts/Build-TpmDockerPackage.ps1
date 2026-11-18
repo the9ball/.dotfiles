@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Builds a versioned public-only TPM package; never initializes a key, store or user profile. #>
 param([Parameter(Mandatory)][string] $OutputRoot)
 $ErrorActionPreference = 'Stop'

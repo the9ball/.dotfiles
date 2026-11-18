@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Reports read-only TPM deployment prerequisites; never installs dependencies, creates keys, or starts services. #>
 [CmdletBinding()]
 param([ValidateSet('Build','Run','Test')][string] $Purpose='Test')

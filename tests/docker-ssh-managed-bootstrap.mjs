@@ -7,7 +7,16 @@ import { fileURLToPath } from 'node:url';
 
 const repository = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const powershell = process.env.ISSUE185_PWSH;
-assert.ok(process.platform === 'win32' && powershell, 'Windows and explicit ISSUE185_PWSH required');
+assert.ok(process.platform === 'win32' && powershell, 'Windows and explicit PowerShell 7.5+ ISSUE185_PWSH required');
+const runtimeProbe = spawnSync(powershell, ['-NoProfile', '-Command', '$PSVersionTable.PSVersion.ToString()'],
+    { encoding: 'utf8', windowsHide: true, timeout: 10000, maxBuffer: 65536 });
+assert.equal(runtimeProbe.error, undefined, 'PowerShell runtime probe must finish');
+assert.equal(runtimeProbe.status, 0, 'PowerShell runtime probe must succeed');
+const runtimeVersion = runtimeProbe.stdout.trim();
+assert.match(runtimeVersion, /^\d+\.\d+\.\d+(?:[-+].*)?$/, 'PowerShell runtime version required');
+const [runtimeMajor, runtimeMinor] = runtimeVersion.split('.').map(Number);
+assert.ok(runtimeMajor > 7 || (runtimeMajor === 7 && runtimeMinor >= 5), 'PowerShell 7.5 or newer is required');
+console.log(`PowerShell runtime: ${runtimeVersion}`);
 const bash = path.join(process.env.ProgramFiles, 'Git/usr/bin/bash.exe');
 // Deployment validation rejects replaceable Temp ancestors; use a private root beneath LocalAppData.
 const scratch = fs.mkdtempSync(path.join(process.env.LOCALAPPDATA, 'docker-ssh-managed-bootstrap-'));

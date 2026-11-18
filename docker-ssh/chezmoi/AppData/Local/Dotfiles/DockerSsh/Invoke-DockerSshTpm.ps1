@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Runs Docker using one explicitly selected TPM PoC deployment, without changing the parent environment. #>
 [CmdletBinding(PositionalBinding=$false)]
 param([Parameter(Mandatory)][string]$DeploymentRoot, [string]$DockerArgumentsBase64, [switch]$RequireReady, [switch]$MetadataOnly, [Parameter(ValueFromRemainingArguments)][string[]]$DockerArguments)
@@ -31,9 +32,9 @@ function Set-LauncherEnvironmentState {
 
 function Read-LauncherDeployment {
     <# .SYNOPSIS Validates strict managed routing or legacy child-only normalization, restoring all process state before returning a configuration.
-       .NOTES Exact Env-provider empty strings require PowerShell 7.5 or newer; validated on pinned PowerShell 7.6.9/.NET 10. #>
+       .NOTES Exact Env-provider empty strings require PowerShell 7.5 or newer. #>
     param([string] $Reader, [string] $Deployment, [bool] $Strict)
-    if ($PSVersionTable.PSVersion -lt [version]'7.5') { throw 'Exact routing restoration requires a supported PowerShell runtime.' }
+    if ($PSVersionTable.PSVersion -lt [version]'7.5') { throw 'PowerShell 7.5 or newer is required for exact routing restoration.' }
     $normalizeLegacy = $false
     if (-not $Strict) {
         . $Reader -DefinitionsOnly

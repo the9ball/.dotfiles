@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Validates a dedicated TPM deployment and emits exactly five nonsecret LF-delimited fields, never shell code. #>
 [CmdletBinding(DefaultParameterSetName='Deployment')]
 param([Parameter(Mandatory,ParameterSetName='Deployment')][string] $DeploymentRoot, [Parameter(Mandatory,ParameterSetName='Definitions')][switch] $DefinitionsOnly, [switch] $AllowDisabled, [switch] $NoOutput, [switch] $RequireReady, [string] $ExpectedDockerConfig)

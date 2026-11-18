@@ -1,6 +1,7 @@
 # Windows SSH専用Docker認証（TPM）
 
 Windows 11 + Docker Desktop Linux Engine + OpenSSH + Git Bash用のCredential Helper 0.5.0。
+実行にはPowerShell 7.5以上が必要。旧0.4系deploymentの互換経路にも同じ最低対応版を適用する。
 検証済み実装をこのリポジトリに取り込んだ。CurrentUser DPAPIや既存Credential Managerは使用しない。
 
 - [導入・更新・撤去・復旧](INSTALL.md)
