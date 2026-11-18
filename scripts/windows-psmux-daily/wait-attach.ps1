@@ -92,7 +92,8 @@ if ($dailyOwnership.Exit -ne 0 -or $dailyOwnership.Output.Trim() -cne ('DOTFILES
 
 $dailyStartInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $dailyStartInfo.FileName = $env:DAILY_PSMUX_EXECUTABLE
-$dailyStartInfo.Arguments = '-L ' + $env:DAILY_NAMESPACE + ' attach -t ' + $env:DAILY_SESSION
+# Keep config-driven new-session bootstrap out of this existing-server client.
+$dailyStartInfo.Arguments = '-f NUL -L ' + $env:DAILY_NAMESPACE + ' attach -t ' + $env:DAILY_SESSION
 $dailyStartInfo.UseShellExecute = $false
 $dailyStartInfo.CreateNoWindow = $false
 $dailyStartInfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden

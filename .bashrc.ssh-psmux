@@ -64,7 +64,8 @@ if ! (
 	PSMUX_DATA_DIR=$(cygpath -w "$LOCALAPPDATA/Dotfiles/PsmuxDaily/registry") || exit 1
 	export PSMUX_DATA_DIR
 	export PSMUX_NO_WARM=1
-	command psmux -L dotfiles-session1 attach -t main
+	# Ignore client config: psmux can bootstrap new-session from it even for attach.
+	command psmux -f NUL -L dotfiles-session1 attach -t main
 ); then
 	printf '%s\n' 'Session 1 psmux attach failed; start the desktop monitor. Continuing in Git Bash.' >&2
 fi

@@ -125,7 +125,7 @@ OVERLAY
 		printf 'FAIL %s: expected %s calls, got %s\n' "$scenario" "$expected_calls" "$actual_calls" >&2
 		exit 1
 	fi
-	if [[ $expected_calls == 1 ]] && [[ $(cat "$PSMUX_TEST_LOG") != '-L dotfiles-session1 attach -t main' ]]; then
+	if [[ $expected_calls == 1 ]] && [[ $(cat "$PSMUX_TEST_LOG") != '-f NUL -L dotfiles-session1 attach -t main' ]]; then
 		printf 'FAIL %s: unexpected psmux arguments\n' "$scenario" >&2
 		exit 1
 	fi
