@@ -55,7 +55,17 @@ if ! command -v psmux >/dev/null 2>&1; then
 	return 0
 fi
 
-# Retain the shell after detach or failure; the psmux server owns the session.
-if ! command psmux -L dotfiles-ssh new-session -A -s ssh; then
-	printf '%s\n' 'psmux auto-attach failed; continuing in Git Bash.' >&2
+# Only the desktop monitor creates the server. Confine client routing to a subshell.
+if ! (
+	if [ -z "${LOCALAPPDATA-}" ]; then
+		printf '%s\n' 'psmux attach skipped: LOCALAPPDATA is unavailable.' >&2
+		exit 1
+	fi
+	PSMUX_DATA_DIR=$(cygpath -w "$LOCALAPPDATA/Dotfiles/PsmuxDaily/registry") || exit 1
+	export PSMUX_DATA_DIR
+	export PSMUX_NO_WARM=1
+	# Ignore client config: psmux can bootstrap new-session from it even for attach.
+	command psmux -f NUL -L dotfiles-session1 attach -t main
+); then
+	printf '%s\n' 'Session 1 psmux attach failed; start the desktop monitor. Continuing in Git Bash.' >&2
 fi

@@ -807,9 +807,10 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 復元も失敗した場合は、保存したバックアップとエラーを使ってローカルで復旧してください。
 
 `DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
-既存接続を閉じずに別の SSH 接続で、Git Bash と SSH 専用の `ssh` セッションが起動することを確認します。
+先に[Session 1常用監視の導入手順](docs/windows-psmux-daily.md)でWindowsログオン時の起動を登録します。
+既存接続を閉じずに別の SSH 接続で、`dotfiles-session1` 名前空間の既存 `main` セッションへ自動attachされることを確認します。SSHからセッションを新規作成しません。
 `printf '%s\n' "$CODEX_HOME"` がホーム配下の `.codex-personal` を指すことを確認します。
-デタッチ後に `psmux -L dotfiles-ssh list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
+デタッチ後は常用registryを指定した一覧と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、再接続したときに同じ作業へ戻れることを確認します。registryと操作コマンドは上記の常用監視手順を参照します。
 続けて、同じクライアントから以下を検証します。
 
 - `ssh host 'printf "command-ok\n"'` が psmux を起動せず終了する。PTY 付きの `ssh -t host 'printf "pty-command-ok\n"'` は互換性の確認用で、この Windows 構成では引数不足になります。後述の引用符付き回避方法も確認する。
@@ -894,7 +895,7 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 既に Git Bash を使える環境では、`PSMUX_SSH_AUTOATTACH=0 bash` も自動アタッチを回避します。
 クライアントの環境変数送信はサーバーが受け付けるとは限らないため、SSH 接続前の回避にそれだけを使いません。
 `psmux` が見つからなければ `where.exe psmux` / `Get-Command psmux` で aqua の `bin` とユーザー PATH を確認し、新しい接続で試します。
-SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカル `main` は `psmux list-sessions` で確認します。
+常用SSHの状態は[常用registryの手順](docs/windows-psmux-daily.md)で確認します。旧構成は `psmux -L dotfiles-ssh list-sessions`、既存のローカル構成は `psmux list-sessions` で別に確認します。
 残したいセッションに対して `kill-session` は使いません。
 
 #### CODEX_HOME の環境変数送信を整理する
