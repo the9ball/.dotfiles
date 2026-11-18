@@ -898,6 +898,27 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 常用SSHの状態は[常用registryの手順](docs/windows-psmux-daily.md)で確認します。旧構成は `psmux -L dotfiles-ssh list-sessions`、既存のローカル構成は `psmux list-sessions` で別に確認します。
 残したいセッションに対して `kill-session` は使いません。
 
+#### 手動でpsmuxへ入り直す
+
+以下は旧 `dotfiles-ssh / ssh` 向けの手動コマンドです。常用 `dotfiles-session1 / main` へ入り直すときは[常用監視手順](docs/windows-psmux-daily.md)のattachコマンドを使います。
+
+```bash
+bash ~/attach-psmux.sh
+```
+
+管理元は`chezmoi/executable_attach-psmux.sh`です。必要なときだけ、この一ファイルを適用します。
+
+```powershell
+chezmoi --source "$HOME/.dotfiles" diff "$HOME/attach-psmux.sh"
+chezmoi --source "$HOME/.dotfiles" apply --exclude=scripts "$HOME/attach-psmux.sh"
+```
+
+`dotfiles-ssh`名前空間の`ssh`セッションへアタッチし、存在しなければ作成します。既存クライアントの強制デタッチやセッションの終了は行いません。
+このコマンドは自動起動しません。`PSMUX_SSH_AUTOATTACH=0`や`.psmux-no-autoattach`の有無とは独立して、利用者が明示的に実行します。
+標準入力・出力が端末であることと、`psmux`がPATHにあることを確認します。非対話のSSHコマンドやパイプからはアタッチしません。
+現在のシェルの設定を変えないため、sourceせず上のようにbashで起動してください。
+呼出し元のシェルは置換せず、デタッチ後またはpsmuxの終了後に戻ります。動作中のCodexプロセスを自動的に移動するものではありません。
+
 #### CODEX_HOME の環境変数送信を整理する
 
 `CODEX_HOME` は SSH 用の Bash 設定で指定するため、Termius の Environment Variables と OpenSSH の `AcceptEnv CODEX_HOME` は不要です。
