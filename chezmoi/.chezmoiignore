@@ -1,5 +1,6 @@
 {{- if ne .chezmoi.os "windows" }}
 .psmux.conf
+attach-psmux.sh
 AppData/
 Documents/PowerShell/
 Documents/WindowsPowerShell/
