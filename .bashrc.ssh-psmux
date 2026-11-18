@@ -40,11 +40,9 @@ fi
 # shellcheck disable=SC1091
 . "$HOME/.bashrc.ssh"
 
-# Managed Docker exports a zero attachment flag; it must not disable SSH session persistence.
-# Other callers retain the environment bypass, and the explicit bypass file always takes precedence.
+# Bypassing attachment still keeps the direct SSH shell in its personal home.
 if [ -n "${TMUX-}" ] || [ -n "${PSMUX_SESSION-}" ] ||
-	{ [ "${PSMUX_SSH_AUTOATTACH-}" = 0 ] &&
-		{ [ "${DOCKER_SSH_MANAGED-}" != 1 ] || [ "${DOTFILES_DOCKER_SSH-}" != required ]; }; } ||
+	[ "${PSMUX_SSH_AUTOATTACH-}" = 0 ] ||
 	[ -e "$HOME/.psmux-no-autoattach" ] ||
 	[ -n "${__dotfiles_psmux_autoattach_attempted-}" ]; then
 	return 0

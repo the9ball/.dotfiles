@@ -82,7 +82,7 @@ OVERLAY
 			# The sourced overlay reads this shell-local switch.
 			# shellcheck disable=SC2034
 			PSMUX_SSH_AUTOATTACH=0 ;;
-		managed-attach|managed-repeat|managed-bypass-file|managed-nested|managed-command|managed-pane)
+		managed-bypass|managed-bypass-repeat|managed-bypass-file|managed-nested|managed-command|managed-pane)
 			DOCKER_SSH_MANAGED=1; DOTFILES_DOCKER_SSH=required; PSMUX_SSH_AUTOATTACH=0
 			case "$scenario" in
 				managed-bypass-file) touch "$HOME/.psmux-no-autoattach" ;;
@@ -123,7 +123,7 @@ OVERLAY
 	esac
 	# Re-source the runtime-selected overlay to test repeat attachment.
 	# shellcheck disable=SC1090
-	if [[ $scenario == repeat || $scenario == managed-repeat ]]; then source "$hook_path"; fi
+	if [[ $scenario == repeat || $scenario == managed-bypass-repeat ]]; then source "$hook_path"; fi
 	if [[ $scenario == psmux-reload ]]; then
 		CODEX_HOME=existing
 		GH_CONFIG_DIR=existing-gh
@@ -172,8 +172,8 @@ OVERLAY
 	printf 'PASS %s\n' "$scenario"
 )
 
-run_case managed-attach 1 1
-run_case managed-repeat 1 2
+run_case managed-bypass 0 1
+run_case managed-bypass-repeat 0 2
 run_case managed-bypass-file 0 1
 run_case managed-nested 0 0
 run_case managed-command 0 0
