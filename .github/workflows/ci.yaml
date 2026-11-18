@@ -60,7 +60,7 @@ jobs:
       - name: Verify and allow aqua policy
         shell: bash
         run: |
-          expected_policy_sha256='8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7'
+          expected_policy_sha256='1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
           printf '%s  aqua-policy.yaml\n' "$expected_policy_sha256" | sha256sum --check --strict
           aqua policy allow aqua-policy.yaml
 

@@ -35,10 +35,13 @@ packages:
 # Windows-native tmux-compatible session manager.
 - name: psmux/psmux@v3.4.0
   registry: local
+# Windows-native nano for terminal editing (SSH / psmux / Codex).
+- name: chawyehsu/nano-for-windows@v9.3
+  registry: local
 - name: twpayne/chezmoi@v2.74.1
   tags: [ci]
 - name: nodejs/node@v26.13.1
-- name: openai/codex@rust-v0.169.1
+- name: openai/codex@rust-v0.170.0
 # kubectxを更新したら、補完スクリプトの取得元(chezmoi/.chezmoiexternal.toml)のタグとsha256も同じバージョンに揃える。
 - name: ahmetb/kubectx@v0.11.0
 # kubensも同様に、chezmoi/.chezmoiexternal.tomlの補完スクリプトのタグとsha256を揃える。
