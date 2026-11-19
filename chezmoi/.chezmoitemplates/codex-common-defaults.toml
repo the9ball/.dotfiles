@@ -42,3 +42,6 @@ experimental_mode = true
 # Native Windows sandbox selection; unused on Linux and WSL.
 [windows]
 sandbox = "mxc"
+
+[tui.keymap.global]
+select_transcript = ["ctrl-shift-s"]
