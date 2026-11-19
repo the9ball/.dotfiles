@@ -28,13 +28,33 @@ Stop in fail-safe mode if the plan's targets, constraints, estimate basis, or ap
 
 Applies to creating, updating, and reviewing implementation plans and runbooks; read it before creating, updating, or reviewing an implementation plan or runbook. It includes the details of implementation-scale estimation and of runbook/plan history management.
 
+### Plan file location
+
+- Unless the user or the caller names another destination, create a new implementation plan or runbook as `<short slug expressing the contents>-plan.md` in the agent-artifact directory that the always-applied `.local/` rule defines (`.local/` directly under the work root, or the alternative directory a repository names), and keep its history file in the same directory. Do not ask the user to confirm this location.
+- Create and check the directory as that rule orders before writing the plan; its `.local/.gitignore` contains only `*`.
+- Updating an existing plan keeps its current path.
+
 ### The boundary between planning review and post-implementation review
 
 The plan review does not include an exhaustive detailed review of details that do not affect the decisions that should be made before implementation.
 
 The plan review points out matters that, if not determined before implementation, will lead to violation of requirements, actual harm, serious rework, or inability to verify, as well as important omissions regarding scope of approval, acceptance conditions, safety, security, data integrity, compatibility, and irreversible operations. Implementation details and representational completeness that can be verified and adjusted at low cost and safely from implementation results and do not change these decisions should not be pointed out simply because they are missing.
 
+The plan review also points out an unresolved premise decision (see "Premise decisions before drafting"), including one left in `承認候補` (Approval Candidates), an open-issues list, or an assumption without the attribution that section requires.
+
 In the post-implementation review, the requirements conformance, actual behavior, regression, danger, and verification results of the fixed implementation target are determined, not the density of descriptions in the plan. The existence of a post-implementation review should not be used as a reason to postpone necessary judgments or significant uncertainties before implementation.
+
+### Premise decisions before drafting
+
+A premise decision is a user judgment that shapes the plan itself and can be answered from information available during planning. It meets all of the following: its answer materially changes the plan's steps, scope, target (such as the checkout, branch, or pull request), verification approach, or handling of existing data; a wrong guess would cause a requirement violation, serious rework, data loss, or an outcome the user would not accept; and it cannot be determined uniquely from explicit instructions or available local material. Choices that the planner can make and adjust safely at low cost are ordinary plan content, not premise decisions. A judgment that can only be made from state known at runtime remains a conditional approval candidate.
+
+Premise decisions are clarification questions, not approval items. An answer fixes the plan's shape only; it is not runtime approval or authorization, and operations in the resulting plan that foreseeably need permission are still recorded in `承認候補` (Approval Candidates). Rules that keep approval items from being collected in advance do not defer premise decisions.
+
+- Ask a premise decision as soon as it is identified and its options can be presented, and at the latest before writing the parts of the plan that depend on it. Ask the open premise decisions together in one round, with the relevant findings, the options, and a recommendation for each. If the planner cannot ask the user directly, return them to the caller as questions instead.
+- Do not defer a premise decision by writing it into `承認候補` (Approval Candidates), an open-issues list, or an assumption.
+- Record each answer in the plan body where it applies, as a current premise with a short attribution such as `ユーザー判断` (user decision) or `委任` (delegated to the agent). It needs no dedicated section or identifier. When the user explicitly leaves the choice to the agent, record the recommendation as delegated; it counts as resolved. When the user is also unsure, follow the always-applied clarification rules instead of recording a recommendation.
+- While a premise decision is unresolved, the plan is not complete: do not present it as complete or submit it to plan review.
+- When updating a plan, apply the same rules to premise decisions that the update raises or that arise because an agreed premise no longer holds, before revising the affected parts. A premise decision that surfaces during execution is handled by the existing execution gates.
 
 ### `承認候補` (Approval Candidates)
 

@@ -12,7 +12,7 @@ repos:
         language: system
         entry: sh scripts/check-files.sh shellcheck-bash
         stages: [manual, pre-push]
-        files: '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
+        files: '(\.(sh|bash)$|^\.bashrc(\.interactive|\.ssh|\.ssh-psmux|\.docker-ssh|\.local\.example)?$|^chezmoi/dot_bashrc(\.interactive|\.ssh)?$)'
         exclude: '(^scripts/check-files\.sh$|^git-completion/|\.tmpl$|(^|/)chezmoi/\.chezmoitemplates/|(^|/)chezmoi/(.*/)?(modify_|create_)[^/]*$)'
       - id: shellcheck-sh
         name: ShellCheck (POSIX sh)

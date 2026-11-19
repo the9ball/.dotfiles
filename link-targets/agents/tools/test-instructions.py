@@ -1484,12 +1484,13 @@ class InstructionTests(unittest.TestCase):
             "agent-output", "approval-request-workflow", "commit-message", "delegation",
             "dotnet-testing", "external-posting", "git-operations", "github", "structured-data",
             "advisor-review", "implementation-planning", "external-operation-authorization",
-            "review-consolidation", "code-commenting",
+            "review-consolidation", "code-commenting", "codex-invocation", "claude-invocation",
         }
         actual_names = {Path(path).parent.name for path, text in texts.items() if path.endswith("/SKILL.md") and "## Discovery contract" in text}
         self.assertEqual(actual_names, expected_names)
-        expected_profiles = {name: "required" for name in expected_names - {"code-commenting", "review-consolidation"}}
-        expected_profiles.update({"code-commenting": "exempt", "review-consolidation": "exempt"})
+        exempt_names = {"code-commenting", "review-consolidation", "codex-invocation", "claude-invocation"}
+        expected_profiles = {name: "required" for name in expected_names - exempt_names}
+        expected_profiles.update({name: "exempt" for name in exempt_names})
         actual_profiles = {
             Path(path).parent.name: VALIDATOR.check_discovery(path, text).split(";", 1)[0]
             for path, text in texts.items() if path.endswith("/SKILL.md") and "## Discovery contract" in text
@@ -1520,7 +1521,9 @@ class InstructionTests(unittest.TestCase):
             "README.manual.md": {"codex-wsl/SETUP.md", "codex-wsl/CODEX_HOME.md", VALIDATOR.SKILLS},
             "chezmoi/.chezmoiscripts/run_after_junctions.sh.tmpl": {VALIDATOR.SKILLS},
             f"{VALIDATOR.SKILLS}/wsl-codex-exec/SKILL.md": {"codex-wsl/SETUP.md", "codex-wsl/CODEX_HOME.md"},
-            f"{VALIDATOR.AGENTS}/AGENTS.md": {f"{VALIDATOR.GUIDES}/README.md", f"{VALIDATOR.SKILLS}/code-commenting/SKILL.md"},
+            f"{VALIDATOR.AGENTS}/AGENTS.md": {
+                f"{VALIDATOR.GUIDES}/README.md", f"{VALIDATOR.SKILLS}/code-commenting/SKILL.md",
+                f"{VALIDATOR.SKILLS}/codex-invocation/SKILL.md", f"{VALIDATOR.SKILLS}/claude-invocation/SKILL.md"},
             VALIDATOR.ROUTER: {f"{VALIDATOR.SKILLS}/review-consolidation/SKILL.md"},
             f"{VALIDATOR.SKILLS}/cognitive-rhythm-writing/SKILL.md": {f"{VALIDATOR.SKILLS}/japanese-tech-writing/SKILL.md"},
         }

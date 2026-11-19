@@ -41,7 +41,7 @@ Codex Desktopのプロジェクトと関連フォルダーの設定は、アプ�
 - 設定ファイルの変更前に`aqua-policy.yaml`のSHA-256を検証し、固定した確認済みの値と一致する場合だけ`aqua policy allow`を実行する。
 - `aqua install`：`aqua.yaml`に定義されたCLIを導入する。
 - `uv python install`と`uv pip install`：Python 3.13とPyYAML 6.0.3を導入する。
-- Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zを導入する。
+- Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
@@ -129,10 +129,11 @@ WSL でも WSL 側の Aqua とツールを用意します。
 named helper は実際の wrapper から読み込み、静的な `create_AGENTS.md` の配置は検査しません。
 `.chezmoiexternal.toml` も展開後に TOML として検査しますが、外部ファイルは取得しません。
 
-このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、事前導入済み chezmoi の実体パスを指定する `CHEZMOI_TEST_BINARY`、Git が必要です。
+このフックには `python3` として実行できる Python 3.11 以上（標準ライブラリの `tomllib` を使用）、chezmoi の実体、Git が必要です。
+chezmoi の実体は `CHEZMOI_TEST_BINARY` で指定し、未指定のときはチェッカーが `aqua which chezmoi` で解決します。
 Python は CI の Ubuntu 24.04 runner に標準搭載されたものを使い、追加の Python package や setup Action は導入しません。
 ローカルでは Python 3.11 以上を用意し、ツール導入時に以下を実行してください。
-`aqua which` は registry の取得・更新を伴うことがあるため、導入工程でだけ呼び出します。
+`aqua which` は registry の取得・更新を伴うことがあるため、チェッカーでの解決を避けたい場合は導入工程で変数を設定します。
 
 ```sh
 aqua install --tags ci
@@ -142,7 +143,7 @@ export CHEZMOI_TEST_BINARY="$(aqua which chezmoi)"
 PowerShell では、導入後に `$env:CHEZMOI_TEST_BINARY = (aqua which chezmoi).Trim()` と設定します。
 この値は信頼できる事前導入済みの実体を指定する契約で、PATH 上の Aqua shim や別の実行ファイルは指定しません。
 CI もツール導入ステップ内で解決した実体パスだけを後続へ渡します。
-チェッカーは Aqua を呼ばず、変数が未指定または実体が存在しない場合はダウンロードせずに失敗します。
+変数が未指定のときだけチェッカーが `aqua which chezmoi` を呼びます。Aqua も見つからない場合や、解決した実体が存在しない場合は失敗します。
 子プロセスには `AQUA_DISABLE_LAZY_INSTALL=true` も渡しますが、これは package の遅延取得に対する補助で、shim による registry 取得までを防ぐものではありません。
 単体で実行する場合も共通の入口を使います。
 
@@ -203,6 +204,12 @@ Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツー�
 `aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks、chezmoi の 7 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
+Aqua 本体と導入したツールは、`actions/cache` で `~/.local/share/aquaproj-aqua` ごとキャッシュします。
+キーには runner の OS・アーキテクチャ、Aqua 本体のバージョン、`aqua.yaml` と `aqua-registry.yaml` のハッシュを含めるため、どれかが変わると新しいキャッシュになります。
+PR の CI は master で保存されたキャッシュを読めますが、PR で保存したキャッシュはその PR からしか読めません。
+Aqua の自動更新ワークフローは、master の CI が保存した同じキャッシュを読み込むだけで、書き込み権限を持つため保存はしません。
+GitHub Releases が一時的に 5xx を返し続けた場合に備え、aqua-installer は失敗時に 1 回だけ再実行し、`aqua install --tags ci` も 1 回だけ再試行します。待機時間は入れません。
+構文・設定チェックと秘密情報の走査は、ツールの導入に成功していれば互いの結果にかかわらず両方実行します。どちらかが失敗すればジョブは失敗し、`ci-required` も失敗します。
 必要なツールをすべて事前導入するため、後続ステップで Aqua の遅延ダウンロードを必要としない構成です。実際のダウンロードの有無は CI 上で確認します。
 ただし、CI の `prek run --all-files --stage manual` 実行時には、prek が `.pre-commit-config.yaml` に指定されたリモートフックのリポジトリ（`https://github.com/gitleaks/gitleaks`、`v8.30.1` に対応するコミット SHA `83d9cd684c87d95d656c1458ef04895a7f1cbd8e` に固定）を取得します。
 manual ステージでは gitleaks フックを実行しませんが、取得自体は発生し、この取得にトークンは使いません。
@@ -305,7 +312,8 @@ Add-Type -AssemblyName System.Security
 根本原因は未確定のため、Hello だけのサインインに戻す場合は、再起動して PIN でサインインした後も上記コマンドが成功することを確認してください。
 
 Windows x64ではAWS CLIとaws-vaultがAquaの対象外になるため、wingetで導入します。
-AquaにないGUIアプリのWinMergeとCPU-Zも、Windowsではwingetで導入します。
+AquaにないGUIアプリのWinMerge、CPU-Z、Cryptomatorも、Windowsではwingetで導入します。
+WinFspは、CryptomatorがWindowsで保管庫をドライブとしてマウントするために使うため、あわせて導入します。
 Linux、macOSではwingetを実行せず、AWS系も含めてAquaで導入します。
 
 WSL版Codex Remote Controlを使う場合は、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md)を上から順番に実行します。

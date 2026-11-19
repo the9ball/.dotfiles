@@ -126,4 +126,60 @@ README.manual.md for the restore procedure.
 {{- $_ = set $env "CLAUDE_CODE_PLUGIN_DIRS" (joinPath .chezmoi.homeDir ".claude" "mods" "context") -}}
 {{- $_ = set $settings "env" $env -}}
 
+{{- /*
+  Reply language. "language" puts the preference into the system prompt. It is
+  managed here so every machine and every Claude Code entry point gets it,
+  rather than depending on a value set by hand. Because it sits only at the
+  start of the context, replies still drift into English in long sessions.
+*/ -}}
+{{- $_ = set $settings "language" "japanese" -}}
+
+{{- /*
+  To stop that drift, a UserPromptSubmit hook adds a short reminder next to
+  every prompt; Claude Code adds the stdout of a successful UserPromptSubmit
+  hook to the context. The text stays ASCII so it is not garbled by the shell's
+  code page on Windows. The managed hook is found by the marker comment at
+  the end of its command, so editing the reminder text replaces the old hook
+  instead of adding a second one. Only hooks carrying the marker are removed:
+  other hooks in the same group stay, and a group left empty is dropped.
+  Other UserPromptSubmit entries and other hook events, which Claude Code
+  writes into the same hooks key, are written back unchanged.
+*/ -}}
+{{- $languageReminderMarker := "dotfiles:language-reminder" -}}
+{{- $languageReminderCommand := printf "echo 'Reply to the user in Japanese, including short progress updates between tool calls, unless the user asks for another language.' # %s" $languageReminderMarker -}}
+{{- $hooks := dict -}}
+{{- if hasKey $settings "hooks" -}}
+{{-   $hooks = index $settings "hooks" -}}
+{{- end -}}
+{{- $userPromptSubmitGroups := list -}}
+{{- if hasKey $hooks "UserPromptSubmit" -}}
+{{-   range $group := (index $hooks "UserPromptSubmit") -}}
+{{-     if hasKey $group "hooks" -}}
+{{-       $keptGroupHooks := list -}}
+{{-       $removedManagedHook := false -}}
+{{-       range (index $group "hooks") -}}
+{{-         if and (hasKey . "command") (contains $languageReminderMarker (toString (index . "command"))) -}}
+{{-           $removedManagedHook = true -}}
+{{-         else -}}
+{{-           $keptGroupHooks = append $keptGroupHooks . -}}
+{{-         end -}}
+{{-       end -}}
+{{-       if not $removedManagedHook -}}
+{{-         $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-       else if $keptGroupHooks -}}
+{{-         $_ = set $group "hooks" $keptGroupHooks -}}
+{{-         $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-       end -}}
+{{-     else -}}
+{{-       $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $userPromptSubmitGroups = append $userPromptSubmitGroups (dict
+      "hooks" (list (dict
+        "type" "command"
+        "command" $languageReminderCommand))) -}}
+{{- $_ = set $hooks "UserPromptSubmit" $userPromptSubmitGroups -}}
+{{- $_ = set $settings "hooks" $hooks -}}
+
 {{- $settings | toPrettyJson -}}

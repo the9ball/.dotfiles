@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS
 Inspect local build, runtime, or test prerequisites without installing or initializing anything.
 #>
@@ -52,7 +53,7 @@ function Get-ToolMetadata {
 
 $checks = [Collections.Generic.List[object]]::new()
 $checks.Add([ordered]@{ Name = 'Windows'; Passed = [bool]$IsWindows })
-$checks.Add([ordered]@{ Name = 'PowerShell>=7.4'; Passed = $PSVersionTable.PSVersion -ge [version]'7.4'; Version = $PSVersionTable.PSVersion.ToString() })
+$checks.Add([ordered]@{ Name = 'PowerShell>=7.5'; Passed = $PSVersionTable.PSVersion -ge [version]'7.5'; Version = $PSVersionTable.PSVersion.ToString() })
 $runtimes = Get-ToolMetadata -Name dotnet.exe -Arguments @('--list-runtimes')
 $runtimeVersions = @([regex]::Matches([string]$runtimes, '(?m)^Microsoft\.NETCore\.App (10\.0\.\d+) ') | ForEach-Object { [version]$_.Groups[1].Value } | Sort-Object -Descending)
 $checks.Add([ordered]@{ Name = '.NET runtime 10.0'; Passed = $runtimeVersions.Count -gt 0; Version = if ($runtimeVersions.Count) { $runtimeVersions[0].ToString() } else { $null } })

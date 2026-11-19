@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Shares the verified user-only transient stop event and bounded setup-child monitoring. #>
 . (Join-Path $PSScriptRoot '../tests/ColdBootEnvironment.ps1')
 

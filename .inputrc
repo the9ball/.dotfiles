@@ -4,4 +4,5 @@ $include /etc/inputrc
 
 set bell-style none
 set completion-ignore-case On
+set enable-bracketed-paste On
 

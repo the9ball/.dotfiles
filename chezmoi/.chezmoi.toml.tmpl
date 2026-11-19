@@ -1,1 +1,6 @@
+{{- /* Asked once per machine by `chezmoi init`; the answer is kept in the local config. */ -}}
+{{- $isWork := promptBoolOnce . "isWork" "Is this a work machine" -}}
 sourceDir = "~/.dotfiles"
+
+[data]
+  isWork = {{ $isWork }}

@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Reads the current process logon metadata only; never reads credential material. #>
 function Get-TpmSessionEvidence {
     <# .SYNOPSIS Returns SID, AuthenticationId, logon type and boot time for a same-boot SSH comparison. #>

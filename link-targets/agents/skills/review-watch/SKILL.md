@@ -310,18 +310,21 @@ If the repository has an `AGENTS.md`, read it and prioritize project-specific re
 and are often not there yet right after a review request is detected. If you want to match against them,
 read them later with `gh pr view <URL> --comments`.
 
-**Codex**: Run it read-only and have it output only the conclusion. Its investigation log can run to thousands of lines,
+**Codex**: Start it with the `codex exec` investigation form of `link-targets/agents/skills/codex-invocation/SKILL.md`,
+which owns the command line, sandbox, network, notification, file, and result-reading rules. This section defines only the
+request. Have it output only the conclusion. Its investigation log can run to thousands of lines,
 and reading it becomes a cost on our side.
 
 **Pass the validated snapshot, its fixed base/head/merge-base, and payload SHA-256; do not let it fetch the diff again.**
 If it runs `gh pr diff` itself, the result may differ from the revision you read
 (a force-push can happen in between). Sharing the validated snapshot keeps reviewers on the same captured bytes; it also avoids the repeated acquisition and waiting cost described in B-5.
 
-```bash
-codex exec --sandbox read-only "Review PR <owner>/<repo>#<number> (head <SHA>). The diff is already saved at <absolute path of the diff file>; read it and do not re-fetch it with gh pr diff. Do not run git fetch or git checkout. Give the conclusion and its basis in Japanese; no intermediate investigation log is needed. Do not edit any files."
+Write a request like the following into the request file:
+
+```text
+Review PR <owner>/<repo>#<number> (head <SHA>). The diff is already saved at <absolute path of the diff file>; read it and do not re-fetch it with gh pr diff. Do not run git fetch or git checkout. Give the conclusion and its basis in Japanese; no intermediate investigation log is needed. Do not edit any files.
 ```
 
-`--sandbox read-only` is required. Without it, files may be rewritten.
 If the conclusions conflict, compare the evidence on both sides and find out which is correct.
 
 ### B-8. Submit the report

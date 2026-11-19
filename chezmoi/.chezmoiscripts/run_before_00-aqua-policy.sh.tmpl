@@ -7,7 +7,7 @@ source_directory='{{ .chezmoi.sourceDir }}'
 repo_root=${source_directory%/*}
 aqua_policy="$repo_root/aqua-policy.yaml"
 # Keep this reviewed digest literal so a policy change cannot approve itself.
-expected_policy_sha256='8c97ba57b40cd27bee28bbd0de7e958a3a9da6113dea1f3cdc7ce6f0a83c42e7'
+expected_policy_sha256='1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
 
 if command -v sha256sum >/dev/null 2>&1; then
     policy_checksum_output=$(sha256sum "$aqua_policy")

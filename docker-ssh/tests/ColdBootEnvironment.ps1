@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Reads current WTS user-session presence without changing sessions, audit policy or credentials. #>
 function Get-TpmGuiSessionCount {
     <# .SYNOPSIS Returns the observed count of user-bearing sessions outside session zero; throws if enumeration is unknown. #>

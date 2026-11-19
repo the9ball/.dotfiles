@@ -3,3 +3,7 @@ export CODEX_HOME="$HOME/.codex-personal"
 
 # Keep SSH credentials separate from desktop Windows Credential Manager entries.
 export GH_CONFIG_DIR="$HOME/.config/gh-ssh"
+
+# Use a non-modal editor for SSH sessions, including psmux and Codex Ctrl+G.
+export VISUAL=nano
+export EDITOR=nano

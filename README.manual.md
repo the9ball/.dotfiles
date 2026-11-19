@@ -160,6 +160,8 @@ aqua install --config "$HOME/.dotfiles/aqua.yaml"
 chezmoi --source "$HOME/.dotfiles" init
 ```
 
+`init`は、そのマシンが仕事用かどうか（`isWork`）を一度だけ質問し、回答を端末ローカルのchezmoi設定の`[data]`へ保存します。テンプレートでは`.isWork`として参照できます。回答を変えるときは`chezmoi init --prompt`を実行します。既存の端末でまだ回答していない場合は、`chezmoi init`を再実行してください。
+
 以後は`chezmoi diff`、`chezmoi apply`、`chezmoi verify --exclude=scripts`を引数なしで実行できます。
 
 Codexの通常版とPersonal版は、共通の`AGENTS.md`をそれぞれ`chezmoi/dot_codex/create_AGENTS.md`と`chezmoi/dot_codex-personal/create_AGENTS.md`から配置します。両方の生成元と配置先は同一内容です。Personal固有のタイトル設定と機密データ境界は、[`chezmoi/dot_codex-personal/AGENTS.local.md`](chezmoi/dot_codex-personal/AGENTS.local.md)から`~/.codex-personal/AGENTS.local.md`へ配置します。通常版の`~/.codex/AGENTS.local.md`は端末固有の未管理ファイルとして扱います。
@@ -681,7 +683,8 @@ chezmoi verify --exclude=scripts
 
 - `aqua.yaml`に定義されたCLIのインストール
 - uv管理のPython 3.13とPyYAML 6.0.3のインストール
-- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Zのインストール
+- Windowsでは初回の適用時だけ、標準のsudoをインライン（`normal`）モードで有効化（UACの承認が1回必要。拒否した場合は警告だけ出して続行し、自動では再実行されないので、あとから管理者のPowerShellで`sudo config --enable normal`を実行する。すでに有効な場合はモードを変更しない）
+- Windowsでは`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspのインストール
 - `prek`のGit hook設定
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開（Windowsではジャンクション）
 - Codexの各ホームに共通hookの登録設定を配置（WindowsではWSL専用ホームを除外）
@@ -804,9 +807,10 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 復元も失敗した場合は、保存したバックアップとエラーを使ってローカルで復旧してください。
 
 `DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
-既存接続を閉じずに別の SSH 接続で、Git Bash と SSH 専用の `ssh` セッションが起動することを確認します。
+先に[Session 1常用監視の導入手順](docs/windows-psmux-daily.md)でWindowsログオン時の起動を登録します。
+既存接続を閉じずに別の SSH 接続で、`dotfiles-session1` 名前空間の既存 `main` セッションへ自動attachされることを確認します。SSHからセッションを新規作成しません。
 `printf '%s\n' "$CODEX_HOME"` がホーム配下の `.codex-personal` を指すことを確認します。
-デタッチ後に `psmux -L dotfiles-ssh list-sessions` と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、接続を切断して再接続したときに同じ作業へ戻れることを確認します。
+デタッチ後は常用registryを指定した一覧と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、再接続したときに同じ作業へ戻れることを確認します。registryと操作コマンドは上記の常用監視手順を参照します。
 続けて、同じクライアントから以下を検証します。
 
 - `ssh host 'printf "command-ok\n"'` が psmux を起動せず終了する。PTY 付きの `ssh -t host 'printf "pty-command-ok\n"'` は互換性の確認用で、この Windows 構成では引数不足になります。後述の引用符付き回避方法も確認する。
@@ -891,8 +895,31 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 既に Git Bash を使える環境では、`PSMUX_SSH_AUTOATTACH=0 bash` も自動アタッチを回避します。
 クライアントの環境変数送信はサーバーが受け付けるとは限らないため、SSH 接続前の回避にそれだけを使いません。
 `psmux` が見つからなければ `where.exe psmux` / `Get-Command psmux` で aqua の `bin` とユーザー PATH を確認し、新しい接続で試します。
-SSH 用の状態は `psmux -L dotfiles-ssh list-sessions`、既存のローカル `main` は `psmux list-sessions` で確認します。
+常用SSHの状態は[常用registryの手順](docs/windows-psmux-daily.md)で確認します。旧構成は `psmux -L dotfiles-ssh list-sessions`、既存のローカル構成は `psmux list-sessions` で別に確認します。
 残したいセッションに対して `kill-session` は使いません。
+
+#### 手動でpsmuxへ入り直す
+
+以下は旧 `dotfiles-ssh / ssh` 向けの手動コマンドです。常用 `dotfiles-session1 / main` へ入り直すときは[常用監視手順](docs/windows-psmux-daily.md)のattachコマンドを使います。
+
+```bash
+bash ~/attach-psmux.sh
+```
+
+管理元は`chezmoi/executable_attach-psmux.sh`です。必要なときだけ、この一ファイルを適用します。
+
+```powershell
+chezmoi --source "$HOME/.dotfiles" diff "$HOME/attach-psmux.sh"
+chezmoi --source "$HOME/.dotfiles" apply --exclude=scripts "$HOME/attach-psmux.sh"
+```
+
+`dotfiles-ssh`名前空間の`ssh`セッションへアタッチし、存在しなければ作成します。既存クライアントの強制デタッチやセッションの終了は行いません。
+このコマンドは自動起動しません。`PSMUX_SSH_AUTOATTACH=0`や`.psmux-no-autoattach`の有無とは独立して、利用者が明示的に実行します。
+標準入力と標準出力の両方が端末であることと、`psmux`がPATHにあることを確認します。
+標準入力か標準出力が端末でない場合はアタッチしません。
+SSHでリモートコマンドを指定した場合も、標準入力と標準出力にPTYが割り当てられていれば実行できます。
+現在のシェルの設定を変えないため、sourceせず上のようにbashで起動してください。
+呼出し元のシェルは置換せず、デタッチ後またはpsmuxの終了後に戻ります。動作中のCodexプロセスを自動的に移動するものではありません。
 
 #### CODEX_HOME の環境変数送信を整理する
 
@@ -1027,6 +1054,12 @@ npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill 
 claude plugin validate link-targets/claude/mods/context
 claude plugin test link-targets/claude/mods/context
 `````
+
+### Claude Codeのターン終了通知
+
+`task-complete-notify`のClaude Code用スクリプト（`claude-stop-hook.ps1`）を`Stop`フックに登録すると、Claude Codeの応答が終わり、バックグラウンドの作業（バックグラウンドのサブエージェントやシェル、予約された再開）が残っていないときに、固定文`Claude turn finished`に送信時刻（例：`Claude turn finished 18:34:27`）を付けてntfy.shへ送ります。時刻を付けるのは、直前と同じ本文の通知をヘルスバンドなどが転送しないことがあるためです。サブエージェントの終了では送りません。送信先topicは、Claude Codeが起動元から引き継ぐ環境変数`NTFY_TOPIC`です。未設定または不正な値なら何も送りません。
+
+登録はCodexと同じく手動です。`chezmoi apply`では登録しません。[`references/claude-settings.json`](link-targets/agents/skills/task-complete-notify/references/claude-settings.json)の`Stop`エントリを、既存のフックや他のキーを残したまま`~/.claude/settings.json`へマージし、スクリプトのパスを実際の絶対パスに置き換えてから、新しいClaude Codeセッションを開始してください。手順の詳細は[`SKILL.md`](link-targets/agents/skills/task-complete-notify/SKILL.md)の「Claude Code」節を参照してください。
 
 ## Datadog MCPの設定
 
