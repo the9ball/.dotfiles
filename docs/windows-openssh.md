@@ -23,6 +23,8 @@
 C2はOS再起動後に作成した新規psmuxセッションのSSH切断後の保持と再接続を確認したもので、再起動前のセッションの復元を保証しません。
 既知の9.5系の制約や任意コマンドの引用符の問題は、[Git Bashとpsmuxの手順](../README.manual.md#windows-ssh-の既定シェルと-psmux)を参照し、今回の検証結果とは区別します。
 
+Android TermuxからWARPなしでCloudflare Access経由のSSH接続を行う手順は[Termux / cloudflared接続メモ](cloudflared-termux-ssh.md)を参照してください。
+
 ## 復旧と保守の参照
 
 サーバー復旧の正本は、対象ホストの保護された作業領域に保存した`RECOVERY.txt`です。
