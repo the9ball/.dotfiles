@@ -213,17 +213,8 @@ internal static class Program
     }
 #endif
 
-    /// <summary>Normalize documented Docker Hub aliases without merging distinct ports or schemes.</summary>
-    private static string Canonical(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Any(char.IsWhiteSpace) || value.Any(char.IsControl) || value.Contains('\\')) throw new InvalidDataException();
-        var uri = new Uri(value.Contains("://", StringComparison.Ordinal) ? value : "https://" + value);
-        if (uri.Scheme is not ("https" or "http") || uri.UserInfo != "" || uri.Query != "" || uri.Fragment != "" || uri.Host == "") throw new InvalidDataException();
-        bool hub = uri.Host is "docker.io" or "index.docker.io" or "registry-1.docker.io";
-        if (hub && uri.Scheme == "https" && uri.IsDefaultPort && uri.AbsolutePath is "/" or "/v1" or "/v1/") return "https://index.docker.io/v1/";
-        if (uri.AbsolutePath != "/") throw new InvalidDataException();
-        return uri.Scheme + "://" + uri.Authority.ToLowerInvariant();
-    }
+    /// <summary>Use the shared pure key policy for protocol requests and loaded vault records.</summary>
+    private static string Canonical(string value) => CredentialKey.Normalize(value);
 
     /// <summary>Validate loaded and incoming records while preserving supported UTF-8 token values.</summary>
     private static void ValidateCredential(Credential credential)

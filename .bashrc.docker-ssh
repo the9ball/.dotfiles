@@ -1,0 +1,132 @@
+# Initialize only explicitly managed native Windows SSH shells; the caller exits on any failure.
+case "${OSTYPE-}" in msys*|cygwin*) ;; *) return 0 ;; esac
+[[ -n ${SSH_CONNECTION-} && ${DOTFILES_DOCKER_SSH-} == required ]] || return 0
+
+# Refuse to overwrite another caller's functions or an incomplete transaction.
+if declare -F _dotfiles_docker_ssh_initialize >/dev/null; then return 1; fi
+if declare -F docker-ssh-restore-environment >/dev/null; then
+    [[ ${_dotfiles_docker_ssh_saved-} == 1 && ${_dotfiles_docker_ssh_restore_definition-} == "$(declare -f docker-ssh-restore-environment)" ]] || return 1
+else
+    [[ ! ${_dotfiles_docker_ssh_saved+x} && ! ${_dotfiles_docker_ssh_restore_definition+x} ]] || return 1
+fi
+
+# Restore every saved value and export flag independently; retain recovery data if any operation fails.
+docker-ssh-restore-environment() {
+    [[ ${_dotfiles_docker_ssh_saved-} == 1 ]] || return 1
+    local name declaration failed=0
+    for name in PATH DOCKER_CONFIG DOCKER_SSH_HELPER_ROOT DOCKER_SSH_DEPLOYMENT DOCKER_SSH_MANAGED PSMUX_SSH_AUTOATTACH MSYS2_ENV_CONV_EXCL; do
+        if [[ ${_dotfiles_docker_ssh_set[$name]} == x ]]; then
+            builtin printf -v "$name" '%s' "${_dotfiles_docker_ssh_values[$name]}" || failed=1
+            if [[ ${_dotfiles_docker_ssh_exported[$name]} == x ]]; then
+                builtin export "${name?}" || failed=1
+            else
+                builtin export -n "${name?}" || failed=1
+            fi
+            [[ ${!name+x} && ${!name} == "${_dotfiles_docker_ssh_values[$name]}" ]] || failed=1
+            declaration=$(declare -p "$name" 2>/dev/null) || failed=1
+            if [[ ${_dotfiles_docker_ssh_exported[$name]} == x ]]; then
+                [[ $declaration == 'declare -x '* ]] || failed=1
+            else
+                [[ $declaration == 'declare -- '* ]] || failed=1
+            fi
+        else
+            builtin unset "$name" || failed=1
+            [[ ! ${!name+x} ]] || failed=1
+        fi
+    done
+    builtin hash -r || failed=1
+    (( failed == 0 )) || return 1
+    builtin unset _dotfiles_docker_ssh_saved _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported _dotfiles_docker_ssh_restore_definition || return 1
+    builtin unset -f docker-ssh-restore-environment
+}
+
+# Install a fully prepared routing transaction, or restore its original environment and return failure.
+_dotfiles_docker_ssh_initialize() {
+    local hook powershell metadata binary name declaration selected expected_path failed=0 repeated=0
+    local -a fields names=(PATH DOCKER_CONFIG DOCKER_SSH_HELPER_ROOT DOCKER_SSH_DEPLOYMENT DOCKER_SSH_MANAGED PSMUX_SSH_AUTOATTACH MSYS2_ENV_CONV_EXCL)
+    local -A desired
+    for name in "${names[@]}"; do
+        if declaration=$(declare -p "$name" 2>/dev/null); then
+            # Only ordinary scalar strings can preserve literal routing values and export flags.
+            case "$declaration" in 'declare -- '*|'declare -x '*) ;; *) return 1 ;; esac
+        fi
+    done
+    if [[ ${_dotfiles_docker_ssh_saved-} == 1 ]]; then
+        [[ $(declare -p _dotfiles_docker_ssh_saved) == 'declare -- _dotfiles_docker_ssh_saved="1"' ]] || return 1
+        for name in _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported; do
+            declaration=$(declare -p "$name" 2>/dev/null) || return 1
+            [[ $declaration == 'declare -A '* ]] || return 1
+        done
+        [[ ${#_dotfiles_docker_ssh_values[@]} == 7 && ${#_dotfiles_docker_ssh_set[@]} == 7 && ${#_dotfiles_docker_ssh_exported[@]} == 7 ]] || return 1
+        for name in "${names[@]}"; do
+            [[ ${_dotfiles_docker_ssh_values[$name]+x} && ${_dotfiles_docker_ssh_set[$name]+x} && ${_dotfiles_docker_ssh_exported[$name]+x} ]] || return 1
+            [[ ${_dotfiles_docker_ssh_set[$name]} == '' || ${_dotfiles_docker_ssh_set[$name]} == x ]] || return 1
+            [[ ${_dotfiles_docker_ssh_exported[$name]} == '' || ${_dotfiles_docker_ssh_exported[$name]} == x ]] || return 1
+        done
+        repeated=1
+    else
+        for name in _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported _dotfiles_docker_ssh_restore_definition; do
+            ! declare -p "$name" &>/dev/null || return 1
+        done
+    fi
+    for name in docker docker.exe; do
+        if alias "$name" >/dev/null 2>&1 || declare -F "$name" >/dev/null; then return 1; fi
+    done
+    hook="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/docker-ssh/chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1" || return 1
+    powershell=$(command -v pwsh.exe) || return 1
+    [[ -f $hook && ! -L $hook && -x $powershell ]] || return 1
+    metadata=$("$powershell" -NoProfile -File "$(cygpath -am -- "$hook")") || return 1
+    mapfile -t fields <<< "$metadata" || return 1
+    [[ ${#fields[@]} == 6 && $metadata != *$'\r'* ]] || return 1
+    binary=$(cygpath -u -- "${fields[2]}") || return 1
+    [[ -f $binary/docker.exe && ! -L $binary/docker.exe ]] || return 1
+    desired[DOCKER_SSH_DEPLOYMENT]=${fields[0]}
+    desired[DOCKER_CONFIG]=${fields[3]}
+    desired[DOCKER_SSH_HELPER_ROOT]=${fields[4]}
+    desired[DOCKER_SSH_MANAGED]=1
+    desired[PSMUX_SSH_AUTOATTACH]=0
+    if (( repeated )); then
+        [[ $PATH == "$binary:"* ]] || return 1
+        desired[PATH]=$PATH
+        desired[MSYS2_ENV_CONV_EXCL]=$MSYS2_ENV_CONV_EXCL
+    else
+        desired[PATH]="$binary:$PATH"
+        desired[MSYS2_ENV_CONV_EXCL]="${MSYS2_ENV_CONV_EXCL:+$MSYS2_ENV_CONV_EXCL;}DOCKER_CONFIG;DOCKER_SSH_HELPER_ROOT;DOCKER_SSH_DEPLOYMENT"
+        builtin declare -gA _dotfiles_docker_ssh_values _dotfiles_docker_ssh_set _dotfiles_docker_ssh_exported || return 1
+        for name in "${names[@]}"; do
+            _dotfiles_docker_ssh_set[$name]=${!name+x} || return 1
+            _dotfiles_docker_ssh_values[$name]=${!name-} || return 1
+            declaration=$(declare -p "$name" 2>/dev/null) || declaration=
+            case "$declaration" in 'declare -x '*) _dotfiles_docker_ssh_exported[$name]=x ;; *) _dotfiles_docker_ssh_exported[$name]= ;; esac
+        done
+        _dotfiles_docker_ssh_restore_definition=$(declare -f docker-ssh-restore-environment) || return 1
+        _dotfiles_docker_ssh_saved=1 || return 1
+    fi
+    for name in "${names[@]}"; do
+        if (( ! repeated )); then
+            builtin printf -v "$name" '%s' "${desired[$name]}" || { failed=1; break; }
+            builtin export "${name?}" || { failed=1; break; }
+        fi
+        declaration=$(declare -p "$name" 2>/dev/null) || { failed=1; break; }
+        [[ ${!name+x} && ${!name} == "${desired[$name]}" && $declaration == 'declare -x '* ]] || { failed=1; break; }
+    done
+    builtin hash -r || failed=1
+    expected_path=${desired[PATH]}
+    [[ $PATH == "$expected_path" ]] || failed=1
+    for name in docker docker.exe; do
+        [[ $(builtin type -t "$name") == file ]] || failed=1
+        selected=$(command -v "$name") || failed=1
+        [[ -n $selected && $selected -ef $binary/docker.exe ]] || failed=1
+    done
+    if (( failed )); then
+        docker-ssh-restore-environment || printf '%s\n' 'Managed SSH Docker rollback incomplete; recovery state retained.' >&2
+        return 1
+    fi
+}
+
+if ! _dotfiles_docker_ssh_initialize; then
+    builtin unset -f _dotfiles_docker_ssh_initialize
+    if [[ ${_dotfiles_docker_ssh_saved-} != 1 ]]; then builtin unset -f docker-ssh-restore-environment; fi
+    return 1
+fi
+builtin unset -f _dotfiles_docker_ssh_initialize

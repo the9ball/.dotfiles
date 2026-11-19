@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Sends a hidden interactive secret through stdin to an explicitly selected TPM helper; never prints get payloads. #>
 param(
     [Parameter(Mandatory)][string]$DeploymentRoot,
