@@ -284,11 +284,13 @@ if (-not $Grandchild) { & $env:ISSUE185_PWSH -NoProfile -File $PSCommandPath -Gr
     fs.writeFileSync(selector, '{"Version":0}');
     const invalid = startup('printf MUST_NOT_RUN');
     check('invalid-selector-fails-closed', invalid.status !== 0 && !invalid.stdout.includes('MUST_NOT_RUN'));
+    check('invalid-selector-diagnostic', invalid.stderr.includes('[DSSH_SELECTOR_INVALID]'));
     fs.writeFileSync(selector, JSON.stringify({ Version: 1, DeploymentRoot: deployment }));
     const publicEntry = path.join(publicRoot, 'Enter-DockerSshEnvironment.ps1');
     fs.appendFileSync(publicEntry, '\n# divergent public bootstrap\n');
     const mismatch = startup('printf MUST_NOT_RUN');
     check('public-canonical-mismatch-fails-closed', mismatch.status !== 0 && !mismatch.stdout.includes('MUST_NOT_RUN'));
+    check('public-canonical-mismatch-diagnostic', mismatch.stderr.includes('[DSSH_PUBLIC_COPY_MISMATCH]'));
     fs.copyFileSync(path.join(canonical, 'Enter-DockerSshEnvironment.ps1'), publicEntry);
     // A checkout that loses the gate must fail this suite's positive contract, even if its shell exits successfully.
     const startupFile = path.join(checkout, '.bashrc');

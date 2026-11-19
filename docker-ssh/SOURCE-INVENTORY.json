@@ -145,7 +145,7 @@
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1",
-      "SHA256": "F9C799BC8E7AD80E2629CC081574920C4B8B941BB3CC8E11DC2DE661AC605898",
+      "SHA256": "81C59E69BA10C94A56C4DC36650F474D978B008F0FD043697531ADE9D0875D82",
       "Adaptation": "Managed bootstrap restored from Issue #185 commit 115cb9c8; no helper deployment changes; require PowerShell 7.5 or newer before execution",
       "OriginalSHA256": "533337B40CAB157AA0993F45F743472FE506505AC1DB5EE7575529C57AAA94D1"
     },

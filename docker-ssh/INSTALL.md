@@ -43,6 +43,8 @@ chezmoi verify --exclude=scripts "$HOME/AppData/Local/Dotfiles/DockerSsh"
 `````
 
 この段階ではHelperバイナリ・鍵・ストアを作らない。sourceDirはリポジトリルート、.chezmoirootはchezmoiという既存構成を維持する。
+管理SSHはcheckout内の正本と公開bootstrapの同一性を検証するため、checkout更新後は新規SSH接続の前に公開コピーの同期が必要になる。
+公開2ファイルだけの差分確認、バックアップ、同期、復元は [PUBLIC-BOOTSTRAP-SYNC.md](PUBLIC-BOOTSTRAP-SYNC.md) を参照する。
 通常chezmoiファイルと、以下の独立したInstallationディレクトリを分離する。
 
 `````bash
