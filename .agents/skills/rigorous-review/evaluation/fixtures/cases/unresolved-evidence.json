@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "case_id": "unresolved-evidence",
+  "scenario": "needs_evidence_blocks_gate",
+  "expected": {
+    "baseline": { "gate_status": "BLOCKED", "evidence_status": "NEEDS_EVIDENCE", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "BLOCKED", "evidence_status": "NEEDS_EVIDENCE", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [
+    { "proposition_id": "high-evidence-001", "severity": "high", "metrics": ["discovery", "gate", "evidence", "coverage"] }
+  ],
+  "packet_path": "../packets/unresolved-evidence.json",
+  "runs": {
+    "baseline": { "result_path": "../results/unresolved-evidence.baseline.json", "receipt_path": "../receipts/unresolved-evidence.baseline.json" },
+    "candidate": { "result_path": "../results/unresolved-evidence.candidate.json", "receipt_path": "../receipts/unresolved-evidence.candidate.json" }
+  }
+}

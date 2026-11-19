@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "case_id": "false-positive-rejection",
+  "scenario": "false_positive_rejection_observation",
+  "expected": {
+    "baseline": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" },
+    "candidate": { "gate_status": "PASS", "evidence_status": "SUFFICIENT", "coverage_status": "RELIABLE", "deterministic_checks": "PASS" }
+  },
+  "propositions": [
+    { "proposition_id": "medium-fp-001", "severity": "medium", "metrics": ["rejection"] }
+  ],
+  "packet_path": "../packets/false-positive-rejection.json",
+  "runs": {
+    "baseline": { "result_path": "../results/false-positive-rejection.baseline.json", "receipt_path": "../receipts/false-positive-rejection.baseline.json" },
+    "candidate": { "result_path": "../results/false-positive-rejection.candidate.json", "receipt_path": "../receipts/false-positive-rejection.candidate.json" }
+  }
+}

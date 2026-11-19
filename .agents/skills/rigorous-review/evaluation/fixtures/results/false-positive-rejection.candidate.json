@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "run_id": "run-false-positive-rejection-candidate",
+  "side": "candidate",
+  "case_id": "false-positive-rejection",
+  "fixture_manifest_sha256": "9dfff6226aa01fe81371e8a5d53b99a8ed95f4a67571ae47dcd435c3dec7a4dd",
+  "target_manifest_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "role_context": {
+    "reviewer_context_id": "ctx-fp-candidate-reviewer",
+    "respondent_context_id": "ctx-fp-candidate-respondent",
+    "contexts_distinct": true,
+    "joint_record_version": "joint-fp-v1",
+    "reviewer_approved": true,
+    "respondent_approved": true
+  },
+  "model_identity": { "reviewer": "candidate-reviewer-fixture", "respondent": "candidate-respondent-fixture" },
+  "routing_status": "DECLARED_ONLY",
+  "deterministic_checks": "PASS",
+  "evidence_status": "SUFFICIENT",
+  "coverage_status": "RELIABLE",
+  "gate_status": "PASS",
+  "proceed_status": "NOT_AUTHORIZED",
+  "escalation_step": "none",
+  "escalation_trace": ["none"],
+  "finding_count": 1,
+  "propositions": [
+    { "proposition_id": "medium-fp-001", "severity": "medium", "discovery": "NOT_APPLICABLE", "rejection": "RETAINED" }
+  ],
+  "packet_sha256": "b59635ebcb9aab83aafe75c9a029ca9a244140e08d8ba05c31c6332bdbfdf653",
+  "dispatch_receipt_sha256": "abf4f65b5a5d5b68c0b3343b7cc1484f805f7416d2e953c6d91e052637db9ee0",
+  "input_tokens": 82,
+  "output_tokens": 34,
+  "dispatch_count": 0,
+  "runtime_dispatch_attempted": false,
+  "runtime_dispatch_enforcement_claimed": false
+}

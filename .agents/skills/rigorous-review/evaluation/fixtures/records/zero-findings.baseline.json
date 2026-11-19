@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "record_id": "joint-zero-findings-baseline",
+  "case_id": "zero-findings",
+  "side": "baseline",
+  "run_id": "run-zero-findings-baseline",
+  "fixture_manifest_sha256": "9dfff6226aa01fe81371e8a5d53b99a8ed95f4a67571ae47dcd435c3dec7a4dd",
+  "target_manifest_hash": "d0d4ee1debb7246f4a946eaa0d1af811d1dc9698c022fb2289e645d02fa49554",
+  "epoch_hash": "42a233a370e60568d669dc7c3543b9232914414d77650cf5dc580b1c9afc3726",
+  "version": "joint-zero-v1",
+  "finding_count": 0,
+  "findings": [],
+  "evidence_status": "SUFFICIENT",
+  "coverage_status": "RELIABLE",
+  "gate_status": "PASS",
+  "reviewer": {
+    "context_id": "ctx-zero-baseline-reviewer",
+    "position": "NO_FINDINGS",
+    "approved": true
+  },
+  "respondent": {
+    "context_id": "ctx-zero-baseline-respondent",
+    "position": "NO_FINDINGS",
+    "approved": true
+  }
+}
