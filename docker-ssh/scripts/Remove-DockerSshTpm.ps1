@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Disables a dedicated installation or explicitly removes its matched key and encrypted store; default is read-only. #>
 [CmdletBinding()]
 param([Parameter(Mandatory)][string] $DestinationRoot,[Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{32}$')][string] $InstallationId,

@@ -1,3 +1,4 @@
+#requires -Version 7.5
 <# .SYNOPSIS Checks or explicitly initializes a private, separate TPM Docker installation; partial state is preserved, never silently repaired. #>
 [CmdletBinding()]
 param(
@@ -14,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 if ($InstallationId -cnotmatch '\A[a-f0-9]{32}\z') { throw 'InstallationId must be exactly 32 lowercase hexadecimal characters.' }
 . (Join-Path $PSScriptRoot 'TpmSetupRuntime.ps1')
 $Mode = $Mode.ToLowerInvariant()
-if (-not $IsWindows -or $PSVersionTable.PSVersion -lt [version]'7.4') { throw 'Windows and PowerShell 7.4+ required.' }
+if (-not $IsWindows -or $PSVersionTable.PSVersion -lt [version]'7.5') { throw 'Windows and PowerShell 7.5 or newer are required.' }
 if ($EngineEndpoint -notmatch '^npipe:/{4}\./pipe/[A-Za-z0-9_.-]+$' -or $env:DOCKER_TLS_VERIFY -or $env:DOCKER_CERT_PATH) { throw 'Explicit named-pipe endpoint without inherited TLS required.' }
 if (-not [IO.Path]::IsPathFullyQualified($DestinationRoot) -or -not [IO.Path]::IsPathFullyQualified($PackageRoot)) { throw 'Absolute paths required.' }
 $destination = [IO.Path]::TrimEndingDirectorySeparator([IO.Path]::GetFullPath($DestinationRoot))

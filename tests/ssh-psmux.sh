@@ -40,6 +40,7 @@ run_case() (
 	local OSTYPE=msys SSH_CONNECTION='127.0.0.1 12345 127.0.0.1 22'
 	local SHLVL=1
 	local TMUX='' PSMUX_SESSION='' PSMUX_SSH_AUTOATTACH='' BASH_EXECUTION_STRING=''
+	local DOCKER_SSH_MANAGED='' DOTFILES_DOCKER_SSH=''
 	local __dotfiles_psmux_autoattach_attempted=
 	local CODEX_HOME=existing
 	local GH_CONFIG_DIR=existing-gh
@@ -81,6 +82,16 @@ OVERLAY
 			# The sourced overlay reads this shell-local switch.
 			# shellcheck disable=SC2034
 			PSMUX_SSH_AUTOATTACH=0 ;;
+		managed-bypass|managed-bypass-repeat|managed-bypass-file|managed-nested|managed-command|managed-pane)
+			DOCKER_SSH_MANAGED=1; DOTFILES_DOCKER_SSH=required; PSMUX_SSH_AUTOATTACH=0
+			case "$scenario" in
+				managed-bypass-file) touch "$HOME/.psmux-no-autoattach" ;;
+				managed-nested) SHLVL=2 ;;
+				managed-command) BASH_EXECUTION_STRING='printf command' ;;
+				managed-pane) PSMUX_SESSION=ssh ;;
+			esac ;;
+		managed-without-optin) DOCKER_SSH_MANAGED=1; PSMUX_SSH_AUTOATTACH=0 ;;
+		optin-without-managed) DOTFILES_DOCKER_SSH=required; PSMUX_SSH_AUTOATTACH=0 ;;
 		bypass-file) touch "$HOME/.psmux-no-autoattach" ;;
 		command) BASH_EXECUTION_STRING='printf command' ;;
 		nested) SHLVL=2 ;;
@@ -91,6 +102,8 @@ OVERLAY
 		failure) export PSMUX_TEST_EXIT=42 ;;
 		missing-localappdata) LOCALAPPDATA= ;;
 	esac
+	# Match the exported routing switches consumed by the overlay and its child shells.
+	export DOCKER_SSH_MANAGED DOTFILES_DOCKER_SSH PSMUX_SSH_AUTOATTACH
 	if [[ $scenario == psmux-command ]]; then BASH_EXECUTION_STRING='printf command'; fi
 	case "$scenario" in
 		input-pipe|psmux-input-pipe)
@@ -110,7 +123,7 @@ OVERLAY
 	esac
 	# Re-source the runtime-selected overlay to test repeat attachment.
 	# shellcheck disable=SC1090
-	if [[ $scenario == repeat ]]; then source "$hook_path"; fi
+	if [[ $scenario == repeat || $scenario == managed-bypass-repeat ]]; then source "$hook_path"; fi
 	if [[ $scenario == psmux-reload ]]; then
 		CODEX_HOME=existing
 		GH_CONFIG_DIR=existing-gh
@@ -159,6 +172,14 @@ OVERLAY
 	printf 'PASS %s\n' "$scenario"
 )
 
+run_case managed-bypass 0 1
+run_case managed-bypass-repeat 0 2
+run_case managed-bypass-file 0 1
+run_case managed-nested 0 0
+run_case managed-command 0 0
+run_case managed-pane 0 1
+run_case managed-without-optin 0 1
+run_case optin-without-managed 0 1
 run_case attach 1 1
 run_case repeat 1 2
 run_case psmux-reload 0 2

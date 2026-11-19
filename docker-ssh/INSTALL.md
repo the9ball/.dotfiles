@@ -16,7 +16,8 @@ Docker DesktopとOpenSSHの初期導入・SSH公開鍵登録は端末管理者�
 
 ## 前提検査とビルド
 
-PowerShell 7.4以上、.NET 10 SDK/runtime、Git for Windows、Docker CLIが必要。
+PowerShell 7.5以上、.NET 10 SDK/runtime、Git for Windows、Docker CLIが必要。
+環境変数の未設定と空文字を区別して復元するため、旧0.4系deploymentを使用する場合もPowerShell 7.5以上を必要とする。
 検証harnessにはNode.js 22以上とchezmoiが必要。依存を自動インストールしない。
 `global.json`は安定版10.0.100以上・latestFeature、preview不可。配布物はframework-dependent 0.5.0で.NET 10 runtimeが必要。
 管理ツールを含め、この移植のプロジェクトに外部NuGet package参照はない。
@@ -42,6 +43,8 @@ chezmoi verify --exclude=scripts "$HOME/AppData/Local/Dotfiles/DockerSsh"
 `````
 
 この段階ではHelperバイナリ・鍵・ストアを作らない。sourceDirはリポジトリルート、.chezmoirootはchezmoiという既存構成を維持する。
+管理SSHはcheckout内の正本と公開bootstrapの同一性を検証するため、checkout更新後は新規SSH接続の前に公開コピーの同期が必要になる。
+公開2ファイルだけの差分確認、バックアップ、同期、復元は [PUBLIC-BOOTSTRAP-SYNC.md](PUBLIC-BOOTSTRAP-SYNC.md) を参照する。
 通常chezmoiファイルと、以下の独立したInstallationディレクトリを分離する。
 
 `````bash

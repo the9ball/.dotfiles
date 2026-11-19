@@ -13,8 +13,13 @@ SSH自動選択・OAuth対応は [ISSUE-185.md](ISSUE-185.md) を参照する。
 
 ## 変更なしの検証
 
-信頼したチェックアウト、Windows 11 x64、TPM/PCP、PowerShell 7.4以上、.NET 10 SDK/runtime、Git Bash、Docker Desktop Linux Engine、OpenSSH serverを用意する。
+信頼したチェックアウト、Windows 11 x64、TPM/PCP、PowerShell 7.5以上、.NET 10 SDK/runtime、Git Bash、Docker Desktop Linux Engine、OpenSSH serverを用意する。
 Node 22以上とchezmoiは自動テスト用。既存configの有無とhashを秘密非表示で記録する。
+
+最低対応版とlauncherの環境復元だけを確認する回帰テストは、リポジトリルートで`pwsh.exe -NoProfile -File tests/docker-ssh-runtime.ps1`を実行する。
+実行したPowerShellのバージョンを結果に表示する。
+このテストは合成readerを使用し、ACL変更、Docker、TPM、SSHの操作は行わない。
+旧版を表す値でのガード検査は、旧版PowerShell自体での統合試験とは区別する。
 
 リポジトリルートで次を実行する。鍵作成、実registry、Engineの起動/停止は行わない。
 

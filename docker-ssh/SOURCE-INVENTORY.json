@@ -13,49 +13,57 @@
     },
     {
       "Path": "scripts/Build-TpmDockerPackage.ps1",
-      "SHA256": "06D566CADD94E834895F5C6B3B0CED40343BEFA0E9E29C5D908E2E478455D6A5",
+      "SHA256": "3603B1D8F9C2517E5E67F2A879F67BD101522E3ED9EF0E940875CE6B462ECE93",
       "OriginalSHA256": "5D4B9A3DBF2500316F071CACCD26E2BD56E6E0B738FF0C97D9BF93DCA62AD648",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "scripts/Initialize-DockerSshTpm.ps1",
-      "SHA256": "C9A2E7B881DE6281C6F5166D09EACB4A80867114A2A67A6822058F0482CA4295",
+      "SHA256": "6F6456CDFAE637C97F6980E94515E1DB7CF2590D3DFABE6B526FA19A2CD6DFD7",
       "OriginalSHA256": "D3935043FA4CA3C58A09C28A2FA982166E54BF090B2C45FC77482DC610E32982",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "scripts/Remove-DockerSshTpm.ps1",
-      "SHA256": "F7F19BE4DA6AFD235550C5BC1B29B0822F9CE83EBC2FD9FFC27962C60211714E",
+      "SHA256": "D64E85877BC6F2F0E87CD1090FCE416C8B259332E95CD00EB07585F6E660F3AF",
       "OriginalSHA256": "9AFAA6169772113CE9134BD4346C0B24FA8AC61BB7DEC1F13183ECA7B85E28DF",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "scripts/TpmSetupRuntime.ps1",
-      "SHA256": "19B292166405F27936BC00BE5ECBCC7CB83D8AD98CDD27E8767971D897148EDD"
+      "SHA256": "5FA400DB394F7A32F32672295FAA7306D88DF2D30C34DF757FC2FB6E3B2730B8",
+      "OriginalSHA256": "19B292166405F27936BC00BE5ECBCC7CB83D8AD98CDD27E8767971D897148EDD",
+      "Adaptation": "Require PowerShell 7.5 or newer before execution; prior source hash retained"
     },
     {
       "Path": "scripts/Install-DockerSshTpmLab.ps1",
-      "SHA256": "16A9996C42288A49DF0AC32D6D5305E7279DA523D61E638785635B864D64105A",
+      "SHA256": "23EE64A363E7489C4A9B8617DA7927EFF8A189B7F10D6322D4EF5346378A5A0F",
       "OriginalSHA256": "CAA96CAB28F19B536C77F23DEBA752BBA08ED1E48FA9D37CD8723CA20F5E39F8",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "scripts/Remove-DockerSshTpmLab.ps1",
-      "SHA256": "9292CA1EF96DCFC4043A1A5D84FED0638B7B1D27C6608C6439681C0BFD76B9C3",
+      "SHA256": "F6F22D273EECC69461374BAC371AB7F24A6D26DB76FDAA350D9D2EC817381D8A",
       "OriginalSHA256": "4007C308488C4725D7E3C804B6A9D1DCB6DD7EA002BC57B9C7D59C975D598230",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "scripts/Test-Prerequisites.ps1",
-      "SHA256": "0F06604CA463E4816FCFD04DFF710BEA5C6F7A947862EDB66BA687E2169C10C7"
+      "SHA256": "0FFD27278DCCA610EBE2476074AB23902766B633676076BAB5296941E5B4D4F5",
+      "OriginalSHA256": "0F06604CA463E4816FCFD04DFF710BEA5C6F7A947862EDB66BA687E2169C10C7",
+      "Adaptation": "Require PowerShell 7.5 or newer before execution; prior source hash retained"
     },
     {
       "Path": "tests/ColdBootEnvironment.ps1",
-      "SHA256": "F103F78A17E73A08E753FD5F2D75ABC0A24A183EF272832DD0ADFD42F719D7C4"
+      "SHA256": "76389F9508B33B5FB76E5F9AC25F7D295E0BCA479E7D1D3C328111F8C4E8A227",
+      "OriginalSHA256": "F103F78A17E73A08E753FD5F2D75ABC0A24A183EF272832DD0ADFD42F719D7C4",
+      "Adaptation": "Require PowerShell 7.5 or newer before execution; prior source hash retained"
     },
     {
       "Path": "tests/TpmSessionEvidence.ps1",
-      "SHA256": "EEC513D6DA51FC3D2BBD1A29212FEC0B2851E91752357837BCFA03C0676FF551"
+      "SHA256": "B10BA116E9B07396786DBF3D27F7D0E71A54E56185EB7BC042DF69306F0218EC",
+      "OriginalSHA256": "EEC513D6DA51FC3D2BBD1A29212FEC0B2851E91752357837BCFA03C0676FF551",
+      "Adaptation": "Require PowerShell 7.5 or newer before execution; prior source hash retained"
     },
     {
       "Path": "tests/Verify-TpmSetup.mjs",
@@ -101,27 +109,27 @@
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/docker-ssh.bash",
-      "SHA256": "285257B831410689F0EAA07C923B37C6D8E3E0B15ABD292D0FDAC5BF113456AC",
+      "SHA256": "E0E2102187BD5DA92F039774EC6C4F2C475224104153EC17A4BE700B6A6573FF",
       "OriginalSHA256": "DD3642B74FB0E4CFE8FF69E8653CB757797E7C8AFF45A1C40852C3AB969DF2B0",
-      "Adaptation": "PR #143 Opus review corrections; original imported hash retained"
+      "Adaptation": "PR #143 Opus review corrections; original imported hash retained; e829cd1 comment and ShellCheck annotations reflected in current hash; epoch2 legacy 0.4.0 child-routing normalization before strict validation; epoch3 activation uses the same child-only validated normalization; epoch4 throwing validation precedes metadata and activation; reject attributed selection variables before activation"
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Get-TpmDockerEnvironment.ps1",
-      "SHA256": "850850635357BB5CB64CD30F053DCD094CF4C12C1B871ADE0EDDD12039760319",
+      "SHA256": "33376BD124AAE473A5CE1508397D27C125733CFA18C356F259ADCC5233D85BF7",
       "OriginalSHA256": "143E3B51D56BE2A0F38177500CCFF08D7AE1BAB49351D54E3465B1FA849F3EC2",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Invoke-DockerSshTpm.ps1",
-      "SHA256": "AD4F15F7E97B324DE55D15F9AB5A6E56D1120ED315341F68228A3E91320B284B",
+      "SHA256": "41C99462B7D3FB325425D4F021F3D2083B8B1174FFC742DA92D421A6BF248702",
       "OriginalSHA256": "625D1823665300F7909B8049509811841DC07B6DC6E62881E47E1F7EB0AA7263",
-      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained"
+      "Adaptation": "Issue #185 OAuth key policy and managed SSH routing; original source hash retained; epoch2 legacy 0.4.0 child-routing normalization before strict validation; epoch4 throwing validation precedes metadata and activation; epoch5 exact process-state restoration with independent rollback attempts; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Manage-TpmCredential.ps1",
-      "SHA256": "9588376BFE503C0E092438FCC111A97BE4F4683ED53F7F365CD9C2475CD6646F",
+      "SHA256": "F9F723F5073662089E247F66FC5149AB23EB18BB046218712BE8C96CACD6D3F3",
       "OriginalSHA256": "DF043A22F58B21CC2CE7F7FA8CAC9276FA2DB90091485939CB8623FF3A64539D",
-      "Adaptation": "PR #143 Opus review corrections; original imported hash retained"
+      "Adaptation": "PR #143 Opus review corrections; original imported hash retained; require PowerShell 7.5 or newer before execution"
     },
     {
       "Path": "src/DockerCredentialTpm/CredentialKey.cs",
@@ -137,7 +145,9 @@
     },
     {
       "Path": "chezmoi/AppData/Local/Dotfiles/DockerSsh/Enter-DockerSshEnvironment.ps1",
-      "SHA256": "533337B40CAB157AA0993F45F743472FE506505AC1DB5EE7575529C57AAA94D1"
+      "SHA256": "81C59E69BA10C94A56C4DC36650F474D978B008F0FD043697531ADE9D0875D82",
+      "Adaptation": "Managed bootstrap restored from Issue #185 commit 115cb9c8; no helper deployment changes; require PowerShell 7.5 or newer before execution",
+      "OriginalSHA256": "533337B40CAB157AA0993F45F743472FE506505AC1DB5EE7575529C57AAA94D1"
     },
     {
       "Path": "tests/Verify-TpmLaunchers.mjs",
