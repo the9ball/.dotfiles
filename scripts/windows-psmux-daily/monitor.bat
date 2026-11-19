@@ -30,7 +30,7 @@ if not defined DAILY_PSMUX_EXECUTABLE exit /b 66
 rem A failed create never gives this monitor ownership of an existing session.
 :loop
 if exist "%DAILY_STOP_FILE%" exit /b 0
-if exist "%DAILY_RUNTIME_DIRECTORY%\recreate.request" exit /b 81
+if exist "%DAILY_RUNTIME_DIRECTORY%\recreate.request" goto refuse_recreation
 set "DOTFILES_PSMUX_OWNER="
 for /f "delims=" %%G in ('%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe -NoLogo -NoProfile -NonInteractive -Command "[guid]::NewGuid().ToString('N')"') do set "DOTFILES_PSMUX_OWNER=%%G"
 if not defined DOTFILES_PSMUX_OWNER exit /b 80
@@ -48,3 +48,8 @@ set "DAILY_ATTACH_EXIT=%errorlevel%"
 if exist "%DAILY_STOP_FILE%" exit /b 0
 if not "%DAILY_ATTACH_EXIT%"=="0" exit /b %DAILY_ATTACH_EXIT%
 goto loop
+
+:refuse_recreation
+rem Date text can contain parentheses; keep its expansion outside a command block.
+>>"%DAILY_LOG%" echo [%date% %time%] startup-refused recreate.request-present exit=81; inspect in-flight recreation before recovery
+exit /b 81

@@ -30,6 +30,9 @@ $runtimeDirectory = Join-Path $env:LOCALAPPDATA 'Dotfiles\PsmuxDaily'
 if ($StartNow -and (Test-Path -LiteralPath (Join-Path $runtimeDirectory 'stop.request'))) {
     throw 'Daily stop.request remains. Inspect the daily monitor before removing it and restarting.'
 }
+if ($StartNow -and (Test-Path -LiteralPath (Join-Path $runtimeDirectory 'recreate.request'))) {
+    throw 'Daily recreate.request remains; startup refused. Inspect in-flight recreation and the recovery procedure in docs/windows-psmux-daily.md. Do not automatically delete the request.'
+}
 $shortcut.TargetPath = $wscriptPath
 $shortcut.Arguments = $arguments
 $shortcut.WindowStyle = 7

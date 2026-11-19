@@ -32,6 +32,9 @@ PoCのTEMP registryや停止ファイルを常用側へコピーしない。
 ユーザーStartupへ、`wscript.exe //B //Nologo <launch-hidden.vbs>` を実行するショートカットを登録し、同じコマンドで初回起動する。
 既存の同名ショートカットが別のターゲットを指している場合は上書きしない。
 VBSはBATを非表示のconsoleで起動する。監視はSession IDが1以外なら作成前に終了する。
+`-StartNow`は`stop.request`または`recreate.request`があれば、ショートカット保存と起動の前に理由を通知して拒否する。
+直接起動したmonitorも`recreate.request`があれば、`main.monitor.log`に`startup-refused recreate.request-present exit=81`を記録して新規作成を拒否する。
+要求が残っていることは処理の停滞や残留の確定診断ではない。
 同名session作成失敗、所有cookie不一致、識別不明、attachエラーは監視終了とし、新しい排他・引き継ぎ・無制限リトライは設けない。
 
 ログの `new-session-exit=0`、`anchor-identity=matched`、serverとattachの `windows-session-id=1` を確認する。
@@ -102,6 +105,25 @@ sessionを作り直すと作業中のpaneも終了するため、常用 `main` �
 ログの `coordinated-recreation-ready` と新しいSession 1 server/attachで完了を確認する。
 
 `pwsh -NoLogo -NoProfile -NonInteractive -File tests/windows-psmux-recreation-request.ps1` は、専用TEMPとowner queryのプロセスfacadeで公開前後の結果を検査する。ログ失敗はログ先にディレクトリを置いて再現し、ACLを変更しない。実psmux、既存registry、監視やSSHへ接続しない。
+
+## 残留が疑われる再作成要求の診断と復旧
+
+`recreate.request`は、協調再作成が処理中の場合も存在する。
+`main`不在、PID不在、古い更新時刻、cookie不一致だけを根拠に要求を削除しない。
+`stop.request`と両方ある場合も、停止を優先して保持する。
+この節は手動復旧を判断するための手順であり、自動削除や無人復旧は提供しない。
+
+1. 新しい起動と再作成要求を提出せず、`main.monitor.log`、`main.attach.log`、`recreation.requests.log`の順序と終了記録を確認する。`coordinated-recreation-ready`より前なら、所有照合、kill CLI、旧server終了待ち、要求削除の途中である可能性を残す。処理中と判明したら要求に触れず、その処理の結果を確認する。
+2. 復旧へ移ると判断した場合は、作業を保存して他のSSHクライアントと利用者に確認し、停止要求を維持する。常用registryを明示した一覧手順は[#290の対応PR](https://github.com/the9ball/.dotfiles/pull/301)を参照する。別registryの空一覧やclient不在だけで安全と判定しない。
+3. 要求提出処理、launcher、monitor、helper、進行中の所有control CLIがすべて終了したことを、実行コマンド、runtime、起動時刻、ログの対応で確認する。要求提出処理は停止確認の直後に公開する可能性があるため、停止ファイルの存在だけでは静止を証明できない。新規起動、ログオンによるStartup発火、別利用者による要求提出が入らない保守時間を確保できなければ、要求は保持して停止する。
+4. 静止状態を維持したまま、要求の内容とSHA-256、更新時刻、registryのPIDと起動時刻anchor、ログの世代cookieの対応を記録する。ファイルとログは非公開の保全先に保存する。PID再利用、別世代、壊れた内容、ディレクトリやリンクなど通常ファイルでない状態は自動補正しない。現在のserver世代や要求の対応が確定しなければ、要求を保持して調査へ戻る。
+5. 処理主体が終了し、これ以上提出や起動がないこと、および保全した要求と現在の要求が同じであることを再確認する。この条件が揃って残留と判断した要求だけを、手動で保全先へ退避する。停止要求と残るserverは保持する。退避は要求の取消しや旧killの取消しではなく、既に失われたpaneを復元するものでもない。確認中に内容、世代、プロセス状態が変わったら退避せず停止する。
+6. 監視を再開するかはserverと作業の状態を確認して別に判断する。既存`main`が残っていればそのまま保持できるが、新規monitorの`new-session`は失敗する。再作成が必要な場合だけ保存と他client確認をやり直し、下記の再起動手順を使う。`stop.request`を最後まで保持し、要求ファイルがなくなっただけで起動可能と扱わない。
+
+この手順は、すべての起動処理と要求提出処理を自動で排他するものではない。
+静止の確認ができない場合に要求を残すことが、安全側の復旧中止条件となる。
+`pwsh -NoLogo -NoProfile -NonInteractive -File tests/windows-psmux-startup-guards.ps1`は、専用TEMPで本体の起動前guardを抽出し、拒否理由と要求保持を検査する。
+実server、Startup、要求ファイルの実復旧は検証しない。
 
 ## 停止・再起動・撤去
 
