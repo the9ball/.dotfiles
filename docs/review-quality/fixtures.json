@@ -1,0 +1,408 @@
+{
+  "schema_version": 1,
+  "fixtures": [
+    {
+      "id": "F1",
+      "kind": "material-only",
+      "requirements": "Extend notice dispatch to batch transport calls and keep undelivered work queued after temporary transport unavailability (ConnectionError). Preserve the scheduler command interface. Queue entries smaller than one batch must also be delivered when explicitly flushed. Invalid transport payloads must remain visible to the caller as ValueError. Transport.send accepts a list and succeeds atomically or raises.",
+      "base_files": {
+        "dispatch.py": "\"\"\"Dispatch queued notices through an injected transport.\"\"\"\n\nfrom collections import deque\n\n\nclass NoticeQueue:\n    \"\"\"Keep pending notices separate from confirmed deliveries.\"\"\"\n\n    def __init__(self, transport, batch_size=20):\n        \"\"\"Initialize a queue with a transport and positive batch size.\"\"\"\n        if batch_size < 1:\n            raise ValueError(\"batch_size must be positive\")\n        self.transport = transport\n        self.batch_size = batch_size\n        self.pending = deque()\n        self.delivered = []\n\n    def enqueue(self, recipient, body):\n        \"\"\"Append a notice and return its local identifier.\"\"\"\n        identifier = len(self.pending) + len(self.delivered) + 1\n        self.pending.append({\"id\": identifier, \"to\": recipient, \"body\": body})\n        return identifier\n\n    def flush(self):\n        \"\"\"Attempt queued deliveries using the configured transport.\"\"\"\n        completed = []\n        while self.pending:\n            batch = list(self.pending)\n            self.transport.send(batch)\n            for notice in batch:\n                self.pending.popleft()\n                self.delivered.append(notice[\"id\"])\n                completed.append(notice[\"id\"])\n        return completed\n\n    def snapshot(self):\n        \"\"\"Return independent pending and delivered state for monitoring.\"\"\"\n        return {\n            \"pending\": [dict(notice) for notice in self.pending],\n            \"delivered\": list(self.delivered),\n        }\n\n\nclass DeliveryService:\n    \"\"\"Expose dispatch operations to the command handler.\"\"\"\n\n    def __init__(self, queue):\n        \"\"\"Bind the service to its queue.\"\"\"\n        self.queue = queue\n\n    def dispatch(self, notices):\n        \"\"\"Queue the provided recipient/body records and attempt delivery.\"\"\"\n        for notice in notices:\n            self.queue.enqueue(notice[\"to\"], notice[\"body\"])\n        return self.queue.flush()\n\n\ndef command_response(service, notices):\n    \"\"\"Build the command response used by existing scheduler clients.\"\"\"\n    delivered = service.dispatch(notices)\n    return {\"count\": len(delivered), \"ids\": delivered}\n\n\ndef pending_count(queue):\n    \"\"\"Expose queue depth without returning mutable queue contents.\"\"\"\n    return len(queue.snapshot()[\"pending\"])\n"
+      },
+      "candidate_files": {
+        "dispatch.py": "\"\"\"Dispatch queued notices through an injected transport.\"\"\"\n\nfrom collections import deque\n\n\nclass NoticeQueue:\n    \"\"\"Keep pending notices separate from confirmed deliveries.\"\"\"\n\n    def __init__(self, transport, batch_size=20):\n        \"\"\"Initialize a queue with a transport and positive batch size.\"\"\"\n        if batch_size < 1:\n            raise ValueError(\"batch_size must be positive\")\n        self.transport = transport\n        self.batch_size = batch_size\n        self.pending = deque()\n        self.delivered = []\n\n    def enqueue(self, recipient, body):\n        \"\"\"Append a notice and return its local identifier.\"\"\"\n        identifier = len(self.pending) + len(self.delivered) + 1\n        self.pending.append({\"id\": identifier, \"to\": recipient, \"body\": body})\n        return identifier\n\n    def flush(self):\n        \"\"\"Attempt queued deliveries using the configured transport.\"\"\"\n        completed = []\n        while len(self.pending) >= self.batch_size:\n            batch = list(self.pending)[: self.batch_size]\n            try:\n                self.transport.send(batch)\n            except Exception:\n                break\n            for notice in batch:\n                self.pending.popleft()\n                self.delivered.append(notice[\"id\"])\n                completed.append(notice[\"id\"])\n        return completed\n\n    def snapshot(self):\n        \"\"\"Return independent pending and delivered state for monitoring.\"\"\"\n        return {\n            \"pending\": [dict(notice) for notice in self.pending],\n            \"delivered\": list(self.delivered),\n        }\n\n\nclass DeliveryService:\n    \"\"\"Expose dispatch operations to the command handler.\"\"\"\n\n    def __init__(self, queue):\n        \"\"\"Bind the service to its queue.\"\"\"\n        self.queue = queue\n\n    def dispatch(self, notices):\n        \"\"\"Queue the provided recipient/body records and attempt delivery.\"\"\"\n        for notice in notices:\n            self.queue.enqueue(notice[\"to\"], notice[\"body\"])\n        return {\"delivered\": self.queue.flush()}\n\n\ndef command_response(service, notices):\n    \"\"\"Build the command response used by existing scheduler clients.\"\"\"\n    delivered = service.dispatch(notices)\n    return {\"count\": len(delivered), \"ids\": delivered}\n\n\ndef pending_count(queue):\n    \"\"\"Expose queue depth without returning mutable queue contents.\"\"\"\n    return len(queue.snapshot()[\"pending\"])\n"
+      },
+      "commits": [
+        {
+          "subject": "Batch notice dispatch and retain temporarily unavailable deliveries",
+          "files": [
+            "dispatch.py"
+          ]
+        }
+      ],
+      "ground_truth": [
+        {
+          "id": "F1-M1",
+          "kind": "material",
+          "severity": "P2",
+          "cause": "DeliveryService.dispatch returns a mapping instead of the existing list of delivered IDs.",
+          "impact": "Scheduler response reports count 1 and mapping-valued ids instead of the delivered list.",
+          "trigger": "command_response with a successful full batch.",
+          "expected_finding": "DeliveryService.dispatch returns a mapping instead of the existing list of delivered IDs.",
+          "checklist_relation": "outside",
+          "checklist_ids": [],
+          "reproduction": "python docs/review-quality/reproduce.py: F1-M1"
+        },
+        {
+          "id": "F1-M2",
+          "kind": "material",
+          "severity": "P2",
+          "cause": "flush processes only full batches and never sends the remaining partial batch.",
+          "impact": "Explicit flush leaves notices indefinitely queued whenever traffic does not fill a batch.",
+          "trigger": "One notice with batch_size=2.",
+          "expected_finding": "flush processes only full batches and never sends the remaining partial batch.",
+          "checklist_relation": "outside",
+          "checklist_ids": [],
+          "reproduction": "python docs/review-quality/reproduce.py: F1-M2"
+        },
+        {
+          "id": "F1-M3",
+          "kind": "material",
+          "severity": "P2",
+          "cause": "Broad Exception handling hides permanent ValueError from the transport.",
+          "impact": "Invalid payload delivery appears successful and scheduler cannot surface or correct the error.",
+          "trigger": "Transport.send raises ValueError for a full batch.",
+          "expected_finding": "Broad Exception handling hides permanent ValueError from the transport.",
+          "checklist_relation": "outside",
+          "checklist_ids": [],
+          "reproduction": "python docs/review-quality/reproduce.py: F1-M3"
+        }
+      ],
+      "checklist_expectations": [
+        {
+          "id": "CRQ-001",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Changed dispatch, batch and completed names retain queue vocabulary in dispatch.py."
+        },
+        {
+          "id": "CRQ-002",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "NoticeQueue and DeliveryService retain pending/delivered terminology used by their callers."
+        },
+        {
+          "id": "CRQ-003",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Every changed function has a role docstring; the feature brief establishes no further comment requirement."
+        },
+        {
+          "id": "CRQ-004",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Docstrings promise attempts and response construction without asserting the changed mapping or batch-tail behavior."
+        },
+        {
+          "id": "CRQ-005",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "All dispatch.py helpers and queue fields have supplied callers; the replacement leaves no obsolete helper."
+        },
+        {
+          "id": "CRQ-006",
+          "applicability": "NOT_APPLICABLE",
+          "expected_result": "NOT_APPLICABLE",
+          "evidence": "Only existing stdlib deque and injected transport are used; no new module or service dependency is added."
+        },
+        {
+          "id": "CRQ-007",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "The single proposed dispatch.py commit concerns one notice-dispatch feature."
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "kind": "quality-only",
+      "requirements": "Keep the inventory digest behavior stable while preparing the renderer for maintenance. Inputs contain sku, warehouse, and integer quantity; exports remain deterministic tab-separated text, omit zero stock rows, and preserve negative adjustments. Repository policy requires function docstrings. All consumers and implementation are included in this changeset.",
+      "base_files": {
+        "inventory.py": "\"\"\"Render an inventory digest from immutable stock records.\"\"\"\n\nfrom collections import Counter\n\n\ndef normalize_item(record):\n    \"\"\"Return the fields consumed by the inventory digest.\"\"\"\n    return {\n        \"sku\": str(record[\"sku\"]).strip(),\n        \"warehouse\": str(record[\"warehouse\"]).strip(),\n        \"quantity\": int(record[\"quantity\"]),\n    }\n\n\ndef group_stock(records):\n    \"\"\"Sum quantities by warehouse and SKU without mutating input.\"\"\"\n    totals = Counter()\n    for record in records:\n        item = normalize_item(record)\n        totals[(item[\"warehouse\"], item[\"sku\"])] += item[\"quantity\"]\n    return totals\n\n\ndef render_rows(totals):\n    \"\"\"Return sorted, nonempty warehouse stock rows.\"\"\"\n    rows = []\n    for (warehouse, sku), quantity in sorted(totals.items()):\n        if quantity:\n            rows.append({\n                \"warehouse\": warehouse,\n                \"sku\": sku,\n                \"quantity\": quantity,\n            })\n    return rows\n\n\ndef build_digest(records):\n    \"\"\"Return the inventory rows and total visible quantity.\"\"\"\n    totals = group_stock(records)\n    rows = render_rows(totals)\n    return {\"rows\": rows, \"quantity\": sum(row[\"quantity\"] for row in rows)}\n\n\ndef format_digest(digest):\n    \"\"\"Produce a deterministic tab-separated export.\"\"\"\n    lines = [\"warehouse\\tsku\\tquantity\"]\n    for row in digest[\"rows\"]:\n        lines.append(\n            f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}'\n        )\n    return \"\\n\".join(lines) + \"\\n\"\n\n\nclass DigestCommand:\n    \"\"\"Adapt the inventory source to the export interface.\"\"\"\n\n    def __init__(self, source):\n        \"\"\"Keep the caller-owned source for later reads.\"\"\"\n        self.source = source\n\n    def run(self):\n        \"\"\"Read current records and return their export text.\"\"\"\n        records = self.source.read()\n        return format_digest(build_digest(records))\n"
+      },
+      "candidate_files": {
+        "inventory.py": "\"\"\"Render an inventory digest from immutable stock records.\"\"\"\n\nfrom collections import Counter\n\n\ndef normalize_item(record):\n    \"\"\"Return the fields consumed by the inventory digest.\"\"\"\n    return {\n        \"sku\": str(record[\"sku\"]).strip(),\n        \"warehouse\": str(record[\"warehouse\"]).strip(),\n        \"quantity\": int(record[\"quantity\"]),\n    }\n\n\ndef group_stock(records):\n    \"\"\"Sum quantities by warehouse and SKU without mutating input.\"\"\"\n    totals = Counter()\n    for record in records:\n        item = normalize_item(record)\n        totals[(item[\"warehouse\"], item[\"sku\"])] += item[\"quantity\"]\n    return totals\n\n\ndef render_rows(totals):\n    \"\"\"Return sorted, nonempty warehouse stock rows.\"\"\"\n    rows = []\n    for (warehouse, sku), quantity in sorted(totals.items()):\n        if quantity:\n            rows.append({\n                \"warehouse\": warehouse,\n                \"sku\": sku,\n                \"quantity\": quantity,\n            })\n    return rows\n\n\ndef build_digest(records):\n    \"\"\"Return the inventory rows and total visible quantity.\"\"\"\n    x = group_stock(records)\n    rows = render_rows(x)\n    return {\"rows\": rows, \"quantity\": sum(row[\"quantity\"] for row in rows)}\n\n\ndef format_digest(digest):\n    \"\"\"Produce a deterministic comma-separated export.\"\"\"\n    lines = [\"warehouse\\tsku\\tquantity\"]\n    for row in digest[\"rows\"]:\n        lines.append(\n            f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}'\n        )\n    return \"\\n\".join(lines) + \"\\n\"\n\n\nclass DigestCommand:\n    \"\"\"Adapt the inventory source to the export interface.\"\"\"\n\n    def __init__(self, source):\n        \"\"\"Keep the caller-owned source for later reads.\"\"\"\n        self.source = source\n\n    def run(self):\n        \"\"\"Read current records and return their export text.\"\"\"\n        records = self.source.read()\n        return format_digest(build_digest(records))\n\n\ndef _legacy_header():\n    \"\"\"Return the header used by the retired export renderer.\"\"\"\n    return \"Warehouse,Item,On hand\"\n"
+      },
+      "commits": [
+        {
+          "subject": "Prepare inventory digest renderer for maintenance",
+          "files": [
+            "inventory.py"
+          ]
+        }
+      ],
+      "ground_truth": [
+        {
+          "id": "F2-Q1",
+          "kind": "quality",
+          "severity": "P3",
+          "cause": "The new local x obscures that it contains stock totals.",
+          "impact": "Readers must trace group_stock to understand the intermediate value.",
+          "trigger": "Read build_digest.",
+          "expected_finding": "The new local x obscures that it contains stock totals.",
+          "checklist_relation": "covered",
+          "checklist_ids": [
+            "CRQ-001"
+          ],
+          "reproduction": "Inspect build_digest AST."
+        },
+        {
+          "id": "F2-Q2",
+          "kind": "quality",
+          "severity": "P3",
+          "cause": "format_digest docstring claims comma-separated output although implementation and callers use tabs.",
+          "impact": "Maintainers receive incorrect format guidance.",
+          "trigger": "Read format_digest docstring and output.",
+          "expected_finding": "format_digest docstring claims comma-separated output although implementation and callers use tabs.",
+          "checklist_relation": "covered",
+          "checklist_ids": [
+            "CRQ-004"
+          ],
+          "reproduction": "Render a sample digest and compare its tabs to the docstring."
+        },
+        {
+          "id": "F2-Q3",
+          "kind": "quality",
+          "severity": "P3",
+          "cause": "New _legacy_header has no callers and belongs to the retired export renderer.",
+          "impact": "Unused obsolete renderer code adds maintenance ambiguity.",
+          "trigger": "Search all supplied source for _legacy_header references.",
+          "expected_finding": "New _legacy_header has no callers and belongs to the retired export renderer.",
+          "checklist_relation": "covered",
+          "checklist_ids": [
+            "CRQ-005"
+          ],
+          "reproduction": "AST confirms only its declaration references the name."
+        }
+      ],
+      "checklist_expectations": [
+        {
+          "id": "CRQ-001",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "build_digest introduces x for warehouse/SKU stock totals."
+        },
+        {
+          "id": "CRQ-002",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Domain functions retain inventory/digest vocabulary; x obscures role without introducing a competing domain term."
+        },
+        {
+          "id": "CRQ-003",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "All inventory.py functions, including the new private helper, have role docstrings."
+        },
+        {
+          "id": "CRQ-004",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "format_digest describes comma-separated output while emitting tabs."
+        },
+        {
+          "id": "CRQ-005",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "_legacy_header has no references in the complete supplied inventory implementation and command."
+        },
+        {
+          "id": "CRQ-006",
+          "applicability": "NOT_APPLICABLE",
+          "expected_result": "NOT_APPLICABLE",
+          "evidence": "The changes add no dependency; Counter was already used by group_stock."
+        },
+        {
+          "id": "CRQ-007",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "The single proposed commit concerns the inventory renderer maintenance scope."
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "kind": "mixed",
+      "requirements": "Add a process-local metadata cache for report downloads and support replacing the repository when the database connection rotates. Multiple tenants can share report IDs; database adapters enforce tenant ownership when queried. Existing exports and refreshed metadata must remain available. The export storage root is the only permitted download location. Repository policy requires function docstrings. All implementation and callers are included.",
+      "base_files": {
+        "reports.py": "\"\"\"Serve tenant-owned report exports from a shared storage root.\"\"\"\n\nfrom pathlib import Path\n\n\nclass ReportRepository:\n    \"\"\"Resolve report metadata using the active database connection.\"\"\"\n\n    def __init__(self, database):\n        \"\"\"Bind a repository to the supplied database adapter.\"\"\"\n        self.database = database\n\n    def lookup(self, tenant, report_id):\n        \"\"\"Fetch report metadata scoped to the authenticated tenant.\"\"\"\n        return self.database.get_report(tenant, report_id)\n\n\nclass ReportService:\n    \"\"\"Coordinate metadata, export storage, and download headers.\"\"\"\n\n    def __init__(self, repository, storage_root):\n        \"\"\"Initialize the repository and export storage root.\"\"\"\n        self.repository = repository\n        self.storage_root = Path(storage_root).resolve()\n\n    def metadata(self, tenant, report_id):\n        \"\"\"Load metadata for use by a download request.\"\"\"\n        return self.repository.lookup(tenant, report_id)\n\n    def resolve_export(self, relative_name):\n        \"\"\"Resolve an export location, rejecting paths outside storage.\"\"\"\n        target = (self.storage_root / relative_name).resolve()\n        if not target.is_relative_to(self.storage_root):\n            raise PermissionError(\"export is outside storage\")\n        return target\n\n    def replace_repository(self, repository):\n        \"\"\"Switch the metadata source during connection rotation.\"\"\"\n        self.repository = repository\n\n    def download(self, tenant, report_id):\n        \"\"\"Read the selected export and return its content and headers.\"\"\"\n        metadata = self.metadata(tenant, report_id)\n        target = self.resolve_export(metadata[\"path\"])\n        content = target.read_bytes()\n        return {\n            \"body\": content,\n            \"content_type\": \"text/csv\",\n            \"filename\": metadata[\"filename\"],\n        }\n\n\ndef download_response(service, session, report_id):\n    \"\"\"Resolve a report using the authenticated session's tenant.\"\"\"\n    if not session.get(\"tenant\"):\n        raise PermissionError(\"tenant session required\")\n    return service.download(session[\"tenant\"], report_id)\n\n\ndef rotate_connection(service, database):\n    \"\"\"Replace the database adapter after a connection configuration change.\"\"\"\n    service.replace_repository(ReportRepository(database))\n"
+      },
+      "candidate_files": {
+        "reports.py": "\"\"\"Serve tenant-owned report exports from a shared storage root.\"\"\"\n\nfrom pathlib import Path\n\n\nclass ReportRepository:\n    \"\"\"Resolve report metadata using the active database connection.\"\"\"\n\n    def __init__(self, database):\n        \"\"\"Bind a repository to the supplied database adapter.\"\"\"\n        self.database = database\n\n    def lookup(self, tenant, report_id):\n        \"\"\"Fetch report metadata scoped to the authenticated tenant.\"\"\"\n        return self.database.get_report(tenant, report_id)\n\n\nclass ReportService:\n    \"\"\"Coordinate metadata, export storage, and download headers.\"\"\"\n\n    def __init__(self, repository, storage_root):\n        \"\"\"Initialize storage and the per-process metadata cache.\"\"\"\n        self.repository = repository\n        self.storage_root = Path(storage_root).resolve()\n        self.cache = {}\n\n    def metadata(self, tenant, report_id):\n        \"\"\"Load metadata for use by a download request.\"\"\"\n        key = report_id\n        if key not in self.cache:\n            self.cache[key] = self.repository.lookup(tenant, report_id)\n        return dict(self.cache[key])\n\n    def resolve_export(self, relative_name):\n        \"\"\"Resolve an export location, rejecting paths outside storage.\"\"\"\n        target = (self.storage_root / relative_name).resolve()\n        if not str(target).startswith(str(self.storage_root)):\n            raise PermissionError(\"export is outside storage\")\n        return target\n\n    def replace_repository(self, repository):\n        \"\"\"Switch the metadata source during connection rotation.\"\"\"\n        self.repository = repository\n\n    def download(self, tenant, report_id):\n        \"\"\"Read the selected export and return its content and headers.\"\"\"\n        zz = self.metadata(tenant, report_id)\n        target = self.resolve_export(zz[\"path\"])\n        content = target.read_bytes()\n        return {\n            \"body\": content,\n            \"content_type\": \"text/csv\",\n            \"filename\": zz[\"filename\"],\n        }\n\n\ndef download_response(service, session, report_id):\n    \"\"\"Resolve a report using the authenticated session's tenant.\"\"\"\n    if not session.get(\"tenant\"):\n        raise PermissionError(\"tenant session required\")\n    return service.download(session[\"tenant\"], report_id)\n\n\ndef rotate_connection(service, database):\n    \"\"\"Replace the database adapter after a connection configuration change.\"\"\"\n    service.replace_repository(ReportRepository(database))\n\n\ndef _format_content_disposition(filename):\n    \"\"\"Format the header consumed by the retired HTTP response adapter.\"\"\"\n    return f'attachment; filename=\"{filename}\"'\n"
+      },
+      "commits": [
+        {
+          "subject": "Cache report metadata across downloads and support repository rotation",
+          "files": [
+            "reports.py"
+          ]
+        }
+      ],
+      "ground_truth": [
+        {
+          "id": "F3-M1",
+          "kind": "material",
+          "severity": "P1",
+          "cause": "Metadata cache is indexed only by report ID, omitting tenant.",
+          "impact": "A second tenant receives another tenant's metadata and export content without an ownership lookup.",
+          "trigger": "Two tenant sessions request the same report ID.",
+          "expected_finding": "Metadata cache is indexed only by report ID, omitting tenant.",
+          "checklist_relation": "outside",
+          "checklist_ids": [],
+          "reproduction": "python docs/review-quality/reproduce.py: F3-M1"
+        },
+        {
+          "id": "F3-M2",
+          "kind": "material",
+          "severity": "P1",
+          "cause": "Storage containment uses string prefix matching instead of path ancestry.",
+          "impact": "A sibling storage directory sharing the root prefix can be read through parent-relative metadata paths.",
+          "trigger": "Resolve ../exports-private/secret.csv with root named exports.",
+          "expected_finding": "Storage containment uses string prefix matching instead of path ancestry.",
+          "checklist_relation": "overlap",
+          "checklist_ids": [
+            "CRQ-004"
+          ],
+          "reproduction": "python docs/review-quality/reproduce.py: F3-M2"
+        },
+        {
+          "id": "F3-M3",
+          "kind": "material",
+          "severity": "P2",
+          "cause": "Repository replacement leaves cached metadata from the old dependency active.",
+          "impact": "Downloads keep returning the old export after a successful database rotation.",
+          "trigger": "Warm cache, rotate repository to a changed path, download again.",
+          "expected_finding": "Repository replacement leaves cached metadata from the old dependency active.",
+          "checklist_relation": "outside",
+          "checklist_ids": [],
+          "reproduction": "python docs/review-quality/reproduce.py: F3-M3"
+        },
+        {
+          "id": "F3-Q1",
+          "kind": "quality",
+          "severity": "P3",
+          "cause": "The new local zz hides the report metadata domain role.",
+          "impact": "Download path and filename logic become harder to read.",
+          "trigger": "Read ReportService.download.",
+          "expected_finding": "The new local zz hides the report metadata domain role.",
+          "checklist_relation": "covered",
+          "checklist_ids": [
+            "CRQ-001"
+          ],
+          "reproduction": "Inspect download AST."
+        },
+        {
+          "id": "F3-Q2",
+          "kind": "quality",
+          "severity": "P3",
+          "cause": "New private _format_content_disposition has no callers after the response adapter was retired.",
+          "impact": "Obsolete HTTP response formatting remains alongside the active filename-based response path.",
+          "trigger": "Inspect all supplied reports.py definitions and callers.",
+          "expected_finding": "Remove or justify the unused private content-disposition formatter.",
+          "checklist_relation": "covered",
+          "checklist_ids": [
+            "CRQ-005"
+          ],
+          "reproduction": "AST confirms the helper has no name references outside its declaration."
+        }
+      ],
+      "checklist_expectations": [
+        {
+          "id": "CRQ-001",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "ReportService.download changes descriptive metadata to zz."
+        },
+        {
+          "id": "CRQ-002",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Repository/report/download domain vocabulary remains consistent; zz is an obscured role rather than a second domain term."
+        },
+        {
+          "id": "CRQ-003",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "All changed reports.py functions have role docstrings."
+        },
+        {
+          "id": "CRQ-004",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "resolve_export promises rejection outside storage while string-prefix containment admits a sibling directory."
+        },
+        {
+          "id": "CRQ-005",
+          "applicability": "APPLICABLE",
+          "expected_result": "FINDING",
+          "evidence": "_format_content_disposition has no references among all supplied report callers."
+        },
+        {
+          "id": "CRQ-006",
+          "applicability": "NOT_APPLICABLE",
+          "expected_result": "NOT_APPLICABLE",
+          "evidence": "No new imported library, service, or internal module is introduced; cache uses a builtin dict."
+        },
+        {
+          "id": "CRQ-007",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "The single proposed report-service commit groups metadata caching with the repository lifecycle that governs it."
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "kind": "clean",
+      "requirements": "Add optional event_type filtering to tenant audit pagination. Filter before applying page_size; cursors remain exclusive event IDs and next_cursor is present only when more matching events exist. Omitting event_type retains existing behavior. Repositories return tenant-scoped events ordered by increasing unique integer id. Inputs are well-formed query strings. Repository policy requires function docstrings.",
+      "base_files": {
+        "audit.py": "\"\"\"Page through a stable, ordered list of audit events.\"\"\"\n\n\ndef validate_page_size(page_size):\n    \"\"\"Reject page sizes outside the supported service range.\"\"\"\n    if not isinstance(page_size, int) or isinstance(page_size, bool):\n        raise ValueError(\"page size must be an integer\")\n    if not 1 <= page_size <= 100:\n        raise ValueError(\"page size must be between 1 and 100\")\n\n\nclass AuditReader:\n    \"\"\"Read audit events through an injected repository.\"\"\"\n\n    def __init__(self, repository):\n        \"\"\"Retain the repository used for ordered event reads.\"\"\"\n        self.repository = repository\n\n    def page(self, tenant, after_id=None, page_size=25):\n        \"\"\"Return events following a cursor and an optional next cursor.\"\"\"\n        validate_page_size(page_size)\n        events = self.repository.events_for(tenant)\n        eligible = []\n        for event in events:\n            if after_id is None or event[\"id\"] > after_id:\n                eligible.append(dict(event))\n        selected = eligible[:page_size]\n        next_cursor = None\n        if len(eligible) > page_size:\n            next_cursor = selected[-1][\"id\"]\n        return {\"events\": selected, \"next_cursor\": next_cursor}\n\n\nclass AuditEndpoint:\n    \"\"\"Adapt authenticated requests to audit pages.\"\"\"\n\n    def __init__(self, reader):\n        \"\"\"Bind the endpoint to its audit reader.\"\"\"\n        self.reader = reader\n\n    def get(self, session, query):\n        \"\"\"Validate request parameters and return a tenant-scoped page.\"\"\"\n        tenant = session.get(\"tenant\")\n        if not tenant:\n            raise PermissionError(\"tenant session required\")\n        after_id = query.get(\"after_id\")\n        if after_id is not None:\n            after_id = int(after_id)\n        page_size = int(query.get(\"page_size\", 25))\n        return self.reader.page(tenant, after_id, page_size)\n\n\ndef export_page(endpoint, session, query):\n    \"\"\"Return one page as newline-separated audit messages.\"\"\"\n    page = endpoint.get(session, query)\n    lines = [event[\"message\"] for event in page[\"events\"]]\n    return {\n        \"body\": \"\\n\".join(lines),\n        \"next_cursor\": page[\"next_cursor\"],\n    }\n"
+      },
+      "candidate_files": {
+        "audit.py": "\"\"\"Page through a stable, ordered list of audit events.\"\"\"\n\n\ndef validate_page_size(page_size):\n    \"\"\"Reject page sizes outside the supported service range.\"\"\"\n    if not isinstance(page_size, int) or isinstance(page_size, bool):\n        raise ValueError(\"page size must be an integer\")\n    if not 1 <= page_size <= 100:\n        raise ValueError(\"page size must be between 1 and 100\")\n\n\nclass AuditReader:\n    \"\"\"Read audit events through an injected repository.\"\"\"\n\n    def __init__(self, repository):\n        \"\"\"Retain the repository used for ordered event reads.\"\"\"\n        self.repository = repository\n\n    def page(self, tenant, after_id=None, page_size=25, event_type=None):\n        \"\"\"Return events following a cursor and an optional next cursor.\"\"\"\n        validate_page_size(page_size)\n        events = self.repository.events_for(tenant)\n        eligible = []\n        for event in events:\n            if event_type is not None and event[\"type\"] != event_type:\n                continue\n            if after_id is None or event[\"id\"] > after_id:\n                eligible.append(dict(event))\n        selected = eligible[:page_size]\n        next_cursor = None\n        if len(eligible) > page_size:\n            next_cursor = selected[-1][\"id\"]\n        return {\"events\": selected, \"next_cursor\": next_cursor}\n\n\nclass AuditEndpoint:\n    \"\"\"Adapt authenticated requests to audit pages.\"\"\"\n\n    def __init__(self, reader):\n        \"\"\"Bind the endpoint to its audit reader.\"\"\"\n        self.reader = reader\n\n    def get(self, session, query):\n        \"\"\"Validate request parameters and return a tenant-scoped page.\"\"\"\n        tenant = session.get(\"tenant\")\n        if not tenant:\n            raise PermissionError(\"tenant session required\")\n        after_id = query.get(\"after_id\")\n        if after_id is not None:\n            after_id = int(after_id)\n        page_size = int(query.get(\"page_size\", 25))\n        return self.reader.page(\n            tenant, after_id, page_size, query.get(\"event_type\")\n        )\n\n\ndef export_page(endpoint, session, query):\n    \"\"\"Return one page as newline-separated audit messages.\"\"\"\n    page = endpoint.get(session, query)\n    lines = [event[\"message\"] for event in page[\"events\"]]\n    return {\n        \"body\": \"\\n\".join(lines),\n        \"next_cursor\": page[\"next_cursor\"],\n    }\n"
+      },
+      "commits": [
+        {
+          "subject": "Filter audit pages by event type before pagination",
+          "files": [
+            "audit.py"
+          ]
+        }
+      ],
+      "ground_truth": [],
+      "checklist_expectations": [
+        {
+          "id": "CRQ-001",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "event_type names the optional audit-event filter in reader and endpoint."
+        },
+        {
+          "id": "CRQ-002",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "event_type follows existing snake_case query, after_id and page_size vocabulary."
+        },
+        {
+          "id": "CRQ-003",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "All changed audit functions retain role docstrings; no extra comment rule is asserted."
+        },
+        {
+          "id": "CRQ-004",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Existing cursor, request-validation and export responsibilities remain accurate with the optional filter."
+        },
+        {
+          "id": "CRQ-005",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "Changed page and endpoint paths remain called; no superseded helper or branch is left behind."
+        },
+        {
+          "id": "CRQ-006",
+          "applicability": "NOT_APPLICABLE",
+          "expected_result": "NOT_APPLICABLE",
+          "evidence": "The filter introduces no import or external/internal service dependency."
+        },
+        {
+          "id": "CRQ-007",
+          "applicability": "APPLICABLE",
+          "expected_result": "PASS",
+          "evidence": "The single proposed audit commit groups filter propagation and page selection together."
+        }
+      ]
+    }
+  ]
+}

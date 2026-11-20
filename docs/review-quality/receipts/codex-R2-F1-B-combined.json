@@ -1,0 +1,127 @@
+{
+  "session_id": "01a13d9d-45c7-7961-b4da-e5e05c1db3c1",
+  "usage": {
+    "input_tokens": 23138,
+    "cached_input_tokens": 7296,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 2228,
+    "reasoning_output_tokens": 303
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.0546936,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:27",
+        "cause": "flush() processes only full batches.",
+        "impact": "Explicit flushes leave partial batches undelivered indefinitely unless additional notices arrive.",
+        "trigger": "Flush a nonempty queue containing fewer than batch_size notices, or flush a queue with a partial final batch.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:27-28: the loop requires len(self.pending) >= self.batch_size. With batch_size=20 and one pending notice, transport.send is never called. This contradicts the explicit partial-batch flush requirement."
+      },
+      {
+        "id": "F2",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:31",
+        "cause": "The transport call catches Exception instead of limiting recovery to ConnectionError.",
+        "impact": "Invalid payloads silently remain queued, and callers lose the required ValueError signal.",
+        "trigger": "A full batch reaches transport.send and the transport raises ValueError.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:29-32: ValueError is caught by except Exception and execution returns completed. The requirement explicitly preserves ValueError visibility."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "dispatch.py:58; command_response at lines 61-64",
+        "cause": "DeliveryService.dispatch() now returns a dictionary, while command_response() still consumes its result as a list of delivered identifiers.",
+        "impact": "The scheduler response has an incorrect count and a nested object in ids, breaking the existing command interface.",
+        "trigger": "Call command_response() with the supplied DeliveryService.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:58 wraps the list as {\"delivered\": ...}; lines 63-64 calculate len() of that dictionary and expose it as ids. Even with no notices and an empty queue, the response becomes {\"count\": 1, \"ids\": {\"delivered\": []}} instead of {\"count\": 0, \"ids\": []}."
+      }
+    ],
+    "checklist_findings": [],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Names in the changed expressions communicate queue state, batch size, transport operation, and delivered identifiers. The defects concern behavior and return structure rather than independently unclear names.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:13-16, 26-36, 54-64: inspected batch_size, pending, batch, completed, delivered, and their callers.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "Changed code reuses the surrounding queue and delivery vocabulary; the new delivered dictionary key matches the existing delivered state name.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:16, 35-36, 43-44, 58, 63-64. Compared changed uses with state declarations, snapshot output, and command handling.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "UNVERIFIED",
+        "result": "UNVERIFIED",
+        "reason": "Existing declarations have docstrings, but applicable repository documentation and comment rules were not included. Compliance with those rules cannot be established.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:24-25 and 54-55 contain docstrings. The referenced global and host-local instruction files are unavailable in the embedded evidence.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "The command-response docstring describes support for existing scheduler clients, but the changed service return value breaks that response contract. This shares the underlying cause of F3.",
+        "evidence": "Candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86, dispatch.py:62 describes the existing scheduler response; lines 58 and 63-64 produce the incompatible structure. Compared affected docstrings and callers throughout the supplied dispatch.py.",
+        "finding_ids": [
+          "F3"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "The replacement is inline and introduces no superseded helper or abandoned alternative implementation. The supplied file retains direct calls from the command handler through the service to the queue.",
+        "evidence": "Compared the complete embedded base dispatch.py at f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 with candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86. Inspected candidate dispatch.py:24-37 and 47-69 and the complete diff; no declarations were replaced or orphaned within this bounded scope.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "The change adds no library, service, or internal-module dependency. Exception is a built-in type, and the injected transport was already used.",
+        "evidence": "Complete base-to-candidate diff for dispatch.py, base f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 and candidate 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86; imports at line 3 are unchanged, and transport.send remains at candidate line 30.",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "UNVERIFIED",
+        "reason": "The supplied single commit subject and file list suggest one dispatch-related purpose, but individual commit IDs and commit-specific diffs are missing. The actual commit sequence and rollback boundaries cannot be verified.",
+        "evidence": "The embedded commits array contains one subject, \"Batch notice dispatch and retain temporarily unavailable deliveries\", and dispatch.py, without a commit ID. The supplied base identity f31f6ecb61e2fc344e0295f70d63fe396e1cfc4118b3b002a907ea88646d61d3 and candidate identity 885577a58686b9129ccbf51e9de54ccb0d65c4fcd02dd8f9b006577051ebac86 identify the comparison but do not establish individual commit boundaries.",
+        "finding_ids": []
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "Review used only the embedded frozen evidence. No tools were used and no tests were executed; failing conditions are derived by inspection.",
+      "Repository instruction files, additional callers, and individual commit identities were not supplied.",
+      "Phase 1 completion under the current review contract was not evidenced. All checklist IDs were assessed as requested, but these observations do not establish the Phase 2 prerequisite. F1-F3 require resolution through Phase 1."
+    ]
+  },
+  "label": "codex-R2-F1-B-combined",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792035079.2086248,
+  "elapsed_seconds": 53.06782603263855,
+  "input_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
+  "raw_output_sha256": "86a8558fc369416b386d21d9e6d2ea05e485397f7aabc5d35064b841dcbe2ee2",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

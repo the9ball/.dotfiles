@@ -1,0 +1,43 @@
+{
+  "status": "COMPLETE_WITH_EVIDENCE_LIMITATIONS",
+  "independent_context": "checklist_auditor_claude; fork_turns=none; effective model/effort metadata unavailable",
+  "engagement": "issue138-checklist-audit-claude",
+  "epoch": "7635af31472315680a0abf9bfe1fdf7c11369aa1/native-auditor/read-only/reference",
+  "scope_reference": "ee3dd33923e9227ab5243e9f88dd421a42915eeb:docs/review-quality/checklist-audit-scope.json",
+  "scope_blob_verified": "7635af31472315680a0abf9bfe1fdf7c11369aa1",
+  "source_revision": "b9332996d6646a71e2e2b1d22f0cd8f3da852337",
+  "materialization": "reference",
+  "verified_target_files": 36,
+  "actual_scope": "Listed SKILL/checklist privately; all fixture and manifest fields; all32 normalized receipts including result, usage, model, tools, timing and provenance. Truncated initial reads recovered with bounded structural rereads; no normalized-result remainder unconfirmed.",
+  "additional_ranges": "Global/bootstrap/local instructions and required advisor-review/structured-data skills only",
+  "unconfirmed": ["Actual synthetic Git ancestry and per-commit patches", "Raw reviewer inputs/outputs and runner hash generation", "Runtime correctness beyond static inspection"],
+  "excluded_material_read": false,
+  "writes_or_external_operations": false,
+  "active_ids": ["CRQ-001", "CRQ-002", "CRQ-003", "CRQ-004", "CRQ-005", "CRQ-006", "CRQ-007"],
+  "measured": {
+    "B": {"responses": 8, "rows": 56, "missing_ids": 0, "duplicate_ids": 0, "broken_finding_links": 0, "results": {"PASS": 24, "FINDING": 24, "NOT_APPLICABLE": 8, "UNVERIFIED": 0}, "applicability": {"APPLICABLE": 48, "NOT_APPLICABLE": 8, "UNVERIFIED": 0}, "quality_seed_linkage": "10/10"},
+    "C2": {"responses": 8, "rows": 56, "missing_ids": 0, "duplicate_ids": 0, "broken_finding_links": 0, "results": {"PASS": 24, "FINDING": 22, "NOT_APPLICABLE": 8, "UNVERIFIED": 2}, "applicability": {"APPLICABLE": 46, "NOT_APPLICABLE": 8, "UNVERIFIED": 2}, "unverified_rows": ["R1-F1/CRQ-003", "R1-F2/CRQ-007"], "quality_seed_linkage": "10/10"},
+    "per_id_results": {
+      "CRQ-001": {"B": "4 FINDING /4 PASS", "C2": "4 FINDING /4 PASS"},
+      "CRQ-002": {"B": "4 FINDING /4 PASS", "C2": "4 FINDING /4 PASS"},
+      "CRQ-003": {"B": "2 FINDING /6 PASS", "C2": "2 FINDING /5 PASS /1 UNVERIFIED"},
+      "CRQ-004": {"B": "6 FINDING /2 PASS", "C2": "4 FINDING /4 PASS"},
+      "CRQ-005": {"B": "4 FINDING /4 PASS", "C2": "4 FINDING /4 PASS"},
+      "CRQ-006": {"B": "8 NOT_APPLICABLE", "C2": "8 NOT_APPLICABLE"},
+      "CRQ-007": {"B": "4 FINDING /4 PASS", "C2": "4 FINDING /3 PASS /1 UNVERIFIED"}
+    },
+    "naive_result_disagreements": {"B": {"total": 12, "CRQ-002": 4, "CRQ-003": 2, "CRQ-004": 2, "CRQ-007": 4}, "C2": {"total": 12, "CRQ-002": 4, "CRQ-003": 3, "CRQ-007": 5}},
+    "receipt_integrity": "32 zero CLI exits;32 empty tool-call arrays; role prompt hashes match manifest. No per-response checklist-content identity attestation observed."
+  },
+  "attributable_assessment": [
+    {"cases": "F2/F3 CRQ-002", "assessment": "All four disagreements per arm defensible: totals->x differs from surrounding totals and metadata->zz differs from retained self.metadata. Frozen expectations too narrow."},
+    {"cases": "F2/F3 CRQ-005", "assessment": "Complete-consumer premise and explicit retired roles support unused-helper findings; underscore alone would not prove no consumers."},
+    {"cases": "F4 CRQ-003", "assessment": "Accurate role docstring remains. Both B repeats and C2-R1 label expansion optional. C2-R2 presents a quality shortfall without stronger stated policy; that escalation is weakly supported."},
+    {"cases": "F1 CRQ-003", "assessment": "C2-R1 UNVERIFIED cautious absent explicit policy; B and C2-R2 PASS bounded to observed role docstrings/local practice also defensible."},
+    {"cases": "F1 CRQ-004", "assessment": "B's API-related FINDING defensible. C2 acknowledges divergence but routes implementation repairs while marking PASS: classification tension, though broad docstrings leave ambiguity."},
+    {"cases": "F3 CRQ-004", "assessment": "Sibling containment and stale cache support incidental material overlap. C2-R1 reports both; C2-R2 routes behavioral facts separately. B-R2 complaint about constructor description omitting repository binding is at most optional expansion."},
+    {"cases": "CRQ-007", "assessment": "Proposed single-commit summaries allow qualified cohesion/subject judgments: F3 mixes independent edits and F1 includes an unrequested return-shape change. An unintended bug need not be separate intended rollback work. No ancestry/per-commit patches are proven. F2/F4 PASS can only concern proposed units; C2-R1-F2 UNVERIFIED valid. Missing IDs alone does not invalidate all findings."}
+  ],
+  "C2_boundary": {"free_findings_empty": "8/8", "confirmed_unrestricted_restart": false, "assessment": "Material facts linked to case-specific CRQ evidence or routed in limitations. Internal attention allocation unobservable; bounded incidental discovery alone does not prove unrestricted review."},
+  "advice_not_measurement": "Seed linkage and inventory completeness strong in both arms. Classification drift, content-identity attestation and synthetic history limit H3 conclusions; naive disagreement totals are not error rates or model rankings."
+}

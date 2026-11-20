@@ -1,0 +1,112 @@
+{
+  "session_id": "40248e4c-22b3-46d3-95af-20c04c687ebb",
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5492,
+    "cache_read_input_tokens": 1269,
+    "output_tokens": 1846,
+    "output_tokens_details": {
+      "thinking_tokens": 515
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 5492,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1846,
+        "cache_read_input_tokens": 1269,
+        "cache_creation_input_tokens": 5492,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5492
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 1846,
+      "cacheReadInputTokens": 1269,
+      "cacheCreationInputTokens": 5492,
+      "webSearchRequests": 0,
+      "costUSD": 0.0811178,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 515,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "effective_model": [
+    "claude-opus-5-5"
+  ],
+  "estimated_usd": 0.0811178,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P2",
+        "category": "quality",
+        "location": "inventory.py:47 format_digest docstring",
+        "cause": "docstring が \"tab-separated\" から \"comma-separated\" に変更されたが、実装はヘッダー・各行ともに引き続き \\t で区切っている。",
+        "impact": "docstring が実際の出力形式と要件(決定的な tab-separated 出力)の両方に矛盾する。保守時にこの記述を信じた開発者が、区切り文字を誤って変更したり、誤った parser を書いたりするおそれがある。リポジトリ方針で docstring が必須とされているため、その内容が誤っていることは文書上の欠陥になる。",
+        "trigger": "保守者や利用者が format_digest の docstring を読み、出力を CSV として扱う場合。たとえば \"A\\tS1\\t5\" を comma で分割すると、1列の値として誤って解釈される。",
+        "evidence": "diff の -\"\"\"Produce a deterministic tab-separated export.\"\"\" / +\"\"\"Produce a deterministic comma-separated export.\"\"\"。同じ関数内に lines = [\"warehouse\\tsku\\tquantity\"] と f'{row[\"warehouse\"]}\\t{row[\"sku\"]}\\t{row[\"quantity\"]}' が残っている。要件には \"exports remain deterministic tab-separated text\" とある。"
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:39-40 build_digest のローカル変数 x",
+        "cause": "意味のある変数名 totals が、情報を持たない x に変更された。",
+        "impact": "動作は変わらないが、group_stock が返す (warehouse, sku) 単位の集計値であることが変数名から読み取れなくなる。「保守に向けた準備」という変更の目的に反して可読性が下がる。",
+        "trigger": "build_digest を読む・修正する保守作業の際に、x の意味を確認するため group_stock まで追う必要が生じる。",
+        "evidence": "diff の -    totals = group_stock(records) / -    rows = render_rows(totals) / +    x = group_stock(records) / +    rows = render_rows(x)。"
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:67-69 _legacy_header",
+        "cause": "「retired export renderer」用とされる未使用の private 関数が新たに追加された。",
+        "impact": "変更セットにはすべての consumer が含まれているが、どこからも呼ばれていない dead code である。comma 区切りのヘッダー \"Warehouse,Item,On hand\" を返すため、F1 の誤った docstring と組み合わさると、出力形式が comma 区切りであるかのような誤解を強める。保守対象のコードも不要に増える。",
+        "trigger": "保守者が _legacy_header を現行の形式定義と誤認して再利用した場合。その時点で、ヘッダーが現行の \"warehouse\\tsku\\tquantity\" と食い違う。",
+        "evidence": "diff の +def _legacy_header(): ... return \"Warehouse,Item,On hand\"。candidate_files の inventory.py 内に _legacy_header の呼び出し箇所はない。requirements には \"All consumers and implementation are included in this changeset.\" とある。"
+      }
+    ],
+    "coverage": [
+      "inventory.py"
+    ],
+    "limitations": [
+      "埋め込まれた base/candidate のファイル内容と diff のみに基づく静的レビューであり、テストやコードの実行は行っていない。",
+      "実行時の挙動(出力内容、ゼロ在庫行の除外、負の調整値の保持、ソート順)は、コードの比較から変更されていないと判断した。実行による確認はしていない。",
+      "source.read() の実装と外部の利用側は、changeset に全て含まれているという要件の記述を前提としており、それ以外は確認していない。"
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "claude-R1-F2-C-free",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038158.3833148,
+  "elapsed_seconds": 20.731871366500854,
+  "input_sha256": "bb7147f9e74da2314cf71127a08e18529b15591256f4cab9ffc7823e75e440b6",
+  "raw_output_sha256": "3461d02063dda29482d6510e5fe093e630b5e253dcf7c4c0d9e4e9211501f1ca",
+  "configured_model": "host default (no override)",
+  "configured_effort": "host default (no override)",
+  "effective_effort": null
+}

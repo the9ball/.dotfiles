@@ -1,0 +1,200 @@
+{
+  "observations": [
+    {
+      "anonymous_id": "O001",
+      "findings": [
+        {
+          "id": "F1",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py: Allocator.reserve_many",
+          "cause": "Each line is validated against the same initial SKU availability without subtracting quantities from earlier lines.",
+          "impact": "A batch can oversell inventory and commit negative available stock. This requires a fix to preserve inventory limits and the catalog alias contract.",
+          "trigger": "With A holding 10 units, submit two lines requesting 6 units each for the same product, or for two aliases resolving to A.",
+          "evidence": "The available dictionary holds 10 for A, so both quantities pass validation. The subsequent movements subtract 12 and commit availability of -2. Repository.move_stock has no constraint preventing this. Existing batch tests use distinct SKUs and do not cover cumulative demand."
+        },
+        {
+          "id": "F2",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py: Allocator.replace",
+          "cause": "The quantity adjustment updates reservations.quantity but leaves releases.quantity at the original value.",
+          "impact": "Scheduled expiry returns the wrong inventory quantity, permanently corrupting available stock. The scheduled release must track the adjusted quantity while retaining its deadline.",
+          "trigger": "Starting with 10 units, reserve 4, replace its quantity with 5, then call expire(repository, 100) at its deadline.",
+          "evidence": "Replacement leaves availability at 5 and the release quantity at 4. expiry.expire reads quantity from releases, so expiry restores availability to 9 instead of 10. Reducing the reservation to 2 instead restores availability to 12. The replacement tests inspect availability only before expiry."
+        },
+        {
+          "id": "F3",
+          "severity": "P2",
+          "category": "material",
+          "location": "allocation.py: Allocator.replace",
+          "cause": "Eligibility checks only the active flag and never checks whether the reservation deadline has passed.",
+          "impact": "Quantity changes can succeed at or after expiry, contrary to the requirement that adjustments apply before expiry.",
+          "trigger": "A reservation expires at timestamp 100, and a replacement request is dispatched at timestamp 100 or later before the expiry worker processes that reservation.",
+          "evidence": "Repository.create leaves active set to 1 until Repository.close is called. Allocator.replace checks that flag but has no current-time input or deadline comparison. A single dispatch thread prevents concurrent execution but does not establish that expiry runs before every request."
+        },
+        {
+          "id": "F4",
+          "severity": "P3",
+          "category": "quality",
+          "location": "README.md:11",
+          "cause": "The documented batch response key contradicts both the required contract and the implementation.",
+          "impact": "Customers following the documentation will read a nonexistent reservations field. The documentation requires correction to describe items and its line positions.",
+          "trigger": "A caller follows the README and accesses response[\"reservations\"] after a successful reserve_batch request.",
+          "evidence": "README.md states that batch responses contain a top-level reservations array. ReservationAPI.reserve_batch returns {\"items\": ...}, and test_batch_response accesses response[\"items\"]."
+        }
+      ],
+      "limitations": [
+        "Review used only the embedded frozen evidence; no tools, external services, or file access were used.",
+        "No tests were executed during this review. Failure examples are derived from the supplied code.",
+        "The deadline finding concerns requests dispatched before overdue reservations are processed; the supplied evidence specifies no expiry-before-request ordering guarantee."
+      ]
+    },
+    {
+      "anonymous_id": "O002",
+      "findings": [
+        {
+          "id": "Q1",
+          "severity": "P2",
+          "category": "quality",
+          "location": "README.md:11",
+          "cause": "The batch response documentation names a top-level reservations array, while the implementation returns items with a line position on each reservation.",
+          "impact": "Customers following the documented response contract will access a nonexistent key and miss the line-position contract.",
+          "trigger": "A customer consumes reserve_batch using the documented reservations key.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, README.md:11 contradicts api.py:29-30 and test_reservations.py:68-69. The supplied requirements also specify items."
+        }
+      ],
+      "limitations": [
+        {
+          "cause": "The frozen evidence does not include a Phase 1 completion record under the current review contract.",
+          "trigger": "These checklist results are used to establish overall review completion.",
+          "impact": "The Phase 2 prerequisite remains unverified. These results cannot establish approval or override substantive defects; the root must resolve Phase 1 status."
+        },
+        {
+          "cause": "Batch validation compares every line against the same initial per-SKU availability without accumulating quantities.",
+          "trigger": "With A stock of 10, a batch contains two lines resolving to A with quantities 6 and 6.",
+          "impact": "Both lines pass validation and commit, leaving available inventory at -2. This material correctness observation requires Phase 1 routing through the root.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:19-26; api.py:27-28; catalog.py:9-11. The alias contract permits different product references to resolve to the same SKU."
+        },
+        {
+          "cause": "In-place replacement changes reservation quantity and stock but leaves the scheduled release quantity unchanged.",
+          "trigger": "Reserve 4 units, replace with 5, then expire the reservation at its deadline.",
+          "impact": "Expiry returns only the original 4 units, leaving available inventory at 9 instead of 10. Decreases can instead over-credit inventory. This material data-integrity observation requires Phase 1 routing through the root.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:35-43 updates only stock and reservations; repository.py:40-43 stores the original release quantity; expiry.py:7-13 reads and returns that stored quantity."
+        },
+        {
+          "cause": "Replacement checks the active flag without checking the reservation deadline or receiving the current timestamp.",
+          "trigger": "A replacement request is dispatched at or after expires_at before the expiry worker processes that reservation.",
+          "impact": "An expired reservation can still have its quantity adjusted, contrary to the supplied before-expiry requirement. Single-thread dispatch alone does not establish expiry-first ordering. Route this material observation to Phase 1 through the root.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776: allocation.py:29-43; api.py:20-23; expiry.py:4-14. No expiry-first dispatch guarantee is included in the supplied requirements or README.md:3-4."
+        },
+        {
+          "cause": "Inspection was restricted to embedded frozen evidence; no tools, file access, external services, or test execution were performed.",
+          "trigger": "Interpreting verification evidence as independently reproduced validation.",
+          "impact": "The supplied logs report six passing base tests and eight passing candidate tests, but those runs were not independently verified. They do not exercise duplicate-SKU batches, expiry after quantity adjustment, or adjustment after the deadline."
+        }
+      ]
+    },
+    {
+      "anonymous_id": "O003",
+      "findings": [
+        {
+          "id": "F1",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py:19-26",
+          "cause": "Batch validation compares each line against the same initial stock snapshot without subtracting quantities from earlier lines for that SKU.",
+          "impact": "A successful batch can oversell inventory and commit negative available stock instead of rejecting the entire request.",
+          "trigger": "With A stock of 10, submit two lines resolving to A with quantities 6 and 6. Both validations pass and the committed available quantity becomes -2. Different catalog aliases resolving to A have the same problem.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, allocation.py:19-22 validates against an unchanged per-SKU snapshot, then lines 24-26 apply every deduction. api.py:27 resolves aliases before allocation; catalog.py:9-11 permits multiple aliases to resolve to one SKU. The supplied tests cover distinct SKUs but omit cumulative demand for a shared SKU."
+        },
+        {
+          "id": "F2",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py:38-43",
+          "cause": "Quantity replacement updates stock and reservations.quantity but leaves the scheduled releases.quantity unchanged.",
+          "impact": "Expiry returns the original quantity, permanently corrupting available inventory after an adjustment.",
+          "trigger": "Starting with A stock of 10, reserve 4 until 100, replace its quantity with 2, then expire at 100. Available inventory rises from 8 to 12. Increasing the reservation to 5 instead leaves only 9 available after expiry.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, allocation.py:38-43 updates only stock and the reservation row. repository.py:40-43 stores the original scheduled release quantity, and expiry.py:7-13 reads and returns that stored quantity. test_reservations.py:47-53 and 70-75 stop before expiry."
+        },
+        {
+          "id": "F3",
+          "severity": "P2",
+          "category": "material",
+          "location": "allocation.py:29-36",
+          "cause": "Replacement checks only the persisted active flag and never establishes that the reservation deadline is still in the future.",
+          "impact": "Quantity changes can succeed after expiry, contrary to the requirement that adjustments apply before expiry. A single dispatch thread does not guarantee that the expiry worker has already processed every due reservation.",
+          "trigger": "A reservation expires at integer timestamp 100. Dispatch replace at timestamp 100 or later before the expiry worker processes that reservation; its active flag remains 1 and the adjustment is accepted.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, allocation.py:29-36 has no deadline comparison or current-time input. api.py:20-23 forwards replacement directly. expiry.py:7-14 deactivates due reservations only when explicitly invoked. The requirements restrict quantity changes to before expiry."
+        },
+        {
+          "id": "Q1",
+          "severity": "P2",
+          "category": "quality",
+          "location": "README.md:11",
+          "cause": "The new batch response documentation names a top-level reservations array, while the implementation and required contract use items.",
+          "impact": "Customers following the documented response shape will access a nonexistent field and fail to consume successful batch responses.",
+          "trigger": "A caller reads response['reservations'] as documented after calling reserve_batch.",
+          "evidence": "At 41c8c08a85e184017f6d0ea275abf2ad1622d776, README.md:11 documents reservations; api.py:29-30 returns items with line positions, and test_reservations.py:67-68 accesses items."
+        }
+      ],
+      "limitations": [
+        "This was a static inspection of the embedded frozen evidence only. No tools were used, files accessed, tests executed, or changes made.",
+        "The supplied verification reports passing tests, but those tests do not exercise shared-SKU batch demand, expiry following quantity adjustment, or replacement at or after the deadline. Failure examples above are deductions from the supplied code.",
+        "External callers and additional repository or host instruction files were not embedded and could not be inspected.",
+        "Checklist checks were assessed after the unrestricted inspection. The material findings remain unresolved; checklist results do not establish Phase 1 acceptance or authorize workflow advancement."
+      ]
+    },
+    {
+      "anonymous_id": "O004",
+      "findings": [
+        {
+          "id": "F1",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py: Allocator.reserve_many",
+          "cause": "Each line is checked against the same initial SKU availability without subtracting quantities accepted for earlier lines.",
+          "impact": "A successful batch can oversell inventory and commit negative available stock. Mandatory fix.",
+          "trigger": "With A having 10 available units, submit two lines reserving 6 units each for A, either through the same product or different catalog aliases resolving to A.",
+          "evidence": "The available dictionary holds 10 for A throughout validation, so both lines pass. The subsequent loop subtracts 12 and creates both reservations, leaving available inventory at -2. The supplied tests only batch distinct SKUs."
+        },
+        {
+          "id": "F2",
+          "severity": "P1",
+          "category": "material",
+          "location": "allocation.py: Allocator.replace",
+          "cause": "Quantity adjustment updates the reservation and stock but leaves releases.quantity at the original reservation quantity.",
+          "impact": "Scheduled expiry corrupts available inventory after a quantity change: increases leak stock and decreases create excess stock. Mandatory fix.",
+          "trigger": "Starting with 10 units, reserve 4 until timestamp 100, replace its quantity with 2 before expiry, then call expire(repository, 100).",
+          "evidence": "Replacement leaves 8 units available but retains a scheduled release of 4. The unchanged expiry worker reads quantity from releases and returns 4, producing 12 available units. Replacing 4 with 5 instead produces only 9 units after expiry. Existing quantity-change tests stop before expiry."
+        },
+        {
+          "id": "F3",
+          "severity": "P2",
+          "category": "material",
+          "location": "allocation.py: Allocator.replace",
+          "cause": "Eligibility checks only the active flag, without checking whether the reservation deadline has passed.",
+          "impact": "Quantity changes can succeed at or after expiry, contrary to the requirement that changes apply before expiry. Mandatory fix.",
+          "trigger": "Create a reservation expiring at 100, then dispatch a replacement request at timestamp 100 or later before the expiry worker processes it.",
+          "evidence": "Reservations remain active until Repository.close is called by the expiry worker. Allocator.replace neither receives nor obtains the current timestamp and never compares it with expires_at. Single-thread dispatch prevents concurrency but does not establish that scheduled expiry always runs before such requests."
+        },
+        {
+          "id": "F4",
+          "severity": "P3",
+          "category": "quality",
+          "location": "README.md:11",
+          "cause": "The batch response documentation names a top-level reservations array instead of items.",
+          "impact": "Customers implementing the documented response lookup will fail to read successful batch responses. Correcting this contract mismatch is a required documentation fix.",
+          "trigger": "A caller follows the README and accesses response[\"reservations\"] after reserve_batch succeeds.",
+          "evidence": "ReservationAPI.reserve_batch returns {\"items\": [...]}, matching the explicit requirement and test_batch_response, while the README documents reservations."
+        }
+      ],
+      "limitations": [
+        "Review used only the embedded frozen evidence; no tools, filesystem access, external services, or agents were used.",
+        "No tests were executed during this review. Failure examples are derived from the supplied source.",
+        "The supplied evidence does not establish an expiry-before-request scheduling guarantee; the deadline finding concerns requests dispatched before the expiry worker processes a due reservation."
+      ]
+    }
+  ]
+}
