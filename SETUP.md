@@ -115,8 +115,8 @@ push 時にも実行したい人だけ、次で pre-push フックを導入し�
 prek install -t pre-push
 ```
 
-pre-push フックが検査するのは、push するコミットで変更されたファイルだけです。
-全ファイルを検査したい場合は、上の manual ステージの手動実行を使います。
+pre-push フックを導入すると、push 時に変更ファイルの有無にかかわらず `prek run --all-files --stage manual` を実行し、CI と同じ全ファイルの構文・設定チェックを行います。
+手動実行も引き続き可能です。
 
 `prek`、`shellcheck`、`jq`、`yq`、`actionlint`、`gitleaks` が PATH にない場合は、リポジトリのルートで `aqua install` を実行し、Aqua の bin を PATH に追加してから再実行します。
 ローカルレジストリの承認が必要な場合は、上の Aqua 導入手順を参照してください。
