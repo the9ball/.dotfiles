@@ -5,7 +5,7 @@
 approval_policy = "on-request"
 approvals_reviewer = "auto_review"
 service_tier = "default"
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 model_reasoning_effort = "high"
 personality = "pragmatic"
 model_verbosity = "low"
@@ -17,7 +17,7 @@ fast_default_opt_out = true
 
 [agents]
 enabled = true
-default_subagent_model = "gpt-6.1-sol"
+default_subagent_model = "gpt-6.2-sol"
 default_subagent_reasoning_effort = "low"
 max_concurrent_threads_per_session = 10
 max_depth = 5
