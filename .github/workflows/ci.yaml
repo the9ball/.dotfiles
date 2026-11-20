@@ -132,12 +132,25 @@ jobs:
         run: |
           & (Join-Path $env:RUNNER_TEMP 'router-tests/router-tests.exe') --shells
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Existing isolated regressions
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
           & pwsh -NoProfile -File tests/docker-ssh-runtime.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & pwsh -NoProfile -File tests/docker-ssh-bootstrap-diagnostics.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & pwsh -NoProfile -File tests/windows-psmux-startup-guards.ps1
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # Retain only the inert executable for a separately recorded Codex subprocess probe.
+      - name: Upload synthetic harness
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: router-synthetic-harness
+          path: ${{ runner.temp }}/router-tests/router-tests.exe
+          if-no-files-found: error
+          retention-days: 1
 
   # Keep a stable required check; every dependency must explicitly succeed.
   required:
