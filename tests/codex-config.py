@@ -85,7 +85,8 @@ class CodexConfigTests(unittest.TestCase):
             with self.subTest(profile=profile):
                 configuration = tomllib.loads(self.render(profile).stdout)
                 self.assertEqual(configuration["windows"]["sandbox"], "mxc")
-                self.assertEqual(configuration["model"], "gpt-6.1-sol")
+                self.assertEqual(configuration["model"], "gpt-6.2-sol")
+                self.assertEqual(configuration["agents"]["default_subagent_model"], "gpt-6.2-sol")
                 self.assertTrue(configuration["features"]["network_proxy"])
                 expected_profile = "default-permissions" if profile == "work" else "personal-standard"
                 self.assertEqual(configuration["default_permissions"], expected_profile)
