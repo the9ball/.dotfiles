@@ -1,5 +1,8 @@
 # Windows SSH専用Docker認証（TPM）
 
+通常SSH・常用psmux・その中で起動するCodexの共通native入口は[ROUTER.md](ROUTER.md)を参照する。
+Routerの実ホスト配置と実Docker受入はソース変更とは別の操作であり、公開前の既存Managed SSH経路は維持する。
+
 Windows 11 + Docker Desktop Linux Engine + OpenSSH + Git Bash用のCredential Helper 0.5.0。
 実行にはPowerShell 7.5以上が必要。旧0.4系deploymentの互換経路にも同じ最低対応版を適用する。
 検証済み実装をこのリポジトリに取り込んだ。CurrentUser DPAPIや既存Credential Managerは使用しない。
