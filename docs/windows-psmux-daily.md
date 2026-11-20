@@ -42,6 +42,10 @@ VBSはBATを非表示のconsoleで起動する。監視はSession IDが1以外�
 
 ## SSHログイン
 
+通常SSH・psmux・CodexのDocker共通入口は[Routerの導入・保証範囲](../docker-ssh/ROUTER.md)を参照する。
+Router公開前のManaged SSH分岐は維持し、公開後はペインとその子へ固定native入口のPATHを継承する。
+既存ペイン・起動済みCodexはSSH再接続だけでは移行しない。serverや作業を止めず、自然な区切りで移行する。
+
 新しい直接対話型SSHログインでは `.bashrc.ssh-psmux` が個人用overlayを読み込み、常用registryの次の操作だけを行う。
 
 ```bash

@@ -1,0 +1,61 @@
+# Configure only the stable native entry; Docker validation and authentication happen on command execution.
+case "${OSTYPE-}" in msys*|cygwin*) ;; *) return 0 ;; esac
+case "${SSH_CONNECTION-}:${PSMUX_SESSION-}:${TMUX-}" in
+    ?*:*:*|*:?*:*|::/tmp/psmux-*,*) ;;
+    *) return 0 ;;
+esac
+
+# An existing but unreadable or malformed publication must never restore the legacy required-bootstrap branch.
+_dotfiles_router_root="${LOCALAPPDATA-}/Dotfiles/DockerRouter"
+if [[ ! -e $_dotfiles_router_root/published && ! -L $_dotfiles_router_root/published ]]; then
+    unset _dotfiles_router_root
+    return 0
+fi
+__dotfiles_docker_router_published=1
+
+# Remove only this overlay's unchanged failure guards when retrying a repaired installation.
+if [[ -n ${_dotfiles_router_guard_docker_definition-} && $(declare -f docker) == "$_dotfiles_router_guard_docker_definition" ]]; then
+    unset -f docker
+    unset _dotfiles_router_guard_docker_definition
+fi
+if [[ -n ${_dotfiles_router_guard_exe_definition-} && $(declare -f docker.exe) == "$_dotfiles_router_guard_exe_definition" ]]; then
+    unset -f docker.exe
+    unset _dotfiles_router_guard_exe_definition
+fi
+
+# Deny ordinary Bash calls when the native entry cannot be selected; this is not native-process isolation.
+_dotfiles_docker_router_unavailable() {
+    printf '%s\n' 'Docker router is unavailable; no other Docker CLI was attempted. Shell remains available.' >&2
+    return 127
+}
+
+_dotfiles_router_binary="$_dotfiles_router_root/bin"
+if _dotfiles_router_binary=$(cygpath -u -- "$_dotfiles_router_binary") &&
+    [[ -f $_dotfiles_router_binary/docker.exe && ! -L $_dotfiles_router_binary/docker.exe ]]; then
+    # Reassert after aqua and local settings, including descendant login Bash startup.
+    export PATH="$_dotfiles_router_binary:$PATH"
+    hash -r
+    if [[ $(type -t docker) == file && $(type -t docker.exe) == file &&
+        $(command -v docker) -ef $_dotfiles_router_binary/docker.exe &&
+        $(command -v docker.exe) -ef $_dotfiles_router_binary/docker.exe ]] &&
+        [[ $("$_dotfiles_router_binary/docker.exe" --dotfiles-router-check 2>/dev/null) == DOTFILES_DOCKER_ROUTER_READY ]]; then
+        unset -f _dotfiles_docker_router_unavailable
+        unset _dotfiles_router_root _dotfiles_router_binary
+        return 0
+    fi
+fi
+printf '%s\n' 'Docker router activation failed; routing is NOT active. Check installation and Docker command resolution; native calls require an intact gateway.' >&2
+# Preserve existing user bindings and report collisions instead of silently replacing them.
+if ! alias docker >/dev/null 2>&1 && ! declare -F docker >/dev/null; then
+    # Reject the ordinary command in this Bash without ending the terminal session.
+    # shellcheck disable=SC2329
+    docker() { _dotfiles_docker_router_unavailable; }
+    _dotfiles_router_guard_docker_definition=$(declare -f docker)
+fi
+if ! alias docker.exe >/dev/null 2>&1 && ! declare -F docker.exe >/dev/null; then
+    # Keep the explicit Windows spelling covered by the same shell failure guard.
+    # shellcheck disable=SC2329
+    docker.exe() { _dotfiles_docker_router_unavailable; }
+    _dotfiles_router_guard_exe_definition=$(declare -f docker.exe)
+fi
+unset _dotfiles_router_root _dotfiles_router_binary
