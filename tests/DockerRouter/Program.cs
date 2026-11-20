@@ -28,9 +28,9 @@ internal static class RouterChecks
         try
         {
             Directory.CreateDirectory(fixture);
-            RunChecks(executable, fixture, arguments.Contains("--shells"));
-            Console.WriteLine($"PASS {assertions} assertions; native children=actual; bootstrap/runtime/dispatcher=inert; ACL/Docker/TPM=NONE");
-            return 0;
+            var nativeVerified = RunChecks(executable, fixture, arguments.Contains("--shells"));
+            Console.WriteLine($"PASS {assertions} gateway assertions; raw native lookup={(nativeVerified ? "VERIFIED" : "BLOCKED")}; bootstrap/runtime/dispatcher=inert; ACL/Docker/TPM=NONE");
+            return nativeVerified ? 0 : 2;
         }
         catch (Exception exception)
         {
@@ -86,6 +86,27 @@ internal static class RouterChecks
     /// <summary>Exercises an ordinary native child's bare docker.exe lookup using the inherited process environment.</summary>
     private static int NativeChild(string[] arguments)
     {
+        var expected = Path.Combine(AppContext.BaseDirectory, "router", "bin", "docker.exe");
+        var windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        // CreateProcess searches these locations before PATH; refuse a fixture escape before executing any CLI.
+        var earlierDirectories = new[] { AppContext.BaseDirectory, Environment.CurrentDirectory,
+            Environment.SystemDirectory, Path.Combine(windows, "System"), windows };
+        foreach (var directory in earlierDirectories)
+        {
+            var candidate = Path.GetFullPath(Path.Combine(directory, "docker.exe"));
+            if (File.Exists(candidate) && !candidate.Equals(expected, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.Error.WriteLine("RAW_NATIVE_LOOKUP_BLOCKED: earlier executable: " + candidate);
+                return 93;
+            }
+        }
+        var selected = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
+            .Select(directory => Path.Combine(directory.Trim('"'), "docker.exe")).FirstOrDefault(File.Exists);
+        if (selected is null || !Path.GetFullPath(selected).Equals(expected, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine("RAW_NATIVE_LOOKUP_BLOCKED: fixture PATH prefix not selected.");
+            return 93;
+        }
         var start = new ProcessStartInfo("docker.exe") { UseShellExecute = false };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         using var process = Process.Start(start)!;
@@ -117,6 +138,7 @@ internal static class RouterChecks
             "DOCKER_CERT_PATH", "DOCKER_SSH_DEPLOYMENT", "DOCKER_SSH_HELPER_ROOT", "DOCKER_SSH_MANAGED", "BUILDX_BUILDER", "BUILDX_CONFIG", "BUILDKIT_HOST" })
             start.Environment.Remove(name);
         start.Environment["PATH"] = Path.Combine(fixture, "router", "bin") + ";" + Path.Combine(fixture, "competing") + ";" + Environment.GetEnvironmentVariable("PATH");
+        start.Environment["ROUTER_FIXTURE_ENTRY"] = Path.Combine(fixture, "router", "bin", "docker.exe");
         if (changes is not null)
             foreach (var change in changes)
                 if (change.Value is null) start.Environment.Remove(change.Key); else start.Environment[change.Key] = change.Value;
@@ -148,7 +170,7 @@ internal static class RouterChecks
         File.WriteAllText(selector, JsonSerializer.Serialize(new { Version = 1, DeploymentRoot = deployment }));
 
     /// <summary>Proves selection, child inheritance, update and error containment through the production gateway code.</summary>
-    private static void RunChecks(string executable, string fixture, bool shells)
+    private static bool RunChecks(string executable, string fixture, bool shells)
     {
         var router = Path.Combine(fixture, "router");
         var binary = CopyExecutable(executable, Path.Combine(router, "bin", "docker.exe"));
@@ -178,13 +200,19 @@ internal static class RouterChecks
         File.WriteAllText(current, validConfiguration);
         Check(Run(binary, ["--dotfiles-router-check-staged"], fixture).Exit == 0, "staging health before publication");
         File.WriteAllText(Path.Combine(router, "published"), "1\n");
+        var nativeProbe = Run(native, ["ps"], fixture);
+        var nativeVerified = nativeProbe.Exit == 0;
+        Check(nativeVerified || nativeProbe.Exit == 93, "native lookup preflight: " + nativeProbe.Error);
+        if (!nativeVerified) Console.Error.Write(nativeProbe.Error);
+        // Continue gateway protocol checks by explicit fixture path when raw OS lookup is blocked; never call this native success.
+        var caller = nativeVerified ? native : binary;
         var parentPath = Environment.GetEnvironmentVariable("PATH");
         foreach (var command in new[] { new[] { "ps" }, new[] { "build", "--tag", "inert:fixture", "." },
             new[] { "compose", "logs", "--tail", "10" }, new[] { "buildx", "build", "." },
             new[] { "run", "inert", "space value", "日本語", "quote\"value", "literal$()" } })
         {
-            var result = Run(native, command, fixture);
-            Check(result.Exit == 0, "native child gateway: " + result.Error);
+            var result = Run(caller, command, fixture);
+            Check(result.Exit == 0, "gateway protocol: " + result.Error);
             using var output = JsonDocument.Parse(result.Output);
             Check(output.RootElement.GetProperty("deployment").GetString() == first, "selected deployment");
             Check(output.RootElement.GetProperty("arguments").EnumerateArray().Select(value => value.GetString()).SequenceEqual(command), "argument boundaries");
@@ -192,40 +220,41 @@ internal static class RouterChecks
             Check(output.RootElement.GetProperty("parentConfig").ValueKind == JsonValueKind.Null, "no parent deployment config");
         }
         Check(Environment.GetEnvironmentVariable("PATH") == parentPath, "parent PATH retained");
-        var streams = Run(native, ["ps", "fixture-stdin"], fixture, input: "inert pipe input\n");
+        var streams = Run(caller, ["ps", "fixture-stdin"], fixture, input: "inert pipe input\n");
         Check(streams.Exit == 0 && streams.Output == "inert pipe input\n" && streams.Error == "fixture-stderr", "stdin/stdout/stderr inherited through native children");
         Select(selector, second);
-        Check(Run(native, ["ps"], fixture).Output.Contains("deployment-two"), "next-call selector change");
+        Check(Run(caller, ["ps"], fixture).Output.Contains("deployment-two"), "next-call selector change");
         foreach (var failure in new[] { "fixture-engine-down", "fixture-auth-failure" })
         {
-            Check(Run(native, ["ps", failure], fixture).Exit == 42, "Docker child failure returned");
-            Check(Run(native, ["ps"], fixture).Exit == 0, "parent/next command remains usable");
+            Check(Run(caller, ["ps", failure], fixture).Exit == 42, "Docker child failure returned");
+            Check(Run(caller, ["ps"], fixture).Exit == 0, "parent/next command remains usable");
         }
         foreach (var environment in new[] { new Dictionary<string, string?> { ["BUILDX_BUILDER"] = "remote" },
             new Dictionary<string, string?> { ["BUILDKIT_HOST"] = "tcp://inert.invalid" },
             new Dictionary<string, string?> { ["BUILDX_CONFIG"] = "other" } })
-            Check(Run(native, ["build", "."], fixture, environment).Exit == 1, "competing builder rejected");
+            Check(Run(caller, ["build", "."], fixture, environment).Exit == 1, "competing builder rejected");
         foreach (var arguments in new[] { new[] { "build", "--builder=remote", "." }, new[] { "buildx", "create" }, new[] { "bake" } })
-            Check(Run(native, arguments, fixture).Exit == 1, "alternate builder arguments rejected");
+            Check(Run(caller, arguments, fixture).Exit == 1, "alternate builder arguments rejected");
         File.Delete(selector);
         Check(Run(binary, ["--dotfiles-router-check"], fixture).Exit == 0, "shell health independent of selector");
-        Check(Run(native, ["ps"], fixture).Exit == 1, "missing selector rejected");
+        Check(Run(caller, ["ps"], fixture).Exit == 1, "missing selector rejected");
         File.WriteAllText(selector, "{");
-        Check(Run(native, ["ps"], fixture).Exit == 1, "malformed selector rejected");
+        Check(Run(caller, ["ps"], fixture).Exit == 1, "malformed selector rejected");
         Select(selector, "invalid");
-        Check(Run(native, ["ps"], fixture).Exit == 1, "deployment validation rejected");
+        Check(Run(caller, ["ps"], fixture).Exit == 1, "deployment validation rejected");
         Select(selector, second);
         foreach (var invalid in new[] { "{", validConfiguration.Replace(payloadName, "../escape"), validConfiguration.Replace(files.Values.First(), new string('0', 64)) })
         {
             File.WriteAllText(current, invalid);
-            var result = Run(native, ["ps"], fixture);
+            var result = Run(caller, ["ps"], fixture);
             Check(result.Exit == 1 && !result.Output.Contains("UNEXPECTED_FALLBACK"), "invalid config/hash never falls back");
         }
         File.WriteAllText(current, validConfiguration);
         File.WriteAllText(Path.Combine(router, "published"), "invalid");
-        Check(Run(native, ["ps"], fixture).Exit == 1, "invalid publication rejected");
+        Check(Run(caller, ["ps"], fixture).Exit == 1, "invalid publication rejected");
         File.WriteAllText(Path.Combine(router, "published"), "1\n");
         if (shells) ShellChecks(fixture, first, selector);
+        return nativeVerified;
     }
 
     /// <summary>Exercises actual Bash/PowerShell children and the actual repository startup gate against the inert bundle.</summary>
@@ -235,10 +264,10 @@ internal static class RouterChecks
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var bash = Path.Combine(programFiles, "Git", "bin", "bash.exe");
         var powershell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
-        var shellCommand = "docker ps";
+        var shellCommand = "selected=$(command -v docker); expected=$(cygpath -u \"$ROUTER_FIXTURE_ENTRY\"); [[ $selected -ef $expected ]] || exit 93; docker ps";
         var bashResult = Run(bash, ["--noprofile", "--norc", "-c", shellCommand], fixture);
         Check(bashResult.Exit == 0 && bashResult.Output.Contains("deployment-one"), "actual Bash native route: " + bashResult.Error);
-        var powershellResult = Run(powershell, ["-NoProfile", "-NonInteractive", "-Command", "& docker.exe ps; exit $LASTEXITCODE"], fixture);
+        var powershellResult = Run(powershell, ["-NoProfile", "-NonInteractive", "-Command", "$selected=Get-Command docker.exe -CommandType Application; if($selected.Source -ine $env:ROUTER_FIXTURE_ENTRY){exit 93}; & docker.exe ps; exit $LASTEXITCODE"], fixture);
         Check(powershellResult.Exit == 0 && powershellResult.Output.Contains("deployment-one"), "actual PowerShell native route: " + powershellResult.Error);
         var repository = Environment.GetEnvironmentVariable("DOCKER_ROUTER_TEST_REPOSITORY") ?? throw new InvalidDataException("Repository test root required.");
         var home = Path.Combine(fixture, "home");
@@ -249,12 +278,13 @@ internal static class RouterChecks
         File.WriteAllText(Path.Combine(home, ".dotfiles", ".bashrc.ssh-psmux"), "printf OVERLAY_REACHED\n");
         var local = Path.Combine(fixture, "local");
         var environment = new Dictionary<string, string?> { ["HOME"] = home, ["LOCALAPPDATA"] = local, ["SSH_CONNECTION"] = "synthetic ssh", ["PSMUX_SESSION"] = "main" };
-        var startup = "source \"$HOME/.dotfiles/.bashrc\"; printf SHELL_ALIVE; docker ps";
+        var startup = "source \"$HOME/.dotfiles/.bashrc\"; printf SHELL_ALIVE; if ! declare -F docker >/dev/null; then selected=$(command -v docker); expected=$(cygpath -u \"$ROUTER_FIXTURE_ENTRY\"); [[ $selected -ef $expected ]] || exit 93; fi; docker ps";
         var before = Run(bash, ["--noprofile", "--norc", "-c", startup], fixture, environment);
         Check(before.Output.Contains("LEGACY_BOOTSTRAP") && before.Output.Contains("SHELL_ALIVE"), "prepublication legacy branch retained");
         var installed = Path.Combine(local, "Dotfiles", "DockerRouter");
         Directory.CreateDirectory(Path.GetDirectoryName(installed)!);
         Directory.Move(Path.Combine(fixture, "router"), installed);
+        environment["ROUTER_FIXTURE_ENTRY"] = Path.Combine(installed, "bin", "docker.exe");
         var after = Run(bash, ["--noprofile", "--norc", "-c", startup], fixture, environment);
         Check(after.Exit == 0 && !after.Output.Contains("LEGACY_BOOTSTRAP") && after.Output.Contains("SHELL_ALIVE")
             && after.Output.Contains("deployment-one"), "published stale-required flag uses common route: " + after.Error);
