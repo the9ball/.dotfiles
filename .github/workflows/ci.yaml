@@ -103,11 +103,47 @@ jobs:
             gitleaks git --redact --log-opts="--diff-merges=first-parent --max-count=1 $PR_MERGE_SHA"
           fi
 
+  router:
+    name: docker-router-regression
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: '10.0.x'
+      # Only disposable packages and inert fixture processes are created; no installer or Docker is invoked.
+      - name: Build gateway and inert protocol harness
+        shell: pwsh
+        working-directory: docker-ssh
+        run: |
+          & pwsh -NoProfile -File scripts/Build-DockerRouter.ps1 -OutputRoot (Join-Path $env:RUNNER_TEMP 'router-package')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet publish ../tests/DockerRouter/DockerRouter.csproj -c Release --nologo --output (Join-Path $env:RUNNER_TEMP 'router-tests') --artifacts-path (Join-Path $env:RUNNER_TEMP 'router-test-build')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise native and shell children
+        shell: pwsh
+        env:
+          DOCKER_ROUTER_TEST_REPOSITORY: ${{ github.workspace }}
+        run: |
+          & (Join-Path $env:RUNNER_TEMP 'router-tests/router-tests.exe') --shells
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & pwsh -NoProfile -File tests/docker-ssh-runtime.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & pwsh -NoProfile -File tests/docker-ssh-bootstrap-diagnostics.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & pwsh -NoProfile -File tests/windows-psmux-startup-guards.ps1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
   # Keep a stable required check; every dependency must explicitly succeed.
   required:
     name: ci-required
     if: ${{ always() }}
-    needs: [checks]
+    needs: [checks, router]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:

@@ -94,7 +94,27 @@ if [ -r "$HOME/.bashrc.local" ]; then
 	. "$HOME/.bashrc.local"
 fi
 
-# Host-local opt-in is inert until explicitly enabled; a required SSH bootstrap failure ends this shell.
+# The publication gate keeps this live checkout's legacy startup unchanged until a separate router installation.
+unset __dotfiles_docker_router_published
+case "${OSTYPE-}" in
+    msys*|cygwin*)
+        if [ -e "${LOCALAPPDATA-}/Dotfiles/DockerRouter/published" ] ||
+            [ -L "${LOCALAPPDATA-}/Dotfiles/DockerRouter/published" ]; then
+            __dotfiles_docker_router_published=1
+        fi
+        ;;
+esac
+if [ -r "$HOME/.dotfiles/.bashrc.docker-router" ]; then
+    # shellcheck source=.bashrc.docker-router
+    if ! . "$HOME/.dotfiles/.bashrc.docker-router"; then
+        printf '%s\n' 'Docker router startup failed; continuing in the shell.' >&2
+    fi
+elif [ "${__dotfiles_docker_router_published-}" = 1 ]; then
+    printf '%s\n' 'Published Docker router startup file is missing; routing is NOT active. Legacy bootstrap remains disabled.' >&2
+fi
+
+# Host-local opt-in remains legacy-only; a published router supersedes even a stale required flag.
+if [ "${__dotfiles_docker_router_published-}" != 1 ]; then
 case "${OSTYPE-}:${SSH_CONNECTION-}" in
     msys*:?*|cygwin*:?*)
         case "${DOTFILES_DOCKER_SSH-}" in
@@ -113,6 +133,7 @@ case "${OSTYPE-}:${SSH_CONNECTION-}:${DOTFILES_DOCKER_SSH-}" in
         fi
         ;;
 esac
+fi
 
 # Select the SSH overlay after ordinary settings, before attaching to psmux.
 if [ -r "$HOME/.dotfiles/.bashrc.ssh-psmux" ]; then
