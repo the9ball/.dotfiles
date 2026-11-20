@@ -56,6 +56,50 @@ SSHからnew-sessionや監視起動は行わない。デスクトップ監視が
 初回は既存Codex接続を残したまま新しいSSHを開き、手動attach無しで `main` に入ることを確認する。
 SSHクライアントはSession 0でもよい。serverはSession 1のままであることを確認する。
 
+## 常用registryの読み取り確認
+
+SSH hookはrouting変数をsubshellに閉じ込めるため、detach後の通常シェルで単に`psmux list-sessions`を実行しても常用registryを見ているとは限らない。
+Git Bashから次のブロック全体を実行し、表示されるregistryとnamespaceを確認する。
+環境変数と入れ子判定用の変数の解除はsubshell内だけに適用し、親シェルには残さない。
+
+<!-- daily-inspection:start -->
+```bash
+(
+	if [ -z "${LOCALAPPDATA-}" ]; then
+		printf '%s\n' 'LOCALAPPDATA is unavailable; daily registry not selected.' >&2
+		exit 1
+	fi
+	PSMUX_DATA_DIR=$(cygpath -w "$LOCALAPPDATA/Dotfiles/PsmuxDaily/registry") || exit $?
+	export PSMUX_DATA_DIR
+	export PSMUX_NO_WARM=1
+	unset PSMUX_SESSION PSMUX_SESSION_NAME PSMUX_SESSION_DISPLAY_NAME
+	unset PSMUX_REMOTE_ATTACH PSMUX_TARGET_SESSION PSMUX_ACTIVE TMUX TMUX_PANE
+	printf 'registry=%s namespace=dotfiles-session1\n' "$PSMUX_DATA_DIR"
+	daily_sessions=$(command psmux -f NUL -L dotfiles-session1 list-sessions -F '#{session_name}') || exit $?
+	printf '%s\n' "$daily_sessions"
+	case $'\n'"$daily_sessions"$'\n' in
+		*$'\nmain\n'*) ;;
+		*) printf '%s\n' 'Daily main is absent; do not infer recovery readiness.' >&2; exit 1 ;;
+	esac
+	command psmux -f NUL -L dotfiles-session1 list-clients -t main
+)
+```
+<!-- daily-inspection:end -->
+
+`-f NUL`と`PSMUX_NO_WARM=1`で設定起点の新規作成とwarm起動を避け、常用の一覧照会だけを行う。
+`list-sessions`はセッション名のみを表示する。
+取得失敗、`main`不在、`list-clients`失敗はいずれも非0終了となり、停止完了や再作成可能の証拠にはならない。
+空のclient一覧だけでも、monitor/helperや要求提出処理の終了までは証明できない。
+この照会はセッションを作成、attach、停止しないが、psmux本体によるregistry管理情報の更新まで禁止するものではない。
+
+手動復旧の前には、`main`内の作業を保存し、一覧にある他のSSHクライアントと利用者を確認する。
+監視停止の完了は、対応するmonitor/helperとその所有attachの終了、監視ログの終了記録、停止要求の維持を合わせて確認する。
+PIDだけで判定せず、プロセスの起動時刻、実行コマンド、runtime、namespace、世代cookieとの対応を照合し、不明なものがあれば復旧操作を止める。
+serverと作業中paneは監視停止後も残り得るため、他clientの不在や監視終了だけを理由に終了しない。
+
+`bash --noprofile --norc tests/windows-psmux-inspection.sh`は、この文書のブロックを抽出してstubで引数、環境分離、異常終了を検査する。
+実際の常用psmuxへ問い合わせる検証ではない。
+
 ## tmuxとpsmuxの設定の管理
 
 WindowsとそのSSH hookはpsmuxを使用する。aquaのtmux本体はLinux/macOS向けの導入宣言であり、WSLを含む手動利用はリポジトリの自動起動導線だけでは否定できないため維持する。TMUX/TMUX_PANEの判定もpsmux互換の入れ子防止に必要である。
