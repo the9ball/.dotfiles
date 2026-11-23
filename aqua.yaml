@@ -25,7 +25,7 @@ registries:
   name: local
   path: aqua-registry.yaml
 - type: standard
-  ref: v4.590.0
+  ref: v4.591.0
 packages:
 - name: curl/curl-for-win@8.23.0_5
   registry: local
@@ -38,7 +38,7 @@ packages:
 # Windows-native nano for terminal editing (SSH / psmux / Codex).
 - name: chawyehsu/nano-for-windows@v9.3
   registry: local
-- name: twpayne/chezmoi@v2.74.1
+- name: twpayne/chezmoi@v2.74.2
   tags: [ci]
 - name: nodejs/node@v26.13.1
 - name: openai/codex@rust-v0.171.0
@@ -61,7 +61,7 @@ packages:
 - name: stern/stern@v1.35.0
 - name: astral-sh/uv@0.13.9
 - name: anthropics/claude-code@v2.1.330
-- name: BurntSushi/ripgrep@15.2.0
+- name: BurntSushi/ripgrep@16.0.0
 - name: bootandy/dust@v1.2.7
 - name: nektos/act@v0.2.98
 - name: rhysd/actionlint@v1.7.12
