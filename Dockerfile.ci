@@ -23,12 +23,10 @@ RUN set -eu; \
 
 ENV AQUA_ROOT_DIR=/opt/aqua
 WORKDIR /opt/ci-tools
-COPY aqua.yaml aqua-registry.yaml aqua-policy.yaml ./
+COPY aqua.yaml aqua-registry.yaml aqua-policy.yaml chezmoi/.aqua-policy.sha256 ./
 
-# Match the reviewed policy digest in the chezmoi setup scripts.
-RUN printf '%s  aqua-policy.yaml\n' \
-        1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e \
-        | sha256sum --check --strict \
+# Match the reviewed policy digest shared with the chezmoi setup scripts and CI.
+RUN sha256sum --check --strict .aqua-policy.sha256 \
     && aqua policy allow aqua-policy.yaml
 
 # Resolve native binaries during the build so runtime checks need no Aqua lookups.
