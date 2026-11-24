@@ -33,10 +33,11 @@
 - upstream: <https://github.com/minorun365/claude-code-japanese-guard>（`hooks/japanese-guard.py`）。2026-11-24 に固定コミット `2b4965f31b8859ec71dea06395a0aecf15e68da1` から取得しました。
 - upstream（固定コミット）: <https://github.com/minorun365/claude-code-japanese-guard/tree/2b4965f31b8859ec71dea06395a0aecf15e68da1>
 - ライセンスは Apache License 2.0 です。upstream の `LICENSE` と `NOTICE` を、原文のまま [`japanese_guard.LICENSE`](link-targets/agents/hooks/japanese_guard.LICENSE) と [`japanese_guard.NOTICE`](link-targets/agents/hooks/japanese_guard.NOTICE) として同梱しています。
-- 取得時の SHA-256（改行は LF のみ）。リポジトリに格納された Git blob の内容に対する値です。チェックアウト時の改行変換（`core.autocrlf` など）で作業ツリーのファイルが CRLF になると、作業ツリー上のハッシュはこの値と一致しません。照合するときは `git show HEAD:<path>` の内容を使ってください:
-  - `hooks/japanese-guard.py`: `fbc2b46beda83a01fd32c3e0fdc7c0d64e45633c3e9f81d57916b7352e5ea1f1`
-  - `LICENSE`: `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`（同梱ファイルと一致）
-  - `NOTICE`: `200df6d68a3e959ed7c7e0aac1ee14e84d50b5118a5f5191399a098114fee8c5`（同梱ファイルと一致）
+- 固定コミットから取得した upstream のファイルの SHA-256（改行は LF のみ）:
+  - `hooks/japanese-guard.py`: `fbc2b46beda83a01fd32c3e0fdc7c0d64e45633c3e9f81d57916b7352e5ea1f1`（取得時の upstream の値。同梱の `japanese_guard.py` は改修しているため、この値とは一致しません）
+  - `LICENSE`: `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`（同梱の `japanese_guard.LICENSE` の Git blob と一致）
+  - `NOTICE`: `200df6d68a3e959ed7c7e0aac1ee14e84d50b5118a5f5191399a098114fee8c5`（同梱の `japanese_guard.NOTICE` の Git blob と一致）
+- 同梱の LICENSE と NOTICE を照合するときは、`git show HEAD:<path>` の内容を使ってください。チェックアウト時の改行変換（`core.autocrlf` など）で作業ツリーのファイルが CRLF になると、作業ツリー上のハッシュは記録と一致しません。
 - 本体は改修しています。改修の範囲は、hook 入力を UTF-8 のバイト列として読むこと、応答の JSON を ASCII だけで出力すること、`--agent codex` で Codex の Stop hook 用の動作を加えたことです。改修した旨と改修した関数は、ファイル先頭のコメントに記載しています。upstream の既存のコメントと docstring はそのまま残しています。
 - upstream の更新は自動では取り込みません。取り込むときは差分を確認し、固定コミットと SHA-256 を更新してください。
 

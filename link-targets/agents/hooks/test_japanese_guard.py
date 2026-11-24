@@ -7,6 +7,9 @@ Run: uv run --managed-python --no-project --no-python-downloads --python 3.13
 
 from __future__ import annotations
 
+import contextlib
+import importlib.util
+import io
 import json
 import os
 import subprocess
@@ -14,6 +17,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 HOOK_SCRIPT = Path(__file__).with_name("japanese_guard.py")
@@ -199,15 +203,28 @@ class CodexModeTests(unittest.TestCase):
         self.assertIsNotNone(decoded_response(claude_result))
         self.assertIsNone(decoded_response(codex_result))
 
-    def test_unreadable_transcript_path_is_never_opened(self) -> None:
-        """Codex mode must not open transcript_path; a directory path would fail if it did."""
+    def test_codex_mode_never_calls_open(self) -> None:
+        """Codex mode must not open any file, even when the result of a read would be discarded.
 
-        with tempfile.TemporaryDirectory() as directory:
-            result = run_hook(
-                stop_event(ENGLISH_ANSWER, transcript_path=directory), arguments=("--agent", "codex"),
-            )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(decoded_response(result)["decision"], "block")
+        The guard runs in this process with builtins.open replaced by a function
+        that raises AssertionError, which an `except OSError` around a read
+        cannot swallow.
+        """
+
+        event = stop_event(ENGLISH_ANSWER, transcript_path="transcript.jsonl")
+        standard_input = io.TextIOWrapper(io.BytesIO(json.dumps(event).encode("utf-8")), encoding="utf-8")
+        standard_output = io.StringIO()
+        environment = {"JAPANESE_GUARD_WAIT": "0"}
+        with mock.patch.dict(os.environ, environment), mock.patch.object(sys, "argv", [str(HOOK_SCRIPT), "--agent", "codex"]):
+            os.environ.pop("JAPANESE_GUARD_DISABLE", None)
+            specification = importlib.util.spec_from_file_location("japanese_guard_under_test", HOOK_SCRIPT)
+            guard_module = importlib.util.module_from_spec(specification)
+            specification.loader.exec_module(guard_module)
+            with mock.patch("builtins.open", side_effect=AssertionError("open() was called in Codex mode")), \
+                    mock.patch.object(sys, "stdin", standard_input), \
+                    contextlib.redirect_stdout(standard_output):
+                guard_module.main()
+        self.assertEqual(json.loads(standard_output.getvalue())["decision"], "block")
 
     def test_unknown_agent_is_rejected(self) -> None:
         """An unknown agent name must fail instead of silently picking a mode."""

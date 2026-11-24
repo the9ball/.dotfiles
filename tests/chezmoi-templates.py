@@ -6,6 +6,7 @@ Run: python3 -B tests/chezmoi-templates.py
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -373,7 +374,18 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
     configuration = root / "claude-guard.toml"
     configuration.write_text("", encoding="utf-8")
     script_marker = "/.agents/hooks/japanese_guard.py"
+    runner = "uv run --managed-python --no-project --no-python-downloads --python 3.13"
+    # The managed shape: the runner and one bare or double-quoted script argument, nothing after it.
+    managed_pattern = re.compile(
+        "^" + re.escape(runner) + ' ("[^"]*' + re.escape(script_marker) + '"|\\S*' + re.escape(script_marker) + ")$"
+    )
     unrelated_stop = {"hooks": [{"type": "command", "command": "fixture-stop"}]}
+    # Commands that mention the guard's path but are not the managed shape must be kept.
+    kept_lookalikes = [
+        {"type": "command", "command": "python ~" + script_marker + ".bak"},
+        {"type": "command", "command": "python audit.py ~" + script_marker},
+        {"type": "command", "command": runner + " '/home/old user" + script_marker + "'"},
+    ]
     unrelated_tool = {"matcher": "^fixture$", "hooks": [{"type": "command", "command": "fixture-tool"}]}
     baseline = {
         "fixtureMetadata": {"keep": True},
@@ -382,8 +394,8 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
                 unrelated_stop,
                 {"hooks": [
                     {"type": "command", "command": "fixture-shared"},
-                    {"type": "command", "command": "python old" + script_marker},
-                    {"type": "command", "command": "python ~" + script_marker + ".bak"},
+                    {"type": "command", "command": runner + ' "C:/old home' + script_marker + '"'},
+                    *kept_lookalikes,
                 ]},
             ],
             "PreToolUse": [unrelated_tool],
@@ -411,10 +423,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
         hooks = rendered["hooks"]
         if rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]:
             raise ValueError(f"{label}: unrelated configuration changed")
-        kept_shared_group = {"hooks": [
-            {"type": "command", "command": "fixture-shared"},
-            {"type": "command", "command": "python ~" + script_marker + ".bak"},
-        ]}
+        kept_shared_group = {"hooks": [{"type": "command", "command": "fixture-shared"}, *kept_lookalikes]}
         if hooks["Stop"][:2] != [unrelated_stop, kept_shared_group]:
             raise ValueError(f"{label}: unrelated Stop handlers changed")
         if hooks["PreToolUse"][0] != unrelated_tool:
@@ -435,7 +444,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
         for event_name, expected_group in expected_groups.items():
             managed = [
                 handler for group in hooks[event_name] for handler in group.get("hooks", [])
-                if handler.get("command", "").rstrip('"').endswith(script_marker)
+                if managed_pattern.match(handler.get("command", ""))
             ]
             if len(managed) != 1 or hooks[event_name][-1] != expected_group:
                 raise ValueError(f"{label}: expected one guard group at the end of {event_name}")
