@@ -210,6 +210,80 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
     print("Codex homes: Stop preservation and stable reapplication passed")
 
 
+def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
+    """Register the Japanese guard once per event and keep unrelated Claude hooks."""
+    source = checkout / "chezmoi"
+    path = source / "dot_claude" / "modify_settings.json"
+    configuration = root / "claude-guard.toml"
+    configuration.write_text("", encoding="utf-8")
+    script_marker = "/.agents/hooks/japanese_guard.py"
+    unrelated_stop = {"hooks": [{"type": "command", "command": "fixture-stop"}]}
+    unrelated_tool = {"matcher": "^fixture$", "hooks": [{"type": "command", "command": "fixture-tool"}]}
+    baseline = {
+        "fixtureMetadata": {"keep": True},
+        "hooks": {
+            "Stop": [
+                unrelated_stop,
+                {"hooks": [
+                    {"type": "command", "command": "fixture-shared"},
+                    {"type": "command", "command": "python old" + script_marker},
+                ]},
+            ],
+            "PreToolUse": [unrelated_tool],
+        },
+    }
+    # A home directory with a space checks that the Windows command quotes the script path.
+    home_directory = str(root / "home with space").replace("\\", "/")
+    for operating_system in ("linux", "windows"):
+        data_file = root / "claude-guard-data.json"
+        data_file.write_text(json.dumps({
+            "chezmoi": {"os": operating_system, "sourceDir": str(source), "homeDir": home_directory},
+        }), encoding="utf-8")
+        arguments = [
+            str(executable), "--source", str(source),
+            "--destination", environment["HOME"],
+            "--config", str(configuration),
+            "--persistent-state", str(root / "state.boltdb"),
+            "--cache", str(root / "cache"),
+            "--override-data-file", str(data_file), "--no-tty", "--no-pager",
+            "execute-template", "--with-stdin", "--file", str(path),
+        ]
+        label = f"Claude Japanese guard [{operating_system}]"
+        first = run_checked(arguments, checkout, environment, label, json.dumps(baseline), binary=True)
+        rendered = json.loads(first.stdout)
+        hooks = rendered["hooks"]
+        if rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]:
+            raise ValueError(f"{label}: unrelated configuration changed")
+        if hooks["Stop"][:2] != [unrelated_stop, {"hooks": [{"type": "command", "command": "fixture-shared"}]}]:
+            raise ValueError(f"{label}: unrelated Stop handlers changed")
+        if hooks["PreToolUse"][0] != unrelated_tool:
+            raise ValueError(f"{label}: unrelated PreToolUse handlers changed")
+        if not any("dotfiles:language-reminder" in handler.get("command", "")
+                   for group in hooks.get("UserPromptSubmit", []) for handler in group.get("hooks", [])):
+            raise ValueError(f"{label}: language reminder is missing")
+        expected_command = (
+            f'uv run --managed-python --no-project --no-python-downloads --python 3.13 "{home_directory}{script_marker}"'
+            if operating_system == "windows"
+            else "uv run --managed-python --no-project --no-python-downloads --python 3.13 ~/.agents/hooks/japanese_guard.py"
+        )
+        expected_handler = {"type": "command", "command": expected_command, "timeout": 15}
+        expected_groups = {
+            "Stop": {"hooks": [expected_handler]},
+            "PreToolUse": {"matcher": "mcp__.*__wrap_up", "hooks": [expected_handler]},
+        }
+        for event_name, expected_group in expected_groups.items():
+            managed = [
+                handler for group in hooks[event_name] for handler in group.get("hooks", [])
+                if script_marker in handler.get("command", "")
+            ]
+            if len(managed) != 1 or hooks[event_name][-1] != expected_group:
+                raise ValueError(f"{label}: expected one guard group at the end of {event_name}")
+        second = run_checked(arguments, checkout, environment, label + " reapply", first.stdout, binary=True)
+        if second.stdout != first.stdout:
+            raise ValueError(f"{label}: reapply was not byte-stable")
+    print("Claude settings: Japanese guard registration passed")
+
+
 def main():
     """Run template expansion and settings syntax checks with temporary state only."""
     if sys.version_info < (3, 11):
@@ -224,6 +298,7 @@ def main():
         environment = isolated_environment(root, executable)
         check_templates(inputs, checkout, root, executable, environment)
         check_codex_hook_preservation(checkout, root, executable, environment)
+        check_claude_japanese_guard_hooks(checkout, root, executable, environment)
 
 
 if __name__ == "__main__":

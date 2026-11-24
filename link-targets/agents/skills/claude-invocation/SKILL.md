@@ -79,6 +79,21 @@ finally {
 
 When a hook does run, it finds no topic, sends nothing, and ends successfully. `--include-hook-events` adds hook start and response events to the stream when a check needs to observe them.
 
+The Japanese reply guard (`~/.agents/hooks/japanese_guard.py`), registered as a `Stop` and `PreToolUse` hook, sends an English-dominant answer back to be rewritten in Japanese. A child call's output is read by the caller, not shown to the user, and may need to stay in English, so set `JAPANESE_GUARD_DISABLE=1` in the child's environment only, next to removing `NTFY_TOPIC`, and restore the previous value afterwards:
+
+```powershell
+$SavedJapaneseGuardDisable = $env:JAPANESE_GUARD_DISABLE
+$env:JAPANESE_GUARD_DISABLE = '1'
+try {
+  # Start Claude here, inside the NTFY_TOPIC block above.
+}
+finally {
+  $env:JAPANESE_GUARD_DISABLE = $SavedJapaneseGuardDisable
+}
+```
+
+Other hooks keep running; only the guard does nothing.
+
 ### Files and results
 
 - Create one new directory named `claude-invocation-*` directly under the OS temporary directory for each call. Keep the request, output, and standard-error files in it, together with any prompt, session-limited settings, or child-agent definitions the call needs. Pass the prompt from a UTF-8 file with `-RedirectStandardInput` and capture output with `-RedirectStandardOutput`; never put the prompt on the command line or pipe it through a PowerShell string.

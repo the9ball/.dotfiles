@@ -26,6 +26,20 @@
 
 親リポジトリの gitlink だけを配布する場合、サブモジュールの実体と `LICENSE` は含まれません。再帰的に取得・配布する場合は、各サブモジュールのライセンスを維持してください。
 
+## japanese-guard（Claude Code / Codex の hook）
+
+対象: [`link-targets/agents/hooks/japanese_guard.py`](link-targets/agents/hooks/japanese_guard.py)
+
+- upstream: <https://github.com/minorun365/claude-code-japanese-guard>（`hooks/japanese-guard.py`）。2026-11-24 に固定コミット `2b4965f31b8859ec71dea06395a0aecf15e68da1` から取得しました。
+- upstream（固定コミット）: <https://github.com/minorun365/claude-code-japanese-guard/tree/2b4965f31b8859ec71dea06395a0aecf15e68da1>
+- ライセンスは Apache License 2.0 です。upstream の `LICENSE` と `NOTICE` を、原文のまま [`japanese_guard.LICENSE`](link-targets/agents/hooks/japanese_guard.LICENSE) と [`japanese_guard.NOTICE`](link-targets/agents/hooks/japanese_guard.NOTICE) として同梱しています。
+- 取得時の SHA-256（改行は LF のみ。`.gitattributes` の `eol=lf` と一致します）:
+  - `hooks/japanese-guard.py`: `fbc2b46beda83a01fd32c3e0fdc7c0d64e45633c3e9f81d57916b7352e5ea1f1`
+  - `LICENSE`: `c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4`（同梱ファイルと一致）
+  - `NOTICE`: `200df6d68a3e959ed7c7e0aac1ee14e84d50b5118a5f5191399a098114fee8c5`（同梱ファイルと一致）
+- 本体は改修しています。改修の範囲は、hook 入力を UTF-8 のバイト列として読むこと、応答の JSON を ASCII だけで出力すること、`--agent codex` で Codex の Stop hook 用の動作を加えたことです。改修した旨と改修した関数は、ファイル先頭のコメントに記載しています。upstream の既存のコメントと docstring はそのまま残しています。
+- upstream の更新は自動では取り込みません。取り込むときは差分を確認し、固定コミットと SHA-256 を更新してください。
+
 ## Agent Skills
 
 次のローカル fork は、各ディレクトリの `PROVENANCE.md` と `LICENSE` に出所・ライセンスを記録しています。
