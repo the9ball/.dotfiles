@@ -34,7 +34,7 @@ Engineの自動起動、token再登録はしない。
 
 保証は、配置済みの健全な固定入口と継承PATHを使う呼び出しに限る。
 
-別CLIの絶対パス、PATH置換、優先するalias/function、別rootやサービス、WSL、native呼出し元のapplication/current directoryによる別exe選択は対象外。
+別CLIの絶対パス、PATH置換、優先するalias/function、別rootやサービス、WSL、native呼出し元のapplication/current directoryによる別exe選択は対象外。WindowsがPATHより先に検索するシステムディレクトリ（System32、System、Windows）に別の `docker.exe` がある場合も、bare-nameのnative呼び出しはRouterを通らないため対象外とする。
 
 固定入口そのものの欠落は不完全な配置であり、Bashは起動時に明確に異常を通知し、通常のdocker/docker.exeへ失敗guardを置く。
 任意のnative子まで遮断できるとは扱わない。

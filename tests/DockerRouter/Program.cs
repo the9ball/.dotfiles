@@ -150,7 +150,9 @@ internal static class RouterChecks
             RedirectStandardError = true
         };
         foreach (var name in new[] { "DOCKER_CONFIG", "DOCKER_HOST", "DOCKER_CONTEXT", "DOCKER_AUTH_CONFIG", "DOCKER_TLS_VERIFY",
-            "DOCKER_CERT_PATH", "DOCKER_SSH_DEPLOYMENT", "DOCKER_SSH_HELPER_ROOT", "DOCKER_SSH_MANAGED", "BUILDX_BUILDER", "BUILDX_CONFIG", "BUILDKIT_HOST" })
+            "DOCKER_CERT_PATH", "DOCKER_SSH_DEPLOYMENT", "DOCKER_SSH_HELPER_ROOT", "DOCKER_SSH_MANAGED", "BUILDX_BUILDER", "BUILDX_CONFIG", "BUILDKIT_HOST",
+            // Only RunDiagnostic may enable fixture diagnostics; inherited, it would add stderr to exact stream checks.
+            "ROUTER_FIXTURE_DIAGNOSTICS" })
             start.Environment.Remove(name);
         start.Environment["PATH"] = Path.Combine(fixture, "router", "bin") + ";" + Path.Combine(fixture, "competing") + ";" + Environment.GetEnvironmentVariable("PATH");
         start.Environment["ROUTER_FIXTURE_ENTRY"] = Path.Combine(fixture, "router", "bin", "docker.exe");

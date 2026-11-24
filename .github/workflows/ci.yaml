@@ -146,8 +146,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           # The harness accepts an earlier OS search location as out of scope; this runner was cleared, so require proof.
           if (-not ($harnessOutput -match 'raw native lookup=VERIFIED;')) {
-            Write-Error 'Raw native lookup was not verified on a runner with no earlier docker.exe.'
-            exit 1
+            throw 'Raw native lookup was not verified on a runner with no earlier docker.exe.'
           }
       - name: Existing isolated regressions
         if: ${{ !cancelled() }}
