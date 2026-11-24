@@ -148,6 +148,7 @@ class AquaPolicyTests(unittest.TestCase):
         for content in (
             f"{REVIEWED_SHA256}  aqua.yaml\n",
             DIGEST_LINE + f"{REVIEWED_SHA256}  aqua.yaml\n",
+            DIGEST_LINE + f"{REVIEWED_SHA256}  aqua.yaml",
             REVIEWED_SHA256 + "0  aqua-policy.yaml\n",
         ):
             (self.source / DIGEST_FILE_NAME).write_text(content, encoding="utf-8")

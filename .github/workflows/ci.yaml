@@ -57,15 +57,15 @@ jobs:
           github_token: ''
 
       # Match the reviewed digest shared with the run_before_00-aqua-policy templates.
-      # sha256sum trusts the file name inside the digest file, so require the single
-      # aqua-policy.yaml record before checking it.
+      # Compare the whole digest file byte for byte with the policy's checksum line, so
+      # a record for another file or any extra content cannot pass.
       - name: Verify and allow aqua policy
         shell: bash
         run: |
-          digest_file=chezmoi/.aqua-policy.sha256
-          grep -Eqx '[0-9a-f]{64}  aqua-policy\.yaml' "$digest_file"
-          test "$(wc -l < "$digest_file")" -eq 1
-          sha256sum --check --strict "$digest_file"
+          if ! sha256sum aqua-policy.yaml | cmp -s - chezmoi/.aqua-policy.sha256; then
+            echo 'aqua-policy.yaml does not match the reviewed record in chezmoi/.aqua-policy.sha256.' >&2
+            exit 1
+          fi
           aqua policy allow aqua-policy.yaml
 
       # Eagerly download all seven tools before entering steps without a token.

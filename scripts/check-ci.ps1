@@ -16,11 +16,16 @@ $repositoryPath = Split-Path -Parent $PSScriptRoot
 $dockerfilePath = Join-Path $repositoryPath 'Dockerfile.ci'
 $imageName = 'dotfiles-ci-checks:local'
 
-$gitDirectory = (git -C $repositoryPath rev-parse --path-format=absolute --git-dir).Trim()
-$commonGitDirectory = (git -C $repositoryPath rev-parse --path-format=absolute --git-common-dir).Trim()
+$gitDirectory = git -C $repositoryPath rev-parse --path-format=absolute --git-dir
 if ($LASTEXITCODE -ne 0) {
     throw "Cannot resolve the Git directory of $repositoryPath (exit code: $LASTEXITCODE)"
 }
+$commonGitDirectory = git -C $repositoryPath rev-parse --path-format=absolute --git-common-dir
+if ($LASTEXITCODE -ne 0) {
+    throw "Cannot resolve the shared Git directory of $repositoryPath (exit code: $LASTEXITCODE)"
+}
+$gitDirectory = $gitDirectory.Trim()
+$commonGitDirectory = $commonGitDirectory.Trim()
 
 $runArguments = @('--rm', '--mount', "type=bind,source=$repositoryPath,target=/workspace,readonly")
 # A linked worktree's .git file points to a host path the container cannot resolve.

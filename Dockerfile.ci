@@ -27,11 +27,9 @@ WORKDIR /opt/ci-tools
 COPY aqua.yaml aqua-registry.yaml aqua-policy.yaml chezmoi/.aqua-policy.sha256 ./
 
 # Match the reviewed policy digest shared with the chezmoi setup scripts and CI.
-# sha256sum trusts the file name inside the digest file, so require the single
-# aqua-policy.yaml record before checking it.
-RUN grep -Eqx '[0-9a-f]{64}  aqua-policy\.yaml' .aqua-policy.sha256 \
-    && [ "$(wc -l < .aqua-policy.sha256)" -eq 1 ] \
-    && sha256sum --check --strict .aqua-policy.sha256 \
+# Compare the whole digest file byte for byte with the policy's checksum line, so a
+# record for another file or any extra content cannot pass.
+RUN sha256sum aqua-policy.yaml | cmp -s - .aqua-policy.sha256 \
     && aqua policy allow aqua-policy.yaml
 
 # Resolve native binaries during the build so runtime checks need no Aqua lookups.
