@@ -84,17 +84,29 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 ## ローカルでの構文・設定チェック
 
-リポジトリのルートで、push 前に次を手動実行します。
-Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
 チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck（Bash / POSIX sh）、POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
-GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と次のコマンドを実行します。
+GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と `prek run --all-files --stage manual` を実行します。
 ワークフロー自体も actionlint の検査対象です。
+
+push 前は、Docker の Linux エンジン（Windows では Docker Desktop）を起動し、リポジトリのルートから PowerShell 7 で次を実行します。
+
+```powershell
+pwsh -NoProfile -File scripts/check-ci.ps1
+```
+
+スクリプトは [`Dockerfile.ci`](Dockerfile.ci) から CI と同じ Ubuntu 24.04 ベースのイメージをビルドし、作業ツリーを読み取り専用でマウントして `prek run --all-files --stage manual` を実行します。
+ツールは `aqua.yaml` の `ci` タグの宣言から導入するため、Aqua の自動更新に追従します。
+ビルドやチェックに失敗した場合はその終了コードを返します。
+ビルドには Ubuntu のパッケージ配布元と GitHub への接続が必要です。
+Windows のホストで直接実行すると、PATH 上の `sh` や actionlint と ShellCheck の連携が CI と異なる結果になることがあるため、コンテナでの実行を基準にします。
+
+コンテナを使わずに直接実行する場合は、Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
 
 ```sh
 prek run --all-files --stage manual
 ```
 
-POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI では runner の `/bin/sh` を使います。
+POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI とコンテナでは Ubuntu の `/bin/sh` を使います。
 `System32/bash.exe`（WSL ランチャー）の PATH 順序には依存しません。
 Git Bash の `sh` が PATH にある環境で実行してください。
 
