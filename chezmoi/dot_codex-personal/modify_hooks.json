@@ -1,2 +1,3 @@
 {{- /* chezmoi:modify-template */ -}}
-{{ includeTemplate "codex-hooks-modify.tmpl" . -}}
+{{- /* The Japanese reply guard is managed only in the Windows work and personal homes. */ -}}
+{{ includeTemplate "codex-hooks-modify.tmpl" (dict "root" . "japaneseGuard" (eq .chezmoi.os "windows")) -}}

@@ -180,6 +180,76 @@ README.manual.md for the restore procedure.
         "type" "command"
         "command" $languageReminderCommand))) -}}
 {{- $_ = set $hooks "UserPromptSubmit" $userPromptSubmitGroups -}}
+
+{{- /*
+  The reminder above cannot catch a reply that has already drifted into
+  English. japanese_guard.py (published at ~/.agents/hooks, copied from
+  claude-code-japanese-guard; see THIRD_PARTY_NOTICES.md) checks each turn at
+  the Stop hook and the desktop app's wrap_up box at PreToolUse, and asks
+  Claude to rewrite English-dominant text in Japanese. It is registered on
+  every OS but has been checked only on Windows; where uv or Python 3.13 is
+  missing, the hook fails to start and the turn passes unchecked.
+  Python runs through uv, as for the Codex GitHub auth gate, because a bare
+  `python` can fail through the uv launcher on Windows. The managed hooks are
+  found by the whole command shape this template writes, not by a trailing
+  comment, because the shell that runs a hook may not treat `#` as a comment
+  and would pass it to Python: the uv runner below followed by one script
+  argument, bare or double-quoted, ending in /.agents/hooks/japanese_guard.py,
+  and nothing after it. The argument may hold only path characters, so a
+  command such as `... audit.py</tmp/.agents/hooks/japanese_guard.py`, which
+  runs audit.py with a redirection, is not taken for the guard. Any home directory matches, so a move of the home
+  replaces the old hook. Hooks of any other shape are left alone, including
+  ones that pass the guard's path to another program, run a file that only
+  starts with the same path, or start the guard by hand in another way (such
+  a hand-written guard is not replaced and would run next to the managed
+  one). Each apply removes the managed handlers
+  (dropping a group only when it becomes empty because of that), then appends
+  one dedicated group per event; other handlers and groups stay as they were.
+  The timeout covers uv start-up plus the guard's wait of up to 3 seconds for
+  the final answer to reach the transcript.
+*/ -}}
+{{- $japaneseGuardScriptMarker := "/.agents/hooks/japanese_guard.py" -}}
+{{- $japaneseGuardRunner := "uv run --managed-python --no-project --no-python-downloads --python 3.13" -}}
+{{- /* A bare path may hold only plain path characters, and a double-quoted one no ", $, backtick, or backslash, so shell syntax such as a redirection or a substitution never counts as part of the script path. */ -}}
+{{- $japaneseGuardQuotedPath := "\"[^\"$`\\\\]*" -}}
+{{- $japaneseGuardBarePath := `[-A-Za-z0-9_.~/:]*` -}}
+{{- $japaneseGuardScriptPattern := printf `^%s (%s%s"|%s%s)$` (regexQuoteMeta $japaneseGuardRunner) $japaneseGuardQuotedPath (regexQuoteMeta $japaneseGuardScriptMarker) $japaneseGuardBarePath (regexQuoteMeta $japaneseGuardScriptMarker) -}}
+{{- $japaneseGuardCommand := printf "%s ~/.agents/hooks/japanese_guard.py" $japaneseGuardRunner -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $japaneseGuardCommand = printf "%s \"%s%s\"" $japaneseGuardRunner .chezmoi.homeDir $japaneseGuardScriptMarker -}}
+{{- end -}}
+{{- $japaneseGuardHandler := dict "type" "command" "command" $japaneseGuardCommand "timeout" 15 -}}
+{{- $japaneseGuardGroups := dict
+      "Stop" (dict "hooks" (list $japaneseGuardHandler))
+      "PreToolUse" (dict "matcher" "mcp__.*__wrap_up" "hooks" (list $japaneseGuardHandler)) -}}
+{{- range $eventName := list "Stop" "PreToolUse" -}}
+{{-   $keptGroups := list -}}
+{{-   if hasKey $hooks $eventName -}}
+{{-     range $group := (index $hooks $eventName) -}}
+{{-       if and (kindIs "map" $group) (hasKey $group "hooks") -}}
+{{-         $keptGroupHooks := list -}}
+{{-         $removedManagedHook := false -}}
+{{-         range (index $group "hooks") -}}
+{{-           if and (kindIs "map" .) (hasKey . "command") (regexMatch $japaneseGuardScriptPattern (toString (index . "command"))) -}}
+{{-             $removedManagedHook = true -}}
+{{-           else -}}
+{{-             $keptGroupHooks = append $keptGroupHooks . -}}
+{{-           end -}}
+{{-         end -}}
+{{-         if not $removedManagedHook -}}
+{{-           $keptGroups = append $keptGroups $group -}}
+{{-         else if $keptGroupHooks -}}
+{{-           $_ := set $group "hooks" $keptGroupHooks -}}
+{{-           $keptGroups = append $keptGroups $group -}}
+{{-         end -}}
+{{-       else -}}
+{{-         $keptGroups = append $keptGroups $group -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $keptGroups = append $keptGroups (index $japaneseGuardGroups $eventName) -}}
+{{-   $_ := set $hooks $eventName $keptGroups -}}
+{{- end -}}
 {{- $_ = set $settings "hooks" $hooks -}}
 
 {{- $settings | toPrettyJson -}}

@@ -1,2 +1,3 @@
 {{- /* chezmoi:modify-template */ -}}
-{{ includeTemplate "codex-hooks-modify.tmpl" . -}}
+{{- /* The Japanese reply guard is not managed in the WSL home. */ -}}
+{{ includeTemplate "codex-hooks-modify.tmpl" (dict "root" . "japaneseGuard" false) -}}
