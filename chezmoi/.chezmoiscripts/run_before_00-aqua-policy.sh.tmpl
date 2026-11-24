@@ -6,8 +6,11 @@ set -eu
 source_directory='{{ .chezmoi.sourceDir }}'
 repo_root=${source_directory%/*}
 aqua_policy="$repo_root/aqua-policy.yaml"
-# Keep this reviewed digest literal so a policy change cannot approve itself.
-expected_policy_sha256='1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
+# The reviewed digest is written by hand in .aqua-policy.sha256, shared with CI and
+# tests, so a policy change cannot approve itself. Only the exact single
+# aqua-policy.yaml record is accepted; anything else renders an empty digest that
+# never matches.
+expected_policy_sha256='{{ include ".aqua-policy.sha256" | regexFind "\\A[0-9a-f]{64}  aqua-policy\\.yaml\\n\\z" | trunc 64 }}'
 
 if command -v sha256sum >/dev/null 2>&1; then
     policy_checksum_output=$(sha256sum "$aqua_policy")
@@ -19,7 +22,7 @@ else
 fi
 actual_policy_sha256=${policy_checksum_output%% *}
 if [ "$actual_policy_sha256" != "$expected_policy_sha256" ]; then
-    echo 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in both aqua-policy scripts.' >&2
+    echo 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in chezmoi/.aqua-policy.sha256.' >&2
     exit 1
 fi
 

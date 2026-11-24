@@ -1,0 +1,51 @@
+# syntax=docker/dockerfile:1
+FROM ubuntu:24.04
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl git python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG TARGETARCH
+# Pin and verify the Aqua bootstrap binary. Aqua selects the CI tool versions.
+# Keep the version in step with BOOTSTRAP_AQUA_VERSION in ci.yaml and aqua-update.yaml.
+RUN set -eu; \
+    aqua_version=v2.65.2; \
+    case "$TARGETARCH" in \
+        amd64) aqua_sha256=971abaccd16d0521fdb8e45990dba2aea17587f476aa075b621aeb972f52a61f ;; \
+        arm64) aqua_sha256=7abd3d2c27efad797c3284ab1ff21875b143daba28aecb2088917115b7f9cc81 ;; \
+        *) echo "Unsupported Aqua architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    curl --fail --silent --show-error --location --retry 5 \
+        "https://github.com/aquaproj/aqua/releases/download/$aqua_version/aqua_linux_$TARGETARCH.tar.gz" \
+        --output /tmp/aqua.tar.gz; \
+    printf '%s  /tmp/aqua.tar.gz\n' "$aqua_sha256" | sha256sum --check --strict; \
+    tar -xzf /tmp/aqua.tar.gz -C /usr/local/bin aqua; \
+    rm /tmp/aqua.tar.gz
+
+ENV AQUA_ROOT_DIR=/opt/aqua
+WORKDIR /opt/ci-tools
+COPY aqua.yaml aqua-registry.yaml aqua-policy.yaml chezmoi/.aqua-policy.sha256 ./
+
+# Match the reviewed policy digest shared with the chezmoi setup scripts and CI.
+# Compare the whole digest file byte for byte with the policy's checksum line, so a
+# record for another file or any extra content cannot pass.
+RUN sha256sum aqua-policy.yaml | cmp -s - .aqua-policy.sha256 \
+    && aqua policy allow aqua-policy.yaml
+
+# Resolve native binaries during the build so runtime checks need no Aqua lookups.
+RUN set -eu; \
+    aqua install --tags ci || aqua install --tags ci; \
+    for tool in actionlint chezmoi gitleaks jq prek shellcheck yq; do \
+        executable=$(aqua which "$tool"); \
+        test -x "$executable"; \
+        ln -s "$executable" "/usr/local/bin/$tool"; \
+    done
+
+ENV CHEZMOI_TEST_BINARY=/usr/local/bin/chezmoi
+ENV GIT_OPTIONAL_LOCKS=0
+WORKDIR /workspace
+# The bind mounts are owned by a host user, and a linked worktree's Git directory is
+# mounted under another path; this disposable container only reads them.
+RUN git config --system --add safe.directory '*'
+
+CMD ["prek", "run", "--all-files", "--stage", "manual"]

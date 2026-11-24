@@ -47,7 +47,7 @@ Codex Desktopのプロジェクトと関連フォルダーの設定は、アプ�
 - `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
 
 ポリシーのハッシュ不一致、ファイル欠落、検証コマンドの失敗、承認失敗があれば、設定ファイルの変更前に適用を停止します。
-ポリシーを変更するときは、`aqua-policy.yaml`と`aqua-registry.yaml`の内容を確認し、`chezmoi/.chezmoiscripts/run_before_00-aqua-policy.ps1.tmpl`と`run_before_00-aqua-policy.sh.tmpl`の固定ハッシュを更新します。
+ポリシーを変更するときは、`aqua-policy.yaml`と`aqua-registry.yaml`の内容を確認し、`chezmoi/.aqua-policy.sha256`の固定ハッシュを更新します。chezmoiのスクリプト、CI、`Dockerfile.ci`、テストはこのファイルを参照します。
 `run_before`内の名前順でガードを先頭にするため、`00-`をガード用に予約し、ほかの`run_before`には後続の名前を付けます。
 ポリシーからハッシュを自動生成するテンプレートにはしません。
 この検証は信頼したリポジトリのスクリプトを実行する前提で、ポリシーの変更を検出します。
@@ -84,17 +84,29 @@ WSLでの具体的なコマンドは、[`codex-wsl/SETUP.md`](codex-wsl/SETUP.md
 
 ## ローカルでの構文・設定チェック
 
-リポジトリのルートで、push 前に次を手動実行します。
-Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
 チェック定義は `.pre-commit-config.yaml` に集約しており、ShellCheck（Bash / POSIX sh）、POSIX sh の構文、JSON / YAML / TOML のパース、GitHub Actions の構文を検査します。
-GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と次のコマンドを実行します。
+GitHub Actions の [CI ワークフロー](.github/workflows/ci.yaml) も、master を base とする PR と master への push で、同じ定義と `prek run --all-files --stage manual` を実行します。
 ワークフロー自体も actionlint の検査対象です。
+
+push 前は、Docker の Linux エンジン（Windows では Docker Desktop）を起動し、リポジトリのルートから PowerShell 7 で次を実行します。
+
+```powershell
+pwsh -NoProfile -File scripts/check-ci.ps1
+```
+
+スクリプトは [`Dockerfile.ci`](Dockerfile.ci) から CI と同じ Ubuntu 24.04 ベースのイメージをビルドし、作業ツリーを読み取り専用でマウントして `prek run --all-files --stage manual` を実行します。
+ツールは `aqua.yaml` の `ci` タグの宣言から導入するため、Aqua の自動更新に追従します。
+ビルドやチェックに失敗した場合はその終了コードを返します。
+ビルドには Ubuntu のパッケージ配布元と GitHub への接続が必要です。
+Windows のホストで直接実行すると、PATH 上の `sh` や actionlint と ShellCheck の連携が CI と異なる結果になることがあるため、コンテナでの実行を基準にします。
+
+コンテナを使わずに直接実行する場合は、Windows では Git Bash、WSL では WSL 内のシェルから実行してください。
 
 ```sh
 prek run --all-files --stage manual
 ```
 
-POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI では runner の `/bin/sh` を使います。
+POSIX sh の構文チェックは Windows では Git Bash 内の `/bin/sh`、Ubuntu CI とコンテナでは Ubuntu の `/bin/sh` を使います。
 `System32/bash.exe`（WSL ランチャー）の PATH 順序には依存しません。
 Git Bash の `sh` が PATH にある環境で実行してください。
 
@@ -200,7 +212,7 @@ CI の検査ジョブは GitHub-hosted の `ubuntu-24.04` で動き、集約ジ�
 このチェックを ruleset に登録する作業は別途行います。
 
 Aqua 本体は公式の aqua-installer Action で導入し、自動の全ツール導入は無効にします。
-既存の chezmoi スクリプトと同じ固定 SHA-256 を照合してから `aqua policy allow aqua-policy.yaml` を実行します。
+chezmoi スクリプトと共通の `chezmoi/.aqua-policy.sha256` で固定 SHA-256 を照合してから `aqua policy allow aqua-policy.yaml` を実行します。
 `aqua.yaml` の `ci` タグを持つ prek、shellcheck、jq、yq、actionlint、gitleaks、chezmoi の 7 パッケージだけを `aqua install --tags ci` で事前にダウンロードします（リンクだけを作る `-l` は使いません）。
 読み取り専用の `GITHUB_TOKEN` はこのツール導入ステップの環境変数にだけ渡し、aqua-installer へのトークン入力は空にします。
 prek と gitleaks の実行ステップには渡しません。
@@ -232,7 +244,7 @@ CI には次の残留リスクがあります。
 - PR で `.gitleaks.toml` や `.gitleaksignore` を追加または変更すると、gitleaks の検出を抑止できます。
 - `pull_request` を使い、`permissions` は `contents: read` のみ、checkout は `persist-credentials: false` とし、ワークフローは secrets を参照しません。fork PR は GitHub 側の権限制約と実行承認の設定を境界にします。同一リポジトリからの PR と push では、ワークフローの書き換えにより書き込み権限や設定済みの secrets に届くリスクが残ります。Actions の既定トークン権限を read にしても上限にはなりません。このリスクは当面受容し、[Issue #208](https://github.com/the9ball/.dotfiles/issues/208) で見直します。
 - `aqua.yaml` の checksum 検証は無効のままです。今回の CI 追加では有効化していません。
-- policy の固定 SHA-256 は、既存の `run_before_00-aqua-policy.ps1.tmpl` / `run_before_00-aqua-policy.sh.tmpl` と CI ワークフローで二重管理します。policy を変更するときは、内容を確認したうえで双方の固定値を更新します。
+- policy の固定 SHA-256 は `chezmoi/.aqua-policy.sha256` の 1 か所で管理し、`run_before_00-aqua-policy.ps1.tmpl` / `run_before_00-aqua-policy.sh.tmpl`、CI ワークフロー、`Dockerfile.ci`、`tests/aqua-policy.py` はこのファイルを読んで照合します。値は policy から計算せず、レビュー済みの値をこのファイルに直接書きます。policy を変更するときは、内容を確認したうえでこのファイルの値を更新します。
 
 ## Windows
 

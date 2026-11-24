@@ -14,7 +14,7 @@
 
 ## push 前のローカル検証
 
-- push 前に `.github/workflows/ci.yaml` と `SETUP.md` の検証手順を確認し、CI と共通のチェック `prek run --all-files --stage manual` をリポジトリのルートで実行する。Desktop Commander を利用できる場合も、接続先のローカル環境で実行する。
+- push 前に `.github/workflows/ci.yaml` と `SETUP.md` の検証手順を確認し、リポジトリのルートで `pwsh -NoProfile -File scripts/check-ci.ps1` を実行する。Docker の Linux エンジンを使い、CI と同じ Ubuntu 24.04 と `aqua.yaml` の `ci` タグのツールを入れたコンテナで `prek run --all-files --stage manual` を実行する。このコンテナは CI の runner そのものではない。Desktop Commander を利用できる場合も、接続先のローカル環境で実行する。
 - チェックが失敗した場合は原因を修正して再実行し、成功を確認するまで push しない。
 - 実行できないチェックがある場合は、理由と未検証の範囲を報告する。ローカル検証の成功を装わず、CI と完全に同一の環境で検証できたとも主張しない。
 - `pre-push` フックの導入は任意であり、フックの有無にかかわらず上記の全ファイルチェックを実行する。

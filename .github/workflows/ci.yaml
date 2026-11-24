@@ -56,12 +56,16 @@ jobs:
           skip_install_aqua: 'true'
           github_token: ''
 
-      # Match the reviewed digest in both run_before_00-aqua-policy templates.
+      # Match the reviewed digest shared with the run_before_00-aqua-policy templates.
+      # Compare the whole digest file byte for byte with the policy's checksum line, so
+      # a record for another file or any extra content cannot pass.
       - name: Verify and allow aqua policy
         shell: bash
         run: |
-          expected_policy_sha256='1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
-          printf '%s  aqua-policy.yaml\n' "$expected_policy_sha256" | sha256sum --check --strict
+          if ! sha256sum aqua-policy.yaml | cmp -s - chezmoi/.aqua-policy.sha256; then
+            echo 'aqua-policy.yaml does not match the reviewed record in chezmoi/.aqua-policy.sha256.' >&2
+            exit 1
+          fi
           aqua policy allow aqua-policy.yaml
 
       # Eagerly download all seven tools before entering steps without a token.

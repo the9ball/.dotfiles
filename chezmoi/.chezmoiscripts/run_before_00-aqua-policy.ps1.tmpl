@@ -4,12 +4,15 @@ $ErrorActionPreference = 'Stop'
 # The 00- target name reserves the first before-script slot for this guard.
 $repoRoot = Split-Path -Parent '{{ .chezmoi.sourceDir }}'
 $aquaPolicy = Join-Path $repoRoot 'aqua-policy.yaml'
-# Keep this reviewed digest literal: deriving it from the template input would
-# automatically approve policy changes instead of requiring a new review.
-$expectedPolicySha256 = '1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e'
+# The reviewed digest is written by hand in .aqua-policy.sha256, shared with CI and
+# tests: deriving it from the policy would approve policy changes without a review.
+# A file, unlike chezmoi data, cannot be overridden by a local configuration. Only the
+# exact single aqua-policy.yaml record is accepted; anything else renders an empty
+# digest that never matches.
+$expectedPolicySha256 = '{{ include ".aqua-policy.sha256" | regexFind "\\A[0-9a-f]{64}  aqua-policy\\.yaml\\n\\z" | trunc 64 }}'
 $actualPolicySha256 = (Get-FileHash -LiteralPath $aquaPolicy -Algorithm SHA256).Hash
 if ($actualPolicySha256 -ne $expectedPolicySha256) {
-    throw 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in both aqua-policy scripts.'
+    throw 'aqua-policy.yaml does not match the reviewed SHA-256. Review the policy and local registry before updating the pinned digest in chezmoi/.aqua-policy.sha256.'
 }
 
 $aqua = (Get-Command aqua -ErrorAction Stop).Source

@@ -13,7 +13,10 @@ import unittest
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 SCRIPT_DIRECTORY = REPOSITORY / "chezmoi" / ".chezmoiscripts"
-REVIEWED_SHA256 = "1fb7fc1e81fa25ae43e141cb04e1c8e7799bb20729cfe1a278a666fe0d649d2e"
+DIGEST_FILE_NAME = ".aqua-policy.sha256"
+DIGEST_FILE = REPOSITORY / "chezmoi" / DIGEST_FILE_NAME
+DIGEST_LINE = DIGEST_FILE.read_text(encoding="utf-8")
+REVIEWED_SHA256 = DIGEST_LINE.split()[0]
 
 
 class AquaPolicyTests(unittest.TestCase):
@@ -26,6 +29,7 @@ class AquaPolicyTests(unittest.TestCase):
         self.root = Path(self.temporary_directory.name) / "repository with spaces"
         self.source = self.root / "chezmoi"
         self.source.mkdir(parents=True)
+        shutil.copyfile(DIGEST_FILE, self.source / DIGEST_FILE_NAME)
         self.home = self.root / "home"
         self.home.mkdir()
         self.policy = self.root / "aqua-policy.yaml"
@@ -122,8 +126,46 @@ class AquaPolicyTests(unittest.TestCase):
         )
 
     def test_reviewed_policy_matches_pin(self):
-        """Keep the reviewed fixture independent from the scripts' literal digests."""
+        """Require the committed policy to match the single reviewed digest file."""
         self.assertEqual(hashlib.sha256(self.policy.read_bytes()).hexdigest(), REVIEWED_SHA256)
+
+    def test_digest_file_uses_checksum_format(self):
+        """Keep one sha256sum line so CI and the container can check it directly."""
+        self.assertRegex(DIGEST_LINE, r"\A[0-9a-f]{64}  aqua-policy\.yaml\n\Z")
+
+    def test_malformed_digest_is_rejected_before_approval(self):
+        """Reject the policy when the digest file holds no valid SHA-256."""
+        (self.source / DIGEST_FILE_NAME).write_text("not-a-digest  aqua-policy.yaml\n", encoding="utf-8")
+        for platform in ("windows", "linux", "darwin"):
+            with self.subTest(platform=platform):
+                result = self.run_guard(platform)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(b"reviewed SHA-256", result.stderr)
+                self.assertFalse(self.log.exists())
+
+    def test_digest_for_another_file_is_rejected_before_approval(self):
+        """Reject a valid-looking record that names another file or adds more records."""
+        for content in (
+            f"{REVIEWED_SHA256}  aqua.yaml\n",
+            DIGEST_LINE + f"{REVIEWED_SHA256}  aqua.yaml\n",
+            DIGEST_LINE + f"{REVIEWED_SHA256}  aqua.yaml",
+            REVIEWED_SHA256 + "0  aqua-policy.yaml\n",
+        ):
+            (self.source / DIGEST_FILE_NAME).write_text(content, encoding="utf-8")
+            for platform in ("windows", "linux"):
+                with self.subTest(content=content, platform=platform):
+                    result = self.run_guard(platform)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(b"reviewed SHA-256", result.stderr)
+                    self.assertFalse(self.log.exists())
+
+    def test_missing_digest_stops_rendering(self):
+        """Fail template rendering instead of producing a guard without a digest."""
+        (self.source / DIGEST_FILE_NAME).unlink()
+        for platform in ("windows", "linux"):
+            with self.subTest(platform=platform):
+                with self.assertRaises(subprocess.CalledProcessError):
+                    self.render(platform)
 
     def test_before_script_names_reserve_guard_slot(self):
         """Reserve 00- for both guards and require later numbers only for before scripts."""
@@ -224,7 +266,7 @@ class AquaPolicyTests(unittest.TestCase):
         scripts.mkdir(parents=True)
         home = fixture / "home"
         home.mkdir()
-        for repository_file in ("AGENTS.md", ".chezmoiignore"):
+        for repository_file in ("AGENTS.md", ".chezmoiignore", DIGEST_FILE_NAME):
             shutil.copyfile(REPOSITORY / "chezmoi" / repository_file, source / repository_file)
         for dependency in ("aqua.yaml", "aqua-registry.yaml", "winget.json", ".pre-commit-config.yaml"):
             shutil.copyfile(REPOSITORY / dependency, fixture / dependency)
@@ -315,6 +357,7 @@ class AquaPolicyTests(unittest.TestCase):
                         self.assertEqual(set(calls[1:]), expected)
                         self.assertEqual(len(calls) - 1, len(expected))
                         self.assertEqual(marker.read_text(encoding="utf-8"), "after\n")
+                        self.assertFalse((home / DIGEST_FILE_NAME).exists())
                     else:
                         self.assertNotEqual(result.returncode, 0)
                         self.assertEqual(marker.read_text(encoding="utf-8"), "before\n")

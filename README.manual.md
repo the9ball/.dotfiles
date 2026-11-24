@@ -759,7 +759,7 @@ aqua install --config "$HOME\.dotfiles\aqua.yaml"
 psmux -V
 ```
 
-ポリシー変更時は、許可範囲とローカル registry の配布元をレビューしてから、PowerShell版とPOSIX版の`run_before_00-aqua-policy`にある固定ハッシュを更新します。
+ポリシー変更時は、許可範囲とローカル registry の配布元をレビューしてから、`chezmoi/.aqua-policy.sha256`の固定ハッシュを更新します。PowerShell版とPOSIX版の`run_before_00-aqua-policy`、CI、`Dockerfile.ci`、テストはこのファイルを参照します。
 コメントや改行だけの変更もハッシュ不一致になります。
 `python -B tests/aqua-policy.py -v`で、実際のchezmoiテンプレートから生成したスクリプトの正常系と異常系を検証できます。
 テストにはAqua、導入済みのchezmoi、PowerShell 7、POSIXシェル（WindowsではGit Bash）を使います。
