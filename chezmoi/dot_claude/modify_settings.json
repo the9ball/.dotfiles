@@ -195,7 +195,9 @@ README.manual.md for the restore procedure.
   comment, because the shell that runs a hook may not treat `#` as a comment
   and would pass it to Python: the uv runner below followed by one script
   argument, bare or double-quoted, ending in /.agents/hooks/japanese_guard.py,
-  and nothing after it. Any home directory matches, so a move of the home
+  and nothing after it. The argument may hold only path characters, so a
+  command such as `... audit.py</tmp/.agents/hooks/japanese_guard.py`, which
+  runs audit.py with a redirection, is not taken for the guard. Any home directory matches, so a move of the home
   replaces the old hook. Hooks of any other shape are left alone, including
   ones that pass the guard's path to another program, run a file that only
   starts with the same path, or start the guard by hand in another way (such
@@ -208,7 +210,10 @@ README.manual.md for the restore procedure.
 */ -}}
 {{- $japaneseGuardScriptMarker := "/.agents/hooks/japanese_guard.py" -}}
 {{- $japaneseGuardRunner := "uv run --managed-python --no-project --no-python-downloads --python 3.13" -}}
-{{- $japaneseGuardScriptPattern := printf `^%s ("[^"]*%s"|\S*%s)$` (regexQuoteMeta $japaneseGuardRunner) (regexQuoteMeta $japaneseGuardScriptMarker) (regexQuoteMeta $japaneseGuardScriptMarker) -}}
+{{- /* A bare path may hold only plain path characters, and a double-quoted one no ", $, backtick, or backslash, so shell syntax such as a redirection or a substitution never counts as part of the script path. */ -}}
+{{- $japaneseGuardQuotedPath := "\"[^\"$`\\\\]*" -}}
+{{- $japaneseGuardBarePath := `[-A-Za-z0-9_.~/:]*` -}}
+{{- $japaneseGuardScriptPattern := printf `^%s (%s%s"|%s%s)$` (regexQuoteMeta $japaneseGuardRunner) $japaneseGuardQuotedPath (regexQuoteMeta $japaneseGuardScriptMarker) $japaneseGuardBarePath (regexQuoteMeta $japaneseGuardScriptMarker) -}}
 {{- $japaneseGuardCommand := printf "%s ~/.agents/hooks/japanese_guard.py" $japaneseGuardRunner -}}
 {{- if eq .chezmoi.os "windows" -}}
 {{-   $japaneseGuardCommand = printf "%s \"%s%s\"" $japaneseGuardRunner .chezmoi.homeDir $japaneseGuardScriptMarker -}}

@@ -377,7 +377,8 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
     runner = "uv run --managed-python --no-project --no-python-downloads --python 3.13"
     # The managed shape: the runner and one bare or double-quoted script argument, nothing after it.
     managed_pattern = re.compile(
-        "^" + re.escape(runner) + ' ("[^"]*' + re.escape(script_marker) + '"|\\S*' + re.escape(script_marker) + ")$"
+        "^" + re.escape(runner) + ' ("[^"$`\\\\]*' + re.escape(script_marker)
+        + '"|[-A-Za-z0-9_.~/:]*' + re.escape(script_marker) + ")$"
     )
     unrelated_stop = {"hooks": [{"type": "command", "command": "fixture-stop"}]}
     # Commands that mention the guard's path but are not the managed shape must be kept.
@@ -385,6 +386,8 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
         {"type": "command", "command": "python ~" + script_marker + ".bak"},
         {"type": "command", "command": "python audit.py ~" + script_marker},
         {"type": "command", "command": runner + " '/home/old user" + script_marker + "'"},
+        {"type": "command", "command": runner + " audit.py</tmp" + script_marker},
+        {"type": "command", "command": runner + ' "$(fixture)' + script_marker + '"'},
     ]
     unrelated_tool = {"matcher": "^fixture$", "hooks": [{"type": "command", "command": "fixture-tool"}]}
     baseline = {
