@@ -125,13 +125,30 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet publish ../tests/DockerRouter/DockerRouter.csproj -c Release --nologo --output (Join-Path $env:RUNNER_TEMP 'router-tests') --artifacts-path (Join-Path $env:RUNNER_TEMP 'router-test-build')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      # The runner image installs docker.exe into System32, which CreateProcess searches before PATH. That location is
+      # outside the router's guarantee, so move it aside on this disposable runner to let CI prove PATH-based routing.
+      - name: Clear docker.exe from locations searched before PATH
+        shell: pwsh
+        run: |
+          $systemDocker = Join-Path ([Environment]::SystemDirectory) 'docker.exe'
+          if (Test-Path -LiteralPath $systemDocker) {
+            Rename-Item -LiteralPath $systemDocker -NewName 'docker.exe.runner-image' -ErrorAction Stop
+          }
+          $earlierDirectories = @([Environment]::SystemDirectory, (Join-Path $env:windir 'System'), $env:windir)
+          $remaining = @($earlierDirectories | ForEach-Object { Join-Path $_ 'docker.exe' } | Where-Object { Test-Path -LiteralPath $_ })
+          if ($remaining.Count -gt 0) { throw "docker.exe still precedes PATH: $($remaining -join ', ')" }
       - name: Exercise native and shell children
         shell: pwsh
         env:
           DOCKER_ROUTER_TEST_REPOSITORY: ${{ github.workspace }}
         run: |
-          & (Join-Path $env:RUNNER_TEMP 'router-tests/router-tests.exe') --shells
+          & (Join-Path $env:RUNNER_TEMP 'router-tests/router-tests.exe') --shells | Tee-Object -Variable harnessOutput
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # The harness accepts an earlier OS search location as out of scope; this runner was cleared, so require proof.
+          if (-not ($harnessOutput -match 'raw native lookup=VERIFIED;')) {
+            Write-Error 'Raw native lookup was not verified on a runner with no earlier docker.exe.'
+            exit 1
+          }
       - name: Existing isolated regressions
         if: ${{ !cancelled() }}
         shell: pwsh
