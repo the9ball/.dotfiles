@@ -1,0 +1,14 @@
+{{- /*
+  Codex Stop hook for japanese_guard.py (published at ~/.agents/hooks; see
+  THIRD_PARTY_NOTICES.md). `--agent codex` makes the guard judge only
+  last_assistant_message and ask for the whole final answer to be rewritten
+  in Japanese. Python runs through uv, as for the GitHub auth gate. Included
+  by codex-hooks-modify.tmpl only for the Windows work and personal homes.
+*/ -}}
+{{- $windowsScriptPath := printf "%s/.agents/hooks/japanese_guard.py" .chezmoi.homeDir -}}
+{{- $windowsCommand := printf "uv run --managed-python --no-project --no-python-downloads --python 3.13 \"%s\" --agent codex" $windowsScriptPath -}}
+{{- $unixCommand := "uv run --managed-python --no-project --no-python-downloads --python 3.13 ~/.agents/hooks/japanese_guard.py --agent codex" -}}
+{{- $handler := dict "type" "command" "command" $unixCommand "commandWindows" $windowsCommand "timeout" 15 -}}
+{{- $group := dict "hooks" (list $handler) -}}
+{{- $configuration := dict "hooks" (dict "Stop" (list $group)) -}}
+{{ $configuration | toPrettyJson }}

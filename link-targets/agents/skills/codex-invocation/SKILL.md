@@ -71,6 +71,21 @@ finally {
 
 With `codex exec`, the hook still starts, finds no topic, sends nothing, and ends successfully. Whether hooks run during `codex review` has not been observed; removing the variable keeps a notification hook from sending in either case.
 
+The Japanese reply guard (`~/.agents/hooks/japanese_guard.py --agent codex`), registered as a `Stop` hook in the Windows work and personal homes, sends an English-dominant final answer back to be rewritten in Japanese. A child call's result is read by the caller, not shown to the user, and may need to stay in English, so set `JAPANESE_GUARD_DISABLE=1` in the child's environment only, next to removing `NTFY_TOPIC`, and restore the previous value afterwards:
+
+```powershell
+$SavedJapaneseGuardDisable = $env:JAPANESE_GUARD_DISABLE
+$env:JAPANESE_GUARD_DISABLE = '1'
+try {
+  # Start Codex here, inside the NTFY_TOPIC block above.
+}
+finally {
+  $env:JAPANESE_GUARD_DISABLE = $SavedJapaneseGuardDisable
+}
+```
+
+Other hooks, such as the GitHub authentication gate, keep running; only the guard does nothing.
+
 ### Review
 
 ```powershell

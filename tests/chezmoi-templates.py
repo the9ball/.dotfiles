@@ -150,21 +150,46 @@ def check_templates(inputs, checkout, root, executable, environment):
         print(f"{operating_system}: {len(targets)} templates expanded; JSON/TOML parsed")
 
 
+def codex_hook_arguments(executable, source, environment, configuration, root, data_file, path):
+    """Return the chezmoi execute-template arguments for one Codex modify_hooks.json."""
+    return [
+        str(executable), "--source", str(source),
+        "--destination", environment["HOME"],
+        "--config", str(configuration),
+        "--persistent-state", str(root / "state.boltdb"),
+        "--cache", str(root / "cache"),
+        "--override-data-file", str(data_file), "--no-tty", "--no-pager",
+        "execute-template", "--with-stdin", "--file", str(path),
+    ]
+
+
+def handlers_with(groups, command_fragment):
+    """Return the handlers in the given matcher groups whose command contains the fragment."""
+    return [
+        handler
+        for group in groups
+        for handler in group.get("hooks", [])
+        if command_fragment in handler.get("command", "")
+    ]
+
+
 def check_codex_hook_preservation(checkout, root, executable, environment):
-    """Preserve unrelated hooks and make reapplication stable for every Codex home."""
+    """Preserve unrelated hooks, manage the guard only in Windows homes, and reapply stably."""
     source = checkout / "chezmoi"
     configuration = root / "hook-preservation.toml"
     configuration.write_text("", encoding="utf-8")
+    unrelated_stop = {"hooks": [{"type": "command", "command": "fixture-stop"}]}
     baseline = {
         "fixtureMetadata": {"keep": True},
         "hooks": {
-            "Stop": [{"hooks": [{"type": "command", "command": "fixture-stop"}]}],
+            "Stop": [unrelated_stop],
             "PreToolUse": [{
                 "matcher": "^fixture$",
                 "hooks": [{"type": "command", "command": "fixture-tool"}],
             }],
         },
     }
+    guard_homes = {("windows", "dot_codex"), ("windows", "dot_codex-personal")}
     for operating_system in ("linux", "windows"):
         data_file = root / "hook-preservation-data.json"
         data_file.write_text(json.dumps({
@@ -175,39 +200,97 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
         }), encoding="utf-8")
         for home in ("dot_codex", "dot_codex-personal", "dot_codex-wsl"):
             path = source / home / "modify_hooks.json"
-            arguments = [
-                str(executable), "--source", str(source),
-                "--destination", environment["HOME"],
-                "--config", str(configuration),
-                "--persistent-state", str(root / "state.boltdb"),
-                "--cache", str(root / "cache"),
-                "--override-data-file", str(data_file), "--no-tty", "--no-pager",
-                "execute-template", "--with-stdin", "--file", str(path),
-            ]
+            arguments = codex_hook_arguments(
+                executable, source, environment, configuration, root, data_file, path,
+            )
             label = f"{home} hook preservation [{operating_system}]"
             first = run_checked(
                 arguments, checkout, environment, label, json.dumps(baseline), binary=True,
             )
             rendered = json.loads(first.stdout)
             if (rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]
-                    or rendered["hooks"].get("Stop") != baseline["hooks"]["Stop"]
                     or baseline["hooks"]["PreToolUse"][0]
                     not in rendered["hooks"].get("PreToolUse", [])):
                 raise ValueError(f"{label}: unrelated configuration changed")
-            managed = [
-                handler
-                for group in rendered["hooks"]["PreToolUse"]
-                for handler in group.get("hooks", [])
-                if "gh_auth_status_json_gate.py" in handler.get("command", "")
-            ]
-            if len(managed) != 1:
+            if len(handlers_with(rendered["hooks"]["PreToolUse"], "gh_auth_status_json_gate.py")) != 1:
                 raise ValueError(f"{label}: expected one managed auth handler")
+            stop_groups = rendered["hooks"].get("Stop")
+            if (operating_system, home) in guard_homes:
+                guard_handlers = handlers_with(stop_groups, "japanese_guard.py")
+                if (stop_groups[:-1] != [unrelated_stop] or len(guard_handlers) != 1
+                        or not guard_handlers[0]["command"].endswith("--agent codex")
+                        or not guard_handlers[0]["commandWindows"].endswith("--agent codex")
+                        or "matcher" in stop_groups[-1]):
+                    raise ValueError(f"{label}: expected the existing Stop and one guard group at the end")
+            elif stop_groups != baseline["hooks"]["Stop"]:
+                raise ValueError(f"{label}: Stop changed in a home without the guard")
             second = run_checked(
                 arguments, checkout, environment, label + " reapply", first.stdout, binary=True,
             )
             if second.stdout != first.stdout:
                 raise ValueError(f"{label}: reapply was not byte-stable")
-    print("Codex homes: Stop preservation and stable reapplication passed")
+            if (operating_system, home) == ("windows", "dot_codex"):
+                check_codex_managed_input_patterns(
+                    checkout, environment, arguments, label, json.loads(first.stdout),
+                )
+    print("Codex homes: Stop preservation, guard placement, and stable reapplication passed")
+
+
+def check_codex_managed_input_patterns(checkout, environment, arguments, label, complete):
+    """Check duplicate detection, partial updates, and byte-for-byte write-back of complete input."""
+    auth_group = next(
+        group for group in complete["hooks"]["PreToolUse"]
+        if handlers_with([group], "gh_auth_status_json_gate.py")
+    )
+    guard_group = complete["hooks"]["Stop"][-1]
+
+    # A complete file written with its own whitespace must come back byte for byte.
+    custom_text = json.dumps(complete, indent=1, separators=(",", " : ")) + "\n\n"
+    custom_result = run_checked(
+        arguments, checkout, environment, label + " custom formatting", custom_text, binary=True,
+    )
+    if custom_result.stdout != custom_text.encode("utf-8"):
+        raise ValueError(f"{label}: a complete file was not written back byte for byte")
+
+    # Only the guard is outdated: it is updated in place and the auth handler stays as it was.
+    partial = json.loads(json.dumps(complete))
+    partial["hooks"]["Stop"][-1]["hooks"][0]["timeout"] = 1
+    partial_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " partial update", json.dumps(partial), binary=True,
+    ).stdout)
+    if (partial_rendered["hooks"]["Stop"] != complete["hooks"]["Stop"]
+            or partial_rendered["hooks"]["PreToolUse"] != complete["hooks"]["PreToolUse"]):
+        raise ValueError(f"{label}: a partly outdated file was not repaired in place")
+
+    # The guard under a matcher group is moved to its own group without a matcher.
+    moved = json.loads(json.dumps(complete))
+    moved["hooks"]["Stop"][-1] = {"matcher": "^fixture$", "hooks": guard_group["hooks"] + [
+        {"type": "command", "command": "fixture-neighbor"},
+    ]}
+    moved_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " matcher move", json.dumps(moved), binary=True,
+    ).stdout)
+    expected_stop = complete["hooks"]["Stop"][:-1] + [
+        {"matcher": "^fixture$", "hooks": [{"type": "command", "command": "fixture-neighbor"}]},
+        guard_group,
+    ]
+    if moved_rendered["hooks"]["Stop"] != expected_stop:
+        raise ValueError(f"{label}: the guard was not moved out of the matcher group")
+
+    # Duplicates of one managed command stop the apply, even across different matchers.
+    for event_name, group in (("Stop", guard_group), ("PreToolUse", auth_group)):
+        duplicated = json.loads(json.dumps(complete))
+        duplicated["hooks"][event_name].append(dict(group, matcher="^other$"))
+        try:
+            run_checked(
+                arguments, checkout, environment, f"{label} duplicate {event_name}",
+                json.dumps(duplicated), binary=True,
+            )
+        except ValueError as error:
+            if "found in hooks." + event_name not in str(error):
+                raise
+        else:
+            raise ValueError(f"{label}: duplicate {event_name} handlers did not stop the apply")
 
 
 def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
