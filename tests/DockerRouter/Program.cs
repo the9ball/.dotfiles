@@ -12,6 +12,14 @@ internal static class RouterChecks
     {
         var executable = Environment.ProcessPath!;
         var name = Path.GetFileName(executable);
+        // The metadata protocol requires empty stderr, including when its parent is being diagnosed.
+        if (name != "pwsh.exe" && Environment.GetEnvironmentVariable("ROUTER_FIXTURE_DIAGNOSTICS") == "1")
+            Console.Error.WriteLine("ROUTER_DIAG stage=fixture-main image=" + executable);
+        if (arguments.SequenceEqual(new[] { "--inert-startup-probe" }))
+        {
+            Console.WriteLine("INERT_STARTUP_OK image=" + executable);
+            return 0;
+        }
         if (name == "pwsh.exe") return Metadata(arguments);
         if (name == "native-probe.exe") return NativeChild(arguments);
         if (name == "docker.exe")
@@ -121,9 +129,9 @@ internal static class RouterChecks
         assertions++;
     }
 
-    /// <summary>Executes only an owned fixture or an explicitly selected shell, with bounded output and no process-wide mutations.</summary>
+    /// <summary>Executes an owned fixture or selected shell and signals successful creation before redirected I/O, without process-wide mutations.</summary>
     private static (int Exit, string Output, string Error) Run(string executable, string[] arguments, string fixture,
-        Dictionary<string, string?>? changes = null, string input = "")
+        Dictionary<string, string?>? changes = null, string input = "", Action? onStarted = null)
     {
         var start = new ProcessStartInfo(executable)
         {
@@ -143,7 +151,8 @@ internal static class RouterChecks
             foreach (var change in changes)
                 if (change.Value is null) start.Environment.Remove(change.Key); else start.Environment[change.Key] = change.Value;
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
-        using var process = Process.Start(start)!;
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Owned fixture did not start.");
+        onStarted?.Invoke();
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
         process.StandardInput.Write(input);
@@ -156,6 +165,35 @@ internal static class RouterChecks
         }
         return (process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
     }
+
+    /// <summary>Reports bounded output, exit status and failures before or after process creation without exposing arguments or the inherited environment.</summary>
+    private static (int Exit, string Output, string Error) RunDiagnostic(string label, string executable, string[] arguments, string fixture)
+    {
+        Console.WriteLine($"ROUTER_DIAG label={label} stage=spawn requested={JsonSerializer.Serialize(executable)}");
+        var processStarted = false;
+        try
+        {
+            var result = Run(executable, arguments, fixture,
+                new Dictionary<string, string?> { ["ROUTER_FIXTURE_DIAGNOSTICS"] = "1" }, onStarted: () => processStarted = true);
+            Console.WriteLine($"ROUTER_DIAG label={label} stage=exited exit={result.Exit} hex=0x{unchecked((uint)result.Exit):X8}");
+            Console.WriteLine($"ROUTER_DIAG label={label} stdoutChars={result.Output.Length} stdout={DiagnosticExcerpt(result.Output)}");
+            Console.WriteLine($"ROUTER_DIAG label={label} stderrChars={result.Error.Length} stderr={DiagnosticExcerpt(result.Error)}");
+            return result;
+        }
+        catch (System.ComponentModel.Win32Exception exception)
+        {
+            Console.WriteLine($"ROUTER_DIAG label={label} stage={(processStarted ? "post-start-failed" : "start-failed")} win32={exception.NativeErrorCode} hex=0x{unchecked((uint)exception.NativeErrorCode):X8}");
+            throw;
+        }
+        catch (Exception exception)
+        {
+            Console.WriteLine($"ROUTER_DIAG label={label} stage={(processStarted ? "post-start-failed" : "start-failed")} type={exception.GetType().Name}");
+            throw;
+        }
+    }
+
+    /// <summary>Escapes control characters and limits each synthetic diagnostic stream to 1024 characters.</summary>
+    private static string DiagnosticExcerpt(string value) => JsonSerializer.Serialize(value[..Math.Min(value.Length, 1024)]);
 
     /// <summary>Creates a copy of this inert single-file executable without replacing pre-existing files.</summary>
     private static string CopyExecutable(string source, string target)
@@ -172,6 +210,8 @@ internal static class RouterChecks
     /// <summary>Proves selection, child inheritance, update and error containment through the production gateway code.</summary>
     private static bool RunChecks(string executable, string fixture, bool shells)
     {
+        var inertStartup = RunDiagnostic("inert-startup", executable, ["--inert-startup-probe"], fixture);
+        Check(inertStartup.Exit == 0 && inertStartup.Output.Contains("INERT_STARTUP_OK"), "managed startup without Router failed; see ROUTER_DIAG");
         var router = Path.Combine(fixture, "router");
         var binary = CopyExecutable(executable, Path.Combine(router, "bin", "docker.exe"));
         var runtime = CopyExecutable(executable, Path.Combine(fixture, "runtime", "pwsh.exe"));
@@ -198,9 +238,10 @@ internal static class RouterChecks
         var current = Path.Combine(router, "current.json");
         var validConfiguration = JsonSerializer.Serialize(configuration);
         File.WriteAllText(current, validConfiguration);
-        Check(Run(binary, ["--dotfiles-router-check-staged"], fixture).Exit == 0, "staging health before publication");
+        Check(RunDiagnostic("staging-health", binary, ["--dotfiles-router-check-staged"], fixture).Exit == 0,
+            "staging health before publication failed; see ROUTER_DIAG");
         File.WriteAllText(Path.Combine(router, "published"), "1\n");
-        var nativeProbe = Run(native, ["ps"], fixture);
+        var nativeProbe = RunDiagnostic("raw-native", native, ["ps"], fixture);
         var nativeVerified = nativeProbe.Exit == 0;
         Check(nativeVerified || nativeProbe.Exit == 93, "native lookup preflight: " + nativeProbe.Error);
         if (!nativeVerified) Console.Error.Write(nativeProbe.Error);
@@ -264,11 +305,43 @@ internal static class RouterChecks
         var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
         var bash = Path.Combine(programFiles, "Git", "bin", "bash.exe");
         var powershell = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
-        var shellCommand = "selected=$(command -v docker); expected=$(cygpath -u \"$ROUTER_FIXTURE_ENTRY\"); [[ $selected -ef $expected ]] || exit 93; docker ps";
-        var bashResult = Run(bash, ["--noprofile", "--norc", "-c", shellCommand], fixture);
-        Check(bashResult.Exit == 0 && bashResult.Output.Contains("deployment-one"), "actual Bash native route: " + bashResult.Error);
-        var powershellResult = Run(powershell, ["-NoProfile", "-NonInteractive", "-Command", "$selected=Get-Command docker.exe -CommandType Application; if($selected.Source -ine $env:ROUTER_FIXTURE_ENTRY){exit 93}; & docker.exe ps; exit $LASTEXITCODE"], fixture);
-        Check(powershellResult.Exit == 0 && powershellResult.Output.Contains("deployment-one"), "actual PowerShell native route: " + powershellResult.Error);
+        var startupResult = RunDiagnostic("windows-powershell-startup", powershell,
+            ["-NoProfile", "-NonInteractive", "-Command", "[Console]::WriteLine('SHELL_STARTUP_OK')"], fixture);
+        var shellCommand = "printf 'ROUTER_DIAG stage=shell-main shell=bash\\n' >&2; selected=$(command -v docker); printf 'ROUTER_DIAG stage=resolved selected=%s\\n' \"$selected\" >&2; expected=$(cygpath -u \"$ROUTER_FIXTURE_ENTRY\"); [[ $selected -ef $expected ]] || exit 93; printf 'ROUTER_DIAG stage=invoke-fixture\\n' >&2; docker ps";
+        var bashResult = RunDiagnostic("bash-direct", bash, ["--noprofile", "--norc", "-c", shellCommand], fixture);
+        // Keep native stderr non-terminating in Windows PowerShell 5.1; discovery still fails closed with ErrorAction Stop.
+        // A missing native exit status must not turn a failed launch into shell success.
+        // Get-Command lists every PATH match in search order, and PowerShell invokes only the first; comparing the whole
+        // list with -ine would filter it instead of producing a boolean, so the route check uses the first entry.
+        var powershellCommand = "[Console]::Error.WriteLine('ROUTER_DIAG stage=shell-main shell=powershell version=' + $PSVersionTable.PSVersion); "
+            + "$ErrorActionPreference='Continue'; try { $selected=@(Get-Command docker.exe -CommandType Application -ErrorAction Stop); "
+            + "[Console]::Error.WriteLine('ROUTER_DIAG stage=resolved count=' + $selected.Count + ' selected=' + ($selected.Source -join '|')); "
+            + "if($selected[0].Source -ine $env:ROUTER_FIXTURE_ENTRY){exit 93}; "
+            + "[Console]::Error.WriteLine('ROUTER_DIAG stage=invoke-fixture'); $LASTEXITCODE=$null; & docker.exe ps; "
+            + "if($null -eq $LASTEXITCODE){exit 94}; exit $LASTEXITCODE "
+            + "} catch { [Console]::Error.WriteLine('ROUTER_DIAG stage=shell-error type=' + $_.Exception.GetType().FullName); exit 94 }";
+        var powershellResult = RunDiagnostic("windows-powershell-direct", powershell,
+            ["-NoProfile", "-NonInteractive", "-Command", powershellCommand], fixture);
+        var explicitCommand = "[Console]::Error.WriteLine('ROUTER_DIAG stage=shell-main route=absolute-fixture'); "
+            + "$ErrorActionPreference='Continue'; try { Get-Command $env:ROUTER_FIXTURE_ENTRY -CommandType Application -ErrorAction Stop | Out-Null; "
+            + "$LASTEXITCODE=$null; & $env:ROUTER_FIXTURE_ENTRY ps; if($null -eq $LASTEXITCODE){exit 94}; exit $LASTEXITCODE "
+            + "} catch { [Console]::Error.WriteLine('ROUTER_DIAG stage=shell-error type=' + $_.Exception.GetType().FullName); exit 94 }";
+        var explicitResult = RunDiagnostic("windows-powershell-absolute-fixture", powershell,
+            ["-NoProfile", "-NonInteractive", "-Command", explicitCommand], fixture);
+        var modernPowerShell = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator)
+            .Select(directory => directory.Trim('"')).Where(Path.IsPathRooted)
+            .Select(directory => Path.Combine(directory, "pwsh.exe")).FirstOrDefault(File.Exists);
+        if (modernPowerShell is not null)
+        {
+            var modernResult = RunDiagnostic("pwsh-direct", modernPowerShell,
+                ["-NoProfile", "-NonInteractive", "-Command", powershellCommand], fixture);
+            Check(modernResult.Exit == 0 && modernResult.Output.Contains("deployment-one"), "actual pwsh native route failed; see ROUTER_DIAG");
+        }
+        else Console.WriteLine("ROUTER_DIAG label=pwsh-direct stage=not-tested reason=no-rooted-path-candidate");
+        Check(startupResult.Exit == 0 && startupResult.Output.Contains("SHELL_STARTUP_OK"), "Windows PowerShell startup failed; see ROUTER_DIAG");
+        Check(bashResult.Exit == 0 && bashResult.Output.Contains("deployment-one"), "actual Bash native route failed; see ROUTER_DIAG");
+        Check(powershellResult.Exit == 0 && powershellResult.Output.Contains("deployment-one"), "actual PowerShell native route failed; see ROUTER_DIAG");
+        Check(explicitResult.Exit == 0 && explicitResult.Output.Contains("deployment-one"), "absolute PowerShell fixture route failed; see ROUTER_DIAG");
         var repository = Environment.GetEnvironmentVariable("DOCKER_ROUTER_TEST_REPOSITORY") ?? throw new InvalidDataException("Repository test root required.");
         var home = Path.Combine(fixture, "home");
         Directory.CreateDirectory(Path.Combine(home, ".dotfiles"));
