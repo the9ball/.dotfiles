@@ -143,6 +143,21 @@ class AquaPolicyTests(unittest.TestCase):
                 self.assertIn(b"reviewed SHA-256", result.stderr)
                 self.assertFalse(self.log.exists())
 
+    def test_digest_for_another_file_is_rejected_before_approval(self):
+        """Reject a valid-looking record that names another file or adds more records."""
+        for content in (
+            f"{REVIEWED_SHA256}  aqua.yaml\n",
+            DIGEST_LINE + f"{REVIEWED_SHA256}  aqua.yaml\n",
+            REVIEWED_SHA256 + "0  aqua-policy.yaml\n",
+        ):
+            (self.source / DIGEST_FILE_NAME).write_text(content, encoding="utf-8")
+            for platform in ("windows", "linux"):
+                with self.subTest(content=content, platform=platform):
+                    result = self.run_guard(platform)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(b"reviewed SHA-256", result.stderr)
+                    self.assertFalse(self.log.exists())
+
     def test_missing_digest_stops_rendering(self):
         """Fail template rendering instead of producing a guard without a digest."""
         (self.source / DIGEST_FILE_NAME).unlink()

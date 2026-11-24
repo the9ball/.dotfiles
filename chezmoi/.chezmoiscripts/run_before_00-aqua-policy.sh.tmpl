@@ -7,9 +7,10 @@ source_directory='{{ .chezmoi.sourceDir }}'
 repo_root=${source_directory%/*}
 aqua_policy="$repo_root/aqua-policy.yaml"
 # The reviewed digest is written by hand in .aqua-policy.sha256, shared with CI and
-# tests, so a policy change cannot approve itself; a malformed file renders an empty
-# digest that never matches.
-expected_policy_sha256='{{ include ".aqua-policy.sha256" | regexFind "^[0-9a-f]{64}" }}'
+# tests, so a policy change cannot approve itself. Only the exact single
+# aqua-policy.yaml record is accepted; anything else renders an empty digest that
+# never matches.
+expected_policy_sha256='{{ include ".aqua-policy.sha256" | regexFind "\\A[0-9a-f]{64}  aqua-policy\\.yaml\\n\\z" | trunc 64 }}'
 
 if command -v sha256sum >/dev/null 2>&1; then
     policy_checksum_output=$(sha256sum "$aqua_policy")

@@ -7,6 +7,7 @@ RUN apt-get update \
 
 ARG TARGETARCH
 # Pin and verify the Aqua bootstrap binary. Aqua selects the CI tool versions.
+# Keep the version in step with BOOTSTRAP_AQUA_VERSION in ci.yaml and aqua-update.yaml.
 RUN set -eu; \
     aqua_version=v2.65.2; \
     case "$TARGETARCH" in \
@@ -26,12 +27,15 @@ WORKDIR /opt/ci-tools
 COPY aqua.yaml aqua-registry.yaml aqua-policy.yaml chezmoi/.aqua-policy.sha256 ./
 
 # Match the reviewed policy digest shared with the chezmoi setup scripts and CI.
-RUN sha256sum --check --strict .aqua-policy.sha256 \
+# sha256sum trusts the file name inside the digest file, so require the single
+# aqua-policy.yaml record before checking it.
+RUN grep -Eqx '[0-9a-f]{64}  aqua-policy\.yaml' .aqua-policy.sha256 \
+    && [ "$(wc -l < .aqua-policy.sha256)" -eq 1 ] \
+    && sha256sum --check --strict .aqua-policy.sha256 \
     && aqua policy allow aqua-policy.yaml
 
 # Resolve native binaries during the build so runtime checks need no Aqua lookups.
-RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
-    set -eu; \
+RUN set -eu; \
     aqua install --tags ci || aqua install --tags ci; \
     for tool in actionlint chezmoi gitleaks jq prek shellcheck yq; do \
         executable=$(aqua which "$tool"); \
@@ -42,7 +46,8 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
 ENV CHEZMOI_TEST_BINARY=/usr/local/bin/chezmoi
 ENV GIT_OPTIONAL_LOCKS=0
 WORKDIR /workspace
-# The bind mount can be owned by a different user on the host.
-RUN git config --system --add safe.directory /workspace
+# The bind mounts are owned by a host user, and a linked worktree's Git directory is
+# mounted under another path; this disposable container only reads them.
+RUN git config --system --add safe.directory '*'
 
 CMD ["prek", "run", "--all-files", "--stage", "manual"]
