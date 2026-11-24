@@ -176,6 +176,31 @@
     {
       "Path": "tests/OAuthProtocol/TpmCipher.cs",
       "SHA256": "B98A9FA5FF4472A97C5BE20883F0E72B8B5ACCFEC2F1FDC23BAC7A2A1CEBA5CC"
+    },
+    {
+      "Path": "scripts/Build-DockerRouter.ps1",
+      "SHA256": "FF5B75B260C6310B3DB61AF2E2E3CDECFE6B39114682B1829D54931069F49CA7",
+      "Adaptation": "Selector-driven native router; no TPM or credential format changes"
+    },
+    {
+      "Path": "scripts/Install-DockerRouter.ps1",
+      "SHA256": "BB2AC618E9EEFB0F10C2FC2DA54C28DF531EC57729E19A2733F9328F4CDB0E6A",
+      "Adaptation": "Selector-driven native router; no TPM or credential format changes"
+    },
+    {
+      "Path": "src/DockerSshRouter/DockerSshRouter.csproj",
+      "SHA256": "DD78B53972305347D08D098C60B4AAC6FE42F24D09F06A81858D21ED175EE600",
+      "Adaptation": "Selector-driven native router; no TPM or credential format changes"
+    },
+    {
+      "Path": "src/DockerSshRouter/Program.cs",
+      "SHA256": "EF7F87636F203FAB593E0C8DA8E29B97EA2914BAA09063E37B966D1865B0E3E7",
+      "Adaptation": "Selector-driven native router; no TPM or credential format changes"
+    },
+    {
+      "Path": "src/DockerSshRouter/RouterTrust.cs",
+      "SHA256": "28BB70191869F117728B6DD9182EEA38BA8895F165FEA92ECC9188B8182EE55B",
+      "Adaptation": "Selector-driven native router; no TPM or credential format changes"
     }
   ]
 }
