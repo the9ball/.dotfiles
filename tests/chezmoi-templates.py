@@ -212,8 +212,15 @@ def check_codex_hook_preservation(checkout, root, executable, environment):
                     or baseline["hooks"]["PreToolUse"][0]
                     not in rendered["hooks"].get("PreToolUse", [])):
                 raise ValueError(f"{label}: unrelated configuration changed")
-            if len(handlers_with(rendered["hooks"]["PreToolUse"], "gh_auth_status_json_gate.py")) != 1:
-                raise ValueError(f"{label}: expected one managed auth handler")
+            expected_auth_group = {"matcher": "^Bash$", "hooks": [{
+                "type": "command", "timeout": 10,
+                "command": "uv run --managed-python --no-project --no-python-downloads --python 3.13"
+                           " ~/.agents/hooks/gh_auth_status_json_gate.py",
+                "commandWindows": "uv run --managed-python --no-project --no-python-downloads --python 3.13"
+                                  f' "{environment["HOME"]}/.agents/hooks/gh_auth_status_json_gate.py"',
+            }]}
+            if rendered["hooks"]["PreToolUse"] != [baseline["hooks"]["PreToolUse"][0], expected_auth_group]:
+                raise ValueError(f"{label}: expected the existing group and then the exact auth gate group")
             stop_groups = rendered["hooks"].get("Stop")
             if (operating_system, home) in guard_homes:
                 guard_handlers = handlers_with(stop_groups, "japanese_guard.py")
@@ -262,6 +269,38 @@ def check_codex_managed_input_patterns(checkout, environment, arguments, label, 
             or partial_rendered["hooks"]["PreToolUse"] != complete["hooks"]["PreToolUse"]):
         raise ValueError(f"{label}: a partly outdated file was not repaired in place")
 
+    # Only the auth gate is outdated: it is updated in place and the guard's Stop stays as it was.
+    auth_outdated = json.loads(json.dumps(complete))
+    for group in auth_outdated["hooks"]["PreToolUse"]:
+        for handler in handlers_with([group], "gh_auth_status_json_gate.py"):
+            handler["timeout"] = 1
+    auth_outdated_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " auth partial update",
+        json.dumps(auth_outdated), binary=True,
+    ).stdout)
+    if (auth_outdated_rendered["hooks"]["PreToolUse"] != complete["hooks"]["PreToolUse"]
+            or auth_outdated_rendered["hooks"]["Stop"] != complete["hooks"]["Stop"]):
+        raise ValueError(f"{label}: an outdated auth gate was not repaired in place")
+
+    # The auth gate under another matcher moves to its own group at the end; Stop is untouched.
+    auth_moved = json.loads(json.dumps(complete))
+    auth_moved["hooks"]["PreToolUse"] = [
+        group for group in auth_moved["hooks"]["PreToolUse"] if group != auth_group
+    ] + [{"matcher": "^Other$", "hooks": auth_group["hooks"] + [
+        {"type": "command", "command": "fixture-auth-neighbor"},
+    ]}]
+    auth_moved_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " auth matcher move",
+        json.dumps(auth_moved), binary=True,
+    ).stdout)
+    expected_tool = [group for group in complete["hooks"]["PreToolUse"] if group != auth_group] + [
+        {"matcher": "^Other$", "hooks": [{"type": "command", "command": "fixture-auth-neighbor"}]},
+        auth_group,
+    ]
+    if (auth_moved_rendered["hooks"]["PreToolUse"] != expected_tool
+            or auth_moved_rendered["hooks"]["Stop"] != complete["hooks"]["Stop"]):
+        raise ValueError(f"{label}: the auth gate was not moved out of the other matcher group")
+
     # The guard under a matcher group is moved to its own group without a matcher.
     moved = json.loads(json.dumps(complete))
     moved["hooks"]["Stop"][-1] = {"matcher": "^fixture$", "hooks": guard_group["hooks"] + [
@@ -276,6 +315,40 @@ def check_codex_managed_input_patterns(checkout, environment, arguments, label, 
     ]
     if moved_rendered["hooks"]["Stop"] != expected_stop:
         raise ValueError(f"{label}: the guard was not moved out of the matcher group")
+
+    # Adding only the missing guard must not add a description or touch anything but Stop.
+    without_guard = json.loads(json.dumps(complete))
+    del without_guard["description"]
+    without_guard["hooks"]["Stop"] = without_guard["hooks"]["Stop"][:-1]
+    added_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " guard only", json.dumps(without_guard), binary=True,
+    ).stdout)
+    expected_added = json.loads(json.dumps(without_guard))
+    expected_added["hooks"]["Stop"].append(guard_group)
+    if added_rendered != expected_added:
+        raise ValueError(f"{label}: adding the guard changed more than Stop")
+
+    # An empty-string matcher is not the same as no matcher: the guard moves to its own group.
+    empty_matcher = json.loads(json.dumps(complete))
+    empty_matcher["hooks"]["Stop"][-1] = dict(guard_group, matcher="")
+    empty_matcher_rendered = json.loads(run_checked(
+        arguments, checkout, environment, label + " empty matcher", json.dumps(empty_matcher), binary=True,
+    ).stdout)
+    if empty_matcher_rendered["hooks"]["Stop"] != complete["hooks"]["Stop"]:
+        raise ValueError(f"{label}: the guard under an empty matcher was not moved")
+
+    # The guard alone in a group with other keys stops the apply instead of dropping those keys.
+    keyed_group = json.loads(json.dumps(complete))
+    keyed_group["hooks"]["Stop"][-1] = dict(guard_group, matcher="^old$", note="keep")
+    try:
+        run_checked(
+            arguments, checkout, environment, label + " keyed group", json.dumps(keyed_group), binary=True,
+        )
+    except ValueError as error:
+        if "sits alone in a group with other keys" not in str(error):
+            raise
+    else:
+        raise ValueError(f"{label}: a keyed group holding only the guard did not stop the apply")
 
     # Duplicates of one managed command stop the apply, even across different matchers.
     for event_name, group in (("Stop", guard_group), ("PreToolUse", auth_group)):
@@ -310,6 +383,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
                 {"hooks": [
                     {"type": "command", "command": "fixture-shared"},
                     {"type": "command", "command": "python old" + script_marker},
+                    {"type": "command", "command": "python ~" + script_marker + ".bak"},
                 ]},
             ],
             "PreToolUse": [unrelated_tool],
@@ -337,7 +411,11 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
         hooks = rendered["hooks"]
         if rendered.get("fixtureMetadata") != baseline["fixtureMetadata"]:
             raise ValueError(f"{label}: unrelated configuration changed")
-        if hooks["Stop"][:2] != [unrelated_stop, {"hooks": [{"type": "command", "command": "fixture-shared"}]}]:
+        kept_shared_group = {"hooks": [
+            {"type": "command", "command": "fixture-shared"},
+            {"type": "command", "command": "python ~" + script_marker + ".bak"},
+        ]}
+        if hooks["Stop"][:2] != [unrelated_stop, kept_shared_group]:
             raise ValueError(f"{label}: unrelated Stop handlers changed")
         if hooks["PreToolUse"][0] != unrelated_tool:
             raise ValueError(f"{label}: unrelated PreToolUse handlers changed")
@@ -357,7 +435,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
         for event_name, expected_group in expected_groups.items():
             managed = [
                 handler for group in hooks[event_name] for handler in group.get("hooks", [])
-                if script_marker in handler.get("command", "")
+                if handler.get("command", "").rstrip('"').endswith(script_marker)
             ]
             if len(managed) != 1 or hooks[event_name][-1] != expected_group:
                 raise ValueError(f"{label}: expected one guard group at the end of {event_name}")

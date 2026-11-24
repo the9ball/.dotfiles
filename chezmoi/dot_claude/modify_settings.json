@@ -193,13 +193,17 @@ README.manual.md for the restore procedure.
   `python` can fail through the uv launcher on Windows. The managed hooks are
   found by the script path in their command, not by a trailing comment,
   because the shell that runs a hook may not treat `#` as a comment and would
-  pass it to Python. Each apply removes the handlers carrying the script path
+  pass it to Python. The path must end there (followed by a quote, whitespace,
+  or the end of the command), so a hook running another file that only starts
+  with the same path, such as japanese_guard.py.bak, is left alone. Each apply
+  removes the handlers carrying the script path
   (dropping a group only when it becomes empty because of that), then appends
   one dedicated group per event; other handlers and groups stay as they were.
   The timeout covers uv start-up plus the guard's wait of up to 3 seconds for
   the final answer to reach the transcript.
 */ -}}
 {{- $japaneseGuardScriptMarker := "/.agents/hooks/japanese_guard.py" -}}
+{{- $japaneseGuardScriptPattern := `/\.agents/hooks/japanese_guard\.py("|\s|$)` -}}
 {{- $japaneseGuardRunner := "uv run --managed-python --no-project --no-python-downloads --python 3.13" -}}
 {{- $japaneseGuardCommand := printf "%s ~/.agents/hooks/japanese_guard.py" $japaneseGuardRunner -}}
 {{- if eq .chezmoi.os "windows" -}}
@@ -217,7 +221,7 @@ README.manual.md for the restore procedure.
 {{-         $keptGroupHooks := list -}}
 {{-         $removedManagedHook := false -}}
 {{-         range (index $group "hooks") -}}
-{{-           if and (kindIs "map" .) (hasKey . "command") (contains $japaneseGuardScriptMarker (toString (index . "command"))) -}}
+{{-           if and (kindIs "map" .) (hasKey . "command") (regexMatch $japaneseGuardScriptPattern (toString (index . "command"))) -}}
 {{-             $removedManagedHook = true -}}
 {{-           else -}}
 {{-             $keptGroupHooks = append $keptGroupHooks . -}}

@@ -17,8 +17,10 @@ matcher group, and handler as it was.
 A managed handler is recognized by the exact equality of its "command" string
 with the one in its definition, within its own event and across every matcher
 group of that event, never by a partial match. It is complete when the whole
-handler and its group's matcher both equal the definition. When every managed
-handler is complete, the input is written back byte for byte.
+handler equals the definition and its group's matcher matches the definition's:
+the same string, or no matcher key on either side (an empty or null matcher is
+not the same as no matcher). When every managed handler is complete, the input
+is written back byte for byte; otherwise only the incomplete handlers change.
 
 Limits, so that nobody has to rediscover them:
 - Only the managed handler's own event is inspected. The same command under
@@ -29,38 +31,46 @@ Limits, so that nobody has to rediscover them:
   byte: once a rewrite is needed the whole file is re-rendered by toPrettyJson, which
   sorts keys, escapes < > & as < > &, and normalizes numbers. The
   result is equivalent JSON, and the next apply takes the byte-for-byte path.
+- The top-level "description" is added, when missing, only when the GitHub auth
+  gate itself is added or updated.
 - A whitespace-only file is treated as empty. A file that is not valid JSON stops the
   apply with the parser's error and is never repaired by overwriting.
 - An explicit null for hooks or for a managed event is treated as absent. Matcher
   groups that are not objects with a hooks array are left alone and never scanned.
+- If any managed event is present but not an array, the whole apply stops, so none
+  of the managed handlers, including the GitHub auth gate, is updated.
 - A missing managed handler is appended as a new group at the end of its event;
   existing groups are neither removed nor reordered for it.
 - When a managed handler has to move to another matcher group, the group it leaves
-  keeps its own matcher, and it is dropped, with any other keys it had, only if the
-  managed handler was its sole handler.
+  keeps its own matcher. For the GitHub auth gate, that group is dropped, with any
+  other keys it had, only if the managed handler was its sole handler. For the
+  Japanese reply guard, the apply stops instead when that group would be left
+  empty while it carries keys other than "hooks" and "matcher", so those keys are
+  never dropped silently.
 
 */ -}}
 {{- $root := .root -}}
-{{- $definitions := list (includeTemplate "codex-gh-auth-status-hooks.json" $root | fromJson) -}}
+{{- $definitions := list (dict "definition" (includeTemplate "codex-gh-auth-status-hooks.json" $root | fromJson) "dropsEmptyGroup" true) -}}
 {{- if .japaneseGuard -}}
-{{-   $definitions = append $definitions (includeTemplate "codex-japanese-guard-hooks.json" $root | fromJson) -}}
+{{-   $definitions = append $definitions (dict "definition" (includeTemplate "codex-japanese-guard-hooks.json" $root | fromJson) "dropsEmptyGroup" false) -}}
 {{- end -}}
-{{- /* Flatten each definition into one managed entry: its event, group, handler, command, and matcher ("" when absent). */ -}}
+{{- /* Flatten each definition into one managed entry: its event, group, handler, command, matcher key, and how it leaves an emptied group. A matcher key is "absent", "string:<value>", or "other:<JSON>", so that a missing matcher, an empty string, and null stay distinct. */ -}}
 {{- $managedEntries := list -}}
-{{- range $definition := $definitions -}}
-{{-   range $eventName, $eventGroups := index $definition "hooks" -}}
+{{- range $definitionEntry := $definitions -}}
+{{-   range $eventName, $eventGroups := index (index $definitionEntry "definition") "hooks" -}}
 {{-     $desiredGroup := first $eventGroups -}}
 {{-     $desiredHandler := index $desiredGroup "hooks" | first -}}
-{{-     $desiredMatcher := "" -}}
-{{-     if kindIs "string" (index $desiredGroup "matcher") -}}
-{{-       $desiredMatcher = index $desiredGroup "matcher" -}}
+{{-     $desiredMatcherKey := "absent" -}}
+{{-     if hasKey $desiredGroup "matcher" -}}
+{{-       $desiredMatcherKey = printf "string:%s" (index $desiredGroup "matcher") -}}
 {{-     end -}}
 {{-     $managedEntries = append $managedEntries (dict
           "event" $eventName "group" $desiredGroup "handler" $desiredHandler
-          "command" (index $desiredHandler "command") "matcher" $desiredMatcher) -}}
+          "command" (index $desiredHandler "command") "matcherKey" $desiredMatcherKey
+          "dropsEmptyGroup" (index $definitionEntry "dropsEmptyGroup")) -}}
 {{-   end -}}
 {{- end -}}
-{{- $authDefinition := first $definitions -}}
+{{- $authDefinition := index (first $definitions) "definition" -}}
 {{- $targetLabel := dig "chezmoi" "targetFile" "hooks.json" $root -}}
 
 {{- $stdin := dig "chezmoi" "stdin" "" $root -}}
@@ -79,9 +89,10 @@ Limits, so that nobody has to rediscover them:
 {{-   fail (printf "%s: hooks must be a JSON object" $targetLabel) -}}
 {{- end -}}
 
-{{- /* First pass: locate every managed handler without changing anything, and decide whether all are complete. */ -}}
+{{- /* First pass: locate every managed handler without changing anything, and record which ones are complete. */ -}}
+{{- $completeEntries := dict -}}
 {{- $allCurrent := true -}}
-{{- range $entry := $managedEntries -}}
+{{- range $entryIndex, $entry := $managedEntries -}}
 {{-   $eventName := index $entry "event" -}}
 {{-   $groups := list -}}
 {{-   $rawGroups := index $hooks $eventName -}}
@@ -111,17 +122,22 @@ Limits, so that nobody has to rediscover them:
 {{-   $isCurrent := false -}}
 {{-   if eq $foundCount 1 -}}
 {{-     $foundGroup := index $groups $foundGroupIndex -}}
-{{- /* A matcher that is not a string (absent, null, or another shape) counts as ""; comparing other shapes with eq would fail the whole template. */ -}}
-{{-     $foundMatcher := "" -}}
-{{-     if kindIs "string" (index $foundGroup "matcher") -}}
-{{-       $foundMatcher = index $foundGroup "matcher" -}}
+{{-     $foundMatcherKey := "absent" -}}
+{{-     if hasKey $foundGroup "matcher" -}}
+{{-       if kindIs "string" (index $foundGroup "matcher") -}}
+{{-         $foundMatcherKey = printf "string:%s" (index $foundGroup "matcher") -}}
+{{-       else -}}
+{{-         $foundMatcherKey = printf "other:%s" (index $foundGroup "matcher" | toJson) -}}
+{{-       end -}}
 {{-     end -}}
 {{-     $foundHandler := index (index $foundGroup "hooks") $foundHandlerIndex -}}
-{{-     if and (eq ($foundHandler | toJson) ((index $entry "handler") | toJson)) (eq $foundMatcher (index $entry "matcher")) -}}
+{{-     if and (eq ($foundHandler | toJson) ((index $entry "handler") | toJson)) (eq $foundMatcherKey (index $entry "matcherKey")) -}}
 {{-       $isCurrent = true -}}
 {{-     end -}}
 {{-   end -}}
-{{-   if not $isCurrent -}}
+{{-   if $isCurrent -}}
+{{-     $_ := set $completeEntries (toString $entryIndex) true -}}
+{{-   else -}}
 {{-     $allCurrent = false -}}
 {{-   end -}}
 {{- end -}}
@@ -129,72 +145,83 @@ Limits, so that nobody has to rediscover them:
 {{- if $allCurrent -}}
 {{-   $stdin -}}
 {{- else -}}
-{{- /* Second pass: update each managed handler that is not complete. Positions are looked up again, because an earlier entry for the same event may have changed them. */ -}}
-{{-   range $entry := $managedEntries -}}
-{{-     $eventName := index $entry "event" -}}
-{{-     $desiredGroup := index $entry "group" -}}
-{{-     $desiredHandler := index $entry "handler" -}}
-{{-     $groups := list -}}
-{{-     if kindIs "slice" (index $hooks $eventName) -}}
-{{-       $groups = index $hooks $eventName -}}
-{{-     end -}}
-{{-     $foundGroupIndex := -1 -}}
-{{-     $foundHandlerIndex := -1 -}}
-{{-     range $groupIndex, $group := $groups -}}
-{{-       if and (kindIs "map" $group) (kindIs "slice" (index $group "hooks")) -}}
-{{-         range $handlerIndex, $handler := index $group "hooks" -}}
-{{-           if and (kindIs "map" $handler) (kindIs "string" (index $handler "command")) (eq (index $handler "command") (index $entry "command")) -}}
-{{-             $foundGroupIndex = $groupIndex -}}
-{{-             $foundHandlerIndex = $handlerIndex -}}
+{{- /* Second pass: update only the managed handlers that are not complete. Positions are looked up again, because an earlier entry for the same event may have changed them. */ -}}
+{{-   range $entryIndex, $entry := $managedEntries -}}
+{{-     if not (hasKey $completeEntries (toString $entryIndex)) -}}
+{{-       $eventName := index $entry "event" -}}
+{{-       $desiredGroup := index $entry "group" -}}
+{{-       $desiredHandler := index $entry "handler" -}}
+{{-       $groups := list -}}
+{{-       if kindIs "slice" (index $hooks $eventName) -}}
+{{-         $groups = index $hooks $eventName -}}
+{{-       end -}}
+{{-       $foundGroupIndex := -1 -}}
+{{-       $foundHandlerIndex := -1 -}}
+{{-       range $groupIndex, $group := $groups -}}
+{{-         if and (kindIs "map" $group) (kindIs "slice" (index $group "hooks")) -}}
+{{-           range $handlerIndex, $handler := index $group "hooks" -}}
+{{-             if and (kindIs "map" $handler) (kindIs "string" (index $handler "command")) (eq (index $handler "command") (index $entry "command")) -}}
+{{-               $foundGroupIndex = $groupIndex -}}
+{{-               $foundHandlerIndex = $handlerIndex -}}
+{{-             end -}}
 {{-           end -}}
 {{-         end -}}
 {{-       end -}}
-{{-     end -}}
-{{-     if ge $foundGroupIndex 0 -}}
-{{-       $foundGroup := index $groups $foundGroupIndex -}}
-{{-       $foundMatcher := "" -}}
-{{-       if kindIs "string" (index $foundGroup "matcher") -}}
-{{-         $foundMatcher = index $foundGroup "matcher" -}}
-{{-       end -}}
-{{-       if eq $foundMatcher (index $entry "matcher") -}}
-{{- /* Same matcher: replace only the managed handler. set cannot index a slice, so rebuild the handler list. A complete handler is replaced by an equal one. */ -}}
-{{-         $rebuiltHandlers := list -}}
-{{-         range $handlerIndex, $handler := index $foundGroup "hooks" -}}
-{{-           if eq $handlerIndex $foundHandlerIndex -}}
-{{-             $rebuiltHandlers = append $rebuiltHandlers $desiredHandler -}}
+{{-       if ge $foundGroupIndex 0 -}}
+{{-         $foundGroup := index $groups $foundGroupIndex -}}
+{{-         $foundMatcherKey := "absent" -}}
+{{-         if hasKey $foundGroup "matcher" -}}
+{{-           if kindIs "string" (index $foundGroup "matcher") -}}
+{{-             $foundMatcherKey = printf "string:%s" (index $foundGroup "matcher") -}}
 {{-           else -}}
-{{-             $rebuiltHandlers = append $rebuiltHandlers $handler -}}
+{{-             $foundMatcherKey = printf "other:%s" (index $foundGroup "matcher" | toJson) -}}
 {{-           end -}}
 {{-         end -}}
-{{-         $_ := set $foundGroup "hooks" $rebuiltHandlers -}}
-{{-       else -}}
-{{- /* Different matcher: changing the group's matcher would change when its other handlers fire, so take the managed handler out of the group, keep the group's own matcher, and add a dedicated group. A group left empty is dropped. */ -}}
-{{-         $rebuiltGroups := list -}}
-{{-         range $groupIndex, $group := $groups -}}
-{{-           if ne $groupIndex $foundGroupIndex -}}
-{{-             $rebuiltGroups = append $rebuiltGroups $group -}}
-{{-           else -}}
-{{-             $remainingHandlers := list -}}
-{{-             range $handlerIndex, $handler := index $group "hooks" -}}
-{{-               if ne $handlerIndex $foundHandlerIndex -}}
-{{-                 $remainingHandlers = append $remainingHandlers $handler -}}
+{{-         if eq $foundMatcherKey (index $entry "matcherKey") -}}
+{{- /* Same matcher: replace only the managed handler. set cannot index a slice, so rebuild the handler list. */ -}}
+{{-           $rebuiltHandlers := list -}}
+{{-           range $handlerIndex, $handler := index $foundGroup "hooks" -}}
+{{-             if eq $handlerIndex $foundHandlerIndex -}}
+{{-               $rebuiltHandlers = append $rebuiltHandlers $desiredHandler -}}
+{{-             else -}}
+{{-               $rebuiltHandlers = append $rebuiltHandlers $handler -}}
+{{-             end -}}
+{{-           end -}}
+{{-           $_ := set $foundGroup "hooks" $rebuiltHandlers -}}
+{{-         else -}}
+{{- /* Different matcher: changing the group's matcher would change when its other handlers fire, so take the managed handler out of the group, keep the group's own matcher, and add a dedicated group. */ -}}
+{{-           $rebuiltGroups := list -}}
+{{-           range $groupIndex, $group := $groups -}}
+{{-             if ne $groupIndex $foundGroupIndex -}}
+{{-               $rebuiltGroups = append $rebuiltGroups $group -}}
+{{-             else -}}
+{{-               $remainingHandlers := list -}}
+{{-               range $handlerIndex, $handler := index $group "hooks" -}}
+{{-                 if ne $handlerIndex $foundHandlerIndex -}}
+{{-                   $remainingHandlers = append $remainingHandlers $handler -}}
+{{-                 end -}}
+{{-               end -}}
+{{-               if $remainingHandlers -}}
+{{-                 $_ := set $group "hooks" $remainingHandlers -}}
+{{-                 $rebuiltGroups = append $rebuiltGroups $group -}}
+{{-               else if not (index $entry "dropsEmptyGroup") -}}
+{{- /* Dropping the emptied group would also drop its other keys, which this template does not manage. */ -}}
+{{-                 if gt (len (without (keys $group) "hooks" "matcher")) 0 -}}
+{{-                   fail (printf "%s: the managed command %q in hooks.%s sits alone in a group with other keys; move it out of that group by hand, then run chezmoi apply again" $targetLabel (index $entry "command") $eventName) -}}
+{{-                 end -}}
 {{-               end -}}
 {{-             end -}}
-{{-             if $remainingHandlers -}}
-{{-               $_ := set $group "hooks" $remainingHandlers -}}
-{{-               $rebuiltGroups = append $rebuiltGroups $group -}}
-{{-             end -}}
 {{-           end -}}
+{{-           $groups = append $rebuiltGroups $desiredGroup -}}
 {{-         end -}}
-{{-         $groups = append $rebuiltGroups $desiredGroup -}}
+{{-       else -}}
+{{-         $groups = append $groups $desiredGroup -}}
 {{-       end -}}
-{{-     else -}}
-{{-       $groups = append $groups $desiredGroup -}}
+{{-       $_ := set $hooks $eventName $groups -}}
 {{-     end -}}
-{{-     $_ := set $hooks $eventName $groups -}}
 {{-   end -}}
 {{-   $_ := set $current "hooks" $hooks -}}
-{{-   if not (hasKey $current "description") -}}
+{{-   if and (not (hasKey $completeEntries "0")) (not (hasKey $current "description")) -}}
 {{-     $_ = set $current "description" (index $authDefinition "description") -}}
 {{-   end -}}
 {{-   printf "%s\n" ($current | toPrettyJson) -}}

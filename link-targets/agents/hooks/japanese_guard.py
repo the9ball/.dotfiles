@@ -225,13 +225,14 @@ def english_passages(transcript_path, entries=None):
 def read_hook_input():
     """Read the hook input JSON from standard input as UTF-8 bytes.
 
-    Decoding the bytes directly keeps Japanese text intact when the process
-    starts with a non-UTF-8 console code page, such as code page 932 on Windows.
+    Passing the raw bytes to json.loads keeps Japanese text intact when the
+    process starts with a non-UTF-8 console code page, such as code page 932 on
+    Windows, and also accepts input that starts with a UTF-8 byte order mark.
 
     Returns:
         The decoded hook input object.
     """
-    return json.loads(sys.stdin.buffer.read().decode("utf-8"))
+    return json.loads(sys.stdin.buffer.read())
 
 
 def write_hook_response(response):

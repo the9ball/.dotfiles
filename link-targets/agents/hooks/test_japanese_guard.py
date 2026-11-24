@@ -31,12 +31,14 @@ def run_hook(
     *,
     arguments: tuple[str, ...] = (),
     extra_environment: dict[str, str] | None = None,
+    input_prefix: bytes = b"",
 ) -> subprocess.CompletedProcess[bytes]:
     """Run the hook in a child process with one event encoded as UTF-8 bytes.
 
     The guard reads its environment variables at import time, so each case runs
     in its own process. The wait for the Claude transcript is disabled to keep
-    the tests fast.
+    the tests fast. input_prefix is written before the JSON, for example a
+    UTF-8 byte order mark.
     """
 
     environment = dict(os.environ)
@@ -47,7 +49,7 @@ def run_hook(
         [sys.executable, str(HOOK_SCRIPT), *arguments],
         check=False,
         capture_output=True,
-        input=json.dumps(event, ensure_ascii=False).encode("utf-8"),
+        input=input_prefix + json.dumps(event, ensure_ascii=False).encode("utf-8"),
         env=environment,
         timeout=30,
     )
@@ -104,6 +106,7 @@ class ClaudeModeTests(unittest.TestCase):
         """A rewrite that is still English must not be sent back a second time."""
 
         result = run_hook(stop_event(ENGLISH_ANSWER, stop_hook_active=True))
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNone(decoded_response(result))
 
     def test_json_only_answer_passes(self) -> None:
@@ -157,7 +160,28 @@ class CodexModeTests(unittest.TestCase):
         """Codex mode must also send an answer back at most once per turn."""
 
         result = run_hook(stop_event(ENGLISH_ANSWER, stop_hook_active=True), arguments=("--agent", "codex"))
+        self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNone(decoded_response(result))
+
+    def test_json_only_answer_passes(self) -> None:
+        """Codex mode must not send back a JSON-only answer, which is machine output."""
+
+        result = run_hook(
+            stop_event('{"status": "completed", "message": "' + ENGLISH_ANSWER + '"}'),
+            arguments=("--agent", "codex"),
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNone(decoded_response(result))
+
+    def test_disable_variable_turns_the_guard_off(self) -> None:
+        """JAPANESE_GUARD_DISABLE=1 must also turn off Codex mode."""
+
+        result = run_hook(
+            stop_event(ENGLISH_ANSWER), arguments=("--agent", "codex"),
+            extra_environment={"JAPANESE_GUARD_DISABLE": "1"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout, b"")
 
     def test_transcript_is_not_read(self) -> None:
         """Codex mode must judge only last_assistant_message, even when a transcript path is given."""
@@ -170,8 +194,20 @@ class CodexModeTests(unittest.TestCase):
             codex_result = run_hook(
                 stop_event(JAPANESE_ANSWER, transcript_path=str(transcript)), arguments=("--agent", "codex"),
             )
+        self.assertEqual(claude_result.returncode, 0, claude_result.stderr)
+        self.assertEqual(codex_result.returncode, 0, codex_result.stderr)
         self.assertIsNotNone(decoded_response(claude_result))
         self.assertIsNone(decoded_response(codex_result))
+
+    def test_unreadable_transcript_path_is_never_opened(self) -> None:
+        """Codex mode must not open transcript_path; a directory path would fail if it did."""
+
+        with tempfile.TemporaryDirectory() as directory:
+            result = run_hook(
+                stop_event(ENGLISH_ANSWER, transcript_path=directory), arguments=("--agent", "codex"),
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(decoded_response(result)["decision"], "block")
 
     def test_unknown_agent_is_rejected(self) -> None:
         """An unknown agent name must fail instead of silently picking a mode."""
@@ -195,6 +231,15 @@ class EncodingTests(unittest.TestCase):
                 response = decoded_response(result)
                 self.assertEqual(response["decision"], "block")
                 self.assertIn("日本語", response["reason"])
+
+    def test_input_with_utf8_byte_order_mark(self) -> None:
+        """Input that starts with a UTF-8 byte order mark must still be judged in both modes."""
+
+        for arguments in ((), ("--agent", "codex")):
+            with self.subTest(arguments=arguments):
+                result = run_hook(stop_event(ENGLISH_ANSWER), arguments=arguments, input_prefix=b"\xef\xbb\xbf")
+                self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", "replace"))
+                self.assertEqual(decoded_response(result)["decision"], "block")
 
 
 if __name__ == "__main__":
