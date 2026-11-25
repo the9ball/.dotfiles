@@ -34,7 +34,7 @@ For a task with a user appointment, `codex-orchestration` governs delegation to 
 **Implementer does not start automatically.** There is always the option of asking Codex to implement the same change, and
 the user decides which to use, so do not route work to the Implementer on the orchestrator's judgment alone.
 
-- **The user has appointed Claude Code to orchestrate Codex for this task** → The appointment selects Codex as the implementer. Follow `codex-orchestration` without asking again who implements. Guardrail 2 still requires the user's decision before merge.
+- **The user has appointed Claude Code to orchestrate Codex for this task** → The appointment selects Codex as the implementer. Follow `codex-orchestration` without asking again who implements. Guardrail 2 still applies unchanged: the user's explicit judgment before generated code is treated as adopted for production. Merge also still needs separate authorization.
 - **The user has explicitly designated an Implementer** → Pass it to the Implementer (whether to pass the Architect first is determined below).
 - **No designation** → When no implementer has been designated and the pass-through gate does not apply, first determine the route below. If Architect is required, obtain approval of the completed plan before asking the user to choose the orchestrator, the Implementer, or Codex at the user's direction. Otherwise, ask before implementation starts. Ask once for that implementation stage; do not choose for the user.
 
