@@ -77,25 +77,38 @@ SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、�
 2026-11-25に確認したところ、TermuxからのEnterとCtrl+Enterは、接続先のWindowsではどちらも`0d`として届いた。
 Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
 
-Termux側で、現在の設定を確認する。
+Termux側で、次を実行する。`SEND`が送信ボタンになる。
+設定ファイルは`~/.termux/termux.properties`か`~/.config/termux/termux.properties`で、どちらもなければ前者を作る。既存のファイルは別名でバックアップしてから追記し、途中で失敗した場合や既に`extra-keys`がある場合は、変更せずに止まる。
 
 ```sh
-grep -nE '^[[:space:]]*extra-keys' ~/.termux/termux.properties
-```
-
-何も表示されなければ、次を実行する。`SEND`が送信ボタンになる。
-
-```sh
-mkdir -p ~/.termux
-cp ~/.termux/termux.properties ~/.termux/termux.properties.bak 2>/dev/null
-cat >> ~/.termux/termux.properties <<'EOF'
+(
+  set -eu
+  properties="$HOME/.termux/termux.properties"
+  if [ ! -e "$properties" ] && [ -e "$HOME/.config/termux/termux.properties" ]; then
+    properties="$HOME/.config/termux/termux.properties"
+  fi
+  if [ -e "$properties" ]; then
+    match=0
+    grep -nE '^[[:space:]]*extra-keys([[:space:]=:]|$)' "$properties" || match=$?
+    case "$match" in
+      0) echo "extra-keys is already set in $properties; edit it by hand." >&2; exit 1 ;;
+      1) ;;
+      *) echo "Cannot read $properties." >&2; exit 1 ;;
+    esac
+    backup=$(mktemp "$properties.bak.XXXXXX")
+    cp "$properties" "$backup"
+  else
+    mkdir -p "$HOME/.termux"
+  fi
+  cat >> "$properties" <<'EOF'
 
 extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT',{macro: "CTRL x CTRL s", display: "SEND"}]]
 EOF
-termux-reload-settings
+  termux-reload-settings
+)
 ```
 
-既に`extra-keys`があれば追記せず、既存の配列に次の要素を加えて`termux-reload-settings`を実行する。
+`extra-keys`が既にある場合は、その配列に次の要素を加えて`termux-reload-settings`を実行する。
 
 ```text
 {macro: "CTRL x CTRL s", display: "SEND"}
