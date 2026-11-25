@@ -71,15 +71,15 @@ Accessログインに加えて、Windows OpenSSHによるホスト鍵の検証�
 ホスト鍵変更の警告が出たら、登録済み鍵を削除して続行せず接続を止めて確認する。
 SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、認証ヘッダーをリポジトリやIssueに貼らない。
 
-## Claude Codeの送信ボタン
+## 追加キー
 
-[Claude Codeのキー設定](../README.manual.md#claude-codeのキー設定)では、Ctrl+Enterで送信する。
-2026-11-25に確認したところ、TermuxからのEnterとCtrl+Enterは、接続先のWindowsではどちらも`0d`として届いた。
-Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
+Termuxの`~/.termux/termux.properties`の`extra-keys`は、次の内容にする。
 
-Termuxの設定ファイル（通常は`~/.termux/termux.properties`）にある`extra-keys`の、いずれかのキー行（内側の`[...]`）に`{macro: "CTRL x CTRL s", display: "SEND"}`を入れ、`termux-reload-settings`で反映する。
+```properties
+extra-keys = [['ESC','SHIFT','HOME','UP','END',{macro: "CTRL x CTRL s", display: "SEND"}],['TAB','CTRL','LEFT','DOWN','RIGHT','ALT','/']]
+```
 
-この設定はTermux側のファイルなので、chezmoiの管理対象にしない。
+保存後に`termux-reload-settings`で反映する。`SEND`は`Ctrl+X` `Ctrl+S`を続けて送る。
 
 ## 現行のWindowsシェルとの関係
 

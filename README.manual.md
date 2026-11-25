@@ -1069,7 +1069,7 @@ chezmoi --source "$HOME/.dotfiles" diff "$HOME/.claude/keybindings.json" "$HOME/
 chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/keybindings.json" "$HOME/.claude-personal/keybindings.json"
 ```
 
-Ctrl+EnterをEnterと区別して送らない端末では、Ctrl+Enterも改行になります。その場合は、既定のキー割り当ての`Ctrl+X` `Ctrl+S`（`chat:sendNow`）で送信します。Windows TerminalでCtrl+Enterが改行になる場合は、`compatibility.kittyKeyboardMode`を`false`にしていないか確認してください。Termuxでは[送信ボタンの設定](docs/cloudflared-termux-ssh.md#claude-codeの送信ボタン)を使います。
+Ctrl+EnterをEnterと区別して送らない端末では、Ctrl+Enterも改行になります。その場合は、既定のキー割り当ての`Ctrl+X` `Ctrl+S`（`chat:sendNow`）で送信します。Windows TerminalでCtrl+Enterが改行になる場合は、`compatibility.kittyKeyboardMode`を`false`にしていないか確認してください。
 
 ### Claude Code modの導入
 
