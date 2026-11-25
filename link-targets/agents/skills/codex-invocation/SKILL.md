@@ -52,7 +52,7 @@ $NetworkOffSettings = "-c features.network_proxy=false -c permissions.$ActivePro
 - Where Codex enables sandbox network access, it routes it through managed networking. On Windows that requires the elevated sandbox, which a non-administrator user cannot set up. There every shell command then fails, regardless of whether it uses the network, and `codex review` ends with `Review blocked …` and exit code 0. `-c sandbox_workspace_write.network_access=false` alone does not avoid this.
 - When a request needs the network, do not run it with these settings, and do not switch the sandbox mode on your own. Ask the user.
 - Never use `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, or `--approve-for-me`.
-- Pass `-m <model>` and `-c model_reasoning_effort=<effort>` only for settings the task explicitly selects.
+- Pass `-m <model>` and `-c model_reasoning_effort=<effort>` only for settings the task explicitly selects. A Codex child cannot inherit the caller's model or effort, so an unspecified field uses the Codex home's configured default, which is the runtime default in `delegation` terms.
 
 ### Silence notification hooks
 
