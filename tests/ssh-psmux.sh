@@ -198,31 +198,32 @@ for scenario in local linux linux-psmux tmux command nested missing-overlay psmu
 	run_case "$scenario" 0 0
 done
 
-# assert_switch_environment checks every descendant's homes and preserved SSH/GitHub context.
+# assert_switch_environment checks descendant records against explicit environment and SHLVL expectations.
 assert_switch_environment() {
 	local log_path=$1 expected_records=$2 expected_codex=$3 expected_claude=$4
 	local expected_session=$5 expected_tmux=$6
+	local expected_ssh_connection=$7 expected_github_directory=$8 scenario_label=$9 require_direct_level=${10}
 	local -a recorded_environment
 	mapfile -t recorded_environment < "$log_path"
 	if [[ ${#recorded_environment[@]} -ne $((expected_records * 7)) ]]; then
-		printf 'FAIL %s: unexpected descendant record count\n' "$scenario" >&2
+		printf 'FAIL %s: unexpected descendant record count\n' "$scenario_label" >&2
 		exit 1
 	fi
 	local record_offset
 	for ((record_offset = 0; record_offset < ${#recorded_environment[@]}; record_offset += 7)); do
 		if [[ ${recorded_environment[record_offset]} != "$expected_codex" ||
 			${recorded_environment[record_offset + 1]} != "$expected_claude" ||
-			${recorded_environment[record_offset + 2]} != "$SSH_CONNECTION" ||
-			${recorded_environment[record_offset + 3]} != "$GH_CONFIG_DIR" ||
+			${recorded_environment[record_offset + 2]} != "$expected_ssh_connection" ||
+			${recorded_environment[record_offset + 3]} != "$expected_github_directory" ||
 			${recorded_environment[record_offset + 4]} != "$expected_session" ||
 			${recorded_environment[record_offset + 5]} != "$expected_tmux" ]]; then
-			printf 'FAIL %s: unexpected descendant environment\n' "$scenario" >&2
+			printf 'FAIL %s: unexpected descendant environment\n' "$scenario_label" >&2
 			exit 1
 		fi
-		if [[ $switch_mode == direct-control ]]; then
-			[[ ${recorded_environment[record_offset + 6]} == 1 ]] || exit 1
-		else
-			[[ ${recorded_environment[record_offset + 6]} -gt 1 ]] || exit 1
+		if [[ $require_direct_level == 1 && ${recorded_environment[record_offset + 6]} != 1 ]] ||
+			[[ $require_direct_level != 1 && ${recorded_environment[record_offset + 6]} -le 1 ]]; then
+			printf 'FAIL %s: unexpected descendant SHLVL\n' "$scenario_label" >&2
+			exit 1
 		fi
 	done
 }
@@ -297,11 +298,14 @@ RELOAD
 	local expected_session='<unset>' expected_tmux='<unset>'
 	if [[ $switch_mode == hazard ]]; then expected_session=$PSMUX_SESSION; expected_tmux=$TMUX; fi
 	# Check the direct child before the hook, then both generations after startup reloads.
-	assert_switch_environment "$test_directory/switch-direct" 1 '<unset>' '<unset>' "$expected_session" "$expected_tmux"
+	assert_switch_environment "$test_directory/switch-direct" 1 '<unset>' '<unset>' "$expected_session" "$expected_tmux" \
+		"$SSH_CONNECTION" "$GH_CONFIG_DIR" "$scenario" "$PSMUX_TEST_FORCE_DIRECT"
 	if [[ $switch_mode == hazard || $switch_mode == direct-control ]]; then
-		assert_switch_environment "$test_directory/switch-environment" 2 "$HOME/.codex-personal" "$HOME/.claude-personal" "$expected_session" "$expected_tmux"
+		assert_switch_environment "$test_directory/switch-environment" 2 "$HOME/.codex-personal" "$HOME/.claude-personal" "$expected_session" "$expected_tmux" \
+			"$SSH_CONNECTION" "$GH_CONFIG_DIR" "$scenario" "$PSMUX_TEST_FORCE_DIRECT"
 	else
-		assert_switch_environment "$test_directory/switch-environment" 2 '<unset>' '<unset>' "$expected_session" "$expected_tmux"
+		assert_switch_environment "$test_directory/switch-environment" 2 '<unset>' '<unset>' "$expected_session" "$expected_tmux" \
+			"$SSH_CONNECTION" "$GH_CONFIG_DIR" "$scenario" "$PSMUX_TEST_FORCE_DIRECT"
 	fi
 	if [[ -s $PSMUX_TEST_LOG || $SHLVL != 1 || $parent_environment != "$(printf '%s\n' "$CODEX_HOME" "$CLAUDE_CONFIG_DIR" "$PSMUX_SESSION" "$TMUX" "$SSH_CONNECTION" "$GH_CONFIG_DIR")" ]]; then
 		printf 'FAIL %s: psmux called or parent environment changed\n' "$scenario" >&2
