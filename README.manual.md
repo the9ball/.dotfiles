@@ -787,8 +787,11 @@ exit
 ```
 
 設定の適用は利用者の別操作です。
+適用前に、VS Codeユーザー設定の`terminal.integrated.profiles.windows["Codex Personal"].env.CLAUDE_CONFIG_DIR`に既存の値があれば控えます。
 差分を確認し、対象のBashランチャー、両PowerShellプロファイル、VS Code設定へ`chezmoi apply`を実行して、新しいシェルを開きます。
 戻す場合は変更コミットをrevertし、同じ対象へ`chezmoi apply`を実行して新しいシェルを開きます。
+既存のenv項目は再適用でも保持されるため、VS Codeユーザー設定から上記の`CLAUDE_CONFIG_DIR`キーだけを削除し、適用前に値があった場合はその値へ戻します。
+他のenv項目は保持し、`Codex Personal`端末を閉じて作り直します。
 ログイン済みのディレクトリは削除せず、そのまま残します。
 
 ### Windows版VS CodeのCodex端末設定
