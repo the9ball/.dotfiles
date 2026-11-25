@@ -194,14 +194,15 @@ gitleaks git --redact --log-opts="--diff-merges=first-parent origin/master..HEAD
 ```
 
 CI では、上の構文・設定チェックとは別に `gitleaks git --redact` でイベントのコミット範囲を走査します。
-ローカルのステージ済み差分の検査と異なり、PR は base と PR head の merge-base（起点を含まない）から PR head まで、master への push は `github.event.before`（起点を含まない）から `github.sha` までが対象です。
+ローカルのステージ済み差分の検査と異なり、PR は synthetic merge commit の親1と PR head の merge-base（起点を含まない）から PR head まで、master への push は `github.event.before`（起点を含まない）から `github.sha` までが対象です。
 PR の構文・設定チェックは checkout が用意するマージ結果を検査します。
 gitleaks は PR head までの履歴に加え、GitHub Actions の synthetic merge commit を1件だけ追加走査します。
 両方の走査で `--diff-merges=first-parent` を指定し、マージ時に追加された変更も親1との差分で検査します。
 履歴の辿り方を制限する `--first-parent` は使わず、通常コミットや side branch で追加後に削除された秘密も走査対象に残します。
 checkout は `fetch-depth: 0` とし、範囲は Bash スクリプト [`scripts/ci-gitleaks-range.sh`](scripts/ci-gitleaks-range.sh) で計算します。
 引数はイベント名（`pull_request` / `push`）、比較元の完全なコミット SHA、走査先の完全なコミット SHA です。PR では第4引数にイベントの merge SHA（`github.sha`）も必須です。
-PR の merge SHA は checkout HEAD と一致し、実在するコミットで、親がちょうど2件、親1がイベントの base SHA、親2が head SHA であることを範囲の出力前に検証します。
+PR の merge SHA は checkout HEAD と一致し、実在するコミットで、親がちょうど2件、親1がイベントの base SHA と同じかその子孫、親2がイベントの head SHA であることを範囲の出力前に検証します。
+親1がイベントの base SHA より進んでいる場合、merge-base の更新によって PR の走査範囲から外れるコミットは、すでに base ブランチにあり、push 時の走査対象です。
 SHA の欠落・全桁ゼロ・存在しないコミット、浅い履歴、merge-base の欠落・複数候補、push の比較元が head の祖先でない場合、履歴の取得・比較・走査の失敗は CI を失敗させます。
 merge SHA・親・checkout HEAD の不一致も失敗です。別の ref や全履歴を代わりに走査したり、検査をスキップして成功にしたりしません。
 CI で秘密情報を検出した時点で内容は remote に到達しているため、漏えいとして該当の認証情報を無効化・差し替えます。

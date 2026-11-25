@@ -515,14 +515,26 @@ Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example c
 リポジトリごとの対応関係は、ホームの`~/.gitconfig.local`に`includeIf`を追加して管理します。実際の登録内容は各エントリのコメントに対象worktreeとcanonical remoteを記録し、`upstream` remoteがある場合はそれを、なければ`origin`を判定基準にします。`github.com/OrangeCube/`配下なら業務profile、それ以外なら共有profileを読み込みます。新しいcloneやremote変更時は、対象のcanonical remoteを確認してから同じ形式で登録します。新規環境向けの形式は[`.gitconfig.local.example`](.gitconfig.local.example)にコメントで示しています。
 
 ```ini
+# リポジトリをまとめて配置するディレクトリごとに登録する場合
 [includeIf "gitdir:~/path/to/repositories/public/"]
 	path = ~/.dotfiles/git_user/shaula.gitconfig
 
 [includeIf "gitdir:~/path/to/repositories/work/"]
 	path = ~/.dotfiles/git_user/shoichi-yasui.gitconfig
+
+# リポジトリを個別に登録する場合
+[includeIf "gitdir:~/path/to/repositories/example/.git"]
+	path = ~/.dotfiles/git_user/shaula.gitconfig
+
+[includeIf "gitdir:~/path/to/repositories/example/.git/worktrees/"]
+	path = ~/.dotfiles/git_user/shaula.gitconfig
 ```
 
-`gitdir:`の条件はGitが認識している`.git`ディレクトリのパスに対して評価されます。リンクworktreeでは作業ディレクトリではなく、worktree専用のgitdirを条件にします。Windows、WSL、POSIX環境ではパスが異なるため、必要なら環境ごとに規則を用意します。条件が重複すると後から読み込んだidentityが有効になるため、対象ツリーを重複させません。既存の`~/.gitconfig.local`にある直接の`[user]`設定は、対応する`includeIf`へ移してから削除します。identityが選択されていないリポジトリではコミットを失敗させ、意図しないidentityを使わない運用にします。
+`gitdir:`の条件はGitが認識しているgitdirのパスに対して評価されます。末尾の`/`はそのディレクトリの配下すべてに一致します。複数のリポジトリを置くディレクトリをツリー単位で登録すると、配下にあるすべてのリポジトリとそのリンクworktreeのgitdirが対象になります。
+
+canonical remoteに基づいて1つのリポジトリを個別に登録し、リンクworktreeでも同じidentityを使う場合は、メインチェックアウト用の`<repo>/.git`とリンクworktree用の`<repo>/.git/worktrees/`を登録し、両方に同じプロファイルを指定します。`<repo>/.git/`は`.git`自体に一致しません。リポジトリのルートを`<repo>/`として登録すると、その中に置いた独立したリポジトリにも同じidentityが適用されます。
+
+Windows、WSL、POSIX環境ではパスが異なるため、必要なら環境ごとに規則を用意します。条件が重複すると後から読み込んだidentityが有効になるため、対象ツリーを重複させません。既存の`~/.gitconfig.local`にある直接の`[user]`設定は、対応する`includeIf`へ移してから削除します。identityが選択されていないリポジトリではコミットを失敗させ、意図しないidentityを使わない運用にします。
 
 設定後は、リポジトリごとに次で出所と実効値を確認します。
 
@@ -530,6 +542,12 @@ Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example c
 git config --show-origin --show-scope --includes --get-regexp '^user\.'
 git config --show-origin --show-scope --includes --get-regexp '^include(if)?\.'
 git check-ignore -v git_user/<local-profile>.gitconfig
+```
+
+リンクworktree内でも、次のコマンドで想定した名前とメールアドレスが表示されることを確認します。
+
+```sh
+git var GIT_AUTHOR_IDENT
 ```
 
 履歴上は`Shaula`と`Shoichi Yasui`が主な名前ですが、後者には`shoichi`、`shoichi yasui`、`Shoichi Yasui`の表記揺れがあります。ローカル専用profileのメールアドレスは追跡対象の文書へ書かず、既存コミットも書き換えず、今後使うprofileの表記だけを明示的に選びます。

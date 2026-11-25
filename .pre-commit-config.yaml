@@ -64,6 +64,13 @@ repos:
         stages: [manual]
         files: '^\.github/workflows/[^/]+\.ya?ml$'
         exclude: *template_excludes
+      - id: test-ci-gitleaks-range
+        name: CI gitleaks range regression
+        language: system
+        entry: bash scripts/test-ci-gitleaks-range.sh
+        stages: [manual]
+        pass_filenames: false
+        files: '^(scripts/(ci-gitleaks-range|test-ci-gitleaks-range)\.sh|\.pre-commit-config\.yaml)$'
       - id: all-files-pre-push
         name: Full repository checks before push
         language: system
