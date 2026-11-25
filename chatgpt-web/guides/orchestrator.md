@@ -59,18 +59,22 @@ Starting point: [base and head SHAs, task branch, checkout, and relevant evidenc
 Task-branch push: [yes/no and authorization source]
 Draft PR creation: [yes/no and authorization source]
 Draft PR updates: [yes/no and authorization source]
+Mark a Draft PR ready for review: [yes/no and authorization source]
+Return a PR to Draft: [yes/no and authorization source]
 Issue comments: [yes/no and authorization source]
 PR comments: [yes/no and authorization source]
 Create a dedicated worktree: [yes/no based on explicit user approval]
+Checkpoint destination: [authorized Issue/PR or other authorized place, otherwise report to the user]
 
 Main worker: gpt-6.2-sol, medium reasoning effort
 Spot reviewer: gpt-6.2-astra, low reasoning effort
 Execution and review contract: [user_review and review_level with their sources or
 applicable defaults, reversibility and impact, required verification, and handoff evidence]
 
-Record checkpoints and evidence in the Issue or PR where authorized, following
-codex-orchestration. Report when a decision or approval is needed, a blocker arises,
-or the PR is ready for acceptance. Follow applicable stop conditions.
+Use the checkpoint destination above and report milestone checkpoints to the user
+when no authorized destination is named. Record evidence in the Issue or PR where
+authorized, following codex-orchestration. Report when a decision or approval is needed,
+a blocker arises, or the PR is ready for acceptance. Follow applicable stop conditions.
 Merge, Issue closure, permission relaxation, and new contracts are reserved
 for separate authorization. This appointment covers only the identified task.
 ```
@@ -91,7 +95,7 @@ In two-layer mode, the handoff grants no permission to launch a non-interactive 
 
 For final-review corrections or clarification within the same objective, scope, and authorization, prefer a follow-up to the existing executor session under its continuity rules. Identify ChatGPT's findings as such and provide the current target and requested correction. The executor classifies the revision/epoch and reassesses evidence under its own contract. If continuity is unavailable or the scope materially changes, provide a self-contained new handoff; do not assume an old verdict or authority covers the new target.
 
-If Claude is unavailable, for example because its usage limit is exhausted, ChatGPT may switch the task to two-layer operation at the user's direction. Start the user-driven Codex kickoff from the last checkpoint recorded in the Issue or PR, including the branch, full head SHA, and next owner. When Claude returns, it reconciles the current state against that checkpoint first under `codex-orchestration`. If the task advanced through another route, Claude waits for a new instruction from the user before continuing.
+If Claude is unavailable, for example because its usage limit is exhausted, ChatGPT may switch the task to two-layer operation at the user's direction. Start the user-driven Codex kickoff from the last checkpoint recorded at the kickoff destination or reported to the user, including the branch, full head SHA, and next owner. When Claude returns, it reconciles the current state and confirms the current owner under `codex-orchestration`. If the task advanced through another route, the current owner is someone other than Claude, or ownership is uncertain, Claude waits for a new instruction from the user before continuing.
 
 If a Codex worker reaches its usage limit in three-layer mode, Claude handles recovery under `codex-orchestration`. ChatGPT intervenes only for decisions escalated under that Skill.
 
