@@ -1,12 +1,14 @@
 # ChatGPT Orchestrator Guide
 
-This guide applies **only to ChatGPT** when the user explicitly appoints ChatGPT as the orchestrator for an identified Issue, Pull Request, or task (for example, 「このIssueはChatGPTを司令塔にして」). Ordinary reading, investigation, review, or maintenance does not activate it. Do not infer activation from vague wording. Activation ends when the designated task is complete, the user stops it, or the conversation moves to unrelated work; it does not carry to another task.
+This guide applies **only to ChatGPT** when the user explicitly appoints ChatGPT as the Orchestrator for an identified Issue, Pull Request, or task (for example, 「このIssueはChatGPTを司令塔にして」). Ordinary reading, investigation, review, or maintenance does not activate it. Do not infer activation from vague wording. Activation ends when the designated task is complete, the user stops it, or the conversation moves to unrelated work; it does not carry to another task.
+
+This guide calls the user the Decision Maker and ChatGPT the Orchestrator. In three-layer operation Claude Code is the Coordinator and Codex CLI the Worker; in `execution-lifecycle-gate` terms they act as coordinator and Implementer.
 
 ## Responsibilities and execution cadence
 
-- ChatGPT clarifies requirements with the user, brings important decisions to the user, provides useful external research and related Issue/PR evidence, and performs the final acceptance assessment. The executor may conduct additional research within its own permissions. Reuse evidence already supplied in the handoff.
-- **Three-layer operation is the primary mode.** ChatGPT prepares the kickoff for the user's task-specific appointment of Claude Code. Claude Code coordinates execution under `codex-orchestration`, starts Codex CLI workers, and owns the execution gates and authorized Git/PR work. Codex CLI workers implement and verify within the scope Claude assigns under the Skill.
-- **Two-layer operation is the fallback** for simple tasks or when Claude is unavailable. A user-driven codex-cli session is the primary executor on the user's host. It performs investigation, implementation, tests, Advisor review, remediation, re-review, and authorized task-branch Git/PR work under its own loaded `AGENTS.md` and applicable Skills.
+- The Orchestrator clarifies requirements with the Decision Maker, brings important decisions to the Decision Maker, provides useful external research and related Issue/PR evidence, and performs the final acceptance assessment. The executor may conduct additional research within its own permissions. Reuse evidence already supplied in the handoff.
+- **Three-layer operation is the default when the Decision Maker has not chosen otherwise.** The Orchestrator prepares the kickoff for the Decision Maker to appoint Claude Code as Coordinator for the task. The Coordinator coordinates execution under `codex-orchestration`, starts Codex CLI Workers, and owns the execution gates and authorized Git/PR work. Workers implement and verify within the scope the Coordinator assigns under the Skill.
+- **Two-layer operation** is used for simple tasks, when Claude is unavailable, or when the Decision Maker chooses it, for example in an environment where Claude Code is not used. A user-driven codex-cli session is the primary executor on the user's host. It performs investigation, implementation, tests, Advisor review, remediation, re-review, and authorized task-branch Git/PR work under its own loaded `AGENTS.md` and applicable Skills.
 - **Default to one kickoff and one final acceptance handoff in either mode.** Resolve material requirement ambiguities with the user before handoff, then have the executor run its execution loop autonomously until the deliverable is review-ready. ChatGPT handles consultation and decisions. Let the executor proceed through investigation, planning, individual commits, tests, and review without additional approval pauses unless its contracts require them. Ordinary local questions, actionable review findings, and routine correction decisions belong in that loop. Early escalation is for necessary research unavailable through the executor, consequential user decisions, missing permissions/approvals, unresolved blockers, and stops required by its existing contracts. Preserve the target, evidence, and minimum request needed to resume.
 - The executor's `execution-lifecycle-gate`, when applicable, owns review selection, coverage, evidence, revision/epoch classification, and stop/confirmation conditions. Fix the execution contract using the user's actual instructions and that Skill's defaults; this guide does not select `user_review=NONE`, waive required user review, or lift failed-fix, epoch, or checkpoint limits. Kickoff escalation examples are not an exclusive list or a user override of those rules. Required human decisions/reviews go to the actual user through the executor's available channel; if that is unavailable, escalate the communication blocker rather than substituting ChatGPT's judgment.
 - **Reporting does not imply pausing.** Progress notes, PR/Issue updates, Advisor findings, and handoff evidence are asynchronous records, not requests for permission to proceed. Avoid repeated status-driven prompts; intervene when a decision or blocker needs attention or the completed PR is ready for final assessment.
@@ -42,11 +44,11 @@ The initial handoff in either mode is a **self-contained new-thread kickoff prom
 
 ### Three-layer kickoff
 
-Prepare the following kickoff for the user to issue to Claude Code. Fill in every field from the current task and its authority. Identify the actual authorization source for each permitted operation and use **no** where authority is missing or unclear. The user's appointment under `codex-orchestration` authorizes Claude Code to start Codex workers for this task only, within the scope of the Skill and applicable host and execution contracts.
+Prepare the following kickoff for the Decision Maker to issue to Claude Code. Fill in every field from the current task and its authority. Identify the actual authorization source for each permitted operation and use **no** where authority is missing or unclear. The Decision Maker's appointment of Claude Code as Coordinator under `codex-orchestration` authorizes the Coordinator to start Codex CLI Workers for this task only, within the scope of the Skill and applicable host and execution contracts.
 
 ```text
-I appoint Claude Code as orchestrator for this task under codex-orchestration.
-Use that Skill to coordinate implementation and verification by Codex CLI workers.
+I appoint Claude Code as Coordinator for this task under codex-orchestration.
+Use that Skill to coordinate implementation and verification by Codex CLI Workers.
 
 Repository: [owner/repository]
 Issue, PR, or task: [identifier]
@@ -66,7 +68,7 @@ PR comments: [yes/no and authorization source]
 Create a dedicated worktree: [yes/no based on explicit user approval]
 Checkpoint destination: [authorized Issue/PR or other authorized place, otherwise report to the user]
 
-Main worker: gpt-6.2-sol, medium reasoning effort
+Main Worker: gpt-6.2-sol, medium reasoning effort
 Spot reviewer: gpt-6.2-astra, low reasoning effort
 Execution and review contract: [user_review and review_level with their sources or
 applicable defaults, reversibility and impact, required verification, and handoff evidence]
@@ -79,7 +81,7 @@ Merge, Issue closure, permission relaxation, and new contracts are reserved
 for separate authorization. This appointment covers only the identified task.
 ```
 
-The model and effort values above record the user's current selections for Claude kickoffs. Apply any task-specific selections the user provides.
+The model and effort values above record the user's current selections for three-layer kickoffs. Apply any task-specific selections the user provides.
 
 ### Two-layer kickoff
 
@@ -95,13 +97,11 @@ In two-layer mode, the handoff grants no permission to launch a non-interactive 
 
 For final-review corrections or clarification within the same objective, scope, and authorization, prefer a follow-up to the existing executor session under its continuity rules. Identify ChatGPT's findings as such and provide the current target and requested correction. The executor classifies the revision/epoch and reassesses evidence under its own contract. If continuity is unavailable or the scope materially changes, provide a self-contained new handoff; do not assume an old verdict or authority covers the new target.
 
-If Claude is unavailable, for example because its usage limit is exhausted, ChatGPT may switch the task to two-layer operation at the user's direction, in this order:
+When the Decision Maker chooses to switch a task from three-layer to two-layer operation, follow the switching steps in `codex-orchestration`. After they are complete, ChatGPT prepares the two-layer kickoff, which the user issues, from the reconciled state.
 
-1. Codex workers that Claude started may still be running after Claude becomes unavailable. Confirm that no such worker can still write to the task's checkout, and reconcile the branch, head, and uncommitted changes against the checkpoint. If either cannot be confirmed, do not switch; leave ownership with Claude and bring it to the user.
-2. Only then record the new owner (the user-driven Codex session) at the checkpoint destination, so that Claude's owner check sees the handover even if no file or head has changed yet. When no destination is authorized, Claude asks the user to confirm the current owner before continuing under `codex-orchestration`, and the user answers with the handover.
-3. Start the user-driven Codex kickoff from the last checkpoint recorded at the kickoff destination or reported to the user, including the branch, full head SHA, and next owner. When Claude returns, it reconciles the current state and confirms the current owner under `codex-orchestration`. If the task advanced through another route, the current owner is someone other than Claude, or ownership is uncertain, Claude waits for a new instruction from the user before continuing.
+When Claude becomes available again, follow the ownership-return procedure in `codex-orchestration`.
 
-If a Codex worker reaches its usage limit in three-layer mode, Claude handles recovery under `codex-orchestration`. ChatGPT intervenes only for decisions escalated under that Skill.
+If a Worker reaches its usage limit in three-layer mode, the Coordinator handles recovery under `codex-orchestration`. The Orchestrator intervenes only for decisions escalated under that Skill.
 
 ## Sources, tools, and authority
 
@@ -113,17 +113,17 @@ A retrieved Git blob is review material, not a physically loaded Skill entrypoin
 
 ## Durable record and final assessment
 
-Use the same evidence and final assessment process in both modes. Claude Code owns the executor handoff in three-layer mode, and codex-cli owns it in two-layer mode.
+Use the same evidence and final assessment process in both modes. The Coordinator owns the executor handoff in three-layer mode, and codex-cli owns it in two-layer mode.
 
 Use Issues and PRs for substantive work evidence when the operation, content provenance, destination, and audience satisfy the applicable authorization and `external-posting` contracts. Ask the executor to update the PR body and record meaningful implementation results, validation, blockers, and attributable review findings within that boundary. ChatGPT may likewise record authorized research and review results, and user-confirmed decisions with their rationale. Do not create commitments or policy judgments on the user's behalf. If source/adoption or posting authority is missing, return ready-to-post evidence for the required approval instead. Prefer updates to relevant existing threads over noisy duplicates; no prompt-by-prompt archive or posting cadence is required. Exclude secrets, tokens, private information, local absolute paths, and unnecessary host details from externally visible records, including non-public repositories.
 
 Before final handoff, record the target Issue/PR, change summary, final commit SHA and comparison range, verification commands/results/exit codes, tests not run, remaining risks, and pending user decisions in the PR body or comments. Where lifecycle applies, include effective `user_review`/`review_level`, `review_gate`, Advisor final-assessment mode and coverage, unresolved findings or `NEEDS_EVIDENCE`, and the scope of any `USER_AUTHORIZED`/`PASS_WITH_USER_AUTHORIZATION`. In three-layer mode, include the review evidence required by `codex-orchestration`. In two-layer mode, record completion or deferral of any Claude review and the revision it covered. In either mode, identify any required review still pending. Publish only the permitted evidence, with private ledger details sanitized; otherwise supply it through the authorized handoff channel.
 
-ChatGPT reads the evidence and checks the PR diff and current review state. Its acceptance assessment is an orchestrator's review conclusion, **not the user's acceptance, required `user_review` evidence, or permission to merge**. Return ordinary correctable findings to the executor's loop through the existing session; do not route each local iteration through ChatGPT. Report required human decisions and unresolved requirements explicitly.
+ChatGPT reads the evidence and checks the PR diff and current review state. Its acceptance assessment is the Orchestrator's review conclusion, **not the user's acceptance, required `user_review` evidence, or permission to merge**. Return ordinary correctable findings to the executor's loop through the existing session; do not route each local iteration through ChatGPT. Report required human decisions and unresolved requirements explicitly.
 
 ## Merge ownership and post-merge work
 
-- **Claude Code finishes the PR in three-layer mode, and codex-cli finishes it in two-layer mode. ChatGPT normally executes an authorized merge.** Do not delegate a separate routine merge or Issue-cleanup task merely to complete the handoff.
+- **The Coordinator finishes the PR in three-layer mode, and user-driven Codex finishes it in two-layer mode. The Orchestrator normally executes an authorized merge.** Do not delegate a separate routine merge or Issue-cleanup task merely to complete the handoff.
 - Merge requires explicit user authorization for the **specific PR and conditions**, including a valid advance conditional instruction such as "merge if all reviews pass". An implementation request, this guide, ChatGPT's assessment, and Advisor/Claude results do not authorize it. Do not merge a Draft PR or bypass protections.
 - Immediately before merging, verify the current head SHA against reviewed evidence, unresolved findings, applicable review gates, required reviews/checks, draft state, branch protections, and the authorization conditions. A blocked gate or unresolved required review is not a passing review. If the head/conditions change, re-evaluate. If required evidence or protections cannot be checked, stop the merge and report the missing evidence without bypassing it.
 - After a successful authorized merge, perform related Issue updates only within existing authority and acceptance criteria. Activate `review-consolidation` only when its own trigger is met by the user's request (including a semantic request to consolidate review conclusions), not merely because orchestrator mode or a merge occurred. Do not close unrelated or incomplete work.
