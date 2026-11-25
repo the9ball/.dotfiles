@@ -103,7 +103,8 @@ Other hooks keep running; only the guard does nothing.
 - After the process exits, check the exit code and that the output file exists and is not empty, then take the completion status, error information, and answer text only from the last `type=result` event. A missing final result, an error, or a truncated stream means the call did not finish. When the answer text is long, check its outline first and read the needed parts.
 - Intermediate events or a growing file show activity, not completion or success. Switching to `stream-json` does not allow sending further input to a running call.
 - After reading the result, delete only the directory this call created, unless the user named a place to keep it. Before deleting it recursively, confirm that its resolved absolute path is that directory under the OS temporary directory. Never use a wildcard that could match another call's directory.
-- Creating, updating, and deleting these files needs no separate confirmation only when user instructions grant it, for example a standing approval in the host-local memo. Otherwise follow the normal approval rules. This Skill grants no approval by itself.
+- The user grants standing approval for these temporary-file operations: creating the per-call `claude-invocation-*` directory, creating, updating, and deleting the request, output, standard-error, prompt, session-limited settings, and child-agent definition files in it, and deleting that directory after the result is read under the checks above. They need no separate confirmation, even when the task is otherwise read-only or forbids changing existing files. An explicit instruction that forbids temporary files or asks for per-call approval takes precedence.
+- This approval does not cover existing files, the Git index, refs, or history, persistent settings, authentication or permission changes, or external posting, and it does not bypass the host's sandbox, managed policy, or tool approvals.
 
 ### Waiting
 
