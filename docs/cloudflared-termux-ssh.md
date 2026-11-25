@@ -78,7 +78,9 @@ SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、�
 Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
 
 Termux側で、次を実行する。`SEND`が送信ボタンになる。
-設定ファイルは`~/.termux/termux.properties`か`~/.config/termux/termux.properties`で、どちらもなければ前者を作る。既存のファイルは別名でバックアップしてから追記し、途中で失敗した場合や既に`extra-keys`がある場合は、変更せずに止まる。
+設定ファイルは`~/.termux/termux.properties`か`~/.config/termux/termux.properties`で、どちらもなければ前者を作る。既存のファイルは別名でバックアップしてから追記する。確認やバックアップに失敗した場合と、既に`extra-keys`がある場合は、設定ファイルに追記せずに止まる。
+追記に失敗した場合は、書きかけの内容が残ることがある。バックアップを元のファイルへ戻す（新規に作った場合は、作られたファイルを削除する）。
+`termux-reload-settings`に失敗した場合、追記は済んでいるので、このコマンドだけを再実行する。
 
 ```sh
 (
