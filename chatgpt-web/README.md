@@ -23,7 +23,7 @@ Before answering the first user request in each conversation, use the connected 
 ## 司令塔モード（明示起動のみ）
 
 特定タスクについてユーザー（Decision Maker）がChatGPTをOrchestrator（司令塔）に指定した場合のみ、[Orchestrator Guide](guides/orchestrator.md) を参照します。
-Decision Makerが別の運用を選ばなければ、Orchestratorが要件と最終確認を担当し、Decision MakerがCoordinatorに任命したClaude CodeがWorker（Codex CLI）を起動して実行を取りまとめる**三層運用**を使います。
-単純なタスク、Claudeが利用できない場合、またはClaude Codeを使わない環境などでDecision Makerが選んだ場合は、OrchestratorとDecision Makerが操作するCodex CLIによる**二層運用**を使います。
+Decision Makerはタスク開始時に三層運用か二層運用を選びます。二層運用を選ばなければ、Orchestratorが要件と最終確認を担当し、Decision MakerがCoordinatorに任命したClaude CodeがWorker（Codex CLI）を起動して実行を取りまとめる**三層運用**を使います。
+単純なタスクやClaude Codeを使わない環境などでDecision Makerが二層運用を選んだ場合は、OrchestratorとDecision Makerが操作するCodex CLIによる**二層運用**を使います。
 GuideはChatGPT専用で、Codex/Claudeの共有Skillには公開しません。
 PR段階ではブランチを指定して内容を確認してください（通常のカスタム指示は `master` を参照します）。
