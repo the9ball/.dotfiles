@@ -71,6 +71,16 @@ Accessログインに加えて、Windows OpenSSHによるホスト鍵の検証�
 ホスト鍵変更の警告が出たら、登録済み鍵を削除して続行せず接続を止めて確認する。
 SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、認証ヘッダーをリポジトリやIssueに貼らない。
 
+## 追加キー
+
+Termuxの`~/.termux/termux.properties`の`extra-keys`は、次の内容にする。
+
+```properties
+extra-keys = [['ESC','SHIFT','HOME','UP','END',{macro: "CTRL x CTRL s", display: "SEND"}],['TAB','CTRL','LEFT','DOWN','RIGHT','ALT','/']]
+```
+
+保存後に`termux-reload-settings`で反映する。`SEND`は`Ctrl+X` `Ctrl+S`を続けて送る。
+
 ## 現行のWindowsシェルとの関係
 
 PR #292以降の構成では、Windows Git Bash SSHで`DOTFILES_DOCKER_SSH=required`が設定されている場合、SSH認証後にManaged SSH Dockerを初期化する。
