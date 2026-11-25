@@ -96,9 +96,9 @@ In two-layer mode, the handoff grants no permission to launch a non-interactive 
 
 ### Follow-ups and fallback
 
-For final-review corrections or clarification within the same objective, scope, and authorization, prefer a follow-up to the existing executor session under its continuity rules. Identify ChatGPT's findings as such and provide the current target and requested correction. The executor classifies the revision/epoch and reassesses evidence under its own contract. If continuity is unavailable or the scope materially changes, provide a self-contained new handoff; do not assume an old verdict or authority covers the new target.
+For final-review corrections or clarification within the same objective, scope, and authorization, prefer a follow-up to the existing executor session under its continuity rules. Identify ChatGPT's findings as such and provide the current target and requested correction. The executor classifies the revision/epoch and reassesses evidence under its own contract. If continuity is unavailable or the scope materially changes, provide a self-contained new handoff; do not assume an old verdict or authority covers the new target. In three-layer mode, when the new handoff continues on the same branch or PR, first complete the handover steps in `codex-orchestration`.
 
-If Claude becomes unavailable, wait for its recovery by default. If the Decision Maker decides a transfer is needed, follow the transfer steps in `codex-orchestration`; afterwards ChatGPT prepares an ordinary two-layer kickoff, which the user issues, from the reconciled state. Claude does not return to a transferred task.
+If Claude becomes unavailable, wait for its recovery by default. If the Decision Maker decides a transfer is needed, follow the handover steps in `codex-orchestration`; afterwards ChatGPT prepares an ordinary two-layer kickoff, which the user issues, from the reconciled state. Claude does not return to a transferred task.
 
 If a Worker reaches its usage limit in three-layer mode, the Coordinator handles recovery under `codex-orchestration`. The Orchestrator intervenes only for decisions escalated under that Skill.
 
