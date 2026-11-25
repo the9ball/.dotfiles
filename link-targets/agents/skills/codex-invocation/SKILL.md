@@ -1,6 +1,6 @@
 ---
 name: codex-invocation
-description: Invoke the Codex CLI (`codex review` or `codex exec`) non-interactively from another agent or a script for a review, investigation, or verification, with network disabled, file-based input and output, notification hooks silenced, and results read safely. Not for running Codex inside WSL (use `wsl-codex-exec`), for plugin-mediated Codex calls such as codex-companion, or for interactive Codex sessions the user drives.
+description: Invoke the Codex CLI (`codex review` or `codex exec`) non-interactively from another agent or a script for review, investigation, verification, or implementation delegated under a fixed contract, or resume a saved session, with network disabled, file-based input and output, notification hooks silenced, and results read safely. Not for running Codex inside WSL (use `wsl-codex-exec`), for plugin-mediated Codex calls such as codex-companion, or for interactive Codex sessions the user drives.
 ---
 
 # Codex CLI invocation
@@ -9,9 +9,9 @@ description: Invoke the Codex CLI (`codex review` or `codex exec`) non-interacti
 
 - Host fallback: exempt; shared AGENTS routes agent CLI invocation directly to this Skill
 
-- Positive trigger: Start the Codex CLI (`codex review`, `codex exec`) as a non-interactive child process from another agent or a script.
+- Positive trigger: Start the Codex CLI (`codex review`, `codex exec`) as a non-interactive child process from another agent or a script, including implementation delegated under a fixed contract and resuming a saved session (`codex exec resume`).
 - Negative trigger: Codex inside WSL (`wsl-codex-exec`), plugin-mediated Codex calls, interactive Codex sessions, or merely reading Codex logs or configuration.
-- Conditional dependency: Delegation scope, role independence, and review read scope stay with `delegation` and `advisor-review` when those apply; this Skill owns only how the CLI is started and how its output is read.
+- Conditional dependency: Delegation scope, authority, role independence, and review read scope stay with `delegation`, `execution-lifecycle-gate`, `advisor-review`, and the caller's contract as applicable. This Skill owns only how the CLI is started and how its output is read.
 - Failure mode: If authentication, the invocation form, or the result cannot be confirmed, stop and report the call as incomplete; never treat it as passed and never fall back silently to another CLI, account, or sandbox mode.
 
 ## Runtime contract
@@ -24,7 +24,7 @@ The examples use Windows PowerShell and `Start-Process`. The rules apply on any 
 
 ### Before starting
 
-- Fix the purpose, the target repository, the read scope, and the forbidden operations before the call, and write them into the request.
+- Fix the purpose, the target repository, the read scope, any permitted edits, and the forbidden operations before the call, and write them into the request.
 - Run `codex login status` and confirm that Codex is logged in. If it is not, do not log in, switch accounts, or fall back to another CLI or API; ask the user.
 - Send only the fixed target and the material needed to judge it, such as identified public Issue or PR text, the local diff, and related code and rules. Never send credentials, private conversations, internal logs, or unrelated local files.
 
@@ -52,7 +52,7 @@ $NetworkOffSettings = "-c features.network_proxy=false -c permissions.$ActivePro
 - Where Codex enables sandbox network access, it routes it through managed networking. On Windows that requires the elevated sandbox, which a non-administrator user cannot set up. There every shell command then fails, regardless of whether it uses the network, and `codex review` ends with `Review blocked …` and exit code 0. `-c sandbox_workspace_write.network_access=false` alone does not avoid this.
 - When a request needs the network, do not run it with these settings, and do not switch the sandbox mode on your own. Ask the user.
 - Never use `--dangerously-bypass-approvals-and-sandbox`, `--dangerously-bypass-hook-trust`, or `--approve-for-me`.
-- Leave model and reasoning effort unset unless the task explicitly selects them.
+- Pass `-m <model>` and `-c model_reasoning_effort=<effort>` only for settings the task explicitly selects. A Codex child cannot inherit the caller's model or effort, so in a fresh session an unspecified field uses the Codex home's configured default, which is the runtime default in `delegation` terms. When resuming, pass only explicit selections and leave the session's other settings unchanged.
 
 ### Silence notification hooks
 
@@ -119,12 +119,46 @@ $CodexExitCode = $CodexProcess.ExitCode
 
 When the request lets Codex delegate to subagents, drop `--ephemeral` and keep every other setting. With `--ephemeral`, spawning a subagent fails with `invalid thread-store request: no rollout found for thread id …`, and some Codex Skills then stop instead of doing the work in the main thread. Without it, the session record, including the request and Codex's output, stays in the Codex home, so keep credentials and private conversations out of the request.
 
+### Implementation
+
+Use this form for implementation delegated under a fixed contract. Use the request file for the approved edit scope and verification requirements.
+
+```powershell
+$CodexProcess = Start-Process -FilePath (Get-Command codex).Source `
+  -ArgumentList "exec --sandbox workspace-write --json $NetworkOffSettings -C `"$CodexCheckout`" -o `"$CodexLastMessageFile`" -" `
+  -RedirectStandardInput $CodexRequestFile `
+  -RedirectStandardOutput $CodexResponseFile `
+  -RedirectStandardError $CodexErrorFile `
+  -NoNewWindow -Wait -PassThru
+$CodexExitCode = $CodexProcess.ExitCode
+```
+
+- Omit `--ephemeral` when the session may need to be resumed or its effective settings checked later.
+- On Windows, `workspace-write` protects `.git` from child writes. For example, `git add` fails to create `index.lock`. The caller handles any Git writes and external operations under its own contract. Both network-off settings still apply.
+- In Windows requests, tell the child to use an explicit `.\` path when invoking a script in the working directory, with the required interpreter or runner. The sandbox sets `NoDefaultCurrentDirectoryInExePath`.
+- Ask the child to print `$LASTEXITCODE` immediately after each native command whose exact exit code is needed. The child's shell runs commands through `pwsh -Command`, which reports a nonzero native exit code as 1.
+- State whether the child must preserve existing line endings. Edits may convert CRLF to LF.
+
+### Resume a saved session
+
+Use the same input and output redirections and hook settings as for implementation. With `Start-Process`, set `-ArgumentList` as shown here for a session using `workspace-write`.
+
+```powershell
+"exec --sandbox workspace-write --json -C `"$CodexCheckout`" resume $NetworkOffSettings -o `"$CodexLastMessageFile`" $CodexSessionId -"
+```
+
+- `codex exec resume` accepts neither `--sandbox` nor `--cd`. Put `--sandbox`, `--json`, and `-C` before `resume` as `exec` options. Put `-c` settings (including both network-off settings), `-m`, and `-o` after `resume`, using `resume <options> <SESSION_ID> -`. Use the sandbox selected for the task and take the session ID from `thread.started` as described below.
+- A fresh session pays a fixed input cost to load shared instructions. Resume a short session for small follow-ups on the same work. Start a fresh session for an independent review or after a long session, because resuming a long session resends its whole context on each model call.
+
 ### Files and results
 
 - Create one new directory named `codex-invocation-*` directly under the OS temporary directory for each call, and keep the request, output, standard error, and final-message files in it. Pass the prompt from a UTF-8 file through standard input, never on the command line.
 - The output log contains the instructions Codex loaded, such as `AGENTS.md`. Do not read the whole log into a chat or model context, and do not share it outside the machine.
 - For `codex review`, the result is the part after the last line that is exactly `codex`. Do not judge success by the exit code: an exit code of 0 that ends with `Review blocked …` is a failed review.
 - For `codex exec`, read the `-o` file. A missing or empty file means the call did not finish.
+- With `--json`, read the `thread_id` field of `thread.started` as the session ID. When resuming, `turn.completed.usage` is cumulative across the whole session.
+- Treat a `turn.failed` or `error` event as an incomplete call. Identify a usage-limit failure by its `turn.failed` message, even if it gives no reset time. Record the reset time or record it as unknown. If the time is known, wait until the reset before retrying. If it is unknown, retry only once the limit is known to have reset or the user decides to retry. Keep the same account, Codex home, and route.
+- A child that stops before completion is incomplete. If it ended without the caller or user intending to stop it, for example after a crash, timeout, host interruption, or usage-limit failure, it may be resumed by session ID within the original authority, subject to the reset rule above. A child stopped at the user's instruction may be resumed only on a new instruction from the user.
 - Intermediate output or a growing file shows activity, not completion or success.
 - After reading the result, delete only the directory this call created. Before deleting it recursively, confirm that its resolved absolute path is that directory under the OS temporary directory. Never use a wildcard that could match another call's directory.
 - The user grants standing approval for these temporary-file operations: creating the per-call `codex-invocation-*` directory and the request, output, standard-error, and final-message files in it, and deleting that directory after the result is read under the checks above. They need no separate confirmation, even when the task is otherwise read-only or forbids changing existing files. An explicit instruction that forbids temporary files or asks for per-call approval takes precedence.
