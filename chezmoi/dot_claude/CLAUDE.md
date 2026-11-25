@@ -57,4 +57,5 @@ If the canonical Skill cannot be read, stop and report.
   permission before delegating. Do not delegate without permission. Do not skip the consideration itself.
 - When the user appoints Claude Code as orchestrator for an identified task, follow
   `~/.agents/skills/codex-orchestration/SKILL.md` (`link-targets/agents/skills/codex-orchestration/SKILL.md`).
-  The appointment is permission to delegate that task only.
+  The appointment covers only Codex CLI workers for that task and the read-only spot reviews those
+  workers dispatch. Claude Code subagents follow the permission rule above.
