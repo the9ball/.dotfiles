@@ -1071,6 +1071,8 @@ chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/keybindings.json" "$HOME
 
 Ctrl+EnterをEnterと区別して送らない端末では、Ctrl+Enterも改行になります。その場合は、既定のキー割り当ての`Ctrl+X` `Ctrl+S`（`chat:sendNow`）で送信します。Windows TerminalでCtrl+Enterが改行になる場合は、`compatibility.kittyKeyboardMode`を`false`にしていないか確認してください。
 
+端末入力の障害を調べた経緯（失敗した検証、nanoの入力障害、未解決事項を含む）は、[PR #332の調査記録](https://github.com/the9ball/.dotfiles/pull/332)を参照してください。
+
 ### Claude Code modの導入
 
 `link-targets/claude/mods/context`は、Claude Codeの下部ステータス行にコンテキスト使用率と利用上限（5時間枠・週間枠）の使用率・リセットまでの時間を表示するmodです。marketplaceを経由せず、このリポジトリを正本としてディスクから直接読み込みます。
