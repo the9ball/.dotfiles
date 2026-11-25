@@ -918,7 +918,7 @@ Remove-Item -LiteralPath "$HOME\.psmux-no-autoattach"
 
 #### 手動でpsmuxへ入り直す
 
-以下は旧 `dotfiles-ssh / ssh` 向けの手動コマンドです。常用 `dotfiles-session1 / main` へ入り直すときは[常用監視手順](docs/windows-psmux-daily.md)のattachコマンドを使います。
+常用 `dotfiles-session1 / main` へ入り直す手動コマンドです。自動アタッチと同じ[常用registryのattach](docs/windows-psmux-daily.md#sshログイン)を行います。
 
 ```bash
 bash ~/attach-psmux.sh
@@ -931,7 +931,8 @@ chezmoi --source "$HOME/.dotfiles" diff "$HOME/attach-psmux.sh"
 chezmoi --source "$HOME/.dotfiles" apply --exclude=scripts "$HOME/attach-psmux.sh"
 ```
 
-`dotfiles-ssh`名前空間の`ssh`セッションへアタッチし、存在しなければ作成します。既存クライアントの強制デタッチやセッションの終了は行いません。
+アタッチ専用で、セッションは作成しません。`main`がなければpsmuxのエラーで終了するので、デスクトップの監視を起動してから実行してください。既存クライアントの強制デタッチやセッションの終了は行いません。
+`PSMUX_DATA_DIR`と`PSMUX_NO_WARM`はこのコマンドの中だけで設定し、呼出し元のシェルには残しません。
 このコマンドは自動起動しません。`PSMUX_SSH_AUTOATTACH=0`や`.psmux-no-autoattach`の有無とは独立して、利用者が明示的に実行します。
 標準入力と標準出力の両方が端末であることと、`psmux`がPATHにあることを確認します。
 標準入力か標準出力が端末でない場合はアタッチしません。
