@@ -1,6 +1,7 @@
 {{- if eq .chezmoi.os "windows" -}}
 # Default to Git Bash for new psmux panes on Windows.
 set -g default-shell "C:/Program Files/Git/bin/bash.exe"
+# Turn off psmux paste detection and wait at most 100 ms after Escape for a key sequence.
 set -g paste-detection off
 set -g escape-time 100
 {{- end -}}
