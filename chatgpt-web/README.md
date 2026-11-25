@@ -22,4 +22,8 @@ Before answering the first user request in each conversation, use the connected 
 
 ## 司令塔モード（明示起動のみ）
 
-特定タスクについてChatGPTを司令塔に指定した場合のみ、[Orchestrator Guide](guides/orchestrator.md) を参照します。codex-cliが主担当であり、Claude CLIは必要に応じた明示承認後の補助レビューに限ります。GuideはChatGPT専用で、Codex/Claudeの共有Skillには公開しません。PR段階ではブランチを指定して内容を確認してください（通常のカスタム指示は `master` を参照します）。
+特定タスクについてChatGPTを司令塔に指定した場合のみ、[Orchestrator Guide](guides/orchestrator.md) を参照します。
+通常は、ChatGPTが要件と最終確認を担当し、ユーザーがそのタスクの司令塔に任命したClaude CodeがCodex CLIワーカーを起動して実行を取りまとめる**三層運用**を使います。
+単純なタスクやClaudeが利用できない場合は、ChatGPTとユーザーが操作するcodex-cliによる**二層運用**を使います。
+GuideはChatGPT専用で、Codex/Claudeの共有Skillには公開しません。
+PR段階ではブランチを指定して内容を確認してください（通常のカスタム指示は `master` を参照します）。
