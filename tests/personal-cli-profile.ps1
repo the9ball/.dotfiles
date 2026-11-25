@@ -69,14 +69,24 @@ try {
         Assert-Equal $LASTEXITCODE 37 'native argument stub exit'
         Assert-Equal (ConvertFrom-Json $nativeOutput) $nativeArguments 'native arguments'
         foreach ($wrapper in @('pcodex', 'pclaude')) {
-            foreach ($initialValue in @($null, 'inherited home')) {
+            foreach ($initialState in @(
+                @{ Codex = $null; Claude = $null },
+                @{ Codex = 'inherited home'; Claude = 'inherited home' },
+                @{ Codex = 'inherited codex'; Claude = $null },
+                @{ Codex = $null; Claude = 'inherited claude' },
+                @{ Codex = 'inherited codex'; Claude = 'different claude' }
+            )) {
                 foreach ($withPipeline in @($false, $true)) {
                     foreach ($script:throwFromStub in @($false, $true)) {
-                        if ($null -eq $initialValue) {
-                            Remove-Item Env:CODEX_HOME, Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+                        if ($null -eq $initialState.Codex) {
+                            Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue
                         } else {
-                            $env:CODEX_HOME = $initialValue
-                            $env:CLAUDE_CONFIG_DIR = $initialValue
+                            $env:CODEX_HOME = $initialState.Codex
+                        }
+                        if ($null -eq $initialState.Claude) {
+                            Remove-Item Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+                        } else {
+                            $env:CLAUDE_CONFIG_DIR = $initialState.Claude
                         }
                         $script:observation = $null
                         $caught = $false
@@ -103,8 +113,8 @@ try {
                             Assert-Equal $observedExitCode 37 'native exit code'
                             Assert-Equal $output 'fixture output' 'output'
                         }
-                        Assert-Equal ([Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')) $initialValue 'Codex restoration'
-                        Assert-Equal ([Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'Process')) $initialValue 'Claude restoration'
+                        Assert-Equal ([Environment]::GetEnvironmentVariable('CODEX_HOME', 'Process')) $initialState.Codex 'Codex restoration'
+                        Assert-Equal ([Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'Process')) $initialState.Claude 'Claude restoration'
                     }
                 }
             }

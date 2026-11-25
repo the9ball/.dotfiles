@@ -761,12 +761,29 @@ foreach ($scope in 'User', 'Machine') {
 ```
 
 User/Machineの4組すべてが未設定であることを確認します。
-利用者が明示的に1コマンドだけ既定へ戻す場合、Bashでは`env -u CODEX_HOME -u CLAUDE_CONFIG_DIR <command>`を使います。
+利用者が明示的に1コマンドだけ既定へ戻す場合、Bashでは`env -u CODEX_HOME -u CLAUDE_CONFIG_DIR -u PSMUX_SESSION -u TMUX <command>`を使います。
+ホームの2変数だけを外すと、psmux内で起動ファイルを再読込する子孫Bashが個人用の組を再設定するため、psmuxの識別変数も外します。
+このコマンドと子プロセスは現在のpsmuxセッションを識別できなくなります。
+`SSH_CONNECTION`などのSSH変数は外さず、`GH_CONFIG_DIR`も切り替えません。
 PowerShellでは新しい子PowerShellで変数を削除してから実行します。次は既定のCodexの状態確認例です。
 
 ```powershell
-pwsh -NoProfile -Command 'Remove-Item Env:CODEX_HOME, Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue; codex login status; exit $LASTEXITCODE'
+pwsh -NoProfile -Command 'Remove-Item Env:CODEX_HOME, Env:CLAUDE_CONFIG_DIR, Env:PSMUX_SESSION, Env:TMUX -ErrorAction SilentlyContinue; codex login status; exit $LASTEXITCODE'
 $LASTEXITCODE
+```
+
+直接SSHに接続したシェルでも、通常の子孫Bashは`SHLVL > 1`なのでSSH用の組を再読込しません。
+この切り替えを`exec`と組み合わせたり、子孫の`SHLVL`を1へ下げたりしないでください。
+直接の対話SSHシェルと判定されると個人用の組が読み込まれ、自動attachも起こり得ます。
+psmuxの識別が必要な場合や長い作業では、SSH/psmux外で両ホーム変数が未設定の通常のローカル端末を新しく開きます。
+
+直接起動したCLIだけの確認では、子孫プロセスのホームは確認できません。
+次のコマンドで子孫Bashを開き、起動ファイルの読込後に続く2行をその中で実行して両変数を確認します。認証情報は表示しません。
+
+```bash
+env -u CODEX_HOME -u CLAUDE_CONFIG_DIR -u PSMUX_SESSION -u TMUX bash -i
+printf 'CODEX_HOME=%s\nCLAUDE_CONFIG_DIR=%s\n' "${CODEX_HOME-<unset>}" "${CLAUDE_CONFIG_DIR-<unset>}"
+exit
 ```
 
 設定の適用は利用者の別操作です。

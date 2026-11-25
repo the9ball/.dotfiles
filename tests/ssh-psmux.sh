@@ -29,6 +29,7 @@ cleanup() {
 	rm -f "$test_directory/psmux" "$test_directory/calls" "$test_directory/.psmux-no-autoattach" "$test_directory/output" "$test_directory/.bashrc.ssh"
 	rm -f "$test_directory/overlay-calls" "$test_directory/environment"
 	rm -f "$test_directory/client-environment"
+	rm -f "$test_directory/switch-rcfile" "$test_directory/switch-environment" "$test_directory/switch-direct"
 	rmdir "$test_directory"
 }
 trap cleanup EXIT
@@ -196,3 +197,125 @@ done
 for scenario in local linux linux-psmux tmux command nested missing-overlay psmux-missing-overlay input-pipe output-pipe noninteractive interactive-command; do
 	run_case "$scenario" 0 0
 done
+
+# assert_switch_environment checks every descendant's homes and preserved SSH/GitHub context.
+assert_switch_environment() {
+	local log_path=$1 expected_records=$2 expected_codex=$3 expected_claude=$4
+	local expected_session=$5 expected_tmux=$6
+	local -a recorded_environment
+	mapfile -t recorded_environment < "$log_path"
+	if [[ ${#recorded_environment[@]} -ne $((expected_records * 7)) ]]; then
+		printf 'FAIL %s: unexpected descendant record count\n' "$scenario" >&2
+		exit 1
+	fi
+	local record_offset
+	for ((record_offset = 0; record_offset < ${#recorded_environment[@]}; record_offset += 7)); do
+		if [[ ${recorded_environment[record_offset]} != "$expected_codex" ||
+			${recorded_environment[record_offset + 1]} != "$expected_claude" ||
+			${recorded_environment[record_offset + 2]} != "$SSH_CONNECTION" ||
+			${recorded_environment[record_offset + 3]} != "$GH_CONFIG_DIR" ||
+			${recorded_environment[record_offset + 4]} != "$expected_session" ||
+			${recorded_environment[record_offset + 5]} != "$expected_tmux" ]]; then
+			printf 'FAIL %s: unexpected descendant environment\n' "$scenario" >&2
+			exit 1
+		fi
+		if [[ $switch_mode == direct-control ]]; then
+			[[ ${recorded_environment[record_offset + 6]} == 1 ]] || exit 1
+		else
+			[[ ${recorded_environment[record_offset + 6]} -gt 1 ]] || exit 1
+		fi
+	done
+}
+
+# run_switch_case compares the unsafe and corrected switches across real Bash startup reloads.
+run_switch_case() (
+	local context=$1 ssh_mode=$2 switch_mode=$3
+	local scenario="switch-$context-$ssh_mode-$switch_mode"
+	local HOME=$test_directory PATH="$test_directory:$original_path" SHLVL=1
+	local CODEX_HOME="$HOME/.codex-personal" CLAUDE_CONFIG_DIR="$HOME/.claude-personal"
+	local GH_CONFIG_DIR="$HOME/.config/gh-ssh" SSH_CONNECTION=''
+	local PSMUX_SESSION='' TMUX='' PSMUX_SSH_AUTOATTACH=''
+	local DOCKER_SSH_MANAGED='' DOTFILES_DOCKER_SSH='' BASH_ENV='' ENV=''
+	local PSMUX_TEST_FORCE_DIRECT=0 PSMUX_TEST_RELOAD_DEPTH=1
+	local PSMUX_TEST_RCFILE="$test_directory/switch-rcfile"
+	if [[ $ssh_mode == ssh ]]; then SSH_CONNECTION='127.0.0.1 12345 127.0.0.1 22'; fi
+	case "$context" in
+		session) PSMUX_SESSION=main ;;
+		socket) TMUX=/tmp/psmux-123/default,456,0 ;;
+	esac
+	if [[ $switch_mode == direct-control ]]; then
+		PSMUX_TEST_FORCE_DIRECT=1
+		PSMUX_SSH_AUTOATTACH=0
+	fi
+	export HOME PATH SHLVL CODEX_HOME CLAUDE_CONFIG_DIR GH_CONFIG_DIR SSH_CONNECTION
+	export PSMUX_SESSION TMUX PSMUX_SSH_AUTOATTACH DOCKER_SSH_MANAGED DOTFILES_DOCKER_SSH BASH_ENV ENV
+	export PSMUX_TEST_FORCE_DIRECT PSMUX_TEST_RELOAD_DEPTH PSMUX_TEST_RCFILE
+	cat > "$HOME/.bashrc.ssh" <<'OVERLAY'
+source "$PSMUX_TEST_REPOSITORY_DIRECTORY/.bashrc.ssh"
+OVERLAY
+	cat > "$PSMUX_TEST_RCFILE" <<'RELOAD'
+set -eu
+# Child Bash resets OSTYPE on Linux; exercise the native Windows hook explicitly.
+OSTYPE=msys
+if [[ $PSMUX_TEST_FORCE_DIRECT == 1 ]]; then SHLVL=1; fi
+
+# record_environment appends one fixed-width record without displaying credentials.
+record_environment() {
+	printf '%s\n' "${CODEX_HOME-<unset>}" "${CLAUDE_CONFIG_DIR-<unset>}" \
+		"${SSH_CONNECTION-<unset>}" "${GH_CONFIG_DIR-<unset>}" \
+		"${PSMUX_SESSION-<unset>}" "${TMUX-<unset>}" "$SHLVL" >> "$1"
+}
+
+if [[ $PSMUX_TEST_RELOAD_DEPTH == 1 ]]; then record_environment "$HOME/switch-direct"; fi
+# The hook and overlay are selected from this test's checkout.
+# shellcheck disable=SC1091
+source "$PSMUX_TEST_REPOSITORY_DIRECTORY/.bashrc.ssh-psmux"
+record_environment "$HOME/switch-environment"
+if [[ $PSMUX_TEST_RELOAD_DEPTH -gt 0 ]]; then
+	export PSMUX_TEST_RELOAD_DEPTH=$((PSMUX_TEST_RELOAD_DEPTH - 1))
+	if [[ $- == *i* ]]; then
+		bash --noprofile --rcfile "$PSMUX_TEST_RCFILE" -i
+	else
+		bash --noprofile --norc "$PSMUX_TEST_RCFILE"
+	fi
+fi
+exit
+RELOAD
+	: > "$PSMUX_TEST_LOG"
+	: > "$test_directory/switch-environment"
+	: > "$test_directory/switch-direct"
+	local parent_environment
+	parent_environment=$(printf '%s\n' "$CODEX_HOME" "$CLAUDE_CONFIG_DIR" "$PSMUX_SESSION" "$TMUX" "$SSH_CONNECTION" "$GH_CONFIG_DIR")
+	local -a switch_arguments=(-u CODEX_HOME -u CLAUDE_CONFIG_DIR)
+	if [[ $switch_mode != hazard ]]; then switch_arguments+=(-u PSMUX_SESSION -u TMUX); fi
+	if [[ $switch_mode == noninteractive ]]; then
+		env "${switch_arguments[@]}" bash --noprofile --norc "$PSMUX_TEST_RCFILE"
+	else
+		# No -c: direct SSH routing must be tested without BASH_EXECUTION_STRING.
+		env "${switch_arguments[@]}" bash --noprofile --rcfile "$PSMUX_TEST_RCFILE" -i
+	fi
+	local expected_session='<unset>' expected_tmux='<unset>'
+	if [[ $switch_mode == hazard ]]; then expected_session=$PSMUX_SESSION; expected_tmux=$TMUX; fi
+	# Check the direct child before the hook, then both generations after startup reloads.
+	assert_switch_environment "$test_directory/switch-direct" 1 '<unset>' '<unset>' "$expected_session" "$expected_tmux"
+	if [[ $switch_mode == hazard || $switch_mode == direct-control ]]; then
+		assert_switch_environment "$test_directory/switch-environment" 2 "$HOME/.codex-personal" "$HOME/.claude-personal" "$expected_session" "$expected_tmux"
+	else
+		assert_switch_environment "$test_directory/switch-environment" 2 '<unset>' '<unset>' "$expected_session" "$expected_tmux"
+	fi
+	if [[ -s $PSMUX_TEST_LOG || $SHLVL != 1 || $parent_environment != "$(printf '%s\n' "$CODEX_HOME" "$CLAUDE_CONFIG_DIR" "$PSMUX_SESSION" "$TMUX" "$SSH_CONNECTION" "$GH_CONFIG_DIR")" ]]; then
+		printf 'FAIL %s: psmux called or parent environment changed\n' "$scenario" >&2
+		exit 1
+	fi
+	printf 'PASS %s\n' "$scenario"
+)
+
+for context in session socket; do
+	for ssh_mode in local ssh; do
+		for switch_mode in hazard switched noninteractive; do
+			run_switch_case "$context" "$ssh_mode" "$switch_mode"
+		done
+	done
+done
+run_switch_case direct ssh switched
+run_switch_case direct ssh direct-control
