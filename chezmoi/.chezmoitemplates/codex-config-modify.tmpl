@@ -3,11 +3,15 @@ Merge shared and profile-specific Codex defaults while preserving runtime-owned 
 Expects chezmoi, defaultsFile, and removeWorkPermissions in the template context.
 Existing model and worker selections survive unless a host-local overlay overrides them.
 Only Personal removes the legacy work permission profile. Authentication files are never read.
+When the merged settings equal the existing ones, the existing file is returned byte for byte.
 */ -}}
 {{- $existingConfiguration := dict -}}
+{{- $existingCanonicalToml := "" -}}
 {{- $inputConfiguration := index .chezmoi "stdin" -}}
 {{- if $inputConfiguration -}}
 {{-   $existingConfiguration = fromToml $inputConfiguration -}}
+{{- /* Parse separately: the merge below modifies $existingConfiguration in place. */ -}}
+{{-   $existingCanonicalToml = toToml (fromToml $inputConfiguration) -}}
 {{- end -}}
 {{- $commonDefaults := fromToml (include ".chezmoitemplates/codex-common-defaults.toml") -}}
 {{- $profileDefaults := fromToml (include (printf ".chezmoitemplates/%s" .defaultsFile)) -}}
@@ -47,4 +51,10 @@ Only Personal removes the legacy work permission profile. Authentication files a
 {{-   end -}}
 {{- end -}}
 {{- $configuration := mergeOverwrite $existingConfiguration $defaultConfiguration -}}
-{{ $configuration | toToml }}
+{{- $mergedToml := toToml $configuration -}}
+{{- /* Codex rewrites this file in its own TOML layout; re-serializing equal settings would only reformat it. */ -}}
+{{- if and $inputConfiguration (eq $mergedToml $existingCanonicalToml) -}}
+{{ $inputConfiguration }}
+{{- else -}}
+{{ $mergedToml }}
+{{ end -}}
