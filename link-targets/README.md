@@ -9,10 +9,10 @@ link-targets/
 │   ├── AGENTS.md     # ~/.agents/AGENTS.md
 │   ├── guides/
 │   ├── hooks/        # shared in ~/.agents/hooks
-│   ├── skills/       # shared between ~/.agents/skills and ~/.claude/skills
+│   ├── skills/       # shared by ~/.agents/skills, ~/.claude/skills, and ~/.claude-personal/skills
 │   └── tools/
 └── claude/
-    ├── agents/       # ~/.claude/agents
+    ├── agents/       # ~/.claude/agents and ~/.claude-personal/agents
     └── mods/         # ~/.claude/mods
 ```
 
@@ -20,9 +20,9 @@ link-targets/
 
 `link-targets/agents/` is the original version of `~/.agents/`.
 `link-targets/agents/hooks/` is the original Codex hook shared from `~/.agents/hooks/`.
-`link-targets/agents/skills/` is shared from `~/.agents/skills/` and `~/.claude/skills/`.
-`link-targets/claude/agents/` is the original version of `~/.claude/agents/`.
-`link-targets/claude/mods/` is the original version of `~/.claude/mods/`. Claude Code loads each mod from disk through `CLAUDE_CODE_PLUGIN_DIRS`, which `chezmoi/dot_claude/modify_settings.json` sets.
+`link-targets/agents/skills/` is shared from `~/.agents/skills/`, `~/.claude/skills/`, and `~/.claude-personal/skills/`.
+`link-targets/claude/agents/` is the original version of `~/.claude/agents/` and `~/.claude-personal/agents/`.
+`link-targets/claude/mods/` is the original version of `~/.claude/mods/`. Claude Code loads each mod from disk through `CLAUDE_CODE_PLUGIN_DIRS`, which `chezmoi/.chezmoitemplates/claude-settings-modify.tmpl` sets for `~/.claude` and `~/.claude-personal`.
 
 The publication destination is a link to refer to the original content.
 Do not edit the publishing destination path directly, but edit the original side.

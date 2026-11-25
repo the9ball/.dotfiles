@@ -18,6 +18,14 @@ $links = @(
     @{
         Path = Join-Path $env:USERPROFILE '.claude\mods'
         Target = Join-Path $repoRoot 'link-targets\claude\mods'
+    },
+    @{
+        Path = Join-Path $env:USERPROFILE '.claude-personal\skills'
+        Target = Join-Path $repoRoot 'link-targets\agents\skills'
+    },
+    @{
+        Path = Join-Path $env:USERPROFILE '.claude-personal\agents'
+        Target = Join-Path $repoRoot 'link-targets\claude\agents'
     }
 )
 
