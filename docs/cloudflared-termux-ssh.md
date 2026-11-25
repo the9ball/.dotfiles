@@ -77,43 +77,29 @@ SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、�
 2026-11-25に確認したところ、TermuxからのEnterとCtrl+Enterは、接続先のWindowsではどちらも`0d`として届いた。
 Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
 
-Termux側で、次を実行する。`SEND`が送信ボタンになる。
-設定ファイルは`~/.termux/termux.properties`か`~/.config/termux/termux.properties`で、どちらもなければ前者を作る。既存のファイルは別名でバックアップしてから追記する。確認やバックアップに失敗した場合と、既に`extra-keys`がある場合は、設定ファイルに追記せずに止まる。
-追記に失敗した場合は、書きかけの内容が残ることがある。バックアップを元のファイルへ戻す（新規に作った場合は、作られたファイルを削除する）。
-`termux-reload-settings`に失敗した場合、追記は済んでいるので、このコマンドだけを再実行する。
+Termux側で設定ファイルを開く。`~/.config/termux/termux.properties`だけを使っている場合は、そちらを開く。
 
 ```sh
-(
-  set -eu
-  properties="$HOME/.termux/termux.properties"
-  if [ ! -e "$properties" ] && [ -e "$HOME/.config/termux/termux.properties" ]; then
-    properties="$HOME/.config/termux/termux.properties"
-  fi
-  if [ -e "$properties" ]; then
-    match=0
-    grep -nE '^[[:space:]]*extra-keys([[:space:]=:]|$)' "$properties" || match=$?
-    case "$match" in
-      0) echo "extra-keys is already set in $properties; edit it by hand." >&2; exit 1 ;;
-      1) ;;
-      *) echo "Cannot read $properties." >&2; exit 1 ;;
-    esac
-    backup=$(mktemp "$properties.bak.XXXXXX")
-    cp "$properties" "$backup"
-  else
-    mkdir -p "$HOME/.termux"
-  fi
-  cat >> "$properties" <<'EOF'
-
-extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT',{macro: "CTRL x CTRL s", display: "SEND"}]]
-EOF
-  termux-reload-settings
-)
+mkdir -p ~/.termux
+nano ~/.termux/termux.properties
 ```
 
-`extra-keys`が既にある場合は、その配列に次の要素を加えて`termux-reload-settings`を実行する。
+有効な（行頭が`#`でない）`extra-keys`がなければ、次の行を加える。`SEND`が送信ボタンになる。
+
+```text
+extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT',{macro: "CTRL x CTRL s", display: "SEND"}]]
+```
+
+既にある場合は、その配列に次の要素だけを加える。
 
 ```text
 {macro: "CTRL x CTRL s", display: "SEND"}
+```
+
+保存したら、設定を読み込み直す。
+
+```sh
+termux-reload-settings
 ```
 
 この設定はTermux側のファイルなので、chezmoiの管理対象にしない。
