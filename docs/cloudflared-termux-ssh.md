@@ -71,6 +71,38 @@ Accessログインに加えて、Windows OpenSSHによるホスト鍵の検証�
 ホスト鍵変更の警告が出たら、登録済み鍵を削除して続行せず接続を止めて確認する。
 SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、認証ヘッダーをリポジトリやIssueに貼らない。
 
+## Claude Codeの送信ボタン
+
+[Claude Codeのキー設定](../README.manual.md#claude-codeのキー設定)では、Ctrl+Enterで送信する。
+2026-11-25に確認したところ、TermuxからのEnterとCtrl+Enterは、接続先のWindowsではどちらも`0d`として届いた。
+Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
+
+Termux側で、現在の設定を確認する。
+
+```sh
+grep -nE '^[[:space:]]*extra-keys' ~/.termux/termux.properties
+```
+
+何も表示されなければ、次を実行する。`SEND`が送信ボタンになる。
+
+```sh
+mkdir -p ~/.termux
+cp ~/.termux/termux.properties ~/.termux/termux.properties.bak 2>/dev/null
+cat >> ~/.termux/termux.properties <<'EOF'
+
+extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT',{macro: "CTRL x CTRL s", display: "SEND"}]]
+EOF
+termux-reload-settings
+```
+
+既に`extra-keys`があれば追記せず、既存の配列に次の要素を加えて`termux-reload-settings`を実行する。
+
+```text
+{macro: "CTRL x CTRL s", display: "SEND"}
+```
+
+この設定はTermux側のファイルなので、chezmoiの管理対象にしない。
+
 ## 現行のWindowsシェルとの関係
 
 PR #292以降の構成では、Windows Git Bash SSHで`DOTFILES_DOCKER_SSH=required`が設定されている場合、SSH認証後にManaged SSH Dockerを初期化する。
