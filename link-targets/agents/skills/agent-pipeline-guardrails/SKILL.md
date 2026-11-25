@@ -2,7 +2,7 @@
 name: agent-pipeline-guardrails
 description: >
   [For Claude Code only. Do not use from other agents/tools]
-  Use this skill in development workflows involving the Architect, Implementer, Reviewer, or Investigator personal subagents under ~/.claude/agents/. It provides guardrails against directing plan rewrites or treating generated code as production without the user's explicit approval. Always refer to it when calling any of these four agents, relaying feedback between agents (especially to Architect), deciding who will implement (the orchestrator, Implementer, or Codex), routing minor work directly to Implementer or through Architect planning, choosing whether a review goes to Reviewer or Claude, or performing a final review before creating a PR. Implementer does not start automatically; the user chooses who implements, including by appointing Claude Code to orchestrate Codex for an identified task.
+  Use this skill in development workflows involving the Architect, Implementer, Reviewer, or Investigator personal subagents under ~/.claude/agents/. It provides guardrails against directing plan rewrites or treating generated code as production without the user's explicit approval. Always refer to it when calling any of these four agents, relaying feedback between agents (especially to Architect), deciding who will implement (the orchestrator, Implementer, or Codex), routing minor work directly to Implementer or through Architect planning, choosing whether a review goes to Reviewer or Claude, or performing a final review before creating a PR. Implementer does not start automatically; the user chooses who implements, including by appointing Claude Code as Coordinator for an identified task.
 ---
 
 # Agent Pipeline Guardrails
@@ -34,7 +34,7 @@ For a task with a user appointment, `codex-orchestration` governs delegation to 
 **Implementer does not start automatically.** There is always the option of asking Codex to implement the same change, and
 the user decides which to use, so do not route work to the Implementer on the orchestrator's judgment alone.
 
-- **The user has appointed Claude Code to orchestrate Codex for this task** → The appointment selects Codex as the implementer. Follow `codex-orchestration` without asking again who implements. Guardrail 2 still applies unchanged: the user's explicit judgment before generated code is treated as adopted for production. Merge also still needs separate authorization.
+- **The user has appointed Claude Code as Coordinator for this task** → The appointment selects Codex as the implementer. Follow `codex-orchestration` without asking again who implements. Guardrail 2 still applies unchanged: the user's explicit judgment before generated code is treated as adopted for production. Merge also still needs separate authorization.
 - **The user has explicitly designated an Implementer** → Pass it to the Implementer (whether to pass the Architect first is determined below).
 - **No designation** → When no implementer has been designated and the pass-through gate does not apply, first determine the route below. If Architect is required, obtain approval of the completed plan before asking the user to choose the orchestrator, the Implementer, or Codex at the user's direction. Otherwise, ask before implementation starts. Ask once for that implementation stage; do not choose for the user.
 
@@ -65,7 +65,7 @@ If even one is not met, follow the implementation-choice rule above (whether to 
 1. It is expected that changes will be made in two files or less, and that the total number of added and changed lines will be within roughly 30 lines.
 2. It involves no design decision: the change is one of following an existing pattern, fixing an obvious error, or changing wording, constants, or configuration values.
 3. Verification can be completed by running a build/test or visually checking the differences (there is no need to start the environment and follow the behavior).
-4. The user has not explicitly named the Architect or the Implementer or appointed Claude Code to orchestrate Codex for this task. Follow those assignments regardless of size, subject to the appointed mode's interim-work conditions.
+4. The user has not explicitly named the Architect or the Implementer or appointed Claude Code as Coordinator for this task. Follow those assignments regardless of size, subject to the appointed mode's interim-work conditions.
 
 If in doubt, lean toward routing through the pipeline. However, repeatedly routing even small fixes to Architect "because I was unsure" makes
 plan creation (Opus) cost more than the actual work. Actually apply the four conditions above; when you pass a change through, report in one
