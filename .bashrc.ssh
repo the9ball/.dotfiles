@@ -1,5 +1,6 @@
-# Use the personal Codex configuration for SSH sessions and all Windows psmux shells.
+# Use the personal Codex and Claude pair for SSH sessions and all Windows psmux shells.
 export CODEX_HOME="$HOME/.codex-personal"
+export CLAUDE_CONFIG_DIR="$HOME/.claude-personal"
 
 # Keep SSH credentials separate from desktop Windows Credential Manager entries.
 export GH_CONFIG_DIR="$HOME/.config/gh-ssh"

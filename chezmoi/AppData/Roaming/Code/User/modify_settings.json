@@ -67,6 +67,7 @@ may then be normalized by chezmoi's serializer.
 {{- $_ := unset $profile "source" -}}
 {{- $_ = set $profile "path" "pwsh.exe" -}}
 {{- $_ = set $profileEnvironment "CODEX_HOME" "${env:USERPROFILE}\\.codex-personal" -}}
+{{- $_ = set $profileEnvironment "CLAUDE_CONFIG_DIR" "${env:USERPROFILE}\\.claude-personal" -}}
 {{- $_ = set $profile "env" $profileEnvironment -}}
 {{- $_ = set $profiles "Codex Personal" $profile -}}
 {{- $_ = set $settings $profilesKey $profiles -}}

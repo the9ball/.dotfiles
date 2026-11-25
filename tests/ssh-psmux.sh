@@ -43,15 +43,16 @@ run_case() (
 	local DOCKER_SSH_MANAGED='' DOTFILES_DOCKER_SSH=''
 	local __dotfiles_psmux_autoattach_attempted=
 	local CODEX_HOME=existing
+	local CLAUDE_CONFIG_DIR=existing-claude
 	local GH_CONFIG_DIR=existing-gh
 	local LOCALAPPDATA="$test_directory/localappdata"
 	local PSMUX_DATA_DIR=inherited-registry PSMUX_NO_WARM=inherited-warm
-	export PATH HOME SSH_CONNECTION TMUX PSMUX_SESSION CODEX_HOME GH_CONFIG_DIR
+	export PATH HOME SSH_CONNECTION TMUX PSMUX_SESSION CODEX_HOME CLAUDE_CONFIG_DIR GH_CONFIG_DIR
 	export LOCALAPPDATA PSMUX_DATA_DIR PSMUX_NO_WARM
 	cat > "$HOME/.bashrc.ssh" <<'OVERLAY'
 printf 'loaded\n' >> "$PSMUX_TEST_OVERLAY_LOG"
 source "$PSMUX_TEST_REPOSITORY_DIRECTORY/.bashrc.ssh"
-printf '%s\n' "$CODEX_HOME" "$GH_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"
+printf '%s\n' "$CODEX_HOME" "$GH_CONFIG_DIR" "$CLAUDE_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"
 OVERLAY
 	: > "$PSMUX_TEST_LOG"
 	: > "$PSMUX_TEST_OVERLAY_LOG"
@@ -114,8 +115,8 @@ OVERLAY
 			# Exercise the same overlay with redirected output.
 			# shellcheck disable=SC1090
 			source "$hook_path" > "$test_directory/output" ;;
-		noninteractive|psmux-noninteractive) bash --noprofile --norc -c 'source "$1"; printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' bash "$hook_path" ;;
-		interactive-command|psmux-interactive-command) SHLVL=0 bash --noprofile --rcfile "$hook_path" -ic 'printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' ;;
+		noninteractive|psmux-noninteractive) bash --noprofile --norc -c 'source "$1"; printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" "$CLAUDE_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' bash "$hook_path" ;;
+		interactive-command|psmux-interactive-command) SHLVL=0 bash --noprofile --rcfile "$hook_path" -ic 'printf "%s\n" "$CODEX_HOME" "$GH_CONFIG_DIR" "$CLAUDE_CONFIG_DIR" > "$PSMUX_TEST_ENVIRONMENT_LOG"' ;;
 		*)
 			# The overlay path is derived from this test's checkout.
 			# shellcheck disable=SC1090
@@ -126,6 +127,7 @@ OVERLAY
 	if [[ $scenario == repeat || $scenario == managed-bypass-repeat ]]; then source "$hook_path"; fi
 	if [[ $scenario == psmux-reload ]]; then
 		CODEX_HOME=existing
+		CLAUDE_CONFIG_DIR=existing-claude
 		GH_CONFIG_DIR=existing-gh
 		# The overlay path is derived from this test's checkout.
 		# shellcheck disable=SC1090
@@ -164,8 +166,11 @@ OVERLAY
 		[[ $expected_overlay == 0 && ${selected_environment[0]-existing} != existing ]] ||
 		[[ $expected_overlay -gt 0 && ${selected_environment[1]-} != "$HOME/.config/gh-ssh" ]] ||
 		[[ $expected_overlay == 0 && ${selected_environment[1]-existing-gh} != existing-gh ]] ||
-		[[ $expected_overlay == 0 && $GH_CONFIG_DIR != existing-gh ]]; then
-		printf 'FAIL %s: unexpected SSH overlay, Codex home or GitHub config directory\n' "$scenario" >&2
+		[[ $expected_overlay == 0 && $GH_CONFIG_DIR != existing-gh ]] ||
+		[[ $expected_overlay -gt 0 && ${selected_environment[2]-} != "$HOME/.claude-personal" ]] ||
+		[[ $expected_overlay == 0 && ${selected_environment[2]-existing-claude} != existing-claude ]] ||
+		[[ $expected_overlay == 0 && $CLAUDE_CONFIG_DIR != existing-claude ]]; then
+		printf 'FAIL %s: unexpected SSH overlay, Codex/Claude homes or GitHub config directory\n' "$scenario" >&2
 		exit 1
 	fi
 	rm -f "$test_directory/.psmux-no-autoattach"

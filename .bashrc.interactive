@@ -45,7 +45,8 @@ alias ll='ls -l'
 alias vi='vim'
 alias :vi='vim'
 alias :e='vim'
-alias pcodex='CODEX_HOME="$HOME/.codex-personal" codex'
+alias pcodex='CODEX_HOME="$HOME/.codex-personal" CLAUDE_CONFIG_DIR="$HOME/.claude-personal" codex'
+alias pclaude='CODEX_HOME="$HOME/.codex-personal" CLAUDE_CONFIG_DIR="$HOME/.claude-personal" claude'
 # WSL用ホーム未セットアップ環境でのwcodex実行時エラーは許容する。
 alias wcodex='CODEX_HOME="$HOME/.codex-wsl" codex'
 

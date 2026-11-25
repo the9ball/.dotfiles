@@ -713,15 +713,74 @@ Linux/macOS/WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`）�
 Aqua管理のCodex CLIを更新するときは、`aqua update codex`で`aqua.yaml`を更新し、差分を確認してコミットした後に`aqua install`を実行します。
 このCLIには`codex update`を使用しません。
 
-通常の`codex`は`CODEX_HOME`未設定の`~/.codex`を仕事用アカウントとして使います。個人用は`pcodex`、WSL用CLIは`wcodex`を使い、それぞれ`~/.codex-personal`、`~/.codex-wsl`へ`CODEX_HOME`を切り替えます。`wcodex`は全環境へ定義されますが、`~/.codex-wsl`がない場合の実行時エラーは許容し、別ホームへフォールバックしません。
+通常の`codex`は`CODEX_HOME`未設定の`~/.codex`を仕事用アカウントとして使います。
+個人用は各OSのBashとWindowsのPowerShellで`pcodex` / `pclaude`を使い、両CLIのホームを切り替えます。詳細は次節を参照してください。
+WSL用CLIは従来どおり`wcodex`で`CODEX_HOME`だけを`~/.codex-wsl`へ切り替えます。`wcodex`は各OSのBashへ定義されますが、`~/.codex-wsl`がない場合の実行時エラーは許容し、別ホームへフォールバックしません。
 通常のCodex設定は`modify_`方式で既存の実行時状態を保持し、共有defaultsを上書きします。仕事用の端末固有値は`chezmoi/.chezmoitemplates/codex-defaults.toml.local`、個人用のホスト固有値は`chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local`へ置きます。
+
+### 個人用CLIのアカウントペア
+
+個人用の起動では、`CODEX_HOME=~/.codex-personal`と`CLAUDE_CONFIG_DIR=~/.claude-personal`を組にして渡します。
+Claudeから起動するCodexも両変数を継承するため、認証、セッション、利用アカウントを同じ個人用の組にそろえます。
+初回ログインは利用者が各ホームを確認して手動で行います。
+
+| 起動経路 | Codex / Claudeのホーム |
+| --- | --- |
+| 個人用環境の外で通常の`codex` / `claude`、通常のGUI起動 | 既定の`~/.codex` / `~/.claude`（仕事用） |
+| 各OSのBash / WindowsのPowerShellの`pcodex` / `pclaude` | そのコマンドと子プロセスだけ`~/.codex-personal` / `~/.claude-personal` |
+| VS Codeの`Codex Personal`端末、SSH用overlay、Windows psmux内 | そのシェルと子プロセスで個人用の組 |
+
+両変数はUser/Machineスコープへ永続設定せず、通常の`.bashrc`やPowerShellプロファイル全体でもexportしません。
+PowerShellの関数は終了や例外時に呼び出し元の値を復元し、元が未設定なら削除します。
+GUIは両変数が未設定の起動元から開いてください。
+psmuxからの`code`やデスクトップアプリの起動は個人用の変数を継承するため避けます。
+GUIから起動するCoordinatorには個人用変数がありません。
+個人用Workerが必要なときは、利用者が明示的に指示し、そのWorkerの子プロセスだけへ両変数を渡します。
+
+切り替え前後は変数と認証状態を確認します。
+通常のシェルでは次の`claude` / `codex`、個人用の単発起動では`pclaude auth status` / `pcodex login status`を使い、終了後に親の変数が変わっていないことも確認してください。
+認証ファイルやトークンは表示しません。
+
+```bash
+printf 'CODEX_HOME=%s\nCLAUDE_CONFIG_DIR=%s\n' "${CODEX_HOME-<unset>}" "${CLAUDE_CONFIG_DIR-<unset>}"
+claude auth status
+codex login status
+```
+
+```powershell
+Get-Item Env:CODEX_HOME, Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue
+claude auth status
+$LASTEXITCODE
+codex login status
+$LASTEXITCODE
+foreach ($scope in 'User', 'Machine') {
+    foreach ($name in 'CODEX_HOME', 'CLAUDE_CONFIG_DIR') {
+        '{0} {1} unset={2}' -f $scope, $name, ($null -eq [Environment]::GetEnvironmentVariable($name, $scope))
+    }
+}
+```
+
+User/Machineの4組すべてが未設定であることを確認します。
+利用者が明示的に1コマンドだけ既定へ戻す場合、Bashでは`env -u CODEX_HOME -u CLAUDE_CONFIG_DIR <command>`を使います。
+PowerShellでは新しい子PowerShellで変数を削除してから実行します。次は既定のCodexの状態確認例です。
+
+```powershell
+pwsh -NoProfile -Command 'Remove-Item Env:CODEX_HOME, Env:CLAUDE_CONFIG_DIR -ErrorAction SilentlyContinue; codex login status; exit $LASTEXITCODE'
+$LASTEXITCODE
+```
+
+設定の適用は利用者の別操作です。
+差分を確認し、対象のBashランチャー、両PowerShellプロファイル、VS Code設定へ`chezmoi apply`を実行して、新しいシェルを開きます。
+戻す場合は変更コミットをrevertし、同じ対象へ`chezmoi apply`を実行して新しいシェルを開きます。
+ログイン済みのディレクトリは削除せず、そのまま残します。
 
 ### Windows版VS CodeのCodex端末設定
 
-Windows版VS Codeのユーザー設定（`%APPDATA%\Code\User\settings.json`）は、ファイル全体を管理せず、[`chezmoi/AppData/Roaming/Code/User/modify_settings.json`](chezmoi/AppData/Roaming/Code/User/modify_settings.json)で次の3項目だけを管理します。
+Windows版VS Codeのユーザー設定（`%APPDATA%\Code\User\settings.json`）は、ファイル全体を管理せず、[`chezmoi/AppData/Roaming/Code/User/modify_settings.json`](chezmoi/AppData/Roaming/Code/User/modify_settings.json)で次の4項目だけを管理します。
 
 - `terminal.integrated.profiles.windows["Codex Personal"].path`（`pwsh.exe`。既存の`source`指定は削除）
 - `terminal.integrated.profiles.windows["Codex Personal"].env.CODEX_HOME`
+- `terminal.integrated.profiles.windows["Codex Personal"].env.CLAUDE_CONFIG_DIR`
 - `terminal.integrated.defaultProfile.windows`
 
 `modify_`テンプレートは適用時点のファイルを入力として受け取り、他のトップレベル設定、他のターミナルプロファイル、`Codex Personal`内の追加オプション・環境変数を保持します。`settings.json`はJSONCとして解析するため、コメントや末尾カンマを含む現行ファイルも読み込めます。管理値が既に一致している場合は入力をそのまま返すので、VS Codeや拡張機能が後から加えた無関係な変更と共存しやすくなります。管理値の修正が必要な場合は、JSONとして再出力するため、その適用回だけコメント・空白・改行が正規化される可能性があります。`chezmoi diff`で確認してから適用してください。
@@ -827,7 +886,7 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 `DefaultShellEscapeArguments`、`sshd_config`、`authorized_keys`、ホスト鍵は変更しません。
 先に[Session 1常用監視の導入手順](docs/windows-psmux-daily.md)でWindowsログオン時の起動を登録します。
 既存接続を閉じずに別の SSH 接続で、`dotfiles-session1` 名前空間の既存 `main` セッションへ自動attachされることを確認します。SSHからセッションを新規作成しません。
-`printf '%s\n' "$CODEX_HOME"` がホーム配下の `.codex-personal` を指すことを確認します。
+`printf '%s\n' "$CODEX_HOME" "$CLAUDE_CONFIG_DIR"` がホーム配下の `.codex-personal` と `.claude-personal` を指すことを確認します。
 デタッチ後は常用registryを指定した一覧と `printf 'flags=%s level=%s\n' "$-" "$SHLVL"` を確認し、再接続したときに同じ作業へ戻れることを確認します。registryと操作コマンドは上記の常用監視手順を参照します。
 続けて、同じクライアントから以下を検証します。
 
@@ -835,7 +894,7 @@ Git の配置先を自動検出できない場合は、`-GitBashPath` に `bin\b
 - `ssh -T host` で標準入力からコマンドを送る既存の利用方法が動く。
 - SFTP の一覧・小さなファイルの送受信、SCP の小さなファイルの送受信が動く。旧方式の `scp -O` を使う場合は、それも検証する。
 - 通常のローカル PowerShell/Git Bash と、psmux 内の新しいペインで自動アタッチが起きない。
-- psmux の全セッション・新しいウィンドウ・分割ペインで `CODEX_HOME` と `GH_CONFIG_DIR` が個人用になり、psmux 外の通常のローカル Git Bash では元の設定が維持される。
+- psmux の全セッション・新しいウィンドウ・分割ペインで `CODEX_HOME`、`CLAUDE_CONFIG_DIR` と `GH_CONFIG_DIR` が個人用になり、psmux 外の通常のローカル Git Bash では元の設定が維持される。
 - `chezmoi apply --exclude=scripts` を上記のファイルに再実行しても、`verify` が成功する。
 
 実際の SSH 切断・再接続と SFTP/SCP は、この手順を実施した端末で確認する項目です。
@@ -866,14 +925,15 @@ SSH の Network ログオンでは Windows Credential Manager の保存トーク
 SSH と Windows psmux の全セッションで、`.bashrc.local` の後に `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を設定します。
 psmux 外の通常の Git Bash の設定・認証ファイルは変更しません。ローカル psmux の `main` も SSH 用の保存先を使います。
 psmux のセッション名や名前空間にかかわらず、新しいウィンドウ・ペイン、非対話の子コマンドでも同じ設定を読み込みます。
-既存ペインには `source ~/.bashrc` で反映し、`CODEX_HOME` と `GH_CONFIG_DIR` を確認してください。起動済みの Codex はそのペインから起動し直します。
+既存ペインには `source ~/.bashrc` で反映し、`CODEX_HOME`、`CLAUDE_CONFIG_DIR` と `GH_CONFIG_DIR` を確認してください。起動済みの Codex と Claude はそのペインから起動し直します。
 
 ```bash
 printf 'GH_CONFIG_DIR=%s\n' "$GH_CONFIG_DIR"
 printf 'CODEX_HOME=%s\n' "$CODEX_HOME"
+printf 'CLAUDE_CONFIG_DIR=%s\n' "$CLAUDE_CONFIG_DIR"
 ```
 
-保存先が `$HOME/.config/gh-ssh`、Codex のホームが `$HOME/.codex-personal` であることを確認します。
+保存先が `$HOME/.config/gh-ssh`、Codex のホームが `$HOME/.codex-personal`、Claude のホームが `$HOME/.claude-personal` であることを確認します。
 `GH_TOKEN` / `GITHUB_TOKEN` が設定されていると保存ファイルより優先されるため、認証に使うペインではそれらを設定しません。値を表示しないでください。
 ログイン前に SSH 専用ディレクトリを作成し、Windows のプロパティ → セキュリティ → 詳細設定で継承を無効にし、現在のユーザー・SYSTEM・Administrators だけにアクセスを許可します。
 通常の GitHub CLI ディレクトリの権限は変更しません。PowerShell の `icacls "$env:USERPROFILE\.config\gh-ssh"` で権限を確認できます。
