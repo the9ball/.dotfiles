@@ -93,7 +93,7 @@ You do not formulate plans (Architect), implement (Implementer), or perform stat
   such as commit/push/checkout/reset/rebase.
 - If you want to set a timeout for a command, do not wrap the command string in the shell's `timeout` command; use the Bash
   tool's own `timeout` parameter (this prevents the number of permission patterns from growing without limit because of differing target paths and flags).
-- Do not launch Codex-related scripts directly. Requests to Codex are made by the user.
+- Do not launch Codex. The user or the root orchestrator acting under a task appointment requests Codex.
 
 # Output format
 

@@ -2,15 +2,14 @@
 name: agent-pipeline-guardrails
 description: >
   [For Claude Code only. Do not use from other agents/tools]
-  Use this skill in development workflows involving the Architect, Implementer, Reviewer, or Investigator personal subagents under ~/.claude/agents/. It provides guardrails against directing plan rewrites or treating generated code as production without the user's explicit approval. Always refer to it when calling any of these four agents, relaying feedback between agents (especially to Architect), deciding who will implement (the orchestrator, Implementer, or Codex via the user), routing minor work directly to Implementer or through Architect planning, choosing whether a review goes to Reviewer or Claude, or performing a final review before creating a PR. Implementer does not start automatically; the user chooses who implements, and can choose Codex.
+  Use this skill in development workflows involving the Architect, Implementer, Reviewer, or Investigator personal subagents under ~/.claude/agents/. It provides guardrails against directing plan rewrites or treating generated code as production without the user's explicit approval. Always refer to it when calling any of these four agents, relaying feedback between agents (especially to Architect), deciding who will implement (the orchestrator, Implementer, or Codex), routing minor work directly to Implementer or through Architect planning, choosing whether a review goes to Reviewer or Claude, or performing a final review before creating a PR. Implementer does not start automatically; the user chooses who implements, including by appointing Claude Code to orchestrate Codex for an identified task.
 ---
 
 # Agent Pipeline Guardrails
 
 Architect / Implementer / Reviewer / Investigator are personal subagents (`~/.claude/agents/architect.md` /
-`implementer.md` / `reviewer.md` / `investigator.md`). An automation skill dedicated to orchestration was intentionally not created,
-because auto-chaining the whole pipeline would lose the human approval points along the way. Instead, this skill
-collects the minimum confirmation rules that the orchestrator (this session itself) should follow.
+`implementer.md` / `reviewer.md` / `investigator.md`). This skill collects the confirmation rules for those subagents.
+For a task with a user appointment, `codex-orchestration` governs delegation to Codex and the approval gates here still apply.
 
 ## Rules to follow
 
@@ -35,6 +34,7 @@ collects the minimum confirmation rules that the orchestrator (this session itse
 **Implementer does not start automatically.** There is always the option of asking Codex to implement the same change, and
 the user decides which to use, so do not route work to the Implementer on the orchestrator's judgment alone.
 
+- **The user has appointed Claude Code to orchestrate Codex for this task** → The appointment selects Codex as the implementer. Follow `codex-orchestration` without asking again who implements. Guardrail 2 still requires the user's decision before merge.
 - **The user has explicitly designated an Implementer** → Pass it to the Implementer (whether to pass the Architect first is determined below).
 - **No designation** → When no implementer has been designated and the pass-through gate does not apply, first determine the route below. If Architect is required, obtain approval of the completed plan before asking the user to choose the orchestrator, the Implementer, or Codex at the user's direction. Otherwise, ask before implementation starts. Ask once for that implementation stage; do not choose for the user.
 
@@ -60,12 +60,12 @@ file would require a runbook first even for a one-line change, which is highly i
 ### 素通しゲート (Pass-through gate): conditions where you can implement it yourself without going through Architect/Implementer
 
 Only if **all** of the following conditions are met may the orchestrator implement the change itself with Edit/Write, without going through the pipeline.
-If even one is not met, ask the user who will implement it (whether to go through Architect first is decided by the routing above).
+If even one is not met, follow the implementation-choice rule above (whether to go through Architect first is decided by the routing above).
 
 1. It is expected that changes will be made in two files or less, and that the total number of added and changed lines will be within roughly 30 lines.
 2. It involves no design decision: the change is one of following an existing pattern, fixing an obvious error, or changing wording, constants, or configuration values.
 3. Verification can be completed by running a build/test or visually checking the differences (there is no need to start the environment and follow the behavior).
-4. The user has not explicitly named the Architect or the Implementer. If they have, follow that regardless of size.
+4. The user has not explicitly named the Architect or the Implementer or appointed Claude Code to orchestrate Codex for this task. Follow those assignments regardless of size, subject to the appointed mode's interim-work conditions.
 
 If in doubt, lean toward routing through the pipeline. However, repeatedly routing even small fixes to Architect "because I was unsure" makes
 plan creation (Opus) cost more than the actual work. Actually apply the four conditions above; when you pass a change through, report in one
@@ -104,9 +104,7 @@ When a "final review before PR" is requested, Claude runs the review. When the u
 directly as well.
 
 - **Claude's review**: For the final review before PR creation, apply the same Reviewer-selection rules. When the Reviewer may be omitted, the orchestrator performs the final review. When calling `reviewer`, call it as `Agent` (`run_in_background: false`).
-- **Codex's review**: When the user asks for a Codex review, start it from the orchestrator with the Codex CLI (see "Running a Codex review"
-  below). If you judge a second opinion from Codex necessary without the user asking for it, propose it to the user together with the
-  perspectives you want checked. Reconcile the results with Claude's review and combine them.
+- **Codex's review**: When the user asks for a Codex review or the review is covered by a task appointment, follow the applicable Codex CLI review route (see "Running a Codex review" below and `codex-orchestration` for appointed tasks). For other proposed second opinions from Codex, ask the user and include the perspectives you want checked. Reconcile the results with Claude's review and combine them.
 - **When combining**: Compare both sides' findings and sort them into (a) findings raised by both (high confidence), (b) findings raised by only
   one side (state the source), and (c) points where the two disagree, and produce one comprehensive review. Do not casually treat one side as
   correct. Present each disagreement with "whose claim it is" preserved, and leave the final decision to the user.
