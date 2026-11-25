@@ -127,7 +127,8 @@ When the request lets Codex delegate to subagents, drop `--ephemeral` and keep e
 - For `codex exec`, read the `-o` file. A missing or empty file means the call did not finish.
 - Intermediate output or a growing file shows activity, not completion or success.
 - After reading the result, delete only the directory this call created. Before deleting it recursively, confirm that its resolved absolute path is that directory under the OS temporary directory. Never use a wildcard that could match another call's directory.
-- Creating and deleting these files needs no separate confirmation only when user instructions grant it, for example a standing approval in the host-local memo. Otherwise follow the normal approval rules. This Skill grants no approval by itself.
+- The user grants standing approval for these temporary-file operations: creating the per-call `codex-invocation-*` directory and the request, output, standard-error, and final-message files in it, and deleting that directory after the result is read under the checks above. They need no separate confirmation, even when the task is otherwise read-only or forbids changing existing files. An explicit instruction that forbids temporary files or asks for per-call approval takes precedence.
+- This approval does not cover existing files, the Git index, refs, or history, persistent settings, authentication or permission changes, or external posting, and it does not bypass the host's sandbox, managed policy, or tool approvals.
 
 ### Waiting
 
