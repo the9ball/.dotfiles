@@ -1,0 +1,257 @@
+{{- /*
+
+Shared by the modify_settings.json templates of ~/.claude and ~/.claude-personal,
+which pass their whole template context so .chezmoi.stdin reaches this template.
+
+Of each settings.json, only the keys set below (such as the plugin sources
+and their enabled/disabled state) are placed under .dotfiles management. Claude Code itself writes permissions
+and hooks into the same file, so replacing the whole file would roll those back.
+A modify_ template receives the current content via .chezmoi.stdin, so it overwrites
+only the managed keys and writes everything else back unchanged.
+
+The plugins themselves are not vendored into .dotfiles; they are fetched from the
+marketplace. The source and commit are recorded in .claude/.plugin-lock.json. See
+README.manual.md for the restore procedure.
+
+*/ -}}
+{{- $settings := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $settings = .chezmoi.stdin | fromJson -}}
+{{- end -}}
+
+{{- /*
+  Marketplace sources. Enabling a plugin clones it from here.
+  Claude Code does not support pinning a commit on the marketplace side (a ref can
+  only be a branch or tag), so this follows the default branch. The commit that
+  was fetched is recorded in .claude/.plugin-lock.json.
+*/ -}}
+{{- $marketplaces := dict -}}
+{{- if hasKey $settings "extraKnownMarketplaces" -}}
+{{-   $marketplaces = index $settings "extraKnownMarketplaces" -}}
+{{- end -}}
+{{- $_ := set $marketplaces "openai-codex" (dict
+      "source" (dict
+        "source" "git"
+        "url" "https://github.com/openai/codex-plugin-cc.git")) -}}
+{{- $_ = set $marketplaces "dotnet-agent-skills" (dict
+      "source" (dict
+        "source" "git"
+        "url" "https://github.com/dotnet/skills.git")) -}}
+{{- $_ = set $settings "extraKnownMarketplaces" $marketplaces -}}
+
+{{- /*
+  Enabled/disabled state. Switch it by editing this template and running
+  chezmoi apply, not through the UI. A change made in the UI reverts to the value
+  here on the next apply.
+*/ -}}
+{{- $enabledPlugins := dict -}}
+{{- if hasKey $settings "enabledPlugins" -}}
+{{-   $enabledPlugins = index $settings "enabledPlugins" -}}
+{{- end -}}
+
+{{- /*
+  The codex plugin stays recorded as false, because enabling it starts the
+  SessionStart, SessionEnd, and Stop hooks.
+*/ -}}
+{{- $_ = set $enabledPlugins "codex@openai-codex" false -}}
+
+{{- /*
+  The dotnet plugin adds one skill and a C# language server. It has no hooks.
+  When a C# file is opened, dnx fetches a prerelease of roslyn-language-server from
+  NuGet and keeps it resident.
+*/ -}}
+{{- $_ = set $enabledPlugins "dotnet@dotnet-agent-skills" true -}}
+{{- $_ = set $settings "enabledPlugins" $enabledPlugins -}}
+
+{{- /*
+  Disable the prompt suggestions shown in the input box after a reply, since they are not needed.
+*/ -}}
+{{- $_ = set $settings "promptSuggestionEnabled" false -}}
+
+{{- /*
+  Use auto mode as the default permission mode in every project. Auto mode lets
+  a safety classifier approve routine actions instead of prompting for each
+  one, so more actions run without a prompt. It does not replace the approval
+  rules in the shared AGENTS.md (external operations, UI automation, and so on),
+  which still apply. Terminal sessions honor a project or local setting that
+  pins another mode. The VS Code extension does not read project settings for
+  its starting mode and checks claudeCode.initialPermissionMode and the mode
+  last picked in its mode indicator before this value. Only defaultMode is
+  managed; allow, ask, and other keys that Claude Code writes into permissions
+  are written back unchanged. If auto mode is unavailable at startup, Claude
+  Code falls back to the default mode with a notice.
+*/ -}}
+{{- $permissions := dict -}}
+{{- if hasKey $settings "permissions" -}}
+{{-   $permissions = index $settings "permissions" -}}
+{{- end -}}
+{{- $_ = set $permissions "defaultMode" "auto" -}}
+{{- $_ = set $settings "permissions" $permissions -}}
+
+{{- /*
+  Per-Skill overrides for shared Skills in Claude Code. The Skills stay
+  published at ~/.claude/skills and remain available to Codex.
+  - "off" disables the Skill in Claude Code: the model does not see it and
+    /name is refused. Used for Codex-only Skills, whose workflows target Codex
+    threads, Codex Desktop, or the Windows Codex app.
+  - "user-invocable-only" hides the Skill from the model's listing but keeps
+    /name. Used for explicit-invocation Skills with no recorded use in Claude
+    Code.
+  Other skillOverrides entries are written back unchanged. Removing a name
+  from these lists stops managing it but keeps the value already saved in
+  settings.json; to restore a Skill, also delete its key there or set it to
+  "on".
+*/ -}}
+{{- $skillOverrides := dict -}}
+{{- if hasKey $settings "skillOverrides" -}}
+{{-   $skillOverrides = index $settings "skillOverrides" -}}
+{{- end -}}
+{{- range list "delegate-readonly-investigation" "wsl-codex-exec" "task-complete-notify" -}}
+{{-   $_ = set $skillOverrides . "off" -}}
+{{- end -}}
+{{- range list "openpoi" "unity-editor-build-log" "pink-elephant-guard" "rigorous-review" "task-continuity-cleanup" "cognitive-rhythm-writing" "japanese-tech-writing" "codex-rate-limits" "codex-project-roots" -}}
+{{-   $_ = set $skillOverrides . "user-invocable-only" -}}
+{{- end -}}
+{{- $_ = set $settings "skillOverrides" $skillOverrides -}}
+
+{{- /*
+  Load the mods published at ~/.claude/mods (a link to link-targets/claude/mods)
+  from disk. Claude Code reads CLAUDE_CODE_PLUGIN_DIRS from this env block, as
+  absolute paths joined by the platform's path-list separator. The value is
+  managed here, so a folder added to it by hand reverts on the next apply.
+  Other env keys are written back unchanged.
+*/ -}}
+{{- $env := dict -}}
+{{- if hasKey $settings "env" -}}
+{{-   $env = index $settings "env" -}}
+{{- end -}}
+{{- $_ = set $env "CLAUDE_CODE_PLUGIN_DIRS" (joinPath .chezmoi.homeDir ".claude" "mods" "context") -}}
+{{- $_ = set $settings "env" $env -}}
+
+{{- /*
+  Reply language. "language" puts the preference into the system prompt. It is
+  managed here so every machine and every Claude Code entry point gets it,
+  rather than depending on a value set by hand. Because it sits only at the
+  start of the context, replies still drift into English in long sessions.
+*/ -}}
+{{- $_ = set $settings "language" "japanese" -}}
+
+{{- /*
+  To stop that drift, a UserPromptSubmit hook adds a short reminder next to
+  every prompt; Claude Code adds the stdout of a successful UserPromptSubmit
+  hook to the context. The text stays ASCII so it is not garbled by the shell's
+  code page on Windows. The managed hook is found by the marker comment at
+  the end of its command, so editing the reminder text replaces the old hook
+  instead of adding a second one. Only hooks carrying the marker are removed:
+  other hooks in the same group stay, and a group left empty is dropped.
+  Other UserPromptSubmit entries and other hook events, which Claude Code
+  writes into the same hooks key, are written back unchanged.
+*/ -}}
+{{- $languageReminderMarker := "dotfiles:language-reminder" -}}
+{{- $languageReminderCommand := printf "echo 'Reply to the user in Japanese, including short progress updates between tool calls, unless the user asks for another language.' # %s" $languageReminderMarker -}}
+{{- $hooks := dict -}}
+{{- if hasKey $settings "hooks" -}}
+{{-   $hooks = index $settings "hooks" -}}
+{{- end -}}
+{{- $userPromptSubmitGroups := list -}}
+{{- if hasKey $hooks "UserPromptSubmit" -}}
+{{-   range $group := (index $hooks "UserPromptSubmit") -}}
+{{-     if hasKey $group "hooks" -}}
+{{-       $keptGroupHooks := list -}}
+{{-       $removedManagedHook := false -}}
+{{-       range (index $group "hooks") -}}
+{{-         if and (hasKey . "command") (contains $languageReminderMarker (toString (index . "command"))) -}}
+{{-           $removedManagedHook = true -}}
+{{-         else -}}
+{{-           $keptGroupHooks = append $keptGroupHooks . -}}
+{{-         end -}}
+{{-       end -}}
+{{-       if not $removedManagedHook -}}
+{{-         $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-       else if $keptGroupHooks -}}
+{{-         $_ = set $group "hooks" $keptGroupHooks -}}
+{{-         $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-       end -}}
+{{-     else -}}
+{{-       $userPromptSubmitGroups = append $userPromptSubmitGroups $group -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $userPromptSubmitGroups = append $userPromptSubmitGroups (dict
+      "hooks" (list (dict
+        "type" "command"
+        "command" $languageReminderCommand))) -}}
+{{- $_ = set $hooks "UserPromptSubmit" $userPromptSubmitGroups -}}
+
+{{- /*
+  The reminder above cannot catch a reply that has already drifted into
+  English. japanese_guard.py (published at ~/.agents/hooks, copied from
+  claude-code-japanese-guard; see THIRD_PARTY_NOTICES.md) checks each turn at
+  the Stop hook and the desktop app's wrap_up box at PreToolUse, and asks
+  Claude to rewrite English-dominant text in Japanese. It is registered on
+  every OS but has been checked only on Windows; where uv or Python 3.13 is
+  missing, the hook fails to start and the turn passes unchecked.
+  Python runs through uv, as for the Codex GitHub auth gate, because a bare
+  `python` can fail through the uv launcher on Windows. The managed hooks are
+  found by the whole command shape this template writes, not by a trailing
+  comment, because the shell that runs a hook may not treat `#` as a comment
+  and would pass it to Python: the uv runner below followed by one script
+  argument, bare or double-quoted, ending in /.agents/hooks/japanese_guard.py,
+  and nothing after it. The argument may hold only path characters, so a
+  command such as `... audit.py</tmp/.agents/hooks/japanese_guard.py`, which
+  runs audit.py with a redirection, is not taken for the guard. Any home directory matches, so a move of the home
+  replaces the old hook. Hooks of any other shape are left alone, including
+  ones that pass the guard's path to another program, run a file that only
+  starts with the same path, or start the guard by hand in another way (such
+  a hand-written guard is not replaced and would run next to the managed
+  one). Each apply removes the managed handlers
+  (dropping a group only when it becomes empty because of that), then appends
+  one dedicated group per event; other handlers and groups stay as they were.
+  The timeout covers uv start-up plus the guard's wait of up to 3 seconds for
+  the final answer to reach the transcript.
+*/ -}}
+{{- $japaneseGuardScriptMarker := "/.agents/hooks/japanese_guard.py" -}}
+{{- $japaneseGuardRunner := "uv run --managed-python --no-project --no-python-downloads --python 3.13" -}}
+{{- /* A bare path may hold only plain path characters, and a double-quoted one no ", $, backtick, or backslash, so shell syntax such as a redirection or a substitution never counts as part of the script path. */ -}}
+{{- $japaneseGuardQuotedPath := "\"[^\"$`\\\\]*" -}}
+{{- $japaneseGuardBarePath := `[-A-Za-z0-9_.~/:]*` -}}
+{{- $japaneseGuardScriptPattern := printf `^%s (%s%s"|%s%s)$` (regexQuoteMeta $japaneseGuardRunner) $japaneseGuardQuotedPath (regexQuoteMeta $japaneseGuardScriptMarker) $japaneseGuardBarePath (regexQuoteMeta $japaneseGuardScriptMarker) -}}
+{{- $japaneseGuardCommand := printf "%s ~/.agents/hooks/japanese_guard.py" $japaneseGuardRunner -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $japaneseGuardCommand = printf "%s \"%s%s\"" $japaneseGuardRunner .chezmoi.homeDir $japaneseGuardScriptMarker -}}
+{{- end -}}
+{{- $japaneseGuardHandler := dict "type" "command" "command" $japaneseGuardCommand "timeout" 15 -}}
+{{- $japaneseGuardGroups := dict
+      "Stop" (dict "hooks" (list $japaneseGuardHandler))
+      "PreToolUse" (dict "matcher" "mcp__.*__wrap_up" "hooks" (list $japaneseGuardHandler)) -}}
+{{- range $eventName := list "Stop" "PreToolUse" -}}
+{{-   $keptGroups := list -}}
+{{-   if hasKey $hooks $eventName -}}
+{{-     range $group := (index $hooks $eventName) -}}
+{{-       if and (kindIs "map" $group) (hasKey $group "hooks") -}}
+{{-         $keptGroupHooks := list -}}
+{{-         $removedManagedHook := false -}}
+{{-         range (index $group "hooks") -}}
+{{-           if and (kindIs "map" .) (hasKey . "command") (regexMatch $japaneseGuardScriptPattern (toString (index . "command"))) -}}
+{{-             $removedManagedHook = true -}}
+{{-           else -}}
+{{-             $keptGroupHooks = append $keptGroupHooks . -}}
+{{-           end -}}
+{{-         end -}}
+{{-         if not $removedManagedHook -}}
+{{-           $keptGroups = append $keptGroups $group -}}
+{{-         else if $keptGroupHooks -}}
+{{-           $_ := set $group "hooks" $keptGroupHooks -}}
+{{-           $keptGroups = append $keptGroups $group -}}
+{{-         end -}}
+{{-       else -}}
+{{-         $keptGroups = append $keptGroups $group -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $keptGroups = append $keptGroups (index $japaneseGuardGroups $eventName) -}}
+{{-   $_ := set $hooks $eventName $keptGroups -}}
+{{- end -}}
+{{- $_ = set $settings "hooks" $hooks -}}
+
+{{- $settings | toPrettyJson -}}

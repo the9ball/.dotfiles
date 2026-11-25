@@ -44,7 +44,7 @@ Codex Desktopのプロジェクトと関連フォルダーの設定は、アプ�
 - Windows：`winget import`で`winget.json`に定義されたAWS CLI、aws-vault、WinMerge、CPU-Z、Cryptomator、WinFspを導入する。
 - `prek install`：Git hookを設定する。
 - `.bashrc`、`.bashrc.interactive`、`.gitconfig`をホームディレクトリへ配置する。
-- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。
+- `link-targets/agents`、`link-targets/agents/skills`、`link-targets/claude/agents`、`link-targets/claude/mods`を、それぞれ`~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude/mods`へ共有リンクとして公開する。`link-targets/agents/skills`と`link-targets/claude/agents`は、`~/.claude-personal/skills`と`~/.claude-personal/agents`にも公開する。
 
 ポリシーのハッシュ不一致、ファイル欠落、検証コマンドの失敗、承認失敗があれば、設定ファイルの変更前に適用を停止します。
 ポリシーを変更するときは、`aqua-policy.yaml`と`aqua-registry.yaml`の内容を確認し、`chezmoi/.aqua-policy.sha256`の固定ハッシュを更新します。chezmoiのスクリプト、CI、`Dockerfile.ci`、テストはこのファイルを参照します。

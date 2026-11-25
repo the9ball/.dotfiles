@@ -4,7 +4,7 @@
 
 ## 共有設定のリンク管理
 
-- `~/.agents`、`~/.claude/skills`、`~/.claude/agents` は、`link-targets/` 配下の正本を公開する symlink / junction です。
+- `~/.agents`、`~/.claude/skills`、`~/.claude/agents`、`~/.claude-personal/skills`、`~/.claude-personal/agents` は、`link-targets/` 配下の正本を公開する symlink / junction です。
 - これらの公開先を操作するときも、公開先を直接編集せず、`link-targets/` 配下の正本を編集します。
 - 配置と張り直しの詳細は `link-targets/README.md` を参照します。
 

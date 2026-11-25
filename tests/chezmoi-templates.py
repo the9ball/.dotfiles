@@ -3,6 +3,7 @@
 Run: python3 -B tests/chezmoi-templates.py
 """
 
+import itertools
 import json
 import os
 from pathlib import Path
@@ -368,9 +369,9 @@ def check_codex_managed_input_patterns(checkout, environment, arguments, label, 
 
 
 def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
-    """Register the Japanese guard once per event and keep unrelated Claude hooks."""
+    """Register the Japanese guard once per event and keep unrelated Claude hooks in every Claude profile."""
     source = checkout / "chezmoi"
-    path = source / "dot_claude" / "modify_settings.json"
+    profile_paths = [source / profile / "modify_settings.json" for profile in ("dot_claude", "dot_claude-personal")]
     configuration = root / "claude-guard.toml"
     configuration.write_text("", encoding="utf-8")
     script_marker = "/.agents/hooks/japanese_guard.py"
@@ -406,7 +407,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
     }
     # A home directory with a space checks that the Windows command quotes the script path.
     home_directory = str(root / "home with space").replace("\\", "/")
-    for operating_system in ("linux", "windows"):
+    for path, operating_system in itertools.product(profile_paths, ("linux", "windows")):
         data_file = root / "claude-guard-data.json"
         data_file.write_text(json.dumps({
             "chezmoi": {"os": operating_system, "sourceDir": str(source), "homeDir": home_directory},
@@ -420,7 +421,7 @@ def check_claude_japanese_guard_hooks(checkout, root, executable, environment):
             "--override-data-file", str(data_file), "--no-tty", "--no-pager",
             "execute-template", "--with-stdin", "--file", str(path),
         ]
-        label = f"Claude Japanese guard [{operating_system}]"
+        label = f"Claude Japanese guard [{path.parent.name}, {operating_system}]"
         first = run_checked(arguments, checkout, environment, label, json.dumps(baseline), binary=True)
         rendered = json.loads(first.stdout)
         hooks = rendered["hooks"]
