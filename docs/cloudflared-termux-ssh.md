@@ -77,30 +77,7 @@ SSH秘密鍵、Accessトークン、Tunnelトークン、認証URL、Cookie、�
 2026-11-25に確認したところ、TermuxからのEnterとCtrl+Enterは、接続先のWindowsではどちらも`0d`として届いた。
 Claude Code側では区別できないため、Termuxの追加キー行に`Ctrl+X` `Ctrl+S`（既定の`chat:sendNow`）を送るボタンを置く。このボタンで送信できることを同日に確認した。
 
-Termux側で設定ファイルを開く。`~/.config/termux/termux.properties`だけを使っている場合は、そちらを開く。
-
-```sh
-mkdir -p ~/.termux
-nano ~/.termux/termux.properties
-```
-
-有効な（行頭が`#`でない）`extra-keys`がなければ、次の行を加える。`SEND`が送信ボタンになる。
-
-```text
-extra-keys = [['ESC','/','-','HOME','UP','END','PGUP'],['TAB','CTRL','ALT','LEFT','DOWN','RIGHT',{macro: "CTRL x CTRL s", display: "SEND"}]]
-```
-
-既にある場合は、その配列に次の要素だけを加える。
-
-```text
-{macro: "CTRL x CTRL s", display: "SEND"}
-```
-
-保存したら、設定を読み込み直す。
-
-```sh
-termux-reload-settings
-```
+Termuxの設定ファイル（通常は`~/.termux/termux.properties`）にある`extra-keys`の、いずれかのキー行（内側の`[...]`）に`{macro: "CTRL x CTRL s", display: "SEND"}`を入れ、`termux-reload-settings`で反映する。
 
 この設定はTermux側のファイルなので、chezmoiの管理対象にしない。
 
