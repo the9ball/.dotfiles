@@ -16,11 +16,15 @@ export PSMUX_MANUAL_LOG="$test_directory/calls"
 export PSMUX_MANUAL_SESSION="$test_directory/session"
 export PSMUX_MANUAL_EVENT="$test_directory/event"
 export PSMUX_MANUAL_EXIT=0
+export PSMUX_MANUAL_ENVIRONMENT="$test_directory/environment"
+export LOCALAPPDATA='C:\Fixture'
+export PSMUX_DATA_DIR=caller-registry
+unset PSMUX_NO_WARM
 export BASH_ENV=/dev/null
 
 # Remove only this fixture's known files and directories, without touching real psmux state.
 cleanup() {
-    rm -f "$test_directory/psmux" "$test_directory/calls" "$test_directory/session" "$test_directory/event" "$test_directory/output" "$test_directory/error"
+    rm -f "$test_directory/psmux" "$test_directory/calls" "$test_directory/session" "$test_directory/event" "$test_directory/environment" "$test_directory/output" "$test_directory/error"
     rmdir "$test_directory/empty" "$test_directory"
 }
 trap cleanup EXIT
@@ -28,14 +32,15 @@ trap cleanup EXIT
 cat > "$test_directory/psmux" <<'STUB'
 #!/usr/bin/env bash
 set -eu
-[[ $# == 6 && $* == '-L dotfiles-ssh new-session -A -s ssh' ]] || exit 91
+[[ $# == 7 && $* == '-f NUL -L dotfiles-session1 attach -t main' ]] || exit 91
+printf '%s|%s' "${PSMUX_DATA_DIR-}" "${PSMUX_NO_WARM-}" > "$PSMUX_MANUAL_ENVIRONMENT"
 printf '%s\n' "$*" >> "$PSMUX_MANUAL_LOG"
 if [[ $PSMUX_MANUAL_EXIT != 0 ]]; then exit "$PSMUX_MANUAL_EXIT"; fi
 if [[ -f $PSMUX_MANUAL_SESSION ]]; then
     printf ATTACHED > "$PSMUX_MANUAL_EVENT"
 else
-    : > "$PSMUX_MANUAL_SESSION"
-    printf CREATED > "$PSMUX_MANUAL_EVENT"
+    printf ABSENT > "$PSMUX_MANUAL_EVENT"
+    exit 1
 fi
 STUB
 chmod +x "$test_directory/psmux"
@@ -52,11 +57,13 @@ parent_identity=$BASHPID
 "$bash_executable" --noprofile --norc "$manual_command"
 check existing-session-attached "$(cat "$PSMUX_MANUAL_EVENT")" ATTACHED
 check caller-shell-not-replaced "$BASHPID" "$parent_identity"
-check fixed-namespace-session-no-destructive-options "$(cat "$PSMUX_MANUAL_LOG")" '-L dotfiles-ssh new-session -A -s ssh'
+check fixed-namespace-session-no-destructive-options "$(cat "$PSMUX_MANUAL_LOG")" '-f NUL -L dotfiles-session1 attach -t main'
+check daily-registry-selected "$(cat "$PSMUX_MANUAL_ENVIRONMENT")" 'C:\Fixture\Dotfiles\PsmuxDaily\registry|1'
+check caller-environment-unchanged "$PSMUX_DATA_DIR|${PSMUX_NO_WARM-unset}" 'caller-registry|unset'
 rm "$PSMUX_MANUAL_SESSION"
-"$bash_executable" --noprofile --norc "$manual_command"
-check absent-session-created "$(cat "$PSMUX_MANUAL_EVENT")" CREATED
-[[ -f $PSMUX_MANUAL_SESSION ]]
+if "$bash_executable" --noprofile --norc "$manual_command"; then status=0; else status=$?; fi
+check absent-session-refused "$status|$(cat "$PSMUX_MANUAL_EVENT")" '1|ABSENT'
+: > "$PSMUX_MANUAL_SESSION"
 
 PSMUX_SSH_AUTOATTACH=0 "$bash_executable" --noprofile --norc "$manual_command"
 check manual-command-independent-of-autoattach-switch "$(cat "$PSMUX_MANUAL_EVENT")" ATTACHED
@@ -74,6 +81,10 @@ check redirected-output-refused "$status" 1
 check redirected-output-does-not-call-psmux "$(wc -c < "$PSMUX_MANUAL_LOG" | tr -d '[:space:]')" 0
 if PATH="$test_directory/empty" "$bash_executable" --noprofile --norc "$manual_command" 2>"$test_directory/error"; then status=0; else status=$?; fi
 check missing-psmux-refused "$status" 127
+
+if LOCALAPPDATA='' "$bash_executable" --noprofile --norc "$manual_command" 2>"$test_directory/error"; then status=0; else status=$?; fi
+check missing-localappdata-refused "$status" 1
+check missing-localappdata-does-not-call-psmux "$(wc -c < "$PSMUX_MANUAL_LOG" | tr -d '[:space:]')" 0
 
 options_before=$-
 # Exercise rejection in this shell, where an accidental exec or option mutation would destroy the test.
