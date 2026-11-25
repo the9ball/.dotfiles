@@ -40,6 +40,7 @@ Use this Guide for the duration of a valid appointment. The primary mode is Chat
 ### Acceptance and SHA-bound review
 
 - Inspect the actual diff for scope and line endings and run the repository's required checks yourself before push. For the9ball/.dotfiles, follow its AGENTS.md and run `pwsh -NoProfile -File scripts/check-ci.ps1` at the repository root. A worker report does not establish acceptance.
+- Worker and spot reviews are inputs to the coordinator's gate, not the gate itself. When `execution-lifecycle-gate` makes Advisor review `REQUIRED` (for example for changes to Skills, `AGENTS.md`, or agent definitions that affect approval or delegation), only its final assessment bound to the current SHA passes the gate. No review result replaces Claude's acceptance or the user's decision to merge.
 - Open the PR as Draft. Record a passing review with the full reviewed SHA in the PR, for example in a review-state table in the PR body, before marking it ready. A different PR head invalidates the pass. Before pushing a new head to a PR that is ready for review, return it to Draft under the applicable GitHub authorization and keep it there until the new head passes. If returning it to Draft is unauthorized, stop before pushing and ask for authorization. If a ready PR already has a head different from the reviewed SHA, return it to Draft when authorized or ask for authorization. Any interim commits made by Claude need a worker review before completion.
 
 ### Checkpoints and recovery
