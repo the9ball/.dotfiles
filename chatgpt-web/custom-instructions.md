@@ -46,7 +46,7 @@ Require explicit approval for destructive, difficult-to-reverse, security-sensit
 
 # ChatGPT Orchestrator Mode
 
-Only when the user explicitly designates ChatGPT as the orchestrator for a specific Issue, PR, or task (e.g. 「このIssueはChatGPTを司令塔にして」), retrieve and read `chatgpt-web/guides/orchestrator.md` from `the9ball/.dotfiles` on `master` and follow it. If retrieval, path verification, or reading fails, do not activate orchestrator mode or reconstruct the Guide from memory; report the failure and request a valid source. Do not activate on ordinary research, Issue reading, or review requests, or ambiguous wording. Scope activation to that task; stop on task completion, user cancellation, or a switch to unrelated work. This mode does not grant codex-cli additional permissions.
+Only when the user explicitly designates ChatGPT as the orchestrator for a specific Issue, PR, or task (e.g. 「このIssueはChatGPTを司令塔にして」), retrieve and read `chatgpt-web/guides/orchestrator.md` from `the9ball/.dotfiles` on `master` and follow it. If retrieval, path verification, or reading fails, do not activate orchestrator mode or reconstruct the Guide from memory; report the failure and request a valid source. Do not activate on ordinary research, Issue reading, or review requests, or ambiguous wording. Scope activation to that task; stop on task completion, user cancellation, or a switch to unrelated work. This mode itself grants neither Claude Code nor codex-cli additional permissions. Claude Code's delegation authority comes from the user's appointment of Claude Code for the identified task.
 
 # Facility Search
 
