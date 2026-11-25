@@ -17,13 +17,11 @@ The Decision Maker (the user) works with the Orchestrator (ChatGPT), the Coordin
 
 ## Runtime contract
 
-Use this Guide for the duration of a valid appointment. In three-layer operation, the Orchestrator handles requirements and final checks, the Coordinator coordinates execution, and Workers implement and verify. Two-layer operation uses the Orchestrator and user-driven Codex for simple tasks, when Claude is unavailable, or when the Decision Maker chooses it.
+Use this Guide for the duration of a valid appointment. The Decision Maker chooses three-layer or two-layer operation when the task starts. In three-layer operation, the Orchestrator handles requirements and final checks, the Coordinator coordinates execution, and Workers implement and verify. Two-layer operation uses the Orchestrator and user-driven Codex.
 
 ## Guide
 
 ### Appointment and authority
-
-An explicit appointment of Claude Code 'as orchestrator' made before this wording change stays valid for its task.
 
 - Confirm the repository, Issue/PR/task, permitted external operations (if any), and whether the Decision Maker explicitly permits creating worktrees. Use the appointment's model and reasoning effort selections for the main Worker and spot reviewer. Resolve each unspecified field under `delegation` by inheritance or runtime default as applicable. Preserve each explicit selection.
 - The appointment authorizes delegation to Codex CLI Workers for the identified task and the read-only spot reviews those Workers dispatch without per-delegation confirmation. Claude Code subagents remain subject to the normal delegation rule in `CLAUDE.md`. Apply the existing scope, execution, review, Git, and external-operation contracts. PR creation, updates, and comments use the existing external authorization rules. Merge, Issue closure, permission relaxation, and new contracts require separate authorization.
@@ -50,18 +48,16 @@ An explicit appointment of Claude Code 'as orchestrator' made before this wordin
 ### Checkpoints and recovery
 
 - At each milestone, record the branch, full head SHA, and next owner in the Issue or PR when authorized, using GitHub-safe information and the existing posting rules. If Issue or PR records are unauthorized, use another authorized place named in the appointment. If none is named, report each checkpoint to the Decision Maker at the milestone. Keep session IDs and process details local.
-- The checkpoint records the current owner: `Claude`, `handover in progress`, or `two-layer: user-driven Codex`. Only an explicit decision of the Decision Maker to switch or return ownership changes it; ordinary checkpoint updates never overwrite it. The owner value says who may act; recording it and every operation after a switch still need their existing authorization. If no destination was authorized for writing from the start, the current owner is the Decision Maker's explicit decision, confirmed directly. If an existing destination becomes unusable, stop the switch until it is confirmed that the old route cannot resume from that record.
-- On resume, compare the checkpoint with the current branch, local and remote head, working tree, and running Workers; stop and ask the Decision Maker if you find a change you did not make or cannot establish the current state. Also on resume, and immediately before starting or resuming a Worker or writing to the working tree, Git, or the task's external records, read the current owner. If it is not `Claude`, cannot be read, or is uncertain, start nothing, write nothing, and wait for the Decision Maker. With no destination, obtain the Decision Maker's answer for that resume before the first such action; a missing, earlier, or unclear answer means wait.
-- To switch to two-layer operation:
-  1. Record `handover in progress` (with a destination, confirm the record can be read back before continuing; without one, the Decision Maker's explicit decision is the state).
-  2. Confirm that every Claude Code session for the task has ended, including any that read the owner earlier or could resume from older instructions or an earlier answer, and that every Worker, child, or pending process it started that could write has ended.
-  3. Reconcile the checkout's branch, full HEAD SHA, and staged, unstaged, and untracked changes against the last checkpoint; fix how each difference is carried over, and leave to the Decision Maker any difference that needs a decision.
-  4. Only then record `two-layer: user-driven Codex` (confirming the read-back when there is a destination) and hand over the reconciled state for the two-layer kickoff.
-
-  If step 2 or 3 cannot be completed, the owner stays `handover in progress` and the Decision Maker decides.
-- When the Decision Maker explicitly returns the task to Claude, keep or set `handover in progress`, cancel a two-layer kickoff that has not run, and if a two-layer session started, confirm that it and every process that could write have ended. Reconcile as in step 3, then record `Claude`. This also applies when a switch stopped midway.
+- **Appointment check.** At every first start and every resume of the task, before any other action, confirm that the appointment is still in effect. With a checkpoint destination, read the latest transfer record there; without one, obtain the Decision Maker's explicit answer for that start or resume. If the record or answer is missing, stale, or unclear, wait. If the task was transferred or the appointment ended, start nothing and write nothing. Then compare the checkpoint with the current branch, local and remote head, working tree, and running Workers; stop and ask the Decision Maker if you find a change you did not make or cannot establish the current state.
 - **Worker limit exhausted.** Record the call as incomplete with its reset time (or record that the time is unknown). Keep the same account, Codex home, and route. Resume the saved session when the retry rule in `codex-invocation` allows it (after a known reset, or when the reset time is unknown and the limit is known to have reset or the Decision Maker decides to retry), or, if the appointment allows interim work, implement in Claude Code under the SHA-bound gate and keep the PR in Draft marked as awaiting Worker review. Review the Coordinator's interim commits in a fresh Worker session fixed to the new head SHA; do not resume the interrupted implementation session for that review, because its target has changed.
-- **Claude limit exhausted or Claude unavailable.** Coordination stops when Claude becomes unavailable. Changes made after the last checkpoint may remain, and processes Claude started may keep writing. The Decision Maker may switch the task to two-layer operation with the switching steps above.
+- **Claude limit exhausted or Claude unavailable.** By default, wait for Claude to recover and resume under the appointment check. Changes made after the last checkpoint may remain, and processes Claude started may keep writing.
+- **Transfer to two-layer operation** (only when the Decision Maker decides it is needed):
+  1. Record that the appointment ends by transfer at the checkpoint destination and confirm it can be read back, or, without a destination, the Decision Maker's decision itself ends it. Ordinary checkpoint updates never overwrite a transfer record.
+  2. Confirm that every Claude Code session for the task, and every Worker, child, or pending process it started that could write, has ended, and that no route remains that could resume the task without the appointment check.
+  3. Reconcile the checkout's branch, full HEAD SHA, and staged, unstaged, and untracked changes against the last checkpoint, and leave to the Decision Maker how any difference is carried over.
+  4. The task then continues in ordinary two-layer operation from the reconciled state.
+
+  If an existing destination becomes unusable, stop the transfer until it is confirmed that the old route cannot resume from that record. If (1), (2), or (3) is not completed, do not start two-layer work; the ended appointment stays ended and the Decision Maker decides. Claude does not return to a transferred task; a new appointment applies only to a different task.
 
 ### Reporting and evaluation
 
