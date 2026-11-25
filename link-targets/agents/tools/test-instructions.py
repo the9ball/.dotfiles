@@ -1485,10 +1485,13 @@ class InstructionTests(unittest.TestCase):
             "dotnet-testing", "external-posting", "git-operations", "github", "structured-data",
             "advisor-review", "implementation-planning", "external-operation-authorization",
             "review-consolidation", "code-commenting", "codex-invocation", "claude-invocation",
+            "codex-orchestration",
         }
         actual_names = {Path(path).parent.name for path, text in texts.items() if path.endswith("/SKILL.md") and "## Discovery contract" in text}
         self.assertEqual(actual_names, expected_names)
-        exempt_names = {"code-commenting", "review-consolidation", "codex-invocation", "claude-invocation"}
+        exempt_names = {
+            "code-commenting", "review-consolidation", "codex-invocation", "claude-invocation", "codex-orchestration",
+        }
         expected_profiles = {name: "required" for name in expected_names - exempt_names}
         expected_profiles.update({name: "exempt" for name in exempt_names})
         actual_profiles = {

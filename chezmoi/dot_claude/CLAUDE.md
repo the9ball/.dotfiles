@@ -55,3 +55,7 @@ If the canonical Skill cannot be read, stop and report.
   criteria in "Delegation to subagents" in `AGENTS.md`.
 - If delegation looks advantageous, present the target agent name and the scope to delegate, and obtain
   permission before delegating. Do not delegate without permission. Do not skip the consideration itself.
+- When the user appoints Claude Code as Coordinator for an identified task, follow
+  `~/.agents/skills/codex-orchestration/SKILL.md` (`link-targets/agents/skills/codex-orchestration/SKILL.md`).
+  The appointment covers only Codex CLI Workers for that task and the read-only spot reviews those
+  Workers dispatch. Claude Code subagents follow the permission rule above.
