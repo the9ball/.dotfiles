@@ -1,0 +1,7 @@
+interface:
+  display_name: "dotfiles同期"
+  short_description: "masterを最新にし、aqua更新ワークフローのマージを待ってchezmoi applyまで行う"
+  default_prompt: "Use $dotfiles-sync to fast-forward master, run the aqua update workflow, wait for its PR to merge, and apply chezmoi changes I approve."
+
+policy:
+  allow_implicit_invocation: true
