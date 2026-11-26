@@ -64,7 +64,10 @@ Linux、macOS、WSLでは、`aqua.yaml`に定義したCodex CLI（`openai/codex`
 これは通常のCLIの導入であり、Remote Control用standalone版の導入やログインは行いません。
 
 通常の`codex`は`CODEX_HOME`を設定せず、標準の`~/.codex`を仕事用アカウントとして使います。`~/.codex/config.toml`はリポジトリのポータブルなdefaultsを`modify_`方式でマージします。Codexが管理するプロジェクト履歴、hook状態、認証、ログ、セッションはリポジトリへ保存しません。
-個人用は`pcodex`（`~/.codex-personal`）、WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
+個人用は各OSのBashとWindowsのPowerShellで`pcodex` / `pclaude`を使って起動し、そのコマンドと子プロセスだけに`CODEX_HOME=~/.codex-personal`と`CLAUDE_CONFIG_DIR=~/.claude-personal`を渡します。
+通常の`claude`は`CLAUDE_CONFIG_DIR`未設定の`~/.claude`を仕事用に使います。
+起動経路、GUIへの継承防止、認証確認と戻し方は[個人用CLIのアカウントペア](README.manual.md#個人用cliのアカウントペア)を参照してください。
+WSL用CLIは`wcodex`（`~/.codex-wsl`）で起動します。`wcodex`は常に定義されますが、WSL用ホームが未セットアップなら実行時エラーになり、通常の`codex`へフォールバックしません。
 個人用の`default_permissions`は通常`personal-standard`です。共有ワークスペースに加えてGitHub CLI設定の読み取りとGitHub APIへのネットワークアクセスを許可し、追加の書き込み許可は`personal-emergency`へ分離しています。必要な場合だけ`pcodex -c 'default_permissions="personal-emergency"'`（または同等の明示指定）で緊急プロファイルを選択してください。filesystem permission のパスは許可範囲であり、通常のcheckoutや作業場所の指定ではありません。絶対パスは`codex-personal-defaults.toml.local`にだけ置き、共有テンプレートには含めません。
 端末固有の仕事用Codex設定は`codex-defaults.toml.local`、個人用設定は`codex-personal-defaults.toml.local`へ置きます。作成手順は[`README.manual.md`](README.manual.md)を参照してください。
 
@@ -264,7 +267,7 @@ Windows の Bash、対話フラグ、SSH 接続情報、標準入力と標準出
 psmux が見つからない場合や起動に失敗した場合は、エラーを表示して Git Bash を続行します。
 
 SSH 専用設定は、chezmoi が配置する `~/.bashrc.ssh` のランチャーを介してリポジトリの `.bashrc.ssh` から読み込みます。
-`CODEX_HOME="$HOME/.codex-personal"` を設定し、Termius の環境変数送信や `AcceptEnv CODEX_HOME` には依存しません。
+`CODEX_HOME="$HOME/.codex-personal"` と `CLAUDE_CONFIG_DIR="$HOME/.claude-personal"` を設定し、クライアントからの環境変数送信には依存しません。
 `GH_CONFIG_DIR="$HOME/.config/gh-ssh"` を SSH と Windows psmux 内で共通に使い、psmux 外の通常の GitHub CLI 認証設定と分離します。
 初回認証は [SSH 専用の GitHub CLI 認証](README.manual.md#ssh-専用の-github-cli-認証)に従い、保存先の ACL を確認してから実行してください。
 Windows psmux 内では、空でない `PSMUX_SESSION` または `TMUX` の `/tmp/psmux-` ソケットパスで判定し、`main`、`ssh`、warm ペインなど全セッションに個人用設定を適用します。
@@ -283,7 +286,7 @@ chezmoi verify --exclude=scripts "$HOME\.bashrc" "$HOME\.bashrc.interactive" "$H
 
 既存ペインには `source ~/.bashrc` で反映できます。通常の設定を再読み込みした後も個人用設定を再適用します。
 起動済みの Codex などのアプリケーションには自動反映されないため、更新済みのペインから起動し直してください。
-`printf '%s\n' "$CODEX_HOME" "$GH_CONFIG_DIR"` で `.codex-personal` と `.config/gh-ssh` を確認してください。
+`printf '%s\n' "$CODEX_HOME" "$CLAUDE_CONFIG_DIR" "$GH_CONFIG_DIR"` で `.codex-personal`、`.claude-personal`、`.config/gh-ssh` を確認してください。
 新しいウィンドウ・分割ペインと、切断後の再接続でも確認します。
 必要な作業は `main` に残して保存・終了を個別に判断してください。
 

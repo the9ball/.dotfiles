@@ -128,6 +128,12 @@ def check_templates(inputs, checkout, root, executable, environment):
         for path in targets:
             label = f"{path.relative_to(checkout)} [{operating_system}]"
             suffix = Path(path.name.removesuffix(".tmpl")).suffix
+            is_vscode = path.relative_to(source).as_posix() == "AppData/Roaming/Code/User/modify_settings.json"
+            stdin = "{}" if suffix == ".json" else ""
+            if is_vscode:
+                stdin = json.dumps({"terminal.integrated.profiles.windows": {
+                    "Codex Personal": {"env": {"FIXTURE_KEEP": "inherited"}},
+                }})
             # The config template uses init-only prompt functions, which
             # execute-template defines only in --init mode, where an
             # unanswered prompt returns its zero value instead of asking.
@@ -141,10 +147,16 @@ def check_templates(inputs, checkout, root, executable, environment):
                 "--override-data-file", str(data_file), "--no-tty", "--no-pager",
                 "execute-template", *init_arguments, "--with-stdin", "--file", str(path),
             ], checkout, environment, f"{label} expansion",
-                "{}" if suffix == ".json" else "")
+                stdin)
             try:
                 if suffix == ".json":
-                    json.loads(result.stdout)
+                    rendered = json.loads(result.stdout)
+                    if is_vscode:
+                        profile_environment = rendered["terminal.integrated.profiles.windows"]["Codex Personal"]["env"]
+                        if (profile_environment.get("CODEX_HOME") != r"${env:USERPROFILE}\.codex-personal"
+                                or profile_environment.get("CLAUDE_CONFIG_DIR") != r"${env:USERPROFILE}\.claude-personal"
+                                or profile_environment.get("FIXTURE_KEEP") != "inherited"):
+                            raise ValueError("personal account pair or unrelated environment entry changed")
                 elif suffix == ".toml":
                     tomllib.loads(result.stdout)
             except ValueError as error:
