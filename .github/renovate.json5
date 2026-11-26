@@ -1,0 +1,29 @@
+{
+  // The file preset applies its regex managers and rules only to aqua.yaml.
+  extends: ['github>aquaproj/aqua-renovate-config:file#2.15.0(^aqua\\.yaml$)'],
+  enabledManagers: ['custom.regex'],
+  dependencyDashboard: { enabled: false },
+  prHourlyLimit: 0,
+  prConcurrentLimit: 0,
+  automerge: true,
+  automergeType: 'pr',
+  platformAutomerge: true,
+  separateMajorMinor: false,
+  packageRules: [
+    {
+      // The completion archive versions and hashes in chezmoi must move together.
+      matchDepNames: ['ahmetb/kubectx', 'ahmetb/kubectx/kubens'],
+      enabled: false,
+    },
+    {
+      // curl-for-win is distributed by curl.se and needs manual version checks.
+      matchDepNames: ['curl/curl-for-win'],
+      enabled: false,
+    },
+    {
+      // Override the preset groups so Renovate opens one aqua update PR.
+      matchPackageNames: ['*'],
+      groupName: 'aqua packages',
+    },
+  ],
+}

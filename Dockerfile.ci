@@ -7,7 +7,7 @@ RUN apt-get update \
 
 ARG TARGETARCH
 # Pin and verify the Aqua bootstrap binary. Aqua selects the CI tool versions.
-# Keep the version in step with BOOTSTRAP_AQUA_VERSION in ci.yaml and aqua-update.yaml.
+# Keep the version in step with BOOTSTRAP_AQUA_VERSION in ci.yaml.
 RUN set -eu; \
     aqua_version=v2.65.2; \
     case "$TARGETARCH" in \
