@@ -19,7 +19,7 @@ Run the standard flow from planning through the completion state fixed for the t
 4. Review the plan independently with Advisor and Codex at the strength defined below and reconcile their findings. The request to create a plan includes this initial review; it does not depend on later plan approval.
 5. Obtain user plan approval. It authorizes the flow's subsequent slice, detailed, and correction reviews. If only a plan was requested, end here without implementation.
 
-Keep any Codex Worker appointment under the current `codex-orchestration` contract; plan approval alone does not expand that contract's appointment or delegation authority. One-shot delegation below is a separate explicit execution instruction.
+Plan approval establishes a Codex Worker appointment only when all conditions of `codex-orchestration` are met; it does not expand that contract's delegation authority. One-shot delegation below is a separate explicit execution instruction.
 
 ### With repository changes
 
@@ -67,7 +67,7 @@ Commit, slice, autosquash, and commit-map requirements do not apply to this bran
 | Estimate excess, reason (a) lax estimate or (b) greater complexity | Stop and confirm | Proceed within scope and report |
 | Estimate excess, reason (c) unplanned element, or scope expansion | Stop and confirm | Stop the affected part |
 | Advisor `REQUIRES_USER_DECISION` | Stop and confirm | Stop the affected part at that decision; Coordinator cannot override Advisor |
-| Starting an Implementer | Only the implementer designated in a user-approved plan or explicit appointment | Only default Codex under a valid appointment, or the implementer named in the instruction |
+| Starting an Implementer | Only the implementer designated in a user-approved plan or explicit appointment | Default Codex or its narrow interim Coordinator fallback under the explicit one-shot appointment in `codex-orchestration`, or the implementer named in the instruction |
 | Lighter reviews | Declare in the plan and obtain user approval | Do not lighten |
 
 These boundaries govern execution-time choices, not unresolved planning premises. Keep mandatory decision checkpoints; unresolved decisions/evidence never become PASS merely because independent work can continue.
@@ -83,7 +83,7 @@ These boundaries govern execution-time choices, not unresolved planning premises
 - If work would commit on the default branch of a link-published checkout, stop before the first commit and report: routine authority does not cover switching branches there, the unpublished-task-commit rewrite exception is unavailable, and standing push authorization excludes the default branch.
 - Apply stops in priority order: first, stop before any newly arising unresolved decision, risk acceptance, missing evidence, or `REQUIRES_USER_DECISION`; complete only independent unaffected work and do not pass the gate.
 - Second, if a repository-change plan's scope itself meets a mandatory trigger, proceed through gate PASS, commit, and authorized working-branch push only when all intervening checkpoints are resolved and normal PASS conditions hold; stop before PR creation or the agreed completion-state operation. This never overrides the first stop.
-- Third, if Codex cannot run, complete authorized implementation, verification, Advisor review, commits, and working-branch push after all other normal PASS conditions hold, but stop before the completion-state operation. This narrow pending-Codex continuation permits push, not task completion or a claim of completed/waived Codex review; established findings and unresolved decisions still block PASS. On return, the user decides whether to wait for Codex or omit it.
+- Third, if Codex cannot run, apply `codex-orchestration`'s one-shot interim Coordinator implementation and Worker-review rules; complete authorized implementation, verification, Advisor review, commits, and working-branch push after all other normal PASS conditions hold, but stop before the completion-state operation. This narrow pending-Codex continuation permits push, not task completion or a claim of completed/waived Codex review; established findings and unresolved decisions still block PASS. On return, the user decides whether to wait for Codex or omit it.
 - Without repository changes, stop before execution if any mandatory trigger applies or an operation affects shared environments or external systems.
 - With or without repository changes, if required authority is absent, an operation lies outside the permitted set, or repeated failures prevent progress, stop that part, finish independent work, and report.
 - PRs remain subject to the current `codex-orchestration` Draft/ready contract and separate external authorization. Include the full gate-PASS SHA in the PR body. Set auto-merge only when named in the instruction; that instruction is the advance production-adoption decision for that operation. Otherwise production adoption remains the user's merge decision.

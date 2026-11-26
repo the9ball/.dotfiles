@@ -56,7 +56,10 @@ If the canonical Skill cannot be read, stop and report.
 - If delegation looks advantageous, delegate within the authorized scope and report the agent and scope
   delegated. Do not skip the consideration itself. Host constraints, including any per-delegation
   permission requirement, take precedence.
-- When the user appoints Claude Code as Coordinator for an identified task, follow
+- When the user explicitly appoints Claude Code as Coordinator for an identified task, or approves a
+  gate-flow plan naming Codex as implementer with all required appointment inputs, or gives an explicit
+  one-shot instruction meeting the Skill's narrow Codex appointment conditions, follow
   `~/.agents/skills/codex-orchestration/SKILL.md` (`link-targets/agents/skills/codex-orchestration/SKILL.md`).
   The appointment covers only Codex CLI Workers for that task and the read-only spot reviews those
-  Workers dispatch. Claude Code subagents follow the delegation rule above.
+  Workers dispatch. The user may override implementer or reviewer. Claude Code subagents follow the
+  delegation rule above.
