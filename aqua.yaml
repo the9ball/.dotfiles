@@ -83,3 +83,4 @@ packages:
   tags: [ci]
 - name: terraform-linters/tflint@v0.66.0
 - name: rclone/rclone@v1.76.0
+- name: neovim/neovim@v0.12.6
