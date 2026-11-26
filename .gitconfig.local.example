@@ -1,24 +1,36 @@
 # Copy this file to ~/.gitconfig.local and edit it for this machine.
 #
 # Keep user.name and user.email in one file per identity under
-# ~/.dotfiles/git_user/. Keep the scopes of different identities from
-# overlapping. Do not add a direct [user] name/email here.
+# ~/.dotfiles/git_user/. Name local-only profiles *.local.gitconfig so that
+# .gitignore excludes them. Do not add a direct [user] name/email here: a
+# direct identity is used silently wherever no rule matches, for example in
+# another clone location or a linked worktree.
 #
-# Rules for non-overlapping trees that contain multiple repositories.
-# A trailing slash matches everything below that directory, including
-# the gitdirs of all repositories and their linked worktrees in the tree.
+# Preferred: select the identity by the remote's organization (Git 2.36+).
+# It does not depend on where the repository or its worktrees live. Register
+# both the HTTPS and SSH URL forms. A later include wins, so put the work
+# profile last; a repository with remotes in both organizations then uses it.
+#
+# [includeIf "hasconfig:remote.*.url:https://github.com/the9ball/**"]
+# 	path = ~/.dotfiles/git_user/shaula.gitconfig
+# [includeIf "hasconfig:remote.*.url:git@github.com:the9ball/**"]
+# 	path = ~/.dotfiles/git_user/shaula.gitconfig
+#
+# [includeIf "hasconfig:remote.*.url:https://github.com/OrangeCube/**"]
+# 	path = ~/.dotfiles/git_user/shoichi-yasui.local.gitconfig
+# [includeIf "hasconfig:remote.*.url:git@github.com:OrangeCube/**"]
+# 	path = ~/.dotfiles/git_user/shoichi-yasui.local.gitconfig
+#
+# Fallback for repositories without a matching remote: register the
+# location. A trailing slash matches everything below that directory,
+# including the gitdirs of all repositories and their linked worktrees in
+# the tree. Keep the scopes of different identities from overlapping.
 #
 # [includeIf "gitdir:~/path/to/public-repositories/"]
 # 	path = ~/.dotfiles/git_user/shaula.gitconfig
 #
-# [includeIf "gitdir:~/path/to/work-repositories/"]
-# 	path = ~/.dotfiles/git_user/shoichi-yasui.gitconfig
-#
-# Rules for a single repository registered on its own. For linked
-# worktrees that need the same identity, add both rules with the same
-# profile. A rule ending in .git/ misses .git itself. A rule for the
-# repository root ending in / also matches independent repositories
-# nested below that root.
+# For a single repository, add both rules with the same profile: a rule
+# ending in .git/ misses .git itself, and .git alone misses linked worktrees.
 #
 # [includeIf "gitdir:~/path/to/repositories/example/.git"]
 # 	path = ~/.dotfiles/git_user/shaula.gitconfig

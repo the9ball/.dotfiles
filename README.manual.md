@@ -510,31 +510,27 @@ Copy-Item chezmoi/.chezmoitemplates/codex-personal-defaults.toml.local.example c
 
 ### Git identityの切り替え
 
-共有の`.gitconfig`には`user.useConfigOnly = true`だけを置き、`user.name`と`user.email`は置きません。identityごとの`user.name`と`user.email`は、リポジトリ直下の[`git_user`](git_user/)に1ファイルずつ保存します。現在の共有プロファイルは[`shaula.gitconfig`](git_user/shaula.gitconfig)、ローカル専用プロファイルは`git_user/shoichi-yasui.gitconfig`です。後者はGit管理対象外なので、実体を追加した各cloneの`.git/info/exclude`にも`git_user/shoichi-yasui.gitconfig`を記載します。
+共有の`.gitconfig`には`user.useConfigOnly = true`だけを置き、`user.name`と`user.email`は置きません。identityごとの`user.name`と`user.email`は、リポジトリ直下の[`git_user`](git_user/)に1ファイルずつ保存します。現在の共有プロファイルは[`shaula.gitconfig`](git_user/shaula.gitconfig)、業務用のローカル専用プロファイルは`git_user/shoichi-yasui.local.gitconfig`です。`*.local.*`は`.gitignore`の対象なので、ローカル専用プロファイルは`.local.gitconfig`で終わる名前にします。
 
-リポジトリごとの対応関係は、ホームの`~/.gitconfig.local`に`includeIf`を追加して管理します。実際の登録内容は各エントリのコメントに対象worktreeとcanonical remoteを記録し、`upstream` remoteがある場合はそれを、なければ`origin`を判定基準にします。`github.com/OrangeCube/`配下なら業務profile、それ以外なら共有profileを読み込みます。新しいcloneやremote変更時は、対象のcanonical remoteを確認してから同じ形式で登録します。新規環境向けの形式は[`.gitconfig.local.example`](.gitconfig.local.example)にコメントで示しています。
+**`~/.gitconfig.local`に`[user]`の`name`と`email`を直接書かないでください。** 直接書くと、どの`includeIf`にも当たらない場所（別の場所へのclone、`git worktree add`で作ったworktreeなど）で、そのidentityが黙って使われます。直接書いている場合は、その内容をローカル専用プロファイルへ移してから削除します。identityが選択されていないリポジトリではコミットを失敗させ、意図しないidentityを使わない運用にします。
+
+identityは、ホームの`~/.gitconfig.local`で**remoteの組織**によって選びます（Git 2.36以降の`hasconfig:remote.*.url:`）。cloneの場所やworktreeに依存せず、同じリポジトリならどこに置いても同じidentityになります。`github.com/OrangeCube/`配下なら業務profile、それ以外なら共有profileです。HTTPSとSSHでURLの形が違うため、両方を登録します。
 
 ```ini
-# リポジトリをまとめて配置するディレクトリごとに登録する場合
-[includeIf "gitdir:~/path/to/repositories/public/"]
+[includeIf "hasconfig:remote.*.url:https://github.com/the9ball/**"]
+	path = ~/.dotfiles/git_user/shaula.gitconfig
+[includeIf "hasconfig:remote.*.url:git@github.com:the9ball/**"]
 	path = ~/.dotfiles/git_user/shaula.gitconfig
 
-[includeIf "gitdir:~/path/to/repositories/work/"]
-	path = ~/.dotfiles/git_user/shoichi-yasui.gitconfig
-
-# リポジトリを個別に登録する場合
-[includeIf "gitdir:~/path/to/repositories/example/.git"]
-	path = ~/.dotfiles/git_user/shaula.gitconfig
-
-[includeIf "gitdir:~/path/to/repositories/example/.git/worktrees/"]
-	path = ~/.dotfiles/git_user/shaula.gitconfig
+# 後に読み込んだidentityが有効になるため、業務profileを最後に置く。
+# 共有と業務の両方のremoteを持つリポジトリでは業務profileが選ばれる。
+[includeIf "hasconfig:remote.*.url:https://github.com/OrangeCube/**"]
+	path = ~/.dotfiles/git_user/shoichi-yasui.local.gitconfig
+[includeIf "hasconfig:remote.*.url:git@github.com:OrangeCube/**"]
+	path = ~/.dotfiles/git_user/shoichi-yasui.local.gitconfig
 ```
 
-`gitdir:`の条件はGitが認識しているgitdirのパスに対して評価されます。末尾の`/`はそのディレクトリの配下すべてに一致します。複数のリポジトリを置くディレクトリをツリー単位で登録すると、配下にあるすべてのリポジトリとそのリンクworktreeのgitdirが対象になります。
-
-canonical remoteに基づいて1つのリポジトリを個別に登録し、リンクworktreeでも同じidentityを使う場合は、メインチェックアウト用の`<repo>/.git`とリンクworktree用の`<repo>/.git/worktrees/`を登録し、両方に同じプロファイルを指定します。`<repo>/.git/`は`.git`自体に一致しません。リポジトリのルートを`<repo>/`として登録すると、その中に置いた独立したリポジトリにも同じidentityが適用されます。
-
-Windows、WSL、POSIX環境ではパスが異なるため、必要なら環境ごとに規則を用意します。条件が重複すると後から読み込んだidentityが有効になるため、対象ツリーを重複させません。既存の`~/.gitconfig.local`にある直接の`[user]`設定は、対応する`includeIf`へ移してから削除します。identityが選択されていないリポジトリではコミットを失敗させ、意図しないidentityを使わない運用にします。
+remoteを持たないリポジトリや、remoteで判定できないリポジトリだけは、補助として`gitdir:`で場所を登録します。`gitdir:`の条件はGitが認識しているgitdirのパスに対して評価され、末尾の`/`はそのディレクトリの配下すべてに一致します。リンクworktreeのgitdirは`<repo>/.git/worktrees/<name>`なので、`<repo>/.git`だけを登録するとworktreeには適用されません。一方、`<repo>/.git/`は`.git`自体に一致しません。メインチェックアウトとworktreeの両方に適用するには、`<repo>/.git`と`<repo>/.git/worktrees/`の2つを、同じプロファイルで登録します。Windows、WSL、POSIX環境ではパスが異なるため、`gitdir:`の規則は環境ごとに用意します。新規環境向けの形式は[`.gitconfig.local.example`](.gitconfig.local.example)にコメントで示しています。
 
 設定後は、リポジトリごとに次で出所と実効値を確認します。
 
