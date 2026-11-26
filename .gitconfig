@@ -50,6 +50,13 @@
 [advice]
 	skippedCherryPicks = false
 	detachedHead = false
+[filter "lfs"]
+	# git lfs install と同じ内容。filter=lfs 属性のファイルにだけ働き、
+	# git-lfs がない環境では、そのファイルの add や checkout が失敗して気づける。
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
 [alias]
 	git = !git
 	current-branch = rev-parse --abbrev-ref HEAD
