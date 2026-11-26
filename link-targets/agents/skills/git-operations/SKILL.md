@@ -58,6 +58,6 @@ It supplements the responsibilities of `link-targets/agents/AGENTS.md`, root `AG
 ### Git range control
 
 - If a formatter, lint, or Git operation generates a large amount of out-of-scope changes, do not automatically include them; separate them, or stop and seek confirmation.
-- Destructive operations, history rewrites, force pushes, and lock deletions will not be performed unless the explicit authorization boundary of `link-targets/agents/AGENTS.md` is met.
+- Destructive operations, history rewrites, force pushes, and lock deletions must satisfy the authorization boundary of `link-targets/agents/AGENTS.md`. Only local history rewrites meeting every condition of its unpublished-task-commit exception may proceed without another explicit instruction; it grants neither push nor lock-deletion authority.
 
 <!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->

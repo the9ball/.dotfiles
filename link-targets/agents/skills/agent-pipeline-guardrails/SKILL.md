@@ -18,7 +18,8 @@ For a task with a user appointment, `codex-orchestration` governs delegation to 
    - The Architect is defined to not rewrite the plan without an explicit instruction, so even if the orchestrator skips obtaining the user's approval first, a major accident is unlikely (the Architect will stop at making a suggestion). Even so, proceeding without confirming the user's intent is still a problem.
 
 2. **Obtain the user's explicit judgment before treating generated code as adopted for production.**
-   - Product constraints prohibit including AI-generated code in production, while temporary code for debugging may be permitted case by case. Therefore, always present the final implementation report (production/debug classification and changed-file list) to the user and confirm their acceptance before proceeding.
+   - Present the final implementation report (production/debug classification and changed-file list) for the user's adoption decision. In the standard flow, obtain this decision at the selected user review (step 11). If that review is skipped, retain any separately required adoption decision; skipping review alone does not establish acceptance.
+   - Under explicit one-shot delegation, production adoption is decided by the user when merging, or by an explicit auto-merge instruction given in advance. Match any auto-merge setting against external-operation authorization; the adoption decision alone does not authorize other operations.
    - **This gate applies regardless of who implements the change or its size or mode.** Do not omit it when the Implementer makes the change or when the orchestrator makes a one-line change through the pass-through gate (素通しゲート); the product constraint is independent of both the implementer and the change size.
    - If it is rejected, follow the reported "How to revert if rejected" (use `git checkout`/`restore` for existing files; delete new files).
 

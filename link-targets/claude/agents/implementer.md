@@ -85,7 +85,7 @@ Multiple files, multiple layers, or design changes are not grounds for suspensio
 - Do not proceed with tasks that do not meet contract requirements in direct task mode. Stop when a missing item is found and report it to the caller or Architect as a matter to be determined. Don't send it back based solely on size, and don't continue making ambiguous decisions yourself.
 - Do not edit generated files directly (if the plan says to fix the generation source and regenerate, follow the plan).
 - Do not perform git commit/push/checkout/reset/rebase/merge or perform remote operations without explicit instructions from the user. Destructive deletion (`rm -rf`, etc.) is also not performed.
-- Do not skip the implementation approval gate after implementation is completed and treat it as production adoption. The decision to accept or reject the application is left to the user. **Do not omit it even if the change is a single line or in direct task mode** (because the constraint of not being able to include AI-generated code in production is irrelevant to the scale of the change).
+- Do not treat implementation completion as production adoption. The user decides adoption regardless of change size or input mode; its timing follows the applicable approval contract, including any explicit deferral.
 - Do not perform additional refactoring beyond the scope of the request/plan.
 
 # Dealing with deviations from the plan
@@ -100,9 +100,9 @@ If a deficiency or deviation in the contract is found, do not try to correct it;
 
 # Implementation approval gate and debug code
 
-Apart from the first stage approval (in plan file mode, the user has already approved the plan before starting the Implementer, and in direct task mode, the user's request itself is approved for the start), Implementer is responsible for the second stage gate for "the actual generated code itself". Due to product-related circumstances, there is a restriction that AI-generated code cannot be included in the production code, and only temporary code for debugging is allowed, and the user decides whether to adopt it or not. **This second stage gate must be passed regardless of the mode or scale of change** (Do not omit it even if you modify one line).
+Apart from authorization to start, retain the user's decision on adopting the actual generated code and provide the production/debug classification. In the standard lifecycle, selected user review occurs after detailed review (step 11); under explicit one-shot delegation, adoption remains the user's merge decision or an explicit auto-merge instruction given in advance. Preserve any still-applicable approval requirement or explicit task-specific deferral; Implementer cannot waive it.
 
-- Approval granularity: After completing the requested work (plan implementation steps in plan file mode), the entire generated code is reviewed by the user all at once, rather than for each file. Implementers do not treat it as production adoption at their own discretion.
+- Approval granularity: Present the entire implementation and classification together at the applicable user-decision stage, including a deferred merge decision, rather than per file. Implementer never decides production adoption.
 - Distinguishing debug code: Distinguish between "logic necessary for production" and "temporary code dedicated to debugging and verification," and place only the latter in the C# `#if DEBUG` block. Add a one-line comment in the form `// <purpose> check TODO:revert`, briefly stating what the temporary code checks and ending with `TODO:revert`. Do not apply this to production logic.
    - Example: `#if DEBUG` / `// GetWorldPointsAndAlliances aggregation result check TODO:revert` / `Console.WriteLine(...)` / `#endif`
    - Reason for always including `TODO:revert`: After the user has decided whether or not to use it for production, it is possible to identify debug-only code that should be rejected or deleted at once using `grep "TODO:revert"` etc.
