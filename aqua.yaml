@@ -48,7 +48,7 @@ packages:
 - name: ahmetb/kubectx/kubens@v0.11.0
 - name: aws/aws-cli@2.42.3
 - name: 99designs/aws-vault@v7.2.0
-- name: cli/cli@v2.105.0
+- name: cli/cli@v2.106.0
 - name: jqlang/jq@jq-1.8.2
   tags: [ci]
 - name: gitleaks/gitleaks@v8.30.1
@@ -62,7 +62,7 @@ packages:
 - name: astral-sh/uv@0.13.10
 - name: anthropics/claude-code@v2.1.332
 - name: BurntSushi/ripgrep@16.0.0
-- name: bootandy/dust@v1.2.7
+- name: bootandy/dust@v1.2.8
 - name: nektos/act@v0.2.98
 - name: rhysd/actionlint@v1.7.12
   tags: [ci]
