@@ -113,6 +113,12 @@ The final plan file will generally have the following structure. Make the openin
 ## Scope of influence
 - List of files/layers to be touched and their roles
 
+## Execution and review contract
+- Completion state (resolved premise with attribution), whether repository changes are needed, and target checkout and branch (explicitly not applicable if there is no repository)
+- Implementer (default proposal: Codex; user may override) and plan/result-review strength; mandatory-trigger plans cannot use lighter reviews
+- For Codex: repository/task/checkout, permitted external operations or none, worktree-creation permission, and Worker/spot-reviewer model and effort (unspecified fields remain unspecified); follow the current appointment contract
+- Avoid worktrees by default; propose isolation with reasons for approval-relaxing changes to link-published instructions, and create it only with explicit approval
+
 ## Implementation steps
 1. ... (estimated <n> lines)
 2. ... (estimated <n> lines)
@@ -122,14 +128,19 @@ The final plan file will generally have the following structure. Make the openin
 - Test code: <n> lines
 - Number of new files: <n>
 - Newly introduced abstractions (classes, interfaces, generics): <n> / None
-- When exceeded: Stop and report to the user for approval (the standard is “If the estimate is exceeded” in `link-targets/agents/skills/implementation-planning/SKILL.md`)
+- When exceeded: Follow “If the estimate is exceeded” in `link-targets/agents/skills/implementation-planning/SKILL.md`; during explicit one-shot delegation proceed and report reasons (a)/(b) within scope, but stop reason (c), scope expansion, and unresolved mandatory decisions
 
 ## Verification method
 - ...
+- Concise operational checks, preferring authorized autonomous Claude operations; required user actions and project-required PR screenshots
+- For operations such as load tests: target, scale, time window, abort conditions, monitoring, and cleanup; separate external/shared-environment authorization is required
 - (Example when the output can be large) Redirect the log to a temporary file, such as `dotnet build ... > $TEMP/xxx-build.log 2>&1`, and check only the necessary lines with `grep -i "error\|warning"` or similar. Record the log file path in the verification results so it can be used for follow-up investigation.
 
 ## Risks and precautions
 - ...
+
+## 承認候補 (Approval Candidates)
+- Foreseeable target/operation/cause with stable plan-local IDs, or `なし` (none); plan approval pre-approves only expressly scoped UI capabilities under the kernel's rules
 
 ## Feedback
 (Can be omitted until feedback is received from Implementer/Reviewer/User. Will be added as soon as feedback is received.)

@@ -55,8 +55,8 @@
 - An objection alone is not a reason to stop work; continue within the authorized scope unless an existing stop or confirmation condition applies. Respecting the user's choice does not waive approval requirements or review/evidence contracts. Not raising an objection does not mean the requested approach was verified as optimal.
 - Track loose ends, missing evidence, and target identity discrepancies, and make the target, scope, budget, and stop conditions of read-only investigations bounded.
 - If the same error repeats with no new evidence after revising the cause hypothesis, stop and report it as incomplete with remaining work and resume conditions; bounded retries of transient failures are separate, and permission errors follow "Permission errors and alternatives". The repeat count is an adjustable operational parameter (default: two consecutive occurrences).
-- User non-response alone does not constitute approval of scope, permissions, or external operations. Do not introduce fixed time fallbacks and do not use elapsed time as a substitute for approval or judgment. Proceed to investigate as a condition-based fallback only if the subject and scope are fixed, the facts can be safely verified using read-only bounded research, and the research does not replace the user's preferences, approval, or authority judgments.
-- Scope extensions, new permissions, irreversible operations, external operations, and items that require user preferences or design decisions should be stopped and checked instead of proceeding based on the passage of time.
+- User non-response alone does not constitute approval of scope, permissions, or external operations. Explicit one-shot delegation such as `そのまま実行して` ("just run it") or `PR作成まで進めて` ("proceed through PR creation") is prior delegation for that task, with the bounds and stops defined by `execution-lifecycle-gate`; it is not inferred consent. Do not use elapsed time as approval. A read-only condition-based fallback requires fixed scope and must not replace user preferences or authority judgments.
+- Proceed with reversible operations within existing authority without routine confirmation. For in-scope runtime design choices, follow `execution-lifecycle-gate`'s decision boundaries: adopt the recommendation and report when permitted. Preserve planning-premise questions and stop affected work for scope expansion, new permissions, irreversible/destructive operations, unauthorized external effects, changes Git cannot recover, or a required risk/authority judgment. Reversibility alone does not grant authority or override file, UI, external-operation, or host constraints.
 - Autonomous execution will continue only if the goal, scope, constraints, and completion conditions are determined and within the approved range.
 - In the future, if an auxiliary fixed time value (e.g. 5 minutes) is introduced, it should be treated as an adjustable operational parameter rather than a well-founded fixed threshold, and the reason for its introduction, safety conditions, and termination conditions should be clearly stated. However, the current contract does not have a fixed time fallback.
 - A common contract establishes the premises for clarification, bounded research, and autonomy. `execution-lifecycle-gate`'s execution contract, target identity, epoch, approval, review, commit, fixup, amend, autosquash, and external operation gate will be maintained within the scope of the same skill.
@@ -141,13 +141,25 @@
 
 ## Git commit policy
 
-- A branch can be created when a task requires it, at the explicit direction of the user, or when required by repository-specific rules. Because worktrees involve additional working directories and state management, they cannot be created solely at the agent's discretion; they require explicit instructions or approval from the user. Prioritize repository-specific branch operations, direct master operations, and explicit push rules.
-- Do not perform destructive Git operations, history rewrites, or force pushes without explicit instructions, except a force push within the repository standing push approval of the external-operation-authorization skill (a local history rewrite before that push still needs an explicit instruction).
+- Branch creation needs no routine confirmation within the task's authority; in a link-published checkout this permits creation only, not switching branches. Prefer the existing checkout and avoid worktrees by default. Do not create a worktree at the agent's discretion: require explicit user approval, including approval of a plan specifying its creation. For changes relaxing approval rules in link-published instructions, propose a worktree with reasons in the plan; other changes to published instructions need no such proposal and may use the main checkout, accepting immediate visibility to running sessions. Repository and host constraints still apply.
+- Destructive Git operations, history rewrites, and force pushes require explicit instructions, except the local rewrite exception below and force push within the repository standing push approval of the external-operation-authorization skill. Neither exception authorizes the other.
 - When creating or editing a new commit message (including `--amend`), discover `commit-message` Skill and apply its runtime contract. The unit of determination for scope, rules, and history is the Git repository that is currently being committed, and information about parent repositories and submodules should not be mixed.
 - Follow the Guide section of `commit-message` Skill for message format/history confirmation order, expansion from the most recent 20 to the maximum 50, and fail-safe when it is unclear.
 - When modifying, canceling, or porting commits to another branch, consider using `--fixup`, revert, cherry-pick, etc. that suit your purpose.
 - If Git, formatter, or lint generate a large amount of changes outside the scope, they will not be included automatically and will follow the scope control of `git-operations` Skill.
 - This common rule for Git, commit, and verification deals with the scope of changes, operational authority, and verification boundaries, and leaves commit message format and history rules to the `commit-message` Skill.
+
+### Unpublished task-commit rewrite exception
+
+The coordinator may rewrite this task's own unpublished commits, including amend, `git reset --hard`, `git branch -f`, and reflection to the original branch, without another explicit instruction only when **all** conditions below are verified. Otherwise use the normal explicit-approval route; author identity is not ownership evidence.
+
+1. Every targeted commit SHA is recorded as created by this task in its execution ledger.
+2. The ledger has no record of publishing a target commit or any descendant through push, PR, or another route, and no target is reachable from any remote-tracking ref. A missing ledger, publication record, or doubtful ref freshness makes unpublished status unverified; do not use the exception.
+3. The working tree and index are clean, with no untracked files.
+4. The checkout is not published through links, such as this repository's main checkout.
+5. Record the pre-rewrite SHA in the ledger and provide a recovery procedure before rewriting.
+
+This exception does not authorize changes outside the task's range, loss of pre-session unmanaged files or others' uncommitted work, push, or bypassing role restrictions. Recheck its evidence at each operation.
 
 ## Permission errors and alternatives
 

@@ -34,6 +34,19 @@ Applies to creating, updating, and reviewing implementation plans and runbooks; 
 - Create and check the directory as that rule orders before writing the plan; its `.local/.gitignore` contains only `*`.
 - Updating an existing plan keeps its current path.
 
+### Required plan contents
+
+- State the completion state as a resolved premise decision and whether repository changes are needed. Do not assume a PR is the completion state; attribute user decisions or explicitly delegated recommendations.
+- Include the goal, scope/exclusions, constraints, target checkout and branch (explicitly not applicable if there is no repository), acceptance conditions, steps, estimates, dependencies, and verification evidence needed to assess the result.
+- Name the implementer (default proposal: Codex, overridable by the user) and the plan-review strength. Default to independent Advisor and Codex reviews; a low-risk read-only plan may propose lighter review only with all mandatory triggers false and user approval. Mandatory-trigger plans cannot be lightened.
+- Write the plan to a file before its initial review. A request to create a plan authorizes that review; approval of the plan authorizes later flow-defined reviews, without granting external-operation authority.
+- For Codex implementation, record the appointment inputs: repository/task/checkout, permitted external operations or none, whether worktree creation is permitted, and Worker/spot-reviewer model and effort selections (including unspecified fields). These are inputs to the current appointment contract, not an automatic expansion of its authority.
+- Avoid worktrees by default. If changing link-published instructions to relax approval rules, propose a worktree and give the reason; create it only with explicit approval, including approval of a plan specifying its creation. Other edits to published instructions need no isolation proposal and may use the main checkout with immediate visibility accepted.
+- Give concise operational verification steps, preferring autonomous Claude operations within existing authority. Specify user actions only when needed, and project-required PR screenshots when applicable.
+- For operational plans such as load tests, specify abort conditions, monitoring, and cleanup, as well as the target, scale, and time window.
+- Plan approval can pre-approve only the expressly stated UI capabilities, purpose, target, and scope under the kernel's UI rules. Effects on shared environments or external systems require separate authorization under `link-targets/agents/skills/external-operation-authorization/SKILL.md`; listing them in a plan is not that authorization.
+- Record the planned result-review strength and completion evidence for work without repository changes; commit/slice/autosquash/commit-map steps do not apply.
+
 ### The boundary between planning review and post-implementation review
 
 The plan review does not include an exhaustive detailed review of details that do not affect the decisions that should be made before implementation.
@@ -53,6 +66,7 @@ Premise decisions are clarification questions, not approval items. An answer fix
 - Ask a premise decision as soon as it is identified and its options can be presented, and at the latest before writing the parts of the plan that depend on it. Ask the open premise decisions together in one round, with the relevant findings, the options, and a recommendation for each. If the planner cannot ask the user directly, return them to the caller as questions instead.
 - Do not defer a premise decision by writing it into `承認候補` (Approval Candidates), an open-issues list, or an assumption.
 - Record each answer in the plan body where it applies, as a current premise with a short attribution such as `ユーザー判断` (user decision) or `委任` (delegated to the agent). It needs no dedicated section or identifier. When the user explicitly leaves the choice to the agent, record the recommendation as delegated; it counts as resolved. When the user is also unsure, follow the always-applied clarification rules instead of recording a recommendation.
+- An explicit one-shot instruction such as `そのまま実行して` ("just run it") delegates premise choices within its stated bounds; record recommendations as delegated rather than inventing user approval. It does not authorize worktrees, UI, environment operations, or unnamed external operations, and does not permit lighter reviews.
 - While a premise decision is unresolved, the plan is not complete: do not present it as complete or submit it to plan review.
 - When updating a plan, apply the same rules to premise decisions that the update raises or that arise because an agreed premise no longer holds, before revising the affected parts. A premise decision that surfaces during execution is handled by the existing execution gates.
 
@@ -103,6 +117,8 @@ For each candidate, write at least **target/operation/cause**. Conditional candi
 2. Categorize and report the reason for the excess. (a) The estimate was lax (b) The requirements were more complex than planned (c) Elements not included in the plan were added.
 3. Show countermeasures. In case (c), explicitly check whether the element is really within the scope of the request.
 4. Get approval before proceeding.
+
+During explicit one-shot delegation, excess for reason (a) or (b) may proceed within the fixed scope and must be reported. Reason (c), scope expansion, a newly arising mandatory-trigger decision, risk acceptance, or missing evidence still stops the affected work at that decision; complete only independent authorized work. This exception does not supply permissions or override Advisor `REQUIRES_USER_DECISION`.
 
 The lower limit of the absolute value (+30 lines) is included in the threshold because if you stop frequently at small steps, there will be a lot of rework and the entire rule will be ignored.
 

@@ -23,6 +23,10 @@ Do not skip verification (3). A rewrite accident cannot be noticed until you loo
 
 ## 0. Prior confirmation
 
+Eligibility for the unpublished-task-commit rewrite exception is defined in `link-targets/agents/AGENTS.md`. Verify every condition before each operation; the exception covers amend, `git reset --hard`, `git branch -f`, and reflection to the original branch. Otherwise retain explicit user approval.
+Record the task-ledger SHAs, publication-record and all-remote-tracking-ref reachability checks with freshness evidence, clean index/tree and absence of untracked files, non-published checkout, pre-rewrite SHA, and recovery procedure. Missing or doubtful evidence disables the exception; do not infer ownership from author identity.
+The exception does not authorize a role forbidden to write Git, switching a link-published checkout, or external operations. The push and `--force-with-lease` rules below remain independent.
+
 ```bash
 git status --porcelain
 git rev-parse --abbrev-ref HEAD
@@ -127,7 +131,7 @@ Report the verification results to the user together with the lists of commits b
 
 ## 4. Reflection to the original branch
 
-For the temporary-branch replay workflow, reflecting the verified result to the original branch requires explicit user approval. Until approval, keep the original branch at `<orig>` and retain the temporary rewrite branch. If reflection is declined, retain both branches and report their names and tip SHAs. Do not move or delete either branch without authorization covering that operation.
+For the temporary-branch replay workflow, reflecting the verified result to the original branch requires explicit user approval or freshly verified evidence satisfying every condition of the exception in step 0. Until either is established, keep the original branch at `<orig>` and retain the temporary rewrite branch. If reflection is declined, retain both branches and report their names and tip SHAs. Do not move or delete either branch without authorization covering that operation.
 
 ```bash
 git branch -f <original branch> HEAD
@@ -153,7 +157,9 @@ git branch -d rewrite/<original branch name>
 
 - Use of `git rebase -i` and mechanical rewriting of todo with `GIT_SEQUENCE_EDITOR` / `sequence.editor`.
 - Skip verification (step 3) and reflect/push.
-- Run `git branch -f` or `git reset --hard` without the user's explicit approval.
+- Run `git branch -f` or `git reset --hard` without explicit user approval or verified eligibility under the step 0 exception.
 - Push without the user's explicit instruction, or use plain `--force`.
 - Do not use `git cherry-pick --skip` unless the user has explicitly approved dropping that identified commit, either in the existing rewrite scope or by a subsequent instruction. A conflict or empty pick does not itself establish that approval.
 - Start rewriting the history when the work tree is dirty.
+
+<!-- reference-kind: policy-precedence; target: link-targets/agents/AGENTS.md -->
