@@ -25,7 +25,7 @@ registries:
   name: local
   path: aqua-registry.yaml
 - type: standard
-  ref: v4.594.0 # renovate: depName=aquaproj/aqua-registry
+  ref: v4.595.0 # renovate: depName=aquaproj/aqua-registry
 packages:
 # Renovate does not update curl-for-win; see docs/aqua-automation.md for manual updates.
 - name: curl/curl-for-win@8.23.0_5
