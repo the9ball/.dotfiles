@@ -1,0 +1,29 @@
+{
+  "events": [
+    {
+      "type": "thread.started",
+      "thread_id": "01a13ecc-5fd7-7811-bb5e-e8c1979fe7a6"
+    },
+    {
+      "type": "turn.started"
+    },
+    {
+      "type": "item.completed",
+      "item": {
+        "id": "item_0",
+        "type": "agent_message",
+        "text": "{\n  \"free_findings\": [\n    {\n      \"id\": \"F1\",\n      \"severity\": \"P1\",\n      \"category\": \"material\",\n      \"location\": \"allocation.py: Allocator.reserve_many\",\n      \"cause\": \"Each line is checked against the same initial SKU availability without subtracting quantities accepted for earlier lines.\",\n      \"impact\": \"A successful batch can oversell inventory and commit negative available stock. Mandatory fix.\",\n      \"trigger\": \"With A having 10 available units, submit two lines reserving 6 units each for A, either through the same product or different catalog aliases resolving to A.\",\n      \"evidence\": \"The available dictionary holds 10 for A throughout validation, so both lines pass. The subsequent loop subtracts 12 and creates both reservations, leaving available inventory at -2. The supplied tests only batch distinct SKUs.\"\n    },\n    {\n      \"id\": \"F2\",\n      \"severity\": \"P1\",\n      \"category\": \"material\",\n      \"location\": \"allocation.py: Allocator.replace\",\n      \"cause\": \"Quantity adjustment updates the reservation and stock but leaves releases.quantity at the original reservation quantity.\",\n      \"impact\": \"Scheduled expiry corrupts available inventory after a quantity change: increases leak stock and decreases create excess stock. Mandatory fix.\",\n      \"trigger\": \"Starting with 10 units, reserve 4 until timestamp 100, replace its quantity with 2 before expiry, then call expire(repository, 100).\",\n      \"evidence\": \"Replacement leaves 8 units available but retains a scheduled release of 4. The unchanged expiry worker reads quantity from releases and returns 4, producing 12 available units. Replacing 4 with 5 instead produces only 9 units after expiry. Existing quantity-change tests stop before expiry.\"\n    },\n    {\n      \"id\": \"F3\",\n      \"severity\": \"P2\",\n      \"category\": \"material\",\n      \"location\": \"allocation.py: Allocator.replace\",\n      \"cause\": \"Eligibility checks only the active flag, without checking whether the reservation deadline has passed.\",\n      \"impact\": \"Quantity changes can succeed at or after expiry, contrary to the requirement that changes apply before expiry. Mandatory fix.\",\n      \"trigger\": \"Create a reservation expiring at 100, then dispatch a replacement request at timestamp 100 or later before the expiry worker processes it.\",\n      \"evidence\": \"Reservations remain active until Repository.close is called by the expiry worker. Allocator.replace neither receives nor obtains the current timestamp and never compares it with expires_at. Single-thread dispatch prevents concurrency but does not establish that scheduled expiry always runs before such requests.\"\n    },\n    {\n      \"id\": \"F4\",\n      \"severity\": \"P3\",\n      \"category\": \"quality\",\n      \"location\": \"README.md:11\",\n      \"cause\": \"The batch response documentation names a top-level reservations array instead of items.\",\n      \"impact\": \"Customers implementing the documented response lookup will fail to read successful batch responses. Correcting this contract mismatch is a required documentation fix.\",\n      \"trigger\": \"A caller follows the README and accesses response[\\\"reservations\\\"] after reserve_batch succeeds.\",\n      \"evidence\": \"ReservationAPI.reserve_batch returns {\\\"items\\\": [...]}, matching the explicit requirement and test_batch_response, while the README documents reservations.\"\n    }\n  ],\n  \"coverage\": [\n    \"allocation.py\",\n    \"api.py\",\n    \"README.md\",\n    \"test_reservations.py\"\n  ],\n  \"limitations\": [\n    \"Review used only the embedded frozen evidence; no tools, filesystem access, external services, or agents were used.\",\n    \"No tests were executed during this review. Failure examples are derived from the supplied source.\",\n    \"The supplied evidence does not establish an expiry-before-request scheduling guarantee; the deadline finding concerns requests dispatched before the expiry worker processes a due reservation.\"\n  ]\n}"
+      }
+    },
+    {
+      "type": "turn.completed",
+      "usage": {
+        "input_tokens": 31937,
+        "cached_input_tokens": 7296,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 955,
+        "reasoning_output_tokens": 150
+      }
+    }
+  ]
+}

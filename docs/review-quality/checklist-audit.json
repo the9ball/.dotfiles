@@ -1,0 +1,41 @@
+{
+  "source_commit": "9a044fa9cf723b7a2be10e15e7033ca850f18ea1",
+  "role": "independent read-only checklist_auditor; fork_turns=none; effective model/effort unavailable",
+  "status": "audit-complete-with-evidence-limitations",
+  "materialization": "immutable Git references; 36 files including 32 receipts; blob identities verified independently",
+  "ordered_blob_manifest_sha256": "6828d509d82437d41e73b4cc66f9e77798b6ab64c9779c1ea54b9c1b17ec373c",
+  "epoch": "6828d509d82437d41e73b4cc66f9e77798b6ab64c9779c1ea54b9c1b17ec373c/checklist-evidence-v1/read-only/reference",
+  "checklist_blob": "7908ad67781a0868008405d544dee726a442de1f",
+  "checklist_sha256": "2fe9e949a390971dbb863d4194bf7d6fc534f2d675fb0d42d6cbb5e8fc642b72",
+  "active_ids": ["CRQ-001", "CRQ-002", "CRQ-003", "CRQ-004", "CRQ-005", "CRQ-006", "CRQ-007"],
+  "counts": {
+    "B": {"responses": 8, "rows": 56, "complete_inventories": 8, "missing": 0, "duplicates": 0, "unverified": 10, "strict_applicability_disagreements": 2, "strict_result_disagreements": 16, "broken_finding_links": 0},
+    "C2": {"responses": 8, "rows": 56, "complete_inventories": 8, "missing": 0, "duplicates": 0, "unverified": 10, "strict_applicability_disagreements": 2, "strict_result_disagreements": 15, "broken_finding_links": 0}
+  },
+  "confirmed_invalid_dispositions": [],
+  "unsupported_passes": 0,
+  "unsupported_unverified_confirmed": 0,
+  "defensible_expectation_disagreements": [
+    {"fixtures": "all", "id": "CRQ-007", "rows": 16, "observed": "APPLICABLE/UNVERIFIED", "assessment": "Justified. Subject/file metadata and aggregate source diff do not identify actual sequence IDs, ancestry or commit-specific patches. Frozen PASS expectations overstate supplied evidence."},
+    {"fixture": "F1", "id": "CRQ-003", "rows": 4, "observed": "UNVERIFIED/UNVERIFIED", "assessment": "Defensible caution: F1 feature requirements omit an applicable documentation policy. Existing role docstrings alone do not prove policy completeness."},
+    {"fixture": "F2", "id": "CRQ-002", "rows": 4, "observed": "APPLICABLE/FINDING", "assessment": "The totals-to-x change conflicts with the supplied producer and renderer vocabulary. This is a justified additional relation for the existing quality cause."},
+    {"fixture": "F3", "id": "CRQ-002", "rows": 4, "observed": "APPLICABLE/FINDING", "assessment": "The metadata-to-zz change has surrounding base and operation vocabulary evidence. Frozen PASS is narrower than a defensible assessment."}
+  ],
+  "contestable_dispositions": [
+    {"labels": ["codex-R1-F1-B-combined", "codex-R2-F1-B-combined", "codex-R2-F1-C-checklist"], "id": "CRQ-004", "assessment": "Real mapping/list defect; documentation relation depends on interpreting existing-scheduler-clients wording as a compatibility promise. No explicit return shape appears in that docstring. Narrow PASS and broader overlap are both arguable; not automatically a false positive."}
+  ],
+  "cross_array_references": {"valid": true, "example": "codex-R2-F2-B-combined CRQ-004 references free finding F1; count this as a checklist-supported detection despite output-array placement"},
+  "C2_scope": {"free_findings_total": 0, "confirmed_unrestricted_review_restart": false, "assessment": "Outside observations are bounded routing limitations requesting Phase1. F3 containment findings have an explicit affected-description relation. F1 R2 uses the contestable documentation relation. Internal discovery process is not observable."},
+  "classification_caveats": [
+    "F1-M1 outside classification is plausible under the narrow description reading but contested by three broader overlap assessments.",
+    "F1-M2/M3 and F3-M1/M3 remain plausibly outside correctness causes; outside does not mean impossible to notice incidentally while checking documentation.",
+    "F3-M2 overlap is strong because the affected description explicitly asserts the violated storage boundary."
+  ],
+  "evidence_limitations": [
+    "Some line citations have small offsets or a nonexistent terminal line. Nearby code and symbol names resolve the observations; line precision is imperfect.",
+    "F3 helper can reasonably describe a historical retired consumer; its unused status is stronger evidence than claims about active-use wording.",
+    "No actual fixture Git history or test execution was supplied to the measured reviewers. This audit inspects frozen outputs and source, not internal cognition or operational convergence.",
+    "Effective backend model/effort is not proven by configured fields. Root never receives checklist body or titles."
+  ],
+  "reproduction": "Use immutable git ls-tree receipt inventory, git show/rev-parse for declared files, structured JSON parsing, compare every row with fixture expectations, group stable IDs and resolve finding_ids across both finding arrays. Verify disposition differences by source context rather than treating expectation mismatch as error."
+}

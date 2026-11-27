@@ -1,0 +1,15 @@
+{
+  "interval": "pilot",
+  "observations": 4,
+  "unique_sessions_all_intervals": 4,
+  "complete_prompt_and_file_coverage": true,
+  "no_observed_tool_use": true,
+  "checklist_inventory_complete": true,
+  "sequential_c_phases": true,
+  "codex_usage_estimates_recomputed": true,
+  "evidence_sha256": "09ae9e8f6345a04d2a2c7a12c64cd0d956c68e0b1626d2487f5ed8a4af7081e3",
+  "limitations": [
+    "Coverage is reviewer-declared; internal attention is unobservable.",
+    "Codex configured settings and Claude default effort are not effective-effort attestations."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "series": "reservation-20261015-v1",
+  "admit_main": false,
+  "reason": "Preregistered ceiling stop: A, B and C each detect both frozen material causes in the four-launch Codex pilot.",
+  "evidence_sha256": "09ae9e8f6345a04d2a2c7a12c64cd0d956c68e0b1626d2487f5ed8a4af7081e3",
+  "truth_blob": "1c20c06a50ce3c346a04fe2c7c0074027543f23c",
+  "grades_sha256": "c6f06053dada874c1cae9f76fe13b7156570f899324100743a197554c0238962",
+  "material_detection": {"A": ["M1", "M2"], "B": ["M1", "M2"], "C": ["M1", "M2"]},
+  "reviewer_launches_completed": 4,
+  "main_reviewer_launches_completed": 0,
+  "claude_reviewer_launches_completed": 0,
+  "fixture_modified_after_review_results": false,
+  "decision": "Stop measurement, reassess fixture discrimination, preserve all pilot observations; no additional fixture or trial authorized automatically."
+}

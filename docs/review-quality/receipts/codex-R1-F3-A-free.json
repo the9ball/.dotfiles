@@ -1,0 +1,91 @@
+{
+  "session_id": "01a13d92-6334-7470-8506-e2ea8d7597e7",
+  "usage": {
+    "input_tokens": 22424,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 1063,
+    "reasoning_output_tokens": 203
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.055478,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py:29-32, ReportService.metadata",
+        "cause": "The metadata cache uses report_id alone as its key, omitting the authenticated tenant.",
+        "impact": "A tenant can receive another tenant's export and filename. Tenant ownership checks are bypassed on cache hits.",
+        "trigger": "Tenant A caches report ID 42, then tenant B requests report ID 42 through the same service instance.",
+        "evidence": "The requirements explicitly allow shared report IDs across tenants. The cache hit returns A's metadata without calling repository.lookup(B, 42), and download reads the cached path."
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "reports.py:37, ReportService.resolve_export",
+        "cause": "String prefix comparison replaces path-component containment checking.",
+        "impact": "Downloads can read files outside the permitted export storage root.",
+        "trigger": "With storage_root '/srv/exports', metadata contains '../exports-private/secret.csv' and that file exists.",
+        "evidence": "The resolved target '/srv/exports-private/secret.csv' starts with '/srv/exports', so the candidate accepts it. The base is_relative_to check rejects it."
+      },
+      {
+        "id": "F3",
+        "severity": "P2",
+        "category": "material",
+        "location": "reports.py:27-32 and 41-43, ReportService.metadata / replace_repository",
+        "cause": "Cached metadata has no refresh or invalidation mechanism, including when the repository is replaced.",
+        "impact": "Refreshed metadata remains inaccessible for cached reports. Downloads can return an obsolete export or fail if its old path is removed.",
+        "trigger": "Cache a report, rotate to a repository returning its updated path or filename, then download the same report again.",
+        "evidence": "replace_repository only assigns self.repository. metadata continues returning the existing cache entry indefinitely, so the replacement repository is never queried for that report."
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "quality",
+        "location": "reports.py:47-53, ReportService.download",
+        "cause": "The descriptive local name metadata is replaced with zz.",
+        "impact": "The download flow becomes harder to understand and maintain without adding behavior.",
+        "trigger": "A maintainer reads or modifies the path and filename handling in download.",
+        "evidence": "The base name describes the repository result; zz conveys no meaning and is used for both metadata fields. This is a readability improvement, not a functional requirement violation."
+      },
+      {
+        "id": "F5",
+        "severity": "P3",
+        "category": "optional",
+        "location": "reports.py:69-71, _format_content_disposition",
+        "cause": "An unused formatting helper is added for an explicitly retired adapter.",
+        "impact": "The change introduces unnecessary maintenance surface and suggests an integration that no included caller uses.",
+        "trigger": "The candidate is retained with the complete caller set supplied in the evidence.",
+        "evidence": "All implementation and callers are included, none references this helper, and its docstring identifies the consumer as retired. Removing it is optional cleanup."
+      }
+    ],
+    "coverage": [
+      {
+        "file": "reports.py",
+        "scope": "Entire supplied base, candidate, and diff, including metadata caching, repository rotation, path containment, download callers, and the added helper.",
+        "policy_check": "Every candidate function has a docstring."
+      }
+    ],
+    "limitations": [
+      "Static inspection of the embedded frozen evidence only; no tools were used and no tests were executed.",
+      "Database adapter implementations and runtime storage contents were not supplied; failing conditions are specified explicitly in the findings."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R1-F3-A-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034365.8556602,
+  "elapsed_seconds": 25.952083110809326,
+  "input_sha256": "29ac401547caf6f5a35caa419717ce3fec7540f8dd9aaa10c188ecec8292968a",
+  "raw_output_sha256": "9a747ddb93c680eb1757fec78aa9feba96ddcca3ece788a99c80d1a427097725",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

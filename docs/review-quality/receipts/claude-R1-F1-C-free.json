@@ -1,0 +1,122 @@
+{
+  "session_id": "ad9f0d74-29e2-433d-9b59-d971dbb70ba0",
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 5543,
+    "cache_read_input_tokens": 1269,
+    "output_tokens": 2146,
+    "output_tokens_details": {
+      "thinking_tokens": 583
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 5543,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2146,
+        "cache_read_input_tokens": 1269,
+        "cache_creation_input_tokens": 5543,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5543
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 2146,
+      "cacheReadInputTokens": 1269,
+      "cacheCreationInputTokens": 5543,
+      "webSearchRequests": 0,
+      "costUSD": 0.0875258,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 583,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "effective_model": [
+    "claude-opus-5-5"
+  ],
+  "estimated_usd": 0.0875258,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:27 NoticeQueue.flush (while len(self.pending) >= self.batch_size)",
+        "cause": "ループ条件が「pending が batch_size 以上」に変更され、batch_size 未満の端数を送信する経路がなくなった。",
+        "impact": "明示的に flush しても、1 バッチ未満のキュー項目が配信されず pending に残り続ける。要件「Queue entries smaller than one batch must also be delivered when explicitly flushed」に違反する。",
+        "trigger": "batch_size=20(既定)で 1 件だけ enqueue して flush() を呼ぶと、transport.send は一度も呼ばれず [] が返る。25 件の場合も、末尾 5 件が未配信のまま残る。",
+        "evidence": "候補コード: `while len(self.pending) >= self.batch_size:` / `batch = list(self.pending)[: self.batch_size]`。ベースは `while self.pending:` で全件を送信していた。"
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:30-33 NoticeQueue.flush (except Exception: break)",
+        "cause": "一時的な利用不可(ConnectionError)だけでなく、すべての Exception を捕捉して黙って break している。",
+        "impact": "不正ペイロードによる ValueError が呼び出し側に伝播しなくなり、要件「Invalid transport payloads must remain visible to the caller as ValueError」に違反する。さらに、不正な notice が pending の先頭に残るため、以後の flush は毎回同じバッチで失敗して break する。その結果、後続の正常な notice も永久に配信されず、エラーも観測できない。TypeError など想定外のプログラミングエラーも握りつぶされる。",
+        "trigger": "transport.send がバッチ内の不正ペイロードに対して ValueError を送出する。flush() は例外を出さずに [] を返し、その後の flush() も同様に何も配信しない。",
+        "evidence": "候補コード: `try: self.transport.send(batch) except Exception: break`。要件が保持対象とする失敗は ConnectionError のみで、ValueError は呼び出し側に見えなければならない。正しい形は `except ConnectionError: break`。"
+      },
+      {
+        "id": "F3",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:58 DeliveryService.dispatch / dispatch.py:61-64 command_response",
+        "cause": "dispatch の戻り値が ID のリストから `{\"delivered\": [...]}` という dict に変更されたが、command_response は従来どおりリストを前提にしている。",
+        "impact": "scheduler へのコマンド応答が壊れる。count は常に 1(dict のキー数)になり、ids は ID リストではなく dict になる。要件「Preserve the scheduler command interface」に違反する。",
+        "trigger": "任意の notices で command_response(service, notices) を呼ぶ。例えば 0 件配信でも {\"count\": 1, \"ids\": {\"delivered\": []}} が返る。",
+        "evidence": "候補コード: `return {\"delivered\": self.queue.flush()}` と、変更されていない `delivered = service.dispatch(notices); return {\"count\": len(delivered), \"ids\": delivered}`。ベースは `return self.queue.flush()`。"
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "optional",
+        "location": "dispatch.py:28 NoticeQueue.flush (list(self.pending)[: self.batch_size])",
+        "cause": "バッチを切り出すたびに deque 全体をリストへコピーしている。",
+        "impact": "pending が大きい場合、flush 全体の計算量が O(n²/batch_size) になり、無駄なコピーが発生する。動作は正しいため任意の改善。",
+        "trigger": "pending に大量の notice(例: 数万件)がある状態で flush する。",
+        "evidence": "`batch = list(self.pending)[: self.batch_size]`。`list(itertools.islice(self.pending, self.batch_size))` で十分。"
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "テストは実行していない。結論は埋め込まれた base/candidate のソースと diff の静的読解のみに基づく。",
+      "Transport の実装と scheduler クライアント側のコードは証拠に含まれていない。そのため、ValueError や ConnectionError の実際の送出条件、およびコマンド応答の利用箇所は要件の記述から推定している。",
+      "既存テストやテストの追加有無は証拠に含まれておらず、評価していない。"
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "claude-R1-F1-C-free",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038059.8957531,
+  "elapsed_seconds": 23.65523052215576,
+  "input_sha256": "9e673594171865719e8bbfddb680c525f9f9f7aa81588f17c07715183b2a0f4b",
+  "raw_output_sha256": "10fff34c52cf13562fee7e52f42f40187ed4c2e43a07192aa750c3c3d695d9d9",
+  "configured_model": "host default (no override)",
+  "configured_effort": "host default (no override)",
+  "effective_effort": null
+}

@@ -1,0 +1,38 @@
+{
+  "session_id": "01a13d98-0884-7a71-96e2-78b2cd53b317",
+  "usage": {
+    "input_tokens": 22202,
+    "cached_input_tokens": 0,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 175,
+    "reasoning_output_tokens": 49
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.046154,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [],
+    "coverage": [
+      {
+        "file": "audit.py",
+        "inspection": "Reviewed the complete file and diff. Filtering occurs before page_size is applied; cursors remain exclusive event IDs; next_cursor depends on additional matching events. Omitting event_type preserves existing behavior. Endpoint forwarding, tenant scoping, export behavior, and required function docstrings are consistent with the supplied requirements."
+      }
+    ],
+    "limitations": [
+      "Review used only the frozen evidence provided. No tools were used and no tests were executed."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F4-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792034735.8380482,
+  "elapsed_seconds": 7.781609773635864,
+  "input_sha256": "70a938e00f5db34b3cbabd8211bb451e56e6aebbf2e181da036f51ae9be2f1ce",
+  "raw_output_sha256": "ed5909ed6beb2589927b1bd555afffcba9443f63f734a60e5a635e6b8aa85640",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}

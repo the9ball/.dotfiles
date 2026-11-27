@@ -1,0 +1,197 @@
+{
+  "session_id": "7a60b3f9-6533-416e-8268-ad403d3aabc5",
+  "usage": {
+    "input_tokens": 2,
+    "cache_creation_input_tokens": 8113,
+    "cache_read_input_tokens": 535,
+    "output_tokens": 5023,
+    "output_tokens_details": {
+      "thinking_tokens": 1837
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 8113,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5023,
+        "cache_read_input_tokens": 535,
+        "cache_creation_input_tokens": 8113,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8113
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "model_usage": {
+    "claude-opus-5-5": {
+      "inputTokens": 2,
+      "outputTokens": 5023,
+      "cacheReadInputTokens": 535,
+      "cacheCreationInputTokens": 8113,
+      "webSearchRequests": 0,
+      "costUSD": 0.165479,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1837,
+      "canonicalModel": "claude-opus-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "effective_model": [
+    "claude-opus-5-5"
+  ],
+  "estimated_usd": 0.165479,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:27-28 NoticeQueue.flush",
+        "cause": "ループ条件が `while len(self.pending) >= self.batch_size` に変更されました。このため、pending の件数が batch_size 未満になった時点でループを抜け、残りの notice は送信されません。",
+        "impact": "明示的に flush しても、1 バッチに満たないキューエントリは配信されず、pending に残り続けます。要件「Queue entries smaller than one batch must also be delivered when explicitly flushed」に違反しています。既定の batch_size=20 では、20 件未満の dispatch は何も配信されません。",
+        "trigger": "batch_size=20 の NoticeQueue に 1 件 enqueue して flush() を呼ぶと、transport.send は一度も呼ばれず、戻り値は [] になり、pending は 1 件のまま残ります。",
+        "evidence": "candidate dispatch.py:27 `while len(self.pending) >= self.batch_size:`。base dispatch.py:27 は `while self.pending:` で、全件を送信していました。requirements の該当文。"
+      },
+      {
+        "id": "F2",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:29-32 NoticeQueue.flush",
+        "cause": "`except Exception: break` が ConnectionError に限定されていません。そのため、ValueError を含むあらゆる transport 例外を握りつぶしています。",
+        "impact": "不正な payload による ValueError が呼び出し元に届きません。要件「Invalid transport payloads must remain visible to the caller as ValueError」に違反します。さらに、不正な notice がキュー先頭に残るため、以後の flush は同じバッチで毎回黙って失敗し、後続の正常な notice も永久に配信されません。TypeError などのプログラミングエラーも隠蔽されます。",
+        "trigger": "transport.send が ValueError を送出する payload を含むバッチで flush() を呼ぶと、例外は伝播せず [] が返ります。以降の flush も同じ先頭バッチで停止し続けます。",
+        "evidence": "candidate dispatch.py:31 `except Exception:`、dispatch.py:32 `break`。requirements は一時的な利用不可を ConnectionError と明示し、ValueError の可視性を要求しています。"
+      },
+      {
+        "id": "F3",
+        "severity": "P1",
+        "category": "material",
+        "location": "dispatch.py:58 DeliveryService.dispatch / dispatch.py:61-64 command_response",
+        "cause": "dispatch の戻り値が ID リストから `{\"delivered\": [...]}` という dict に変更されました。しかし、呼び出し側の command_response は従来どおりリストとして扱っています。",
+        "impact": "scheduler へのコマンド応答が壊れます。count は配信件数に関係なく常に 1（dict のキー数）になり、ids には ID リストではなく dict が入ります。要件「Preserve the scheduler command interface」に違反しています。",
+        "trigger": "command_response(service, notices) を呼ぶと、配信件数が 0 件でも 20 件でも `{\"count\": 1, \"ids\": {\"delivered\": [...]}}` が返ります。",
+        "evidence": "candidate dispatch.py:58 `return {\"delivered\": self.queue.flush()}`。dispatch.py:63-64 `delivered = service.dispatch(notices)` / `return {\"count\": len(delivered), \"ids\": delivered}`。base dispatch.py:55 は `return self.queue.flush()` でした。"
+      },
+      {
+        "id": "F4",
+        "severity": "P3",
+        "category": "optional",
+        "location": "dispatch.py:28 NoticeQueue.flush",
+        "cause": "バッチごとに `list(self.pending)[: self.batch_size]` で deque 全体をコピーしてからスライスしています。",
+        "impact": "pending が大きい場合、反復ごとに全体コピーが発生し、O(n^2/batch_size) の不要なコストになります。正しさには影響しません。",
+        "trigger": "pending が大量（例: 数万件）のときに flush を呼ぶ場合。",
+        "evidence": "candidate dispatch.py:28。`itertools.islice(self.pending, self.batch_size)` などで回避できます（任意の改善です）。"
+      }
+    ],
+    "checklist_findings": [
+      {
+        "id": "C1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "commit \"Batch notice dispatch and retain temporarily unavailable deliveries\"（dispatch.py:58）",
+        "cause": "単一コミットの中に、バッチ化と再試行保持の変更に加えて、件名に現れない DeliveryService.dispatch の戻り値形状変更が混在しています。",
+        "impact": "インターフェース変更だけを独立してロールバックすることが難しく、コミット件名から変更範囲を把握できません。",
+        "trigger": "戻り値形状の変更だけを revert したい場合、バッチ化の変更も巻き戻すか、手作業で部分 revert する必要があります。",
+        "evidence": "commits[0] の subject と files=[dispatch.py]。diff の第 2 hunk（@@ -52,7 +55,7 @@）は件名の目的と無関係です。commit ID は証跡に含まれていません。"
+      }
+    ],
+    "checklist_results": [
+      {
+        "id": "CRQ-001",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "変更で新たに導入・変更された識別子は、flush 内の `batch`（既存）と dispatch 戻り値の `\"delivered\"` キーのみです。いずれも役割を表しています。command_response の `delivered` 変数が dict を指して誤解を招く点は F3（インターフェース破壊）に起因するため、命名問題としては計上しません。",
+        "evidence": "candidate tree 885577a5… dispatch.py:28, 58, 63",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-002",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "`\"delivered\"` は既存の self.delivered や snapshot の \"delivered\" キーと同じ語彙です。`batch_size` も既存の属性を使っています。",
+        "evidence": "candidate dispatch.py:14, 16, 43, 58",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-003",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "リポジトリには明示的なコメント規約がありません。既存の慣行は全クラスと全関数に docstring を付けることで、変更された flush と dispatch には docstring が残っています。新しい宣言は追加されていません。",
+        "evidence": "candidate dispatch.py:1, 7, 10, 19, 25, 40, 48, 51, 55, 62, 68",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-004",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "flush の docstring「Attempt queued deliveries」は、バッチ未満の残りを試行しない実装、および全例外で黙って停止する実装と一致しません。command_response の docstring「used by existing scheduler clients」も、壊れた応答形状と矛盾します。いずれも根本原因は挙動の欠陥なので、F1/F2/F3 に統合しました。",
+        "evidence": "docstring dispatch.py:25, 62。実装 dispatch.py:27-32, 58, 63-64",
+        "finding_ids": [
+          "F1",
+          "F2",
+          "F3"
+        ]
+      },
+      {
+        "id": "CRQ-005",
+        "applicability": "APPLICABLE",
+        "result": "PASS",
+        "reason": "置き換えられた経路（全件送信ループ）に残骸はありません。以前は未使用だった batch_size が使われるようになりました。dispatch.py 全体に未参照のヘルパーや到達不能な分岐はありません。",
+        "evidence": "candidate dispatch.py 全体（1-69 行）、diff の 2 hunk",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-006",
+        "applicability": "NOT_APPLICABLE",
+        "result": "NOT_APPLICABLE",
+        "reason": "import は base と candidate のどちらも `from collections import deque` のみです。新しいライブラリ、サービス、内部モジュールの依存は追加されていません。",
+        "evidence": "base/candidate dispatch.py:3。diff に import の変更はありません。",
+        "finding_ids": []
+      },
+      {
+        "id": "CRQ-007",
+        "applicability": "APPLICABLE",
+        "result": "FINDING",
+        "reason": "レビュー対象は 1 コミットです。件名はバッチ化と保持のみを述べていますが、無関係な戻り値形状の変更も含んでいます。commit ID が証跡にないため、件名で特定しました。",
+        "evidence": "commits[0].subject、diff hunk @@ -52,7 +55,7 @@",
+        "finding_ids": [
+          "C1"
+        ]
+      }
+    ],
+    "coverage": [
+      "dispatch.py"
+    ],
+    "limitations": [
+      "テストは実行しておらず、静的な読解のみに基づいています。",
+      "commit ID が証跡に含まれていないため、コミットは件名で特定しました。",
+      "Transport の実装と scheduler クライアントのコードは証跡に含まれていないため、要件の記述（send はリストを受け取り、原子的に成功するか例外を送出する）を前提にしました。",
+      "プランモードが有効でしたが、ユーザーがツールの使用と変更を禁止していたため、プランファイルの作成と ExitPlanMode の呼び出しは行わず、要求された JSON のみを返しました。"
+    ]
+  },
+  "label": "claude-R1-F1-B-combined",
+  "host": "claude",
+  "cli_exit": 0,
+  "started_unix": 1792038010.4314632,
+  "elapsed_seconds": 49.39876389503479,
+  "input_sha256": "0a1c6a2e5e4201b31d83b141dc9f9c35b826fd85fdd48196fe3a73cdcd3b266c",
+  "raw_output_sha256": "2cb85ff1a64eae44daa94ac1861bdcc0990ea4157a398dc312f5c73613235ba6",
+  "configured_model": "host default (no override)",
+  "configured_effort": "host default (no override)",
+  "effective_effort": null
+}

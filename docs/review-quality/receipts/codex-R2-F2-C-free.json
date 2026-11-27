@@ -1,0 +1,67 @@
+{
+  "session_id": "01a13d9c-539e-79f0-a15a-13b85a3aaf8e",
+  "usage": {
+    "input_tokens": 22067,
+    "cached_input_tokens": 18688,
+    "cache_write_input_tokens": 0,
+    "output_tokens": 627,
+    "reasoning_output_tokens": 124
+  },
+  "model_usage": null,
+  "effective_model": null,
+  "estimated_usd": 0.0148968,
+  "tool_calls": [],
+  "result": {
+    "free_findings": [
+      {
+        "id": "F1",
+        "severity": "P3",
+        "category": "quality",
+        "location": "inventory.py:format_digest docstring",
+        "cause": "The docstring now describes a comma-separated export, but the implementation still produces tab-separated text.",
+        "impact": "The function's documentation contradicts its behavior and the required export format, misleading future maintenance.",
+        "trigger": "A maintainer consults the docstring to determine the export delimiter.",
+        "evidence": "The candidate docstring says 'comma-separated'; both the header and row formatting use \\t. The requirements explicitly retain tab-separated exports."
+      },
+      {
+        "id": "F2",
+        "severity": "P3",
+        "category": "optional",
+        "location": "inventory.py:build_digest",
+        "cause": "The descriptive local name totals was replaced with x.",
+        "impact": "The intermediate value's purpose becomes less clear during maintenance without changing behavior.",
+        "trigger": "A maintainer reads or modifies the grouping-to-rendering flow.",
+        "evidence": "The diff replaces totals = group_stock(records) and render_rows(totals) with x = group_stock(records) and render_rows(x). Restoring the descriptive name is an optional readability improvement."
+      },
+      {
+        "id": "F3",
+        "severity": "P3",
+        "category": "optional",
+        "location": "inventory.py:_legacy_header",
+        "cause": "An unused helper introduces a second header representation with different labels and delimiters.",
+        "impact": "It adds maintenance surface and ambiguity about which header defines the current export.",
+        "trigger": "A maintainer searches for export header definitions and encounters both representations.",
+        "evidence": "All consumers and implementation are included, and none calls _legacy_header. format_digest embeds warehouse\\tsku\\tquantity directly, while the new helper returns Warehouse,Item,On hand. Removing the unused helper is optional cleanup."
+      }
+    ],
+    "coverage": [
+      "inventory.py"
+    ],
+    "limitations": [
+      "Review used only the embedded frozen evidence; no tools were used and no tests were executed.",
+      "Static inspection found no runtime behavior regression: sorting, zero-stock omission, negative adjustments, and tab-separated output remain unchanged."
+    ],
+    "checklist_findings": [],
+    "checklist_results": []
+  },
+  "label": "codex-R2-F2-C-free",
+  "host": "codex",
+  "cli_exit": 0,
+  "started_unix": 1792035017.210788,
+  "elapsed_seconds": 16.916934967041016,
+  "input_sha256": "bb7147f9e74da2314cf71127a08e18529b15591256f4cab9ffc7823e75e440b6",
+  "raw_output_sha256": "71bb61a753f3c886ff71e2277546b383bc285da3c7a7d64627d303be816b71d3",
+  "configured_model": "gpt-6.1-sol",
+  "configured_effort": "medium",
+  "effective_effort": null
+}
