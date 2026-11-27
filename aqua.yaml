@@ -25,7 +25,7 @@ registries:
   name: local
   path: aqua-registry.yaml
 - type: standard
-  ref: v4.593.0 # renovate: depName=aquaproj/aqua-registry
+  ref: v4.594.0 # renovate: depName=aquaproj/aqua-registry
 packages:
 # Renovate does not update curl-for-win; see docs/aqua-automation.md for manual updates.
 - name: curl/curl-for-win@8.23.0_5
@@ -54,7 +54,7 @@ packages:
   tags: [ci]
 - name: gitleaks/gitleaks@v8.30.1
   tags: [ci]
-- name: j178/prek@v0.5.11
+- name: j178/prek@v0.5.12
   tags: [ci]
 - name: suzuki-shunsuke/pinact@v5.0.2
 - name: ynqa/jnv@v0.7.1
