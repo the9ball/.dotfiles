@@ -1137,7 +1137,7 @@ npx skills add datadog-labs/agent-skills --skill dd-pup --skill dd-logs --skill 
 
 ### Claude Codeのキー設定
 
-[`chezmoi/.chezmoitemplates/claude-keybindings.json`](chezmoi/.chezmoitemplates/claude-keybindings.json)を正とし、`~/.claude/keybindings.json`と`~/.claude-personal/keybindings.json`へ同じ内容を配置します。チャット入力では、Enterが改行、Ctrl+Enterが送信です。
+[`chezmoi/.chezmoitemplates/claude-keybindings.json`](chezmoi/.chezmoitemplates/claude-keybindings.json)を正とし、`~/.claude/keybindings.json`と`~/.claude-personal/keybindings.json`へ同じ内容を配置します。チャット入力では、Codexと同じくEnterが送信、Ctrl+Jが改行です。
 
 `settings.json`と違い、ファイル全体を管理します。`/keybindings`などで配置先を編集した内容は維持されず、次の適用でテンプレートの内容への上書きを確認されます。変更する場合はテンプレートを書き換えて適用してください。
 
@@ -1146,7 +1146,7 @@ chezmoi --source "$HOME/.dotfiles" diff "$HOME/.claude/keybindings.json" "$HOME/
 chezmoi --source "$HOME/.dotfiles" apply "$HOME/.claude/keybindings.json" "$HOME/.claude-personal/keybindings.json"
 ```
 
-Ctrl+EnterをEnterと区別して送らない端末では、Ctrl+Enterも改行になります。その場合は、既定のキー割り当ての`Ctrl+X` `Ctrl+S`（`chat:sendNow`）で送信します。Windows TerminalでCtrl+Enterが改行になる場合は、`compatibility.kittyKeyboardMode`を`false`にしていないか確認してください。
+以前はEnterで改行、Ctrl+Enterで送信していましたが、端末によってはCtrl+Enterを区別できないため、この割り当てに変更しました。Ctrl+Enterは、Termuxから送るとEnterと同じ`0d`になり、psmux v3.4.0内ではCtrl+Jと同じ`0a`になります。どの端末でも区別して届くEnterとCtrl+Jを使います。
 
 端末入力の障害を調べた経緯（失敗した検証、nanoの入力障害、未解決事項を含む）は、[PR #332の調査記録](https://github.com/the9ball/.dotfiles/pull/332)を参照してください。
 
