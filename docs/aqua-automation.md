@@ -1,76 +1,155 @@
 # Automated aqua package updates
 
-`.github/workflows/aqua-update.yaml` checks for updates once daily (08:30 JST / 23:30 UTC on the previous day)
-and supports manual runs via **Actions → Update aqua packages → Run workflow**.
+[Renovate](../.github/workflows/renovate.yaml) runs daily at 05:20 JST
+(20:20 UTC on the previous day). To run it on demand, select
+**Actions → Renovate aqua packages → Run workflow** on `master`.
 
-When `aqua update` changes only `aqua.yaml`, the workflow opens a branch and
-pull request and enables GitHub native auto-merge. The existing `ci-required`
-status check must succeed before merging. No changes means no PR.
+## Update scope
 
-## One-time setup
+The [configuration](../.github/renovate.json5) uses the aqua `file` preset at
+2.15.0 and enables only its regex managers for `aqua.yaml`. Renovate groups the
+package versions and the annotated standard registry `ref` in a single PR.
+The kubectx and kubens entries stay pinned because their completion archive
+versions and hashes in `chezmoi/.chezmoiexternal.toml` must change together.
 
-1. In Settings → Actions → General → Workflow permissions, enable
-   **Allow GitHub Actions to create and approve pull requests**.
-2. Keep **Allow auto-merge** enabled under Settings → General → Pull Requests.
-3. Keep the `master` ruleset requiring `ci-required`.
+curl-for-win is excluded and updated manually. Its download source is curl.se,
+and `curl/curl-for-win` has no GitHub releases or tags, so Renovate finds no
+candidates without warning. The previous `aqua update` workflow also left it
+unchanged. The explicit exclusion prevents wrong candidates if GitHub tags
+appear later. To update it, edit its version in `aqua.yaml`, check that the
+curl.se download and checksum file exist for that version, then follow the
+usual review.
 
-No personal access token or repository secret is needed. The update workflow
-uses the default `GITHUB_TOKEN` with `contents: write`, `pull-requests: write`
-and `actions: write`.
+GitHub Actions, the Renovate image and aqua preset, the bootstrap aqua version,
+and files outside `aqua.yaml` are outside automatic update scope.
 
-## How the update PR gets its CI
+## GitHub App setup
 
-A PR opened by `GITHUB_TOKEN` does trigger the `pull_request` CI run, but the
-repository's approval policy for fork pull request workflows
-(**Require approval for all external contributors**) treats
-`github-actions[bot]` as an external contributor. GitHub therefore creates the
-run in the `action_required` state, and that pending run keeps the PR blocked.
-A separately dispatched CI run on the same commit does not unblock it.
+1. Create a GitHub App and install it on `the9ball/.dotfiles` only. Grant these
+   repository permissions:
 
-After opening the PR, the workflow waits for that `pull_request` CI run on the
-PR head commit and approves it through the Actions API (this is why it needs
-`actions: write`). The approved run reports `ci-required`, and auto-merge
-merges the PR once it passes. If the policy is relaxed so the run starts
-without approval, the workflow skips the approval step.
+   | Permission | Access |
+   | --- | --- |
+   | Contents | Read and write |
+   | Pull requests | Read and write |
+   | Metadata | Read |
+   | Checks | Read |
+   | Commit statuses | Read |
 
-The approval is limited to the run for a commit this workflow just created,
-after the checks above allowed only an `aqua.yaml` change.
+2. Confirm that the App's slug matches the expected PR author login
+   `app/the9ball-dotfiles-renovate`. If GitHub assigns a different slug, update
+   the login here and in the [dotfiles-sync Skill](../link-targets/agents/skills/dotfiles-sync/SKILL.md).
+3. Register the App client ID in the repository variable `RENOVATE_APP_CLIENT_ID`
+   and its private key in the repository secret `RENOVATE_APP_PRIVATE_KEY`.
+   The workflow requests an installation token limited to the current
+   repository and the permissions above. GitHub grants Metadata read implicitly.
+4. Keep **Allow auto-merge** enabled and keep the `master` ruleset requiring
+   `ci-required`. Leave the App out of the ruleset bypass list and leave
+   Administration write access disabled. GitHub native auto-merge then waits
+   for the required check and leaves the PR open if that check fails.
 
-## Verifying changes after merge
+The App omits the permissions below. If a run exposes a missing permission or
+a PR's CI reports `action_required`, stop and get user approval before changing
+permissions or repository settings.
 
-This automation cannot be exercised from a pull request branch:
+| Omitted permission | Expected effect |
+| --- | --- |
+| Workflows | The App cannot change workflow files. GitHub may also reject rebasing an open Renovate PR after a workflow change lands on `master`. That rebase behavior remains unverified. |
+| Issues | Renovate cannot open a configuration-error issue. The Dependency Dashboard is disabled. Renovate reads the issue list on every run while finalizing the repository. Whether the installation token can read it without Issues permission is unverified. A rejection would fail every run and requires stopping under the permission rule above. |
+| Administration | Settings writes are unavailable. If Renovate tries to read an administration-only setting, that request may be rejected. |
+| Merge queues | The App cannot use a merge queue. This repository uses PR auto-merge. |
+| Dependabot alerts | Renovate cannot read vulnerability alerts. Failed alert lookup is logged as a warning. |
+| Members | Membership or team lookups may be rejected if a configuration uses them. This configuration does not use them. |
 
-- GitHub only dispatches workflows that exist on the default branch, so a new
-  or changed `aqua-update.yaml` cannot be run before it reaches `master`.
-- The parts most likely to fail (PR creation by `GITHUB_TOKEN`, approving the
-  held CI run, and auto-merge) need a real PR, so a dry run on a branch would
-  not cover them.
+## Failure detection and run outcomes
 
-After merging a change to the workflow, run **Update aqua packages** manually
-once and check that:
+Renovate uses `exitCodeForErrors` to surface repository errors as nonzero exit
+codes. In Renovate 44.263.5, a GitHub API 403 identified as a rate limit maps
+to `PLATFORM_RATE_LIMIT_EXCEEDED` and exit code 4. This behavior was verified
+from the pinned source only and remains untested against the live API.
+See [GitHub HTTP handling](https://github.com/renovatebot/renovate/blob/44.263.5/lib/util/http/github.ts),
+[repository error handling](https://github.com/renovatebot/renovate/blob/44.263.5/lib/workers/repository/error.ts),
+and [repository results](https://github.com/renovatebot/renovate/blob/44.263.5/lib/workers/repository/result.ts).
 
-1. The run opens an `automate/aqua-update-*` PR, or reports no updates or an
-   already-open update PR.
-2. The run log shows the PR's `pull_request` CI run being approved, and that
-   run reports `ci-required` on the PR's head commit.
-3. The PR merges automatically once `ci-required` passes.
+A lookup can return dependency warnings even when Renovate exits zero.
+The report step reads the JSON report from the action's default `/tmp` mount.
+The path includes the run ID and attempt. The step fails for any of these cases:
 
-When no package update is available, steps 2 and 3 wait for the next run that
-opens a PR.
+- The report is missing or cannot be parsed, or the repository entry is missing.
+- No dependency in `aqua.yaml` is active across the reported managers.
+- A reported dependency has warnings or a skip reason other than
+  `disabled` or `package-rules`.
+- A dependency with a name starting with `ahmetb/kubectx` has no skip reason.
+- A branch reports `error`, `pr-limit-reached`, `branch-limit-reached`,
+  `commit-per-run-limit-reached`, or `commit-hourly-limit-reached`.
+  These are Renovate 44.263.5 branch results. An absent branch list counts as empty.
 
-## Safeguards
+Find Renovate PRs using the App login above and a head branch starting with
+`renovate/`. Check the watched run's conclusion before classifying its outcome.
 
-- An already-open `automate/aqua-update-` PR opened by GitHub Actions blocks a
-  duplicate run. A failed lookup of open PRs fails the run.
-- Auto-merge performed for `GITHUB_TOKEN` does not delete the head branch, so
-  each run first deletes `automate/aqua-update-*` branches whose PR opened by
-  GitHub Actions was merged. Branches with an open PR or a PR closed without
-  merging are kept, so the latest merged branch remains until the next run.
-  The `automate/` prefix keeps this cleanup away from manually created
-  `chore/` branches.
-- Changes outside `aqua.yaml` cause a failure rather than an automatic PR.
-- Changes to kubectx/kubens are blocked because their completion archive
-  versions and checksums in `chezmoi/.chezmoiexternal.toml` must also change.
-- The workflow does not force-merge or bypass branch rules.
-- A failed CI check leaves the PR open for investigation.
-- A failed run can be inspected in the Actions run log.
+| Run conclusion | Matching PR | Outcome |
+| --- | --- | --- |
+| Failure | Any | Report the failing step and any open Renovate PR. |
+| Success | Open | Report PR creation and wait for CI and auto-merge. |
+| Success | Merged at or after the anchor run's start | Confirm the merge commit. |
+| Success | Neither | Report no updates. |
+
+In Renovate 44.263.5, a failure to enable auto-merge does not fail the run.
+dotfiles-sync stops if an open PR has no auto-merge request.
+
+Closing the aqua update PR without merging does not hold back the update. In
+Renovate 44.263.5, a grouped update PR is recreated on a later run unless
+`recreateWhen` is `never`. To hold back a package, add a package rule instead.
+
+Stop and report multiple qualifying PRs or conflicting evidence. If the run
+was cancelled, check for a replacement run first. If there is none, check for
+an open Renovate PR.
+
+## Migration and post-merge checks
+
+1. Before merging, set up the App, variable, and secret so scheduled runs can
+   authenticate immediately. Merge or close any open `automate/aqua-update-*` PRs.
+2. Merge the migration PR and manually dispatch **Renovate aqua packages** once.
+   Confirm repository finalization can read the issue list with the installation
+   token that omits Issues permission. This access remains unverified. A
+   rejection would fail every run. Stop under the permission rule above.
+3. When a PR is opened, verify its author, head branch, and `aqua.yaml` diff.
+   Confirm `ci-required` runs on its head commit without `action_required` and
+   that auto-merge waits for it to pass. Compare dotfiles-sync's reported
+   outcome with the run and PR state. Exercise the PR checks on a later run
+   if this first run has no updates.
+4. Delete any remaining `automate/aqua-update-*` branches from the old workflow.
+   The **Allow GitHub Actions to create and approve pull requests** setting is
+   no longer required for aqua updates. Leave any settings change to the user.
+
+## Rollback
+
+Get separate authorization before executing these external operations.
+
+1. Disable `renovate.yaml` with `gh workflow disable` and confirm that any active
+   run has stopped.
+2. Disable auto-merge for open Renovate update PRs, close them, and delete
+   their `renovate/` branches.
+3. Merge a PR reverting the migration to restore `aqua-update.yaml` and the old
+   Skill. Resolve later conflicts by removing the Renovate configuration and
+   workflow and restoring the previous files.
+4. Verify **Allow GitHub Actions to create and approve pull requests** is
+   enabled for the old workflow. Dispatch `aqua-update.yaml` once and confirm
+   it works.
+5. If appropriate, uninstall the App and remove its variable and secret.
+
+## Maintenance and risks
+
+Renovate does not validate version candidates against aqua's registry asset
+definitions. An upstream asset rename can therefore produce a broken version.
+`ci-required` can catch such breakage for tools with the `ci` tag.
+
+Update the two Action references manually by pinning each to a commit SHA with
+its version in a comment. Update the image version and digest together and
+update the aqua preset pin manually. When updating the image, rerun the
+checks for a no-update report, exclusion by package rule, an `allowedVersions`
+restriction, lookup warnings, a connection failure, and missing or invalid
+report data. Review the rate-limit mapping in the new source. The experimental
+`exitCodeForErrors` option and the report schema can change between versions.
+Confirm the Action's default `/tmp` mount when updating the Action. A missing
+report fails the job if that mount stops exposing the expected path.
